@@ -8,8 +8,6 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const WEBHOOK_URL = "https://hook.us2.make.com/wowvn4y288pk4fs80s2ipf9dcp354rly";
-
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -23,14 +21,14 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(WEBHOOK_URL, {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMessage }),
       });
 
-      const text = await response.text();
-      setMessages((prev) => [...prev, { role: "assistant", content: text }]);
+      const data = await response.json();
+      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
     } catch (error) {
       setMessages((prev) => [...prev, { role: "assistant", content: "Sorry, something went wrong." }]);
     } finally {
@@ -40,7 +38,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
       <header className="bg-[#1a365d] text-white p-4 border-b-4 border-[#c59d5f]">
         <div className="max-w-4xl mx-auto flex items-center gap-3">
           <div className="w-10 h-10 bg-[#c59d5f] rounded-lg flex items-center justify-center text-xl">⚖️</div>
@@ -51,7 +48,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Chat Area */}
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 overflow-y-auto">
         {messages.length === 0 && (
           <div className="text-center py-12 text-gray-500">
@@ -85,7 +81,6 @@ export default function Home() {
         <div ref={messagesEndRef} />
       </main>
 
-      {/* Input Area */}
       <footer className="border-t bg-white p-4">
         <div className="max-w-4xl mx-auto flex gap-3">
           <input
