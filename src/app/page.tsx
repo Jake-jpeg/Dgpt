@@ -111,12 +111,3 @@ export default function Home() {
     </div>
   );
 }
-```
-
-Save the file. Your browser at `localhost:3000` should auto-refresh and show the chat interface.
-
-Then to deploy, in terminal run:
-```
-git add .
-git commit -m "Add chat interface"
-git push
