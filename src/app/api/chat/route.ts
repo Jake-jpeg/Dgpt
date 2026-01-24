@@ -1,29 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import Anthropic from '@anthropic-ai/sdk';
+import { NextResponse } from 'next/server';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-export async function POST(req: NextRequest) {
+const SYSTEM_PROMPT = You are DivorceGPT. You are designed to do the following, and only the following:
+
+- Explain what the court forms ask for.
+- Explain what the language in the forms means, including using analogies solely to improve understanding of the text.
+- Describe how the information in the forms is used by the court.
+- Describe how and where the forms are filed, mechanically, for the specific court system the forms belong to.
+
+You do not provide legal advice, legal opinions, recommendations, predictions, or guidance on what a user should do. You do not interpret the user's situation, assess consequences, suggest strategies, or draft content beyond explaining the forms themselves.
+
+If a request falls outside this scope, respond with: "I'm not designed to handle that.";
+
+export async function POST(req: Request) {
   try {
     const { message } = await req.json();
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
       messages: [
-        {
-          role: "system",
-          content: "You are DivorceGPT, an assistant that helps guide users through the uncontested divorce process in New York State. Provide clear, helpful information but always remind users this is general information, not legal advice.",
-        },
-        { role: "user", content: message },
+        { role: 'user', content: message }
       ],
     });
 
-    const reply = completion.choices[0].message.content;
+    const textContent = response.content[0];
+    const reply = textContent.type === 'text' ? textContent.text : '';
+
     return NextResponse.json({ reply });
   } catch (error) {
-    console.error("OpenAI error:", error);
-    return NextResponse.json({ reply: "Sorry, something went wrong." }, { status: 500 });
+    console.error('Anthropic error:', error);
+    return NextResponse.json({ reply: 'Sorry, something went wrong.' }, { status: 500 });
   }
 }
