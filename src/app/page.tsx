@@ -74,6 +74,10 @@ const faqs = [
     a: "No. DivorceGPT explains what divorce forms ask for and how to file them. It does not provide legal advice or tell you what to do. For legal advice, consult an attorney.",
   },
   {
+    q: "What technology powers DivorceGPT?",
+    a: "DivorceGPT uses Claude, an AI assistant created by Anthropic, combined with custom legal document guardrails developed specifically for New York divorce filings. Your conversations are not stored or used for AI training.",
+  },
+  {
     q: "How long does the process take?",
     a: "You can complete your forms in one session. After filing, New York courts typically process uncontested divorces in 2-4 months.",
   },
@@ -289,14 +293,17 @@ export default function Home() {
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282]">
                 <span className="text-sm">⚖️</span>
               </div>
-              <span className="font-semibold text-zinc-900">DivorceGPT</span>
+              <div>
+                <span className="font-semibold text-zinc-900">DivorceGPT</span>
+                <p className="text-xs text-zinc-400">Powered by Claude · Built by June Guided Solutions</p>
+              </div>
             </div>
             <p className="text-center text-sm text-zinc-500 max-w-md">
               This tool explains NY divorce forms and procedures. It is not legal advice and may contain errors. Consult an attorney for your specific situation.
             </p>
             <div className="flex gap-6 text-sm">
-              <a href="#" className="text-zinc-600 transition hover:text-[#1a365d]">Privacy</a>
-              <a href="#" className="text-zinc-600 transition hover:text-[#1a365d]">Terms</a>
+              <Link href="/privacy" className="text-zinc-600 transition hover:text-[#1a365d]">Privacy</Link>
+              <Link href="/terms" className="text-zinc-600 transition hover:text-[#1a365d]">Terms</Link>
             </div>
           </div>
         </div>
