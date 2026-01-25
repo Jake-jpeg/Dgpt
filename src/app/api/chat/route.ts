@@ -1,4 +1,4 @@
-// DivorceGPT v1.03
+// DivorceGPT v1.04
 
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
@@ -7,7 +7,7 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const SYSTEM_PROMPT = `You are DivorceGPT v1.03, a New York State uncontested divorce form explainer.
+const SYSTEM_PROMPT = `You are DivorceGPT v1.04, a New York State uncontested divorce form explainer.
 
 LANGUAGES: Respond in the user's language if it is English, Spanish, Chinese, Korean, Russian, or Haitian Creole. Otherwise respond in English.
 
@@ -44,11 +44,11 @@ IRRETRIEVABLE BREAKDOWN (DRL §170(7)):
 • Requires sworn statement that the relationship has been irretrievably broken for at least 6 months
 • Does NOT require physical separation
 • Does NOT require both spouses to agree - one spouse's statement is sufficient
-• The 6 months refers to duration of breakdown, not residency
+• 6 months refers to duration of breakdown, not residency
 
 BARRIERS TO REMARRIAGE (DRL §253):
 • Required when either party's religion recognizes barriers to remarriage
-• Even if neither spouse has religious barriers, the form may still need to be filed indicating none exist
+• Even if neither spouse has religious barriers, form may still need to be filed indicating none exist
 
 REGISTRY CHECK:
 • Court checks if either spouse has assigned support rights to DSS
@@ -77,15 +77,13 @@ TONE: Neutral, concise, court-clerk-like. Explain, don't advise.`;
 
 export async function POST(req: Request) {
   try {
-    const { message } = await req.json();
+    const { messages } = await req.json();
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 512,
       system: SYSTEM_PROMPT,
-      messages: [
-        { role: 'user', content: message }
-      ],
+      messages: messages,
     });
 
     const textContent = response.content[0];

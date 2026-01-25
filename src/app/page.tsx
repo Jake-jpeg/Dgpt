@@ -24,7 +24,7 @@ export default function Home() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({ messages: [...messages, { role: "user", content: userMessage }] }),
       });
 
       const data = await response.json();
@@ -100,7 +100,7 @@ export default function Home() {
           </button>
         </div>
         <p className="text-center text-xs text-gray-400 mt-2">
-          This is general information, not legal advice. Consult an attorney for your specific situation.
+          This tool explains NY divorce forms and procedures. It is not legal advice and may contain errors. Consult an attorney for your specific situation.
         </p>
       </footer>
     </div>
