@@ -157,9 +157,12 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Governing Law</h2>
+            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Governing Law and Jurisdiction</h2>
+            <p className="text-zinc-600 mb-4">
+              These Terms are governed by the laws of the State of New York, without regard to conflict of law principles.
+            </p>
             <p className="text-zinc-600">
-              These Terms are governed by the laws of the State of New York, without regard to conflict of law principles. Any disputes shall be resolved in the courts of New York.
+              Any disputes arising from or relating to these Terms or your use of DivorceGPT shall be resolved exclusively in the state courts of Orange County, New York, or the United States District Court for the Southern District of New York. You consent to personal jurisdiction in these courts and waive any objection to venue.
             </p>
           </section>
 
