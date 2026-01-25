@@ -152,7 +152,7 @@ export default function ChatPage() {
             </button>
           </div>
           <p className="mt-3 text-center text-xs text-zinc-400">
-            DivorceGPT explains forms and procedures. It is not legal advice. Consult an attorney for your specific situation.
+            DivorceGPT explains forms and procedures and may contain errors. This is not legal advice.
           </p>
         </div>
       </footer>
