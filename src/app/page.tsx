@@ -295,7 +295,7 @@ export default function Home() {
               </div>
               <div>
                 <span className="font-semibold text-zinc-900">DivorceGPT</span>
-                <p className="text-xs text-zinc-400">Powered by Claude · Built by June Guided Solutions</p>
+                <p className="text-xs text-zinc-400">© 2025 DivorceGPT · Powered by Claude</p>
               </div>
             </div>
             <p className="text-center text-sm text-zinc-500 max-w-md">

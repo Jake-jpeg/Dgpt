@@ -30,7 +30,7 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Overview</h2>
             <p className="text-zinc-600 mb-4">
-              DivorceGPT is operated by June Guided Solutions. This Privacy Policy explains how we collect, use, and protect your information when you use our New York uncontested divorce form assistance service.
+              This Privacy Policy explains how we collect, use, and protect your information when you use DivorceGPT, our New York uncontested divorce form assistance service.
             </p>
             <p className="text-zinc-600">
               <strong>The short version:</strong> We collect minimal data, don't store your conversations, and never sell your information.
@@ -116,7 +116,7 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Contact Us</h2>
             <p className="text-zinc-600">
               If you have questions about this Privacy Policy or your data, contact us at:<br />
-              <strong>Email:</strong> privacy@juneguidedsolutions.com
+              <strong>Email:</strong> admin@divorcegpt.com
             </p>
           </section>
 

@@ -30,7 +30,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Agreement to Terms</h2>
             <p className="text-zinc-600">
-              By accessing or using DivorceGPT, operated by June Guided Solutions ("we," "us," or "our"), you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use this service.
+              By accessing or using DivorceGPT, you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use this service. DivorceGPT is operated by June Guided Solutions LLC.
             </p>
           </section>
 
@@ -152,7 +152,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Intellectual Property</h2>
             <p className="text-zinc-600">
-              The DivorceGPT service, including its design, code, and content (excluding court forms which are public domain), is the property of June Guided Solutions. You may not copy, modify, or distribute our proprietary content without permission.
+              The DivorceGPT service, including its design, code, and content (excluding court forms which are public domain), is the property of DivorceGPT. You may not copy, modify, or distribute our proprietary content without permission.
             </p>
           </section>
 
@@ -174,7 +174,7 @@ export default function TermsPage() {
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Contact</h2>
             <p className="text-zinc-600">
               For questions about these Terms of Service, contact us at:<br />
-              <strong>Email:</strong> legal@juneguidedsolutions.com
+              <strong>Email:</strong> admin@divorcegpt.com
             </p>
           </section>
         </div>
