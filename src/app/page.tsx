@@ -16,77 +16,138 @@ const features = [
   {
     title: "Form Explanation",
     description: "Understand what each court form asks for and why.",
-    icon: "📄",
+    icon: (
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+      </svg>
+    ),
   },
   {
     title: "Filing Guidance",
     description: "Learn where and how to file your papers in New York.",
-    icon: "📍",
+    icon: (
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+      </svg>
+    ),
   },
   {
-    title: "Multilingual Support",
+    title: "Multilingual",
     description: "Get help in English, Spanish, Chinese, Korean, Russian, or Haitian Creole.",
-    icon: "🌐",
+    icon: (
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
+      </svg>
+    ),
   },
   {
-    title: "No Legal Jargon",
-    description: "Plain language explanations of complex legal terms.",
-    icon: "💬",
+    title: "Plain Language",
+    description: "No legal jargon. Clear explanations of complex terms.",
+    icon: (
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+      </svg>
+    ),
   },
 ];
 
 const steps = [
-  { number: "1", title: "Check Eligibility", description: "Answer a few questions to confirm this service is right for you." },
-  { number: "2", title: "Pay $20", description: "One-time payment. No hidden fees. No subscriptions." },
-  { number: "3", title: "Get Your Forms", description: "Receive your prepared divorce forms ready for filing." },
-  { number: "4", title: "Ask Questions", description: "Use DivorceGPT to understand any part of the process." },
+  { number: "01", title: "Check Eligibility", description: "Answer a few questions to confirm this service is right for you." },
+  { number: "02", title: "Pay $20", description: "One-time payment. No hidden fees. No subscriptions." },
+  { number: "03", title: "Get Your Forms", description: "Receive your prepared divorce forms ready for filing." },
+  { number: "04", title: "Ask Questions", description: "Use DivorceGPT to understand any part of the process." },
+];
+
+const eligibilityItems = [
+  "No children of the marriage",
+  "No property or debts to divide",
+  "No spousal support requests",
+  "Both spouses agree to divorce",
+  "Spouse will cooperate with paperwork",
+  "At least one spouse meets NY residency",
+];
+
+const faqs = [
+  {
+    q: "Is this legal advice?",
+    a: "No. DivorceGPT explains what divorce forms ask for and how to file them. It does not provide legal advice or tell you what to do. For legal advice, consult an attorney.",
+  },
+  {
+    q: "How long does the process take?",
+    a: "You can complete your forms in one session. After filing, New York courts typically process uncontested divorces in 2-4 months.",
+  },
+  {
+    q: "What if my spouse won't cooperate?",
+    a: "This service is for uncontested divorces where both spouses agree. If your spouse won't cooperate, you may need to pursue a contested divorce with an attorney.",
+  },
+  {
+    q: "Can I get a refund?",
+    a: "If you don't qualify after completing the eligibility check, you won't be charged. Once forms are generated, refunds are not available.",
+  },
 ];
 
 export default function Home() {
   const [selectedLang, setSelectedLang] = useState(languages[0]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-zinc-50">
       {/* Header */}
-      <header className="bg-[#1a365d] text-white">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#c59d5f] rounded-lg flex items-center justify-center text-xl">⚖️</div>
-            <div>
-              <h1 className="text-xl font-semibold">DivorceGPT</h1>
-              <p className="text-xs opacity-80">New York Uncontested Divorce</p>
+      <header className="sticky top-0 z-50 backdrop-blur-sm bg-white/80 border-b border-zinc-100">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282] shadow-lg shadow-[#1a365d]/20">
+                <span className="text-lg">⚖️</span>
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold text-zinc-900">DivorceGPT</h1>
+                <p className="text-xs text-zinc-500">New York Uncontested Divorce</p>
+              </div>
             </div>
+            <nav className="hidden md:flex items-center gap-1">
+              {["How It Works", "Features", "FAQ"].map((item) => (
+                <a
+                  key={item}
+                  href={`#${item.toLowerCase().replace(/ /g, "-")}`}
+                  className="rounded-full px-4 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
+                >
+                  {item}
+                </a>
+              ))}
+            </nav>
           </div>
-          <nav className="hidden md:flex gap-6 text-sm">
-            <a href="#how-it-works" className="hover:text-[#c59d5f] transition">How It Works</a>
-            <a href="#features" className="hover:text-[#c59d5f] transition">Features</a>
-            <a href="#faq" className="hover:text-[#c59d5f] transition">FAQ</a>
-          </nav>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="bg-[#1a365d] text-white pb-20 pt-12">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#1a365d] via-[#1e3a5f] to-[#234876] pt-16 pb-32">
+        {/* Background decoration */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-[#c59d5f]/10 blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-[#c59d5f]/10 blur-3xl" />
+        </div>
+        
+        <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
             New York Uncontested Divorce
-            <span className="block text-[#c59d5f] mt-2">Made Simple</span>
           </h2>
-          <p className="text-lg md:text-xl opacity-90 mb-8 max-w-2xl mx-auto">
+          <p className="mt-2 text-2xl font-semibold text-[#c59d5f] sm:text-3xl">Made Simple</p>
+          <p className="mt-6 text-lg text-zinc-300 max-w-2xl mx-auto">
             Get your divorce forms prepared and explained in plain language. 
             No lawyers needed for simple, uncontested cases.
           </p>
           
           {/* Language Selector */}
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
+          <div className="mt-10 flex flex-wrap justify-center gap-2">
             {languages.map((lang) => (
               <button
                 key={lang.code}
                 onClick={() => setSelectedLang(lang)}
-                className={`px-4 py-2 rounded-full text-sm transition ${
+                className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
                   selectedLang.code === lang.code
-                    ? "bg-[#c59d5f] text-white"
-                    : "bg-white/10 hover:bg-white/20"
+                    ? "bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30"
+                    : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white backdrop-blur-sm"
                 }`}
               >
                 {lang.label}
@@ -95,29 +156,43 @@ export default function Home() {
           </div>
 
           {/* CTA Button */}
-          <Link
-            href="/qualify"
-            className="inline-block bg-[#c59d5f] hover:bg-[#b08a4f] text-white font-semibold text-lg px-8 py-4 rounded-xl transition shadow-lg hover:shadow-xl"
-          >
-            {selectedLang.cta} →
-          </Link>
+          <div className="mt-10">
+            <Link
+              href="/qualify"
+              className="group inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-[#c59d5f]/30 transition-all duration-200 hover:bg-[#d4ac6e] hover:shadow-2xl hover:shadow-[#c59d5f]/40 hover:-translate-y-0.5"
+            >
+              {selectedLang.cta}
+              <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </Link>
+          </div>
           
-          <p className="mt-4 text-sm opacity-70">$20 one-time fee • No hidden costs</p>
+          <p className="mt-4 text-sm text-zinc-400">$20 one-time fee • No hidden costs</p>
         </div>
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4">
-          <h3 className="text-3xl font-bold text-center text-[#1a365d] mb-12">How It Works</h3>
-          <div className="grid md:grid-cols-4 gap-8">
-            {steps.map((step) => (
-              <div key={step.number} className="text-center">
-                <div className="w-12 h-12 bg-[#1a365d] text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                  {step.number}
+      <section id="how-it-works" className="py-24 bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">How It Works</h3>
+            <p className="mt-4 text-lg text-zinc-600">Four simple steps to complete your divorce</p>
+          </div>
+          
+          <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            {steps.map((step, index) => (
+              <div key={step.number} className="relative">
+                {index < steps.length - 1 && (
+                  <div className="hidden lg:block absolute top-8 left-[60%] w-full h-0.5 bg-gradient-to-r from-[#c59d5f] to-transparent" />
+                )}
+                <div className="relative rounded-2xl bg-zinc-50 p-8 transition-all duration-200 hover:bg-zinc-100 hover:shadow-lg">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-xl font-bold text-white shadow-lg shadow-[#1a365d]/20">
+                    {step.number}
+                  </div>
+                  <h4 className="mt-6 text-lg font-semibold text-zinc-900">{step.title}</h4>
+                  <p className="mt-2 text-sm text-zinc-600">{step.description}</p>
                 </div>
-                <h4 className="font-semibold text-lg mb-2 text-[#1a365d]">{step.title}</h4>
-                <p className="text-gray-600 text-sm">{step.description}</p>
               </div>
             ))}
           </div>
@@ -125,76 +200,81 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section id="features" className="py-20 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4">
-          <h3 className="text-3xl font-bold text-center text-[#1a365d] mb-12">What You Get</h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <section id="features" className="py-24 bg-zinc-50">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">What You Get</h3>
+            <p className="mt-4 text-lg text-zinc-600">Everything you need to understand your divorce forms</p>
+          </div>
+          
+          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {features.map((feature) => (
-              <div key={feature.title} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="text-3xl mb-4">{feature.icon}</div>
-                <h4 className="font-semibold text-lg mb-2 text-[#1a365d]">{feature.title}</h4>
-                <p className="text-gray-600 text-sm">{feature.description}</p>
+              <div
+                key={feature.title}
+                className="group rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-100 transition-all duration-200 hover:shadow-xl hover:ring-[#c59d5f]/20 hover:-translate-y-1"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-white shadow-lg shadow-[#1a365d]/20 transition-transform duration-200 group-hover:scale-110">
+                  {feature.icon}
+                </div>
+                <h4 className="mt-6 text-lg font-semibold text-zinc-900">{feature.title}</h4>
+                <p className="mt-2 text-sm text-zinc-600">{feature.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Eligibility Preview */}
-      <section className="py-20 bg-[#1a365d] text-white">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h3 className="text-3xl font-bold mb-6">Is This Right For You?</h3>
-          <p className="text-lg opacity-90 mb-8">This service is for New York uncontested divorces with:</p>
-          <div className="grid md:grid-cols-2 gap-4 text-left max-w-2xl mx-auto">
-            {[
-              "No children of the marriage",
-              "No property or debts to divide",
-              "No spousal support requests",
-              "Both spouses agree to divorce",
-              "Spouse will cooperate with paperwork",
-              "At least one spouse meets NY residency",
-            ].map((item) => (
-              <div key={item} className="flex items-center gap-3">
-                <span className="text-[#c59d5f] text-xl">✓</span>
-                <span>{item}</span>
+      {/* Eligibility */}
+      <section className="py-24 bg-gradient-to-b from-[#1a365d] via-[#1e3a5f] to-[#234876]">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
+          <h3 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">Is This Right For You?</h3>
+          <p className="mt-4 text-lg text-zinc-300">This service is for New York uncontested divorces with:</p>
+          
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 text-left max-w-2xl mx-auto">
+            {eligibilityItems.map((item) => (
+              <div
+                key={item}
+                className="flex items-center gap-3 rounded-xl bg-white/10 backdrop-blur-sm px-4 py-3 ring-1 ring-white/10"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#c59d5f] text-white">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                </div>
+                <span className="text-white">{item}</span>
               </div>
             ))}
           </div>
-          <Link
-            href="/qualify"
-            className="inline-block mt-10 bg-[#c59d5f] hover:bg-[#b08a4f] text-white font-semibold px-8 py-4 rounded-xl transition"
-          >
-            Check Your Eligibility →
-          </Link>
+          
+          <div className="mt-12">
+            <Link
+              href="/qualify"
+              className="group inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-[#c59d5f]/30 transition-all duration-200 hover:bg-[#d4ac6e] hover:shadow-2xl hover:-translate-y-0.5"
+            >
+              Check Your Eligibility
+              <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-20 bg-white">
-        <div className="max-w-3xl mx-auto px-4">
-          <h3 className="text-3xl font-bold text-center text-[#1a365d] mb-12">Frequently Asked Questions</h3>
-          <div className="space-y-6">
-            {[
-              {
-                q: "Is this legal advice?",
-                a: "No. DivorceGPT explains what divorce forms ask for and how to file them. It does not provide legal advice or tell you what to do. For legal advice, consult an attorney.",
-              },
-              {
-                q: "How long does the process take?",
-                a: "You can complete your forms in one session. After filing, New York courts typically process uncontested divorces in 2-4 months.",
-              },
-              {
-                q: "What if my spouse won't cooperate?",
-                a: "This service is for uncontested divorces where both spouses agree. If your spouse won't cooperate, you may need to pursue a contested divorce with an attorney.",
-              },
-              {
-                q: "Can I get a refund?",
-                a: "If you don't qualify after completing the eligibility check, you won't be charged. Once forms are generated, refunds are not available.",
-              },
-            ].map((faq) => (
-              <div key={faq.q} className="border-b border-gray-200 pb-6">
-                <h4 className="font-semibold text-lg text-[#1a365d] mb-2">{faq.q}</h4>
-                <p className="text-gray-600">{faq.a}</p>
+      <section id="faq" className="py-24 bg-white">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">Frequently Asked Questions</h3>
+          </div>
+          
+          <div className="mt-12 space-y-4">
+            {faqs.map((faq, index) => (
+              <div
+                key={index}
+                className="rounded-2xl bg-zinc-50 p-6 transition-all duration-200 hover:bg-zinc-100"
+              >
+                <h4 className="text-lg font-semibold text-zinc-900">{faq.q}</h4>
+                <p className="mt-2 text-zinc-600">{faq.a}</p>
               </div>
             ))}
           </div>
@@ -202,19 +282,21 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#1a365d] text-white py-8">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+      <footer className="border-t border-zinc-100 bg-zinc-50 py-12">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-[#c59d5f] rounded-lg flex items-center justify-center">⚖️</div>
-              <span className="font-semibold">DivorceGPT</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282]">
+                <span className="text-sm">⚖️</span>
+              </div>
+              <span className="font-semibold text-zinc-900">DivorceGPT</span>
             </div>
-            <p className="text-sm opacity-70 text-center">
+            <p className="text-center text-sm text-zinc-500 max-w-md">
               This tool explains NY divorce forms and procedures. It is not legal advice and may contain errors. Consult an attorney for your specific situation.
             </p>
-            <div className="flex gap-4 text-sm">
-              <a href="#" className="hover:text-[#c59d5f]">Privacy</a>
-              <a href="#" className="hover:text-[#c59d5f]">Terms</a>
+            <div className="flex gap-6 text-sm">
+              <a href="#" className="text-zinc-600 transition hover:text-[#1a365d]">Privacy</a>
+              <a href="#" className="text-zinc-600 transition hover:text-[#1a365d]">Terms</a>
             </div>
           </div>
         </div>

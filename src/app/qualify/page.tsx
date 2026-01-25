@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const questions = [
@@ -14,7 +13,7 @@ const questions = [
     id: "children",
     question: "Are there any unemancipated children of the marriage?",
     description: "This includes any children under 21 who are not self-supporting, and any current pregnancy.",
-    invertLogic: true, // "No" is the qualifying answer
+    invertLogic: true,
   },
   {
     id: "property",
@@ -43,7 +42,6 @@ const questions = [
 type Answers = Record<string, boolean | null>;
 
 export default function QualifyPage() {
-  const router = useRouter();
   const [answers, setAnswers] = useState<Answers>(
     Object.fromEntries(questions.map((q) => [q.id, null]))
   );
@@ -75,55 +73,64 @@ export default function QualifyPage() {
     .map((q) => q.question);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-zinc-50">
       {/* Header */}
-      <header className="bg-[#1a365d] text-white">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition">
-            <div className="w-10 h-10 bg-[#c59d5f] rounded-lg flex items-center justify-center text-xl">⚖️</div>
-            <div>
-              <h1 className="text-xl font-semibold">DivorceGPT</h1>
-              <p className="text-xs opacity-80">Eligibility Check</p>
-            </div>
-          </Link>
+      <header className="sticky top-0 z-50 backdrop-blur-sm bg-white/80 border-b border-zinc-100">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center">
+            <Link href="/" className="flex items-center gap-3 transition hover:opacity-80">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282] shadow-lg shadow-[#1a365d]/20">
+                <span className="text-lg">⚖️</span>
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold text-zinc-900">DivorceGPT</h1>
+                <p className="text-xs text-zinc-500">Eligibility Check</p>
+              </div>
+            </Link>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-12">
+      <main className="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8">
         {!submitted ? (
           <>
-            <h2 className="text-2xl font-bold text-[#1a365d] mb-2">Check Your Eligibility</h2>
-            <p className="text-gray-600 mb-8">
-              Answer these questions to confirm this service is right for your situation.
-            </p>
+            <div className="text-center mb-10">
+              <h2 className="text-3xl font-bold tracking-tight text-zinc-900">Check Your Eligibility</h2>
+              <p className="mt-2 text-zinc-600">
+                Answer these questions to confirm this service is right for your situation.
+              </p>
+            </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               {questions.map((q, index) => (
-                <div key={q.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div
+                  key={q.id}
+                  className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-100 transition-all duration-200 hover:shadow-md"
+                >
                   <div className="flex gap-4">
-                    <span className="flex-shrink-0 w-8 h-8 bg-[#1a365d] text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-sm font-semibold text-white shadow-md">
                       {index + 1}
-                    </span>
+                    </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-[#1a365d] mb-1">{q.question}</h3>
-                      <p className="text-sm text-gray-500 mb-4">{q.description}</p>
-                      <div className="flex gap-3">
+                      <h3 className="font-semibold text-zinc-900">{q.question}</h3>
+                      <p className="mt-1 text-sm text-zinc-500">{q.description}</p>
+                      <div className="mt-4 flex gap-3">
                         <button
                           onClick={() => handleAnswer(q.id, true)}
-                          className={`px-6 py-2 rounded-lg font-medium transition ${
+                          className={`rounded-full px-6 py-2 text-sm font-medium transition-all duration-200 ${
                             answers[q.id] === true
-                              ? "bg-[#1a365d] text-white"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              ? "bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-white shadow-lg shadow-[#1a365d]/20"
+                              : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
                           }`}
                         >
                           Yes
                         </button>
                         <button
                           onClick={() => handleAnswer(q.id, false)}
-                          className={`px-6 py-2 rounded-lg font-medium transition ${
+                          className={`rounded-full px-6 py-2 text-sm font-medium transition-all duration-200 ${
                             answers[q.id] === false
-                              ? "bg-[#1a365d] text-white"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              ? "bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-white shadow-lg shadow-[#1a365d]/20"
+                              : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
                           }`}
                         >
                           No
@@ -138,10 +145,10 @@ export default function QualifyPage() {
             <button
               onClick={handleSubmit}
               disabled={!allAnswered}
-              className={`w-full mt-8 py-4 rounded-xl font-semibold text-lg transition ${
+              className={`mt-8 w-full rounded-full py-4 text-lg font-semibold transition-all duration-200 ${
                 allAnswered
-                  ? "bg-[#c59d5f] hover:bg-[#b08a4f] text-white"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  ? "bg-[#c59d5f] text-white shadow-xl shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] hover:shadow-2xl hover:-translate-y-0.5"
+                  : "bg-zinc-200 text-zinc-400 cursor-not-allowed"
               }`}
             >
               Check Eligibility
@@ -149,63 +156,77 @@ export default function QualifyPage() {
           </>
         ) : isQualified ? (
           <div className="text-center py-12">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">
-              ✓
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
+              <svg className="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
             </div>
-            <h2 className="text-3xl font-bold text-[#1a365d] mb-4">You Qualify!</h2>
-            <p className="text-gray-600 mb-8 max-w-md mx-auto">
+            <h2 className="mt-6 text-3xl font-bold tracking-tight text-zinc-900">You Qualify!</h2>
+            <p className="mt-2 text-zinc-600 max-w-md mx-auto">
               Based on your answers, you're eligible for our New York uncontested divorce service.
             </p>
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-              <p className="text-2xl font-bold text-[#1a365d] mb-2">$20</p>
-              <p className="text-gray-500 text-sm">One-time payment • No hidden fees</p>
+            
+            <div className="mt-8 rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-100">
+              <p className="text-4xl font-bold text-[#1a365d]">$20</p>
+              <p className="mt-1 text-sm text-zinc-500">One-time payment • No hidden fees</p>
             </div>
+            
             <button
-              onClick={() => {
-                // TODO: Integrate Stripe
-                alert("Stripe integration coming soon!");
-              }}
-              className="bg-[#c59d5f] hover:bg-[#b08a4f] text-white font-semibold text-lg px-8 py-4 rounded-xl transition"
+              onClick={() => alert("Stripe integration coming soon!")}
+              className="mt-8 group inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-[#c59d5f]/30 transition-all duration-200 hover:bg-[#d4ac6e] hover:shadow-2xl hover:-translate-y-0.5"
             >
-              Continue to Payment →
+              Continue to Payment
+              <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
             </button>
           </div>
         ) : (
           <div className="text-center py-12">
-            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">
-              ✕
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-100">
+              <svg className="h-10 w-10 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </div>
-            <h2 className="text-3xl font-bold text-[#1a365d] mb-4">Not Eligible</h2>
-            <p className="text-gray-600 mb-6">
+            <h2 className="mt-6 text-3xl font-bold tracking-tight text-zinc-900">Not Eligible</h2>
+            <p className="mt-2 text-zinc-600">
               Based on your answers, this service may not be right for your situation.
             </p>
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-left mb-8">
-              <h3 className="font-semibold text-[#1a365d] mb-3">Reasons:</h3>
+            
+            <div className="mt-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-100 text-left">
+              <h3 className="font-semibold text-zinc-900 mb-3">Reasons:</h3>
               <ul className="space-y-2">
                 {disqualifyingReasons.map((reason, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                    <span className="text-red-500 mt-0.5">•</span>
+                  <li key={i} className="flex items-start gap-2 text-sm text-zinc-600">
+                    <span className="mt-1 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-red-100">
+                      <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                    </span>
                     {reason}
                   </li>
                 ))}
               </ul>
             </div>
-            <p className="text-gray-500 text-sm mb-6">
+            
+            <p className="mt-6 text-sm text-zinc-500">
               You may need to consult with a family law attorney for your specific situation.
             </p>
+            
             <Link
               href="/"
-              className="text-[#1a365d] hover:text-[#c59d5f] font-medium"
+              className="mt-6 inline-flex items-center gap-2 text-[#1a365d] font-medium transition hover:text-[#c59d5f]"
             >
-              ← Back to Home
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+              </svg>
+              Back to Home
             </Link>
           </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t bg-white py-6 mt-auto">
-        <p className="text-center text-xs text-gray-400">
+      <footer className="border-t border-zinc-100 bg-white py-6 mt-auto">
+        <p className="text-center text-xs text-zinc-500">
           This tool explains NY divorce forms and procedures. It is not legal advice and may contain errors. Consult an attorney for your specific situation.
         </p>
       </footer>
