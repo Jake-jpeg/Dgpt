@@ -12,10 +12,10 @@ const languages = [
   { code: "ht", label: "Kreyòl Ayisyen", cta: "Tcheke Si Ou Kalifye" },
 ];
 
-const features = [
+const howToUse = [
   {
-    title: "Form Explanation",
-    description: "Understand what each court form asks for and why.",
+    title: "Reference Your Forms",
+    description: "Look at the upper left corner of your form for the ID (UD-1, UD-3, etc.). Tell DivorceGPT which form and paragraph you're asking about.",
     icon: (
       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
@@ -23,18 +23,8 @@ const features = [
     ),
   },
   {
-    title: "Filing Guidance",
-    description: "Learn where and how to file your papers in New York.",
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-      </svg>
-    ),
-  },
-  {
-    title: "Multilingual",
-    description: "Get help in English, Spanish, Chinese, Korean, Russian, or Haitian Creole.",
+    title: "Ask in Your Language",
+    description: "Just ask in whatever language you're comfortable with. DivorceGPT responds in English, Spanish, Chinese, Korean, Russian, and Haitian Creole.",
     icon: (
       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
@@ -42,11 +32,11 @@ const features = [
     ),
   },
   {
-    title: "Plain Language",
-    description: "No legal jargon. Clear explanations of complex terms.",
+    title: "Ask About Filing",
+    description: "Not sure what to do with your forms? Ask about the filing process, court locations, fees, or what happens next.",
     icon: (
       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
       </svg>
     ),
   },
@@ -110,7 +100,7 @@ export default function Home() {
               </div>
             </div>
             <nav className="hidden md:flex items-center gap-1">
-              {["How It Works", "Features", "FAQ"].map((item) => (
+              {["How It Works", "How to Use", "FAQ"].map((item) => (
                 <a
                   key={item}
                   href={`#${item.toLowerCase().replace(/ /g, "-")}`}
@@ -203,25 +193,25 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="py-24 bg-zinc-50">
+      {/* How to Use */}
+      <section id="how-to-use" className="py-24 bg-zinc-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">What You Get</h3>
-            <p className="mt-4 text-lg text-zinc-600">Everything you need to understand your divorce forms</p>
+            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">How to Use</h3>
+            <p className="mt-4 text-lg text-zinc-600">Quick tips to get the most out of DivorceGPT</p>
           </div>
           
-          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {features.map((feature) => (
+          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {howToUse.map((item) => (
               <div
-                key={feature.title}
+                key={item.title}
                 className="group rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-100 transition-all duration-200 hover:shadow-xl hover:ring-[#c59d5f]/20 hover:-translate-y-1"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-white shadow-lg shadow-[#1a365d]/20 transition-transform duration-200 group-hover:scale-110">
-                  {feature.icon}
+                  {item.icon}
                 </div>
-                <h4 className="mt-6 text-lg font-semibold text-zinc-900">{feature.title}</h4>
-                <p className="mt-2 text-sm text-zinc-600">{feature.description}</p>
+                <h4 className="mt-6 text-lg font-semibold text-zinc-900">{item.title}</h4>
+                <p className="mt-2 text-sm text-zinc-600">{item.description}</p>
               </div>
             ))}
           </div>
