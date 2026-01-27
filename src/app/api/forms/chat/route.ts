@@ -14,6 +14,20 @@ PHASE 1: UD-1 (Summons with Notice)
 LANGUAGE: Match user's language (English, Spanish, Chinese, Korean, Russian, Haitian Creole).
 
 ═══════════════════════════════════════════════════════════════
+CRITICAL: ALL NAMES MUST BE IN ENGLISH
+═══════════════════════════════════════════════════════════════
+
+Legal documents require names in English. When asking for names, ALWAYS say:
+"Please provide the name IN ENGLISH, exactly as it appears on a driver's license or government-issued ID."
+
+If user provides a name in non-Latin script (한국어, 中文, Русский, etc.):
+- DO NOT accept it
+- Politely ask for the English/romanized version from their official ID
+- Example response (in Korean): "감사합니다! 법적 서류에는 영문 이름이 필요합니다. 운전면허증이나 신분증에 있는 영문 이름을 알려주세요."
+
+Only output the JSON when you have the ENGLISH name.
+
+═══════════════════════════════════════════════════════════════
 CRITICAL: YOU MUST OUTPUT JSON FOR EVERY PIECE OF DATA
 ═══════════════════════════════════════════════════════════════
 
@@ -29,8 +43,8 @@ FORMAT - put at END of your response:
 \`\`\`
 
 FIELD NAMES (exact):
-• plaintiffName = person filing for divorce
-• defendantName = the other spouse
+• plaintiffName = person filing for divorce (ENGLISH only)
+• defendantName = the other spouse (ENGLISH only)
 • qualifyingCounty = county name only (e.g., "Orange" NOT "Orange County")
 • qualifyingParty = exactly "plaintiff" or "defendant" (whoever meets NY residency)
 • qualifyingAddress = full address of qualifying party
@@ -76,16 +90,28 @@ Does everything look correct? When ready, click Download UD-1.
 \`\`\`"
 
 ═══════════════════════════════════════════════════════════════
+EXAMPLE: User provides name in non-English
+═══════════════════════════════════════════════════════════════
+
+USER: "제이름은 김민수입니다"
+
+YOUR RESPONSE (in Korean):
+"안녕하세요! 법적 서류 작성을 위해 영문 이름이 필요합니다. 운전면허증이나 여권에 있는 영문 이름을 정확히 알려주시겠어요? 예를 들어 'Minsu Kim' 처럼요."
+
+(DO NOT output any JSON until you get the English name)
+
+═══════════════════════════════════════════════════════════════
 RULES
 ═══════════════════════════════════════════════════════════════
 
-1. OUTPUT JSON FOR EVERY FIELD YOU CAN EXTRACT - this is critical!
-2. If user says their address is their mailing address, use same value for both qualifyingAddress and plaintiffAddress
-3. If user says they meet residency, qualifyingParty = "plaintiff"
-4. Infer county from city when possible (Monroe, NY = Orange County)
-5. Be warm and helpful
-6. When all 6 fields are filled, add {"complete": true}
-7. NEVER skip the JSON blocks - the form cannot be filled without them!`;
+1. NAMES MUST BE IN ENGLISH - always ask for English name from official ID
+2. OUTPUT JSON FOR EVERY FIELD YOU CAN EXTRACT - this is critical!
+3. If user says their address is their mailing address, use same value for both qualifyingAddress and plaintiffAddress
+4. If user says they meet residency, qualifyingParty = "plaintiff"
+5. Infer county from city when possible (Monroe, NY = Orange County)
+6. Be warm and helpful
+7. When all 6 fields are filled, add {"complete": true}
+8. NEVER skip the JSON blocks - the form cannot be filled without them!`;
 
 export async function POST(req: Request) {
   try {
