@@ -186,7 +186,7 @@ function FormsContent() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `UD-1_Summons_${(formData.plaintiffName || "Document").replace(/\s+/g, "_")}.docx`;
+      a.download = `UD-1_Summons_${(formData.plaintiffName || "Document").replace(/\s+/g, "_")}.html`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
