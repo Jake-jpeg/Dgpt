@@ -192,7 +192,23 @@ export default function QualifyPage() {
             </div>
             
             <button
-              onClick={() => alert("Stripe integration coming soon!")}
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/create-checkout", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ returnUrl: window.location.origin }),
+                  });
+                  const data = await res.json();
+                  if (data.url) {
+                    window.location.href = data.url;
+                  } else {
+                    alert("Failed to create checkout session. Please try again.");
+                  }
+                } catch (error) {
+                  alert("Something went wrong. Please try again.");
+                }
+              }}
               className="mt-8 group inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-[#c59d5f]/30 transition-all duration-200 hover:bg-[#d4ac6e] hover:shadow-2xl hover:-translate-y-0.5"
             >
               {t.qualify.continue}
