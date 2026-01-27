@@ -146,13 +146,21 @@ function FormsContent() {
 
       const data = await res.json();
       
+      console.log("Chat response:", { 
+        reply: data.reply?.substring(0, 100) + "...", 
+        extractedData: data.extractedData, 
+        isComplete: data.isComplete 
+      });
+      
       // Update form data if extracted
       if (data.extractedData) {
+        console.log("Updating form data with:", data.extractedData);
         setFormData(prev => ({ ...prev, ...data.extractedData }));
       }
       
       // Check if form is complete
       if (data.isComplete) {
+        console.log("Form marked as complete!");
         setIsComplete(true);
       }
       
@@ -170,6 +178,17 @@ function FormsContent() {
 
   const generateDocument = async () => {
     setIsGenerating(true);
+    
+    console.log("Generating document with data:", formData);
+    
+    // Validate we have all required fields
+    if (!formData.plaintiffName || !formData.defendantName || !formData.qualifyingCounty || 
+        !formData.qualifyingParty || !formData.qualifyingAddress || !formData.plaintiffAddress) {
+      alert("Missing required fields. Please complete all fields before generating.");
+      setIsGenerating(false);
+      return;
+    }
+    
     try {
       const res = await fetch("/api/forms/ud1", {
         method: "POST",
@@ -177,12 +196,18 @@ function FormsContent() {
         body: JSON.stringify(formData),
       });
 
+      console.log("Response status:", res.status);
+
       if (!res.ok) {
-        throw new Error("Failed to generate document");
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Generation error:", errorData);
+        throw new Error(errorData.error || "Failed to generate document");
       }
 
       // Download the file
       const blob = await res.blob();
+      console.log("Blob size:", blob.size, "type:", blob.type);
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -191,8 +216,11 @@ function FormsContent() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      console.log("Download triggered successfully");
     } catch (error) {
-      alert("Failed to generate document. Please try again.");
+      console.error("Download error:", error);
+      alert("Failed to generate document: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setIsGenerating(false);
     }
