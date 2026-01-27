@@ -136,7 +136,7 @@ export default function Home() {
             {t.howToUse.cards.map((card, index) => (
               <div key={index} className="group rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-100 transition-all duration-200 hover:shadow-xl hover:ring-[#c59d5f]/20 hover:-translate-y-1">
                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-white shadow-lg shadow-[#1a365d]/20 transition-transform duration-200 group-hover:scale-110">
-                   <span className="text-xl">{index === 3 ? '📄' : '💡'}</span>
+                   <span className="text-xl">{index === 0 ? '📝' : '💡'}</span>
                  </div>
                  <h4 className="mt-6 text-lg font-semibold text-zinc-900">{card.title}</h4>
                  <p className="mt-2 text-sm text-zinc-600">{card.desc}</p>

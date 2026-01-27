@@ -13,10 +13,10 @@ export const dictionary = {
       title: "How to Use",
       subtitle: "Quick tips to get the most out of DivorceGPT",
       cards: [
+        { title: "Create Your Forms", desc: "Answer the questions. DivorceGPT prepares your documents step by step." },
         { title: "Reference Your Forms", desc: "Look at the bottom left corner of your form for the ID (UD-1, UD-3, etc.). Tell DivorceGPT which form you're asking about." },
         { title: "Ask in Your Language", desc: "Just ask in whatever language you're comfortable with. We support Spanish, Chinese, Korean, Russian, and Haitian Creole." },
-        { title: "Ask About Filing", desc: "Not sure what to do with your forms? Ask about the filing process, court locations, fees, or what happens next." },
-        { title: "Create Your Forms", desc: "DivorceGPT guides you through each phase. Answer the questions and your documents will be prepared." }
+        { title: "Ask About Filing", desc: "Not sure what to do with your forms? Ask about the filing process, court locations, fees, or what happens next." }
       ]
     },
     howItWorks: {
@@ -119,10 +119,10 @@ export const dictionary = {
       title: "Cómo Usar",
       subtitle: "Consejos rápidos para aprovechar DivorceGPT",
       cards: [
+        { title: "Cree sus Formularios", desc: "Responda las preguntas. DivorceGPT prepara sus documentos paso a paso." },
         { title: "Consulte sus Formularios", desc: "Mire la esquina inferior izquierda de su formulario para ver el ID (UD-1, UD-3, etc.). Dígale a DivorceGPT sobre qué formulario pregunta." },
         { title: "Pregunte en su Idioma", desc: "Pregunte en el idioma que prefiera. Apoyamos español, chino, coreano, ruso y criollo haitiano." },
-        { title: "Pregunte sobre la Presentación", desc: "¿No sabe qué hacer con sus formularios? Pregunte sobre el proceso de presentación, ubicaciones de la corte o tarifas." },
-        { title: "Cree sus Formularios", desc: "DivorceGPT lo guía en cada fase. Responda las preguntas y sus documentos serán preparados." }
+        { title: "Pregunte sobre la Presentación", desc: "¿No sabe qué hacer con sus formularios? Pregunte sobre el proceso de presentación, ubicaciones de la corte o tarifas." }
       ]
     },
     howItWorks: {
@@ -225,10 +225,10 @@ export const dictionary = {
       title: "如何使用",
       subtitle: "使用 DivorceGPT 的快速提示",
       cards: [
+        { title: "创建您的表格", desc: "回答问题。DivorceGPT 逐步为您准备文件。" },
         { title: "参考您的表格", desc: "查看表格左下角的 ID（UD-1, UD-3 等）。告诉 DivorceGPT 您要咨询哪个表格。" },
         { title: "使用您的语言", desc: "请使用您熟悉的语言提问。我们支持中文、西班牙语、韩语、俄语和海地克里奥尔语。" },
-        { title: "咨询提交流程", desc: "不确定如何处理表格？询问关于提交流程、法院地点或费用的问题。" },
-        { title: "创建您的表格", desc: "DivorceGPT 将逐步引导您。回答问题，您的文件将会准备好。" }
+        { title: "咨询提交流程", desc: "不确定如何处理表格？询问关于提交流程、法院地点或费用的问题。" }
       ]
     },
     howItWorks: {
@@ -331,10 +331,10 @@ export const dictionary = {
       title: "이용 방법",
       subtitle: "DivorceGPT 활용 팁",
       cards: [
+        { title: "서류 작성", desc: "질문에 답하세요. DivorceGPT가 단계별로 서류를 준비해 드립니다." },
         { title: "양식 참조", desc: "양식 왼쪽 하단에 있는 ID(UD-1, UD-3 등)를 확인하세요. DivorceGPT에 어떤 양식에 대해 묻는지 알려주세요." },
         { title: "모국어로 질문", desc: "편한 언어로 질문하세요. 스페인어, 중국어, 한국어, 러시아어, 아이티 크리올어를 지원합니다." },
-        { title: "제출 절차 문의", desc: "양식을 어떻게 처리해야 할지 모르겠나요? 법원 제출 절차, 위치, 수수료 등에 대해 물어보세요." },
-        { title: "서류 작성", desc: "DivorceGPT가 단계별로 안내해 드립니다. 질문에 답하면 서류가 준비됩니다." }
+        { title: "제출 절차 문의", desc: "양식을 어떻게 처리해야 할지 모르겠나요? 법원 제출 절차, 위치, 수수료 등에 대해 물어보세요." }
       ]
     },
     howItWorks: {
@@ -437,10 +437,10 @@ export const dictionary = {
       title: "Как использовать",
       subtitle: "Советы по использованию DivorceGPT",
       cards: [
+        { title: "Создайте свои формы", desc: "Ответьте на вопросы. DivorceGPT подготовит ваши документы шаг за шагом." },
         { title: "Сверьтесь с формами", desc: "Посмотрите ID формы в левом нижнем углу (UD-1, UD-3 и т.д.). Сообщите DivorceGPT, о какой форме идет речь." },
         { title: "Спрашивайте на своем языке", desc: "Просто спросите на удобном вам языке. Мы поддерживаем испанский, китайский, корейский, русский и гаитянский креольский." },
-        { title: "Спросите о подаче", desc: "Не знаете, что делать с формами? Спросите о процессе подачи, адресах судов или пошлинах." },
-        { title: "Создайте свои формы", desc: "DivorceGPT проведет вас через каждый этап. Ответьте на вопросы, и ваши документы будут подготовлены." }
+        { title: "Спросите о подаче", desc: "Не знаете, что делать с формами? Спросите о процессе подачи, адресах судов или пошлинах." }
       ]
     },
     howItWorks: {
@@ -543,10 +543,10 @@ export const dictionary = {
       title: "Kijan Pou Itilize",
       subtitle: "Konsèy rapid pou byen itilize DivorceGPT",
       cards: [
+        { title: "Kreye Fòm Ou Yo", desc: "Reponn kesyon yo. DivorceGPT prepare dokiman ou yo etap pa etap." },
         { title: "Gade Fòm Ou Yo", desc: "Gade anba agòch fòm ou an pou wè ID a (UD-1, UD-3, elatriye). Di DivorceGPT ki fòm wap mande a." },
         { title: "Mande nan Lang Ou", desc: "Jis mande nan kèlkeswa lang ou pito. Nou sipòte Panyòl, Chinwa, Koreyen, Ris, ak Kreyòl Ayisyen." },
-        { title: "Mande sou Depo", desc: "Ou pa sèten kisa pou fè ak fòm ou yo? Mande sou pwosesis depo a, kote tribinal yo ye, oswa frè yo." },
-        { title: "Kreye Fòm Ou Yo", desc: "DivorceGPT ap gide ou nan chak etap. Reponn kesyon yo epi dokiman ou yo ap prepare." }
+        { title: "Mande sou Depo", desc: "Ou pa sèten kisa pou fè ak fòm ou yo? Mande sou pwosesis depo a, kote tribinal yo ye, oswa frè yo." }
       ]
     },
     howItWorks: {
