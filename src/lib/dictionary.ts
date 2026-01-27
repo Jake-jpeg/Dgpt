@@ -93,8 +93,17 @@ export const dictionary = {
       termsTitle: "Terms of Service",
       lastUpdated: "Last updated: January 25, 2026",
       backHome: "Back to Home",
-      notice: "Note: The official legal terms are in English. This translation is for convenience only.",
-      content: "Legal content is displayed in English to ensure accuracy with New York State law." 
+      officialNotice: "OFFICIAL NOTICE: The legally binding terms below are presented in English to ensure accuracy with New York State law.",
+      sections: {
+        agreement: "Agreement to Terms",
+        advice: "Important: Not Legal Advice",
+        service: "Service Description",
+        eligibility: "Eligibility",
+        ai: "AI-Generated Content",
+        payment: "Payment and Refunds",
+        liability: "Limitation of Liability",
+        contact: "Contact Us"
+      }
     }
   },
   es: {
@@ -189,8 +198,17 @@ export const dictionary = {
       termsTitle: "Términos de Servicio",
       lastUpdated: "Última actualización: 25 de enero de 2026",
       backHome: "Volver al Inicio",
-      notice: "Nota: Los términos legales oficiales están en inglés. Esta traducción es solo por conveniencia.",
-      content: "El contenido legal se muestra en inglés para garantizar la precisión con la ley del estado de Nueva York."
+      officialNotice: "AVISO OFICIAL: Los términos legalmente vinculantes a continuación se presentan en inglés para garantizar la precisión con la ley del estado de Nueva York.",
+      sections: {
+        agreement: "Acuerdo de Términos",
+        advice: "Importante: No es Asesoramiento Legal",
+        service: "Descripción del Servicio",
+        eligibility: "Elegibilidad",
+        ai: "Contenido Generado por IA",
+        payment: "Pagos y Reembolsos",
+        liability: "Limitación de Responsabilidad",
+        contact: "Contáctenos"
+      }
     }
   },
   zh: {
@@ -285,8 +303,17 @@ export const dictionary = {
       termsTitle: "服务条款",
       lastUpdated: "最后更新：2026年1月25日",
       backHome: "返回首页",
-      notice: "注意：正式法律条款以英文为准。本翻译仅供参考。",
-      content: "法律内容以英文显示，以确保符合纽约州法律的准确性。"
+      officialNotice: "正式通知：以下具有法律约束力的条款以英文列出，以确保符合纽约州法律的准确性。",
+      sections: {
+        agreement: "条款协议",
+        advice: "重要提示：非法律建议",
+        service: "服务说明",
+        eligibility: "资格要求",
+        ai: "AI生成内容",
+        payment: "付款与退款",
+        liability: "责任限制",
+        contact: "联系我们"
+      }
     }
   },
   ko: {
@@ -381,8 +408,17 @@ export const dictionary = {
       termsTitle: "서비스 약관",
       lastUpdated: "최종 업데이트: 2026년 1월 25일",
       backHome: "홈으로 돌아가기",
-      notice: "참고: 공식 법적 약관은 영문입니다. 이 번역은 편의를 위해서만 제공됩니다.",
-      content: "법적 내용은 뉴욕 주법의 정확성을 보장하기 위해 영어로 표시됩니다."
+      officialNotice: "공식 통지: 아래의 법적 구속력이 있는 약관은 뉴욕 주법의 정확성을 보장하기 위해 영어로 제공됩니다.",
+      sections: {
+        agreement: "약관 동의",
+        advice: "중요: 법률 자문 아님",
+        service: "서비스 설명",
+        eligibility: "자격 요건",
+        ai: "AI 생성 콘텐츠",
+        payment: "결제 및 환불",
+        liability: "책임의 한계",
+        contact: "문의하기"
+      }
     }
   },
   ru: {
@@ -477,8 +513,17 @@ export const dictionary = {
       termsTitle: "Условия использования",
       lastUpdated: "Последнее обновление: 25 января 2026",
       backHome: "На главную",
-      notice: "Примечание: Официальные юридические термины на английском языке. Этот перевод только для удобства.",
-      content: "Юридический контент отображается на английском языке для обеспечения точности в соответствии с законодательством штата Нью-Йорк."
+      officialNotice: "ОФИЦИАЛЬНОЕ УВЕДОМЛЕНИЕ: Юридически обязательные условия ниже представлены на английском языке для обеспечения точности в соответствии с законодательством штата Нью-Йорк.",
+      sections: {
+        agreement: "Соглашение с условиями",
+        advice: "Важно: Не является юридической консультацией",
+        service: "Описание услуги",
+        eligibility: "Право на использование",
+        ai: "Контент, созданный ИИ",
+        payment: "Оплата и возврат",
+        liability: "Ограничение ответственности",
+        contact: "Связаться с нами"
+      }
     }
   },
   ht: {
@@ -573,8 +618,17 @@ export const dictionary = {
       termsTitle: "Kondisyon Sèvis",
       lastUpdated: "Dènye aktyalizasyon: 25 Janvye 2026",
       backHome: "Tounen Lakay",
-      notice: "Remak: Tèm legal ofisyèl yo an Anglè. Tradiksyon sa a se pou konvenyans sèlman.",
-      content: "Kontni legal la parèt an Anglè pou asire presizyon avèk lalwa Eta New York."
+      officialNotice: "AVI OFISYÈL: Tèm legal ki anba yo parèt an Anglè pou asire presizyon avèk lalwa Eta New York.",
+      sections: {
+        agreement: "Akò sou Kondisyon yo",
+        advice: "Enpòtan: Se Pa Konsèy Legal",
+        service: "Deskripsyon Sèvis la",
+        eligibility: "Elijiblite",
+        ai: "Kontni AI Jenere",
+        payment: "Peman ak Ranbousman",
+        liability: "Limit Responsablite",
+        contact: "Kontakte Nou"
+      }
     }
   }
 };
