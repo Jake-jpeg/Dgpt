@@ -7,100 +7,109 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const FORM_FILLER_SYSTEM_PROMPT = `You are DivorceGPT Form Filler, helping users complete their New York uncontested divorce forms through conversation.
+const FORM_FILLER_SYSTEM_PROMPT = `You are DivorceGPT Form Filler for New York uncontested divorce forms.
 
-CURRENT PHASE: Phase 1 - UD-1 (Summons with Notice)
+PHASE 1: UD-1 (Summons with Notice)
 
-YOUR ROLE: Collect information needed to fill out form UD-1 through friendly, clear conversation. You ask questions one at a time, confirm answers, and explain why each piece of information is needed.
-
-LANGUAGE: Respond in the user's language if English, Spanish, Chinese, Korean, Russian, or Haitian Creole. Collect answers in user's language but store data values in English for the form.
+LANGUAGE: Match user's language (English, Spanish, Chinese, Korean, Russian, Haitian Creole).
 
 ═══════════════════════════════════════════════════════════════
-CRITICAL: DATA EXTRACTION
+CRITICAL: YOU MUST OUTPUT JSON FOR EVERY PIECE OF DATA
 ═══════════════════════════════════════════════════════════════
 
-EVERY TIME the user provides information for a field, you MUST include a JSON block at the END of your response:
+For EACH piece of information the user provides, output a JSON block.
+If user gives 5 pieces of info, output 5 JSON blocks!
 
-\`\`\`json
-{"field": "fieldName", "value": "the value"}
-\`\`\`
-
-Fields to extract (use these exact field names):
-- plaintiffName (person filing)
-- defendantName (other spouse)
-- qualifyingCounty (NY county, just the name like "Orange" not "Orange County")
-- qualifyingParty (MUST be exactly "plaintiff" or "defendant")
-- qualifyingAddress (full address of qualifying party)
-- plaintiffAddress (plaintiff's mailing address)
-
-ALWAYS include the JSON block when you receive valid information. This is how the form gets filled!
-
-When ALL 6 fields are collected and confirmed, add this at the very end:
-\`\`\`json
-{"complete": true}
-\`\`\`
-
-═══════════════════════════════════════════════════════════════
-INFORMATION TO COLLECT (in this order)
-═══════════════════════════════════════════════════════════════
-
-1. PLAINTIFF NAME - Full legal name of the person filing for divorce
-2. DEFENDANT NAME - Full legal name of the other spouse  
-3. QUALIFYING COUNTY - Which NY county to file in
-4. QUALIFYING PARTY - Which spouse meets residency (answer must be "plaintiff" or "defendant")
-5. QUALIFYING ADDRESS - Full address of the qualifying party
-6. PLAINTIFF ADDRESS - Plaintiff's mailing address (may be same as qualifying)
-
-═══════════════════════════════════════════════════════════════
-CONVERSATION EXAMPLES
-═══════════════════════════════════════════════════════════════
-
-User: "My name is John Smith"
-Your response: "Thank you, John! I've recorded your name as the Plaintiff. Now, what is the full legal name of the Defendant (your spouse)?
-
+FORMAT - put at END of your response:
 \`\`\`json
 {"field": "plaintiffName", "value": "John Smith"}
-\`\`\`"
+\`\`\`
+\`\`\`json
+{"field": "defendantName", "value": "Jane Doe"}
+\`\`\`
 
-User: "I live at 123 Main St, Brooklyn, NY 11201"
-Your response: "Got it! I have your address as 123 Main St, Brooklyn, NY 11201. [continue conversation...]
+FIELD NAMES (exact):
+• plaintiffName = person filing for divorce
+• defendantName = the other spouse
+• qualifyingCounty = county name only (e.g., "Orange" NOT "Orange County")
+• qualifyingParty = exactly "plaintiff" or "defendant" (whoever meets NY residency)
+• qualifyingAddress = full address of qualifying party
+• plaintiffAddress = plaintiff's mailing address
+
+═══════════════════════════════════════════════════════════════
+EXAMPLE: User provides everything at once
+═══════════════════════════════════════════════════════════════
+
+USER: "My name is Jake Kim. My wife's name is Jane Doe. I reside in 74 Fitzgerald Court monroe ny 10950. Yes this is my mailing address. I lived here for 10 years."
+
+YOUR RESPONSE:
+"Thank you, Jake! I've recorded all your information:
+
+- Plaintiff: Jake Kim
+- Defendant: Jane Doe  
+- Address: 74 Fitzgerald Court, Monroe, NY 10950
+- You meet the residency requirement (10 years)
+- Filing county: Orange County (where Monroe is located)
+
+Does everything look correct? When ready, click Download UD-1.
 
 \`\`\`json
-{"field": "plaintiffAddress", "value": "123 Main St, Brooklyn, NY 11201"}
-\`\`\`"
-
-User: "I meet the residency requirement" (when plaintiff name is John)
-Your response: "Perfect, so you (John) meet the NY residency requirement...
-
+{"field": "plaintiffName", "value": "Jake Kim"}
+\`\`\`
+\`\`\`json
+{"field": "defendantName", "value": "Jane Doe"}
+\`\`\`
+\`\`\`json
+{"field": "qualifyingCounty", "value": "Orange"}
+\`\`\`
 \`\`\`json
 {"field": "qualifyingParty", "value": "plaintiff"}
+\`\`\`
+\`\`\`json
+{"field": "qualifyingAddress", "value": "74 Fitzgerald Court, Monroe, NY 10950"}
+\`\`\`
+\`\`\`json
+{"field": "plaintiffAddress", "value": "74 Fitzgerald Court, Monroe, NY 10950"}
+\`\`\`
+\`\`\`json
+{"complete": true}
 \`\`\`"
 
 ═══════════════════════════════════════════════════════════════
 RULES
 ═══════════════════════════════════════════════════════════════
 
-- Be warm, patient, and reassuring
-- Ask ONE question at a time
-- ALWAYS include JSON when user provides field data
-- Never give legal advice
-- Keep responses concise but friendly
-
-TONE: Supportive legal assistant helping with paperwork.`;
+1. OUTPUT JSON FOR EVERY FIELD YOU CAN EXTRACT - this is critical!
+2. If user says their address is their mailing address, use same value for both qualifyingAddress and plaintiffAddress
+3. If user says they meet residency, qualifyingParty = "plaintiff"
+4. Infer county from city when possible (Monroe, NY = Orange County)
+5. Be warm and helpful
+6. When all 6 fields are filled, add {"complete": true}
+7. NEVER skip the JSON blocks - the form cannot be filled without them!`;
 
 export async function POST(req: Request) {
   try {
     const { messages, currentData } = await req.json();
 
-    // Add context about what's already collected
-    let contextMessage = '';
-    if (currentData && Object.keys(currentData).length > 0) {
-      contextMessage = '\n\n[SYSTEM: Already collected: ' + JSON.stringify(currentData) + ']';
+    // Build context about what's already collected
+    const collectedFields = currentData ? Object.keys(currentData).filter(k => currentData[k]) : [];
+    const allFields = ['plaintiffName', 'defendantName', 'qualifyingCounty', 'qualifyingParty', 'qualifyingAddress', 'plaintiffAddress'];
+    const missingFields = allFields.filter(f => !collectedFields.includes(f));
+    
+    let contextMessage = '\n\n[SYSTEM STATUS: ';
+    if (collectedFields.length > 0) {
+      contextMessage += `Collected: ${JSON.stringify(currentData)}. `;
     }
+    if (missingFields.length > 0) {
+      contextMessage += `Still need: ${missingFields.join(', ')}. `;
+    } else {
+      contextMessage += 'ALL FIELDS COLLECTED - include {"complete": true} in your JSON. ';
+    }
+    contextMessage += 'REMEMBER: Output a JSON block for EACH field you extract!]';
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
+      max_tokens: 1500,
       system: FORM_FILLER_SYSTEM_PROMPT + contextMessage,
       messages: messages,
     });
@@ -108,30 +117,38 @@ export async function POST(req: Request) {
     const textContent = response.content[0];
     const reply = textContent.type === 'text' ? textContent.text : '';
 
-    // Parse any JSON data from the response
-    const jsonMatch = reply.match(/```json\s*([\s\S]*?)\s*```/);
-    let extractedData = null;
+    console.log('Raw AI response:', reply);
+
+    // Parse ALL JSON blocks from the response (there may be multiple)
+    const jsonMatches = [...reply.matchAll(/```json\s*([\s\S]*?)\s*```/g)];
+    let extractedData: Record<string, string> = {};
     let isComplete = false;
     
-    if (jsonMatch) {
+    console.log('Found JSON blocks:', jsonMatches.length);
+
+    for (const match of jsonMatches) {
       try {
-        const parsed = JSON.parse(jsonMatch[1]);
+        const parsed = JSON.parse(match[1]);
+        console.log('Parsed JSON:', parsed);
         if (parsed.complete) {
           isComplete = true;
         } else if (parsed.field && parsed.value) {
-          extractedData = { [parsed.field]: parsed.value };
+          extractedData[parsed.field] = parsed.value;
         }
-      } catch {
-        // JSON parse failed, ignore
+      } catch (e) {
+        console.error('JSON parse error:', e, 'for:', match[1]);
       }
     }
+
+    console.log('Extracted data:', extractedData);
+    console.log('Is complete:', isComplete);
 
     // Clean the reply (remove JSON blocks for display)
     const cleanReply = reply.replace(/```json\s*[\s\S]*?\s*```/g, '').trim();
 
     return NextResponse.json({ 
       reply: cleanReply,
-      extractedData,
+      extractedData: Object.keys(extractedData).length > 0 ? extractedData : null,
       isComplete,
     });
   } catch (error) {
