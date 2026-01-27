@@ -1,59 +1,33 @@
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-} from "react";
-// We use a relative path to ensure VS Code finds the dictionary file reliably
+import React, { createContext, useContext, useState, ReactNode } from "react";
 import { dictionary, Locale } from "../lib/dictionary";
 
-type LanguageContextType = {
+type Dictionary = typeof dictionary.en;
+
+interface LanguageContextType {
   lang: Locale;
   setLang: (lang: Locale) => void;
-  // This tells TypeScript: "t will always look exactly like the English dictionary"
-  t: typeof dictionary["en"];
-};
+  t: Dictionary;
+}
 
-const LanguageContext = createContext<LanguageContextType | null>(null);
+const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export function LanguageProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [lang, setLangState] = useState<Locale>("en");
-
-  useEffect(() => {
-    // Load saved language from local storage on mount
-    const saved = localStorage.getItem("divorcegpt-lang");
-    if (saved && Object.keys(dictionary).includes(saved)) {
-      setLangState(saved as Locale);
-    }
-  }, []);
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [lang, setLang] = useState<Locale>("en");
+  const t = dictionary[lang];
 
   return (
-    <LanguageContext.Provider
-      value={{
-        lang,
-        setLang: (l: Locale) => {
-          setLangState(l);
-          localStorage.setItem("divorcegpt-lang", l);
-        },
-        // THE FIX: Force TypeScript to trust that all languages match the English structure
-        t: (dictionary as any)[lang] as typeof dictionary["en"],
-      }}
-    >
+    <LanguageContext.Provider value={{ lang, setLang, t }}>
       {children}
     </LanguageContext.Provider>
   );
 }
 
 export function useLanguage() {
-  const ctx = useContext(LanguageContext);
-  if (!ctx) {
-    throw new Error("useLanguage must be used within LanguageProvider");
+  const context = useContext(LanguageContext);
+  if (context === undefined) {
+    throw new Error("useLanguage must be used within a LanguageProvider");
   }
-  return ctx;
+  return context;
 }

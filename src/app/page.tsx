@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useLanguage } from "../components/LanguageProvider";
 import { Locale } from "../lib/dictionary";
 
-// We keep the language list static here just for the switcher buttons
 const languages = [
   { code: "en", label: "English" },
   { code: "es", label: "Español" },
@@ -17,13 +16,11 @@ const languages = [
 export default function Home() {
   const { lang, setLang, t } = useLanguage();
 
-  // Safety Check: If the dictionary hasn't loaded for some reason, wait.
-  // This prevents the "cannot read property of undefined" crash.
   if (!t) return null;
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      {/* Header */}
+      {/* Header - Clean, no nav links */}
       <header className="sticky top-0 z-50 backdrop-blur-sm bg-white/80 border-b border-zinc-100">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
@@ -53,7 +50,6 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-b from-[#1a365d] via-[#1e3a5f] to-[#234876] pt-16 pb-32">
-        {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-[#c59d5f]/10 blur-3xl" />
           <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-[#c59d5f]/10 blur-3xl" />
@@ -128,7 +124,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How to Use */}
+      {/* How to Use - Now 4 columns */}
       <section className="py-24 bg-zinc-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -136,11 +132,11 @@ export default function Home() {
             <p className="mt-4 text-lg text-zinc-600">{t.howToUse.subtitle}</p>
           </div>
           
-          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {t.howToUse.cards.map((card, index) => (
               <div key={index} className="group rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-100 transition-all duration-200 hover:shadow-xl hover:ring-[#c59d5f]/20 hover:-translate-y-1">
                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-white shadow-lg shadow-[#1a365d]/20 transition-transform duration-200 group-hover:scale-110">
-                   <span className="text-xl">💡</span>
+                   <span className="text-xl">{index === 3 ? '📄' : '💡'}</span>
                  </div>
                  <h4 className="mt-6 text-lg font-semibold text-zinc-900">{card.title}</h4>
                  <p className="mt-2 text-sm text-zinc-600">{card.desc}</p>
@@ -201,13 +197,18 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Footer - Original Design Restored */}
       <footer className="border-t border-zinc-100 bg-zinc-50 py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <div className="flex items-center gap-3">
-              <span className="text-sm">⚖️</span>
-              <span className="font-semibold text-zinc-900">DivorceGPT</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282]">
+                <span className="text-sm">⚖️</span>
+              </div>
+              <div>
+                <span className="font-semibold text-zinc-900">DivorceGPT</span>
+                <p className="text-xs text-zinc-400">© 2025 DivorceGPT · Powered by Claude</p>
+              </div>
             </div>
             <p className="text-center text-sm text-zinc-500 max-w-md">
                {t.chat.disclaimer}
