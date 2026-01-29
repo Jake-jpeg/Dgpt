@@ -7,10 +7,9 @@ import {
   loadSession, 
   createSession, 
   saveSession, 
-  NY_COUNTIES,
   type SessionData,
   type UD1FormData 
-} from "../../lib/session";
+} from "@/lib/session";
 
 function FormsContent() {
   const searchParams = useSearchParams();
@@ -97,7 +96,7 @@ function FormsContent() {
       };
       saveSession(updatedSession);
     }
-  }, [formData, messages, isComplete, paymentIntentId]);
+  }, [formData, messages, isComplete, paymentIntentId, session?.createdAt]);
 
   const sendInitialGreeting = async () => {
     setIsLoading(true);
@@ -289,8 +288,6 @@ function FormsContent() {
       </div>
     );
   }
-
-  const completedFields = Object.values(formData).filter(Boolean).length;
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50">
