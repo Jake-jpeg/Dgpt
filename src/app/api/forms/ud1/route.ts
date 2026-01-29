@@ -294,9 +294,12 @@ async function generateUD1PDF(data: UD1Data): Promise<Uint8Array> {
   const sigX = BOX2_LEFT_X + 8;
   drawLine(sigX, y - 3, PAGE_WIDTH - MARGIN_RIGHT, y - 3);
   
-  // Leave space for actual signature (no name printed here)
+  // Name below signature line (title case, not all caps)
   y -= LINE_HEIGHT;
+  const plaintiffNameTitle = titleCase(data.plaintiffName.trim());
+  drawText(plaintiffNameTitle, sigX, y);
   
+  y -= LINE_HEIGHT;
   drawText(plaintiffAddrLines[0] || '', sigX, y);
   y -= LINE_HEIGHT;
   

@@ -394,9 +394,12 @@ def generate_ud1(data, output_path):
     sig_x = BOX2_LEFT_X + 8
     c.line(sig_x, y - 3, PAGE_WIDTH - MARGIN_RIGHT, y - 3)
     
-    c.drawString(sig_x, y, plaintiff_name)
+    # Name below signature line (title case, not all caps)
     y -= LINE_HEIGHT
+    plaintiff_name_title = plaintiff_name.title()
+    c.drawString(sig_x, y, plaintiff_name_title)
     
+    y -= LINE_HEIGHT
     c.drawString(sig_x, y, plaintiff_addr_lines[0] if plaintiff_addr_lines else "")
     y -= LINE_HEIGHT
     
