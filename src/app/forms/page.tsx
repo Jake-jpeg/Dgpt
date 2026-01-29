@@ -206,17 +206,18 @@ function FormsContent() {
         throw new Error(errorData.error || "Failed to generate document");
       }
 
-      // Get HTML and open in new window for print
-      const html = await res.text();
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(html);
-        printWindow.document.close();
-      } else {
-        alert("Please allow popups to print your document");
-      }
+      // Download PDF directly
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `UD-1_Summons_${(formData.plaintiffName || "Document").replace(/\s+/g, "_")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
       
-      console.log("Document opened for printing");
+      console.log("PDF downloaded successfully");
     } catch (error) {
       console.error("Download error:", error);
       alert("Failed to generate document: " + (error instanceof Error ? error.message : "Unknown error"));

@@ -1,8 +1,9 @@
-// UD-1 (Summons with Notice) Document Generator
-// Generates HTML styled to match official NYS UD-1 form
-// User prints to PDF from browser
+// UD-1 (Summons with Notice) PDF Generator
+// Uses pdf-lib - direct PDF download
+// Matches official NYS UD-1 form (Rev. 1/25/16)
 
 import { NextResponse } from 'next/server';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 interface UD1Data {
   plaintiffName: string;
@@ -14,295 +15,228 @@ interface UD1Data {
   plaintiffAddress: string;
 }
 
-const generateUD1HTML = (data: UD1Data): string => {
-  const today = new Date();
-  const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+async function generateUD1PDF(data: UD1Data): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([612, 792]); // Letter size
+  
+  const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+  const timesBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+  const timesItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+  
+  const black = rgb(0, 0, 0);
   
   const county = data.qualifyingCounty.toUpperCase();
-  const qualifyingPartyName = data.qualifyingParty === 'plaintiff' ? data.plaintiffName : data.defendantName;
+  const plaintiffName = data.plaintiffName;
+  const defendantName = data.defendantName;
+  const qualifying = data.qualifyingParty;
+  const venueName = qualifying === 'plaintiff' ? plaintiffName : defendantName;
   
-  // Split addresses for display
-  const qualifyingAddrLines = data.qualifyingAddress.split(',').map(s => s.trim());
-  const mailingAddrLines = data.plaintiffAddress.split(',').map(s => s.trim());
+  const today = new Date().toLocaleDateString('en-US', { 
+    month: 'long', day: 'numeric', year: 'numeric' 
+  });
+
+  // Helper functions - Y is from bottom in PDF coordinates
+  const drawText = (text: string, x: number, y: number, options: { font?: typeof timesRoman, size?: number } = {}) => {
+    const font = options.font || timesRoman;
+    const size = options.size || 10;
+    page.drawText(text, { x, y, size, font, color: black });
+  };
   
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>UD-1 Summons with Notice - ${data.plaintiffName} v. ${data.defendantName}</title>
-  <style>
-    @page { 
-      size: letter; 
-      margin: 0.75in 0.75in 0.5in 0.75in; 
+  const drawLine = (x1: number, y: number, x2: number) => {
+    page.drawLine({
+      start: { x: x1, y },
+      end: { x: x2, y },
+      thickness: 0.5,
+      color: black,
+    });
+  };
+
+  // Parse address into lines
+  const parseAddress = (addr: string): string[] => {
+    const parts = addr.split(',').map(p => p.trim());
+    if (parts.length >= 3) {
+      return [parts[0], parts[1], parts.slice(2).join(', ')];
+    } else if (parts.length === 2) {
+      return [parts[0], parts[1]];
     }
-    @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    return [addr];
+  };
+
+  const qualifyingAddr = parseAddress(data.qualifyingAddress);
+  const mailingAddr = parseAddress(data.plaintiffAddress);
+
+  // ============ PAGE LAYOUT (from top, so subtract from 792) ============
+  
+  let y = 752; // Start near top
+
+  // === ROW 1: SUPREME COURT / Index No. ===
+  drawText('SUPREME COURT OF THE STATE OF NEW YORK', 72, y, { font: timesBold, size: 11 });
+  drawText('Index No.:', 420, y, { size: 10 });
+  drawLine(472, y - 2, 560);
+
+  // === ROW 2: COUNTY OF / Date Summons filed ===
+  y -= 14;
+  drawText('COUNTY OF', 72, y, { font: timesBold, size: 11 });
+  drawText(county, 142, y, { size: 11 });
+  drawLine(140, y - 2, 220);
+  drawText('Date Summons filed:', 420, y, { size: 10 });
+  drawLine(515, y - 2, 560);
+
+  // === ROW 3: Dashed line / Plaintiff designates ===
+  y -= 14;
+  drawText('--------------------------------------------------------------------X', 72, y, { size: 10 });
+  drawText('Plaintiff designates', 420, y, { size: 10 });
+  drawLine(510, y - 2, 560);
+
+  // === ROW 4: County as place of trial ===
+  y -= 14;
+  drawText(`${county} County as the place of trial`, 420, y, { size: 10 });
+
+  // === ROW 5: The basis of venue is ===
+  y -= 12;
+  drawText('The basis of venue is:', 420, y, { font: timesItalic, size: 9 });
+
+  // === ROW 6-7: Venue name's address ===
+  y -= 11;
+  drawText(`${venueName}'s`, 420, y, { size: 9 });
+  y -= 11;
+  drawText('address.', 420, y, { size: 9 });
+
+  // === PLAINTIFF NAME (left side) ===
+  y -= 25;
+  drawText(plaintiffName, 200, y, { size: 11 });
+
+  y -= 14;
+  drawText('Plaintiff,', 310, y, { font: timesItalic, size: 11 });
+
+  // === -against- ===
+  y -= 18;
+  drawText('-against-', 200, y, { size: 11 });
+
+  // === SUMMONS WITH NOTICE (right side, aligned with -against-) ===
+  drawText('SUMMONS WITH NOTICE', 420, y + 8, { font: timesBold, size: 11 });
+
+  // === Plaintiff/Defendant resides at ===
+  y -= 14;
+  drawText('Plaintiff/Defendant resides at:', 420, y + 10, { font: timesItalic, size: 9 });
+  
+  // Address lines with underlines
+  let addrY = y - 2;
+  for (let i = 0; i < 3; i++) {
+    drawLine(420, addrY, 560);
+    if (qualifyingAddr[i]) {
+      drawText(qualifyingAddr[i], 424, addrY + 3, { size: 9 });
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: "Times New Roman", Times, serif; 
-      font-size: 11pt; 
-      line-height: 1.3;
-      color: #000;
-      padding: 20px;
-      max-width: 8.5in;
-      margin: 0 auto;
-    }
-    .header-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 2px;
-    }
-    .header-left { width: 55%; }
-    .header-right { width: 42%; font-size: 10pt; }
-    .court-title { font-weight: bold; font-size: 12pt; }
-    .county-line { font-weight: bold; font-size: 12pt; margin-top: 2px; }
-    .county-name { font-weight: normal; border-bottom: 1px solid #000; padding: 0 10px; }
-    .underline { border-bottom: 1px solid #000; display: inline-block; min-width: 120px; }
-    .dashed-line { margin: 8px 0; font-size: 10pt; }
-    
-    .caption-area {
-      display: flex;
-      margin: 10px 0;
-    }
-    .caption-left { width: 55%; padding-right: 20px; }
-    .caption-right { width: 42%; font-size: 10pt; }
-    
-    .party-block { margin: 15px 0; }
-    .party-name { 
-      border-bottom: 1px solid #000; 
-      min-height: 20px; 
-      margin-bottom: 3px;
-      padding-left: 120px;
-    }
-    .party-label { font-style: italic; text-align: right; padding-right: 30px; }
-    .versus { text-align: center; margin: 15px 0; }
-    
-    .summons-title { 
-      font-weight: bold; 
-      text-align: center; 
-      font-size: 11pt;
-      margin: 10px 0;
-    }
-    .addr-label { font-style: italic; font-size: 10pt; }
-    .addr-line { 
-      border-bottom: 1px solid #000; 
-      min-height: 16px; 
-      margin: 3px 0;
-      font-size: 10pt;
-    }
-    
-    .action-title {
-      font-weight: bold;
-      font-size: 13pt;
-      text-align: center;
-      margin: 20px 0 15px 0;
-    }
-    .to-defendant { font-style: italic; margin-bottom: 12px; }
-    
-    .summoned-para { 
-      text-align: justify; 
-      margin-bottom: 15px;
-      font-size: 10pt;
-    }
-    .summoned-bold { font-weight: bold; }
-    
-    .checkbox { 
-      display: inline-block; 
-      width: 10px; 
-      height: 10px; 
-      border: 1px solid #000; 
-      margin-right: 3px;
-      position: relative;
-      top: 1px;
-    }
-    .checkbox.checked::after {
-      content: "✓";
-      position: absolute;
-      top: -3px;
-      left: 1px;
-      font-size: 10px;
-    }
-    
-    .dated-section {
-      display: flex;
-      margin: 20px 0;
-    }
-    .dated-left { width: 45%; }
-    .dated-right { width: 55%; }
-    
-    .signature-area { margin-top: 15px; }
-    .sig-line { border-bottom: 1px solid #000; min-height: 18px; margin-bottom: 3px; }
-    .sig-label { font-size: 10pt; }
-    
-    .notice-section { margin-top: 20px; font-size: 10pt; }
-    .notice-label { font-weight: bold; }
-    .grounds-text { font-weight: bold; }
-    
-    .ancillary-section { margin-top: 15px; font-size: 10pt; }
-    
-    .footer { 
-      margin-top: 30px; 
-      font-size: 9pt; 
-      color: #333;
-    }
-  </style>
-</head>
-<body>
-  <!-- Header Row 1 -->
-  <div class="header-row">
-    <div class="header-left">
-      <div class="court-title">SUPREME COURT OF THE STATE OF NEW YORK</div>
-    </div>
-    <div class="header-right">
-      Index No.: <span class="underline"></span>
-    </div>
-  </div>
+    addrY -= 14;
+  }
+
+  // === DEFENDANT NAME ===
+  y -= 30;
+  drawText(defendantName, 200, y, { size: 11 });
+
+  y -= 14;
+  drawText('Defendant.', 305, y, { font: timesItalic, size: 11 });
+
+  // === Closing dashed line ===
+  y -= 10;
+  drawText('--------------------------------------------------------------------X', 72, y, { size: 10 });
+
+  // === ACTION FOR A DIVORCE ===
+  y -= 22;
+  drawText('ACTION FOR A DIVORCE', 230, y, { font: timesBold, size: 12 });
+
+  // === To the above named Defendant ===
+  y -= 18;
+  drawText('To the above named Defendant:', 72, y, { font: timesItalic, size: 10 });
+
+  // === YOU ARE HEREBY SUMMONED paragraph ===
+  y -= 16;
+  drawText('YOU ARE HEREBY SUMMONED', 90, y, { font: timesBold, size: 9 });
+  drawText('to serve a notice of appearance on the', 228, y, { size: 9 });
   
-  <!-- Header Row 2 -->
-  <div class="header-row">
-    <div class="header-left">
-      <div class="county-line">COUNTY OF <span class="county-name">${county}</span></div>
-    </div>
-    <div class="header-right">
-      Date Summons filed: <span class="underline"></span>
-    </div>
-  </div>
+  // Checkbox for Plaintiff
+  page.drawRectangle({ x: 410, y: y - 2, width: 8, height: 8, borderColor: black, borderWidth: 0.5 });
+  drawText('✓', 411, y - 1, { size: 7 });
+  drawText('Plaintiff', 422, y, { font: timesItalic, size: 9 });
+
+  y -= 11;
+  drawText('within twenty (20) days after the service of this summons, exclusive of the day of service (or within thirty (30)', 72, y, { size: 9 });
   
-  <!-- Header Row 3 -->
-  <div class="header-row">
-    <div class="header-left">
-      <div class="dashed-line">--------------------------------------------------------------------X</div>
-    </div>
-    <div class="header-right">
-      Plaintiff designates <span class="underline"></span>
-    </div>
-  </div>
+  y -= 11;
+  drawText('days after the service is complete if this summons is not personally delivered to you within the State of New', 72, y, { size: 9 });
   
-  <!-- Header Row 4 -->
-  <div class="header-row">
-    <div class="header-left"></div>
-    <div class="header-right">
-      ${county} County as the place of trial
-    </div>
-  </div>
+  y -= 11;
+  drawText('York); and in case of your failure to appear, judgment will be taken against you by default for the relief', 72, y, { size: 9 });
   
-  <!-- Header Row 5 -->
-  <div class="header-row">
-    <div class="header-left"></div>
-    <div class="header-right">
-      <em>The basis of venue is:</em>
-    </div>
-  </div>
+  y -= 11;
+  drawText('demanded in the notice set forth below.', 72, y, { size: 9 });
+
+  // === DATED / SIGNATURE SECTION ===
+  y -= 22;
+  drawText('Dated', 72, y, { size: 10 });
+  drawText(today, 102, y, { size: 10 });
+  drawLine(100, y - 2, 200);
+
+  // Plaintiff checkbox
+  page.drawRectangle({ x: 320, y: y - 2, width: 8, height: 8, borderColor: black, borderWidth: 0.5 });
+  drawText('✓', 321, y - 1, { size: 7 });
+  drawText('Plaintiff', 332, y, { font: timesItalic, size: 9 });
+
+  // Signature line
+  y -= 18;
+  drawLine(320, y, 540);
+  drawText(plaintiffName, 380, y + 3, { size: 10 });
+
+  // Phone
+  y -= 14;
+  drawText('Phone No.:', 320, y, { size: 9 });
+  drawText(data.plaintiffPhone || '', 375, y, { size: 9 });
+
+  // Address
+  y -= 12;
+  drawText('Address:', 320, y, { size: 9 });
   
-  <!-- Header Row 6 -->
-  <div class="header-row">
-    <div class="header-left"></div>
-    <div class="header-right">
-      ${qualifyingPartyName}'s<br>address.
-    </div>
-  </div>
+  y -= 11;
+  for (const line of mailingAddr.slice(0, 2)) {
+    drawText(line, 370, y, { size: 9 });
+    y -= 11;
+  }
+
+  // === NOTICE SECTION ===
+  y -= 8;
+  drawText('NOTICE:', 72, y, { font: timesBold, size: 10 });
+  drawText('The nature of this action is to dissolve the marriage between the parties, on the', 115, y, { size: 9 });
+
+  y -= 11;
+  drawText('grounds:', 115, y, { size: 9 });
+  drawText('DRL §170 subd. 7', 158, y, { font: timesBold, size: 9 });
+  drawText('— irretrievable breakdown in relationship for a period of at least six months.', 248, y, { font: timesBold, size: 9 });
+
+  y -= 16;
+  drawText('The relief sought is a judgment of absolute divorce in favor of the Plaintiff dissolving the marriage between', 72, y, { size: 9 });
   
-  <!-- Caption Area -->
-  <div class="caption-area">
-    <div class="caption-left">
-      <div class="party-block">
-        <div class="party-name">${data.plaintiffName}</div>
-        <div class="party-label">Plaintiff,</div>
-      </div>
-      
-      <div class="versus">-against-</div>
-      
-      <div class="party-block">
-        <div class="party-name">${data.defendantName}</div>
-        <div class="party-label">Defendant.</div>
-      </div>
-      
-      <div class="dashed-line">--------------------------------------------------------------------X</div>
-    </div>
-    
-    <div class="caption-right">
-      <div class="summons-title">SUMMONS WITH NOTICE</div>
-      <div class="addr-label">Plaintiff/Defendant resides at:</div>
-      <div class="addr-line">${qualifyingAddrLines[0] || ''}</div>
-      <div class="addr-line">${qualifyingAddrLines[1] || ''}</div>
-      <div class="addr-line">${qualifyingAddrLines.slice(2).join(', ') || ''}</div>
-    </div>
-  </div>
-  
-  <!-- Action Title -->
-  <div class="action-title">ACTION FOR A DIVORCE</div>
-  
-  <!-- To Defendant -->
-  <div class="to-defendant">To the above named Defendant:</div>
-  
-  <!-- Summoned Paragraph -->
-  <div class="summoned-para">
-    <span class="summoned-bold">YOU ARE HEREBY SUMMONED</span> to serve a notice of appearance on the 
-    <span class="checkbox checked"></span> <em>Plaintiff</em>
-    within twenty (20) days after the service of this summons, exclusive of the day of service (or within 
-    thirty (30) days after the service is complete if this summons is not personally delivered to you within 
-    the State of New York); and in case of your failure to appear, judgment will be taken against you by 
-    default for the relief demanded in the notice set forth below.
-  </div>
-  
-  <!-- Dated Section -->
-  <div class="dated-section">
-    <div class="dated-left">
-      Dated <span class="underline" style="min-width: 150px;">${dateStr}</span>
-    </div>
-    <div class="dated-right">
-      <span class="checkbox checked"></span> <em>Plaintiff</em>
-    </div>
-  </div>
-  
-  <!-- Signature Area -->
-  <div class="signature-area" style="margin-left: 45%;">
-    <div class="sig-line">${data.plaintiffName}</div>
-    <div class="sig-label">Phone No.: ${data.plaintiffPhone}</div>
-    <div class="sig-label">Address:</div>
-    <div class="sig-label" style="padding-left: 20px;">${mailingAddrLines[0] || ''}</div>
-    <div class="sig-label" style="padding-left: 20px;">${mailingAddrLines.slice(1).join(', ') || ''}</div>
-  </div>
-  
-  <!-- Notice Section -->
-  <div class="notice-section">
-    <span class="notice-label">NOTICE:</span> The nature of this action is to dissolve the marriage between the parties, on the<br>
-    grounds: <span class="grounds-text">DRL §170 subd. 7 — irretrievable breakdown in relationship for a period of at least six months.</span>
-  </div>
-  
-  <div class="notice-section">
-    The relief sought is a judgment of absolute divorce in favor of the Plaintiff dissolving the marriage 
-    between the parties in this action.
-  </div>
-  
-  <!-- Ancillary Relief Section -->
-  <div class="ancillary-section">
-    The nature of any ancillary or additional relief requested (see p.14 of Instructions) is:
-  </div>
-  
-  <div class="ancillary-section">
-    <span class="checkbox checked"></span> <strong>NONE</strong> — I am not requesting any ancillary relief;
-  </div>
-  
-  <div class="ancillary-section">
-    <strong>AND</strong> any other relief the court deems fit and proper
-  </div>
-  
-  <!-- Footer -->
-  <div class="footer">(UD-1 Rev. 1/25/16)</div>
-  
-  <script>
-    // Auto-trigger print dialog
-    window.onload = function() {
-      setTimeout(function() {
-        window.print();
-      }, 500);
-    };
-  </script>
-</body>
-</html>`;
-};
+  y -= 11;
+  drawText('the parties in this action.', 72, y, { size: 9 });
+
+  // === ANCILLARY RELIEF ===
+  y -= 16;
+  drawText('The nature of any ancillary or additional relief requested (see p.14 of Instructions) is:', 72, y, { size: 9 });
+
+  y -= 14;
+  page.drawRectangle({ x: 72, y: y - 2, width: 8, height: 8, borderColor: black, borderWidth: 0.5 });
+  drawText('✓', 73, y - 1, { size: 7 });
+  drawText('NONE', 84, y, { font: timesBold, size: 9 });
+  drawText('— I am not requesting any ancillary relief;', 115, y, { size: 9 });
+
+  y -= 14;
+  drawText('AND', 72, y, { font: timesBold, size: 9 });
+  drawText('any other relief the court deems fit and proper', 95, y, { size: 9 });
+
+  // === FOOTER ===
+  drawText('(UD-1 Rev. 1/25/16)', 72, 30, { size: 8 });
+
+  return pdfDoc.save();
+}
 
 export async function POST(req: Request) {
   try {
@@ -316,16 +250,21 @@ export async function POST(req: Request) {
       }
     }
 
-    // Default phone if not provided
     if (!data.plaintiffPhone) {
       data.plaintiffPhone = '';
     }
     
-    const html = generateUD1HTML(data);
+    const pdfBytes = await generateUD1PDF(data);
     
-    return new Response(html, {
+    // Convert Uint8Array to Buffer for Response
+    const buffer = Buffer.from(pdfBytes);
+    
+    return new Response(buffer, {
+      status: 200,
       headers: {
-        'Content-Type': 'text/html',
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="UD-1_Summons_${data.plaintiffName.replace(/\s+/g, '_')}.pdf"`,
+        'Content-Length': buffer.length.toString(),
       },
     });
   } catch (error) {
