@@ -214,12 +214,12 @@ async function generateUD1PDF(data: UD1Data): Promise<Uint8Array> {
   const boxHeight = boxesTopY - boxesBottomY;
   
   const plaintiffY = boxesTopY - boxHeight * 0.2;
-  const againstY = boxesTopY - boxHeight * 0.5;
-  const defendantY = boxesTopY - boxHeight * 0.75;
+  const againstY = boxesTopY - boxHeight * 0.45;
+  const defendantY = boxesTopY - boxHeight * 0.8;
   
-  drawText(plaintiffName, box1ContentX, plaintiffY);
+  drawText(plaintiffName + ',', box1ContentX, plaintiffY);
   drawText('-against-', box1ContentX + 40, againstY);
-  drawText(defendantName, box1ContentX, defendantY);
+  drawText(defendantName + '.', box1ContentX, defendantY);
   
   // DRAW BOX BORDERS
   // BOX 1: TOP, RIGHT, BOTTOM (no left)
