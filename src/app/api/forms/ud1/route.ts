@@ -1,83 +1,371 @@
-// UD-1 (Summons with Notice) PDF Generator
-// Uses embedded template + pdf-lib to overlay user data
+/**
+ * DivorceGPT UD-1 (Summons with Notice) PDF Generator
+ * ====================================================
+ * 
+ * TWO-BOX LAYOUT:
+ * - BOX 1 (Caption): TOP, RIGHT, BOTTOM borders (no left)
+ * - BOX 2 (Metadata): LEFT border only
+ * - Header: Left-aligned, Bold
+ */
 
 import { NextResponse } from 'next/server';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from 'pdf-lib';
+
+// Page dimensions
+const PAGE_WIDTH = 612;
+const PAGE_HEIGHT = 792;
+const MARGIN_LEFT = 72;
+const MARGIN_RIGHT = 72;
+const MARGIN_TOP = 72;
+const MARGIN_BOTTOM = 72;
+const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
+const LINE_HEIGHT = 14;
+
+// Box layout - no gap
+const BOX1_LEFT_X = MARGIN_LEFT;
+const BOX1_RIGHT_X = PAGE_WIDTH / 2;
+const BOX2_LEFT_X = PAGE_WIDTH / 2;
+const BOX2_RIGHT_X = PAGE_WIDTH - MARGIN_RIGHT;
 
 interface UD1Data {
   plaintiffName: string;
   defendantName: string;
-  qualifyingCounty: string;
+  county: string;
   qualifyingParty: 'plaintiff' | 'defendant';
   qualifyingAddress: string;
   plaintiffPhone: string;
   plaintiffAddress: string;
+  dateFiled?: string;
 }
 
-// Base64 encoded blank UD-1 template
-const UD1_TEMPLATE_BASE64 = 'JVBERi0xLjMKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgaHR0cDovL3d3dy5yZXBvcnRsYWIuY29tCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiAzIDAgUiAvRjMgNCAwIFIgL0Y0IDUgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMSAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL0Jhc2VGb250IC9UaW1lcy1Cb2xkIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMiAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjQgMCBvYmoKPDwKL0Jhc2VGb250IC9UaW1lcy1Sb21hbiAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvTmFtZSAvRjMgL1N1YnR5cGUgL1R5cGUxIC9UeXBlIC9Gb250Cj4+CmVuZG9iago1IDAgb2JqCjw8Ci9CYXNlRm9udCAvVGltZXMtSXRhbGljIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GNCAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0NvbnRlbnRzIDEwIDAgUiAvTWVkaWFCb3ggWyAwIDAgNjEyIDc5MiBdIC9QYXJlbnQgOSAwIFIgL1Jlc291cmNlcyA8PAovRm9udCAxIDAgUiAvUHJvY1NldCBbIC9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUkgXQo+PiAvUm90YXRlIDAgL1RyYW5zIDw8Cgo+PiAKICAvVHlwZSAvUGFnZQo+PgplbmRvYmoKNyAwIG9iago8PAovUGFnZU1vZGUgL1VzZU5vbmUgL1BhZ2VzIDkgMCBSIC9UeXBlIC9DYXRhbG9nCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9BdXRob3IgKGFub255bW91cykgL0NyZWF0aW9uRGF0ZSAoRDoyMDI2MDEyOTA1MTgxMiswMCcwMCcpIC9DcmVhdG9yIChSZXBvcnRMYWIgUERGIExpYnJhcnkgLSB3d3cucmVwb3J0bGFiLmNvbSkgL0tleXdvcmRzICgpIC9Nb2REYXRlIChEOjIwMjYwMTI5MDUxODEyKzAwJzAwJykgL1Byb2R1Y2VyIChSZXBvcnRMYWIgUERGIExpYnJhcnkgLSB3d3cucmVwb3J0bGFiLmNvbSkgCiAgL1N1YmplY3QgKHVuc3BlY2lmaWVkKSAvVGl0bGUgKHVudGl0bGVkKSAvVHJhcHBlZCAvRmFsc2UKPj4KZW5kb2JqCjkgMCBvYmoKPDwKL0NvdW50IDEgL0tpZHMgWyA2IDAgUiBdIC9UeXBlIC9QYWdlcwo+PgplbmRvYmoKMTAgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdIC9MZW5ndGggMTU1OQo+PgpzdHJlYW0KR2F1MENnTVoiQSY6TDFTVzQsSyVKYlRgITQ+REM4Qkk9QEJaYTVkPUJsRi87Wi8nNiolRVtMR0ZnaihOPUFITl8lOHBfUXBTaCojO2hZWXJJVmV0NFIvaFVGaVZNKzBnT1g7SVtiKDNxcXVPXylNblxZMUQ8cSg6Z0giLSIkXSdmRio9cSUnaSp1RVQwSEshXGlGX1g/JTpPOGJpUz4mV0A2WWEzMEI7ImVHYV8+K1w6aj5mS1lObEMwJWNKRVk1bjp1WCRlJismVWYzYkRnc285QmAjJTZQKElWUXBEY2A+biFMLW1BdE5aJz1ySkpjTzJFPlVnNmM3SzBIXzZlPWU2bSRRKj1eUE5OL0JCNHJXZjBSLFYsZlsqRl1rQmE8P2NsVGIxQVgwSV8+blY8TDkxaDNSJDZyXkk3TUQhKCUtZS9PbGkkO1dXYiI4LW1iOyVdLkgoKURKT2NYRS5DaCdjSF5mUVUoN2NPMSc0bTZUTlg1MG1pKzdyNl02QS9NUmFlWE9CZDU3YzpqT2EhKmVBKk1uNi5gcE4tNiF1VTlLTTthTSc+Nl5Dbko9Oz0wOFhlNlArS1wxTj9FV2I4TGYwNjVFIV9bRSc3UEFDYyY7OztYNGUkLGwzI3JkSFZvXzlZdScjTkpCOFxmIUQhTzI8QGJXLSU5TTVaXWUlOD1CUUtNLipAYWFqMEpMOzYyPjxIXFEmO0c4QldYSEhuMCFyUC50RSMyLko2Szt1XkglZUI/ZzFcPlYmZDo8WnBQOj8tNDBgI2lHWGJxLzQtYEFsNSJoOEZ1WkpbZU8uN24xVUFUWjNBbSpvVWw8V1RXO2xJNGYrcVU2VkMlQiUsNDpMSyZoMywkZV8lUCRLPjBCNDFTNV9dRD5TaFxea0FAblsrT0FwWCRQbyZXI2ooWEdQXShjbTBXJllsMFtYMSdkYjUxXWtWOkRtXEkzOildUEBgaTZuZWZqOG9vLSdBPWdoYyZlPUovP1JwUy8rciI6NEVNTThnZlc2ZFAnJkxnJXQwMiVDPWU2RSQmPWlTIV9dQWFFJiNNJXFwXyMvY2wwR1lTdWxoVnFPKV5bQnJbdFlgPz40UTJDO2svTCwvUDVVRDFDNzg4LFlwdU9eWiM2TU9nO2IoYCwqM1pyODA5ckdRZ0lZR0dbaGBIOVMzUUdpSV8uSWVhRkQpP0dTOThZZ2ZnUTM9OHBNZlVFXFp0dWMtJEBfKmEzbDEjKU5BdVhyNHNTQjFLZ0hxP184VTIiRWUxOjU3PEN1aDMuaHIpJkpPQGk8QVFIdEcjXCczW3U0RlY8NTRpPE9ASUlnOWghNkg0NjhYPVNiSXBRN2FMYEhvU0A5JzYoQFAnQ0VIPlFvdUpSLl07UD8rY1dtJS0kWyh0KFM3TzJCQERjJT9JUWRUS0tcSjpjbEM0SlArYlIybUZwJGN0Uj08RSlnVTpJXD01KyQ2PDJxUF0vUF9UTDZgbjZWWE9OJXRhXmFbWDxAUzplXC1mP1hUOm1ZT2VDO2cxTGw+MjFLSlMmUyI7O0xVaG8nT2VFO1BObSFgOTNccSdFZ2FxPyxsP2Y8Sz5PT25nMjlAcywyMCNzaVFeVUg+YztPZ3EoRjNUQnA4PEJpQUU7NkolTmdaZ0M3OGgoWz1bLiVdPjtoQF5sZmFGSUFBPUkxaFFjYkhGLnE7Z0BUQixmb1BIITJ0QStNM2QkXUsrZDNZSlw8KEo8N1ZlLWlvT1c5X1A4Q2JpbFVvcF9JLi08SkZSTUd0TCotbkN1WCQ5aiFLWGJ0Z1YuO21gJCZxdT5PUy5saC0tdDNPVWAvIU9ecUtHW1wkNChDXFVyXUhuYjZmOjJUYnJZbFBFQGcyaFFHMG40LzYpWms7M19lUF0zTyZlTEojJylAc0kjSzRBLkcpUm5TXkUhby0jJmo7b3FhJlBtbEw8MFNcPjllU0gnI2I0MisjZERaRSVzPGw8Qk41VktmQz5KKCElJE49R0BLQi1ML1dgVlQ3SW1FOXMkNzFMNFJoZisrZWUpQytqM2EkSW4nLkdfREpeMzlFaTQuJ0JINWYmZTohNTxbbkosfj5lbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCAxMQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwNzMgMDAwMDAgbiAKMDAwMDAwMDEzNCAwMDAwMCBuIAowMDAwMDAwMjQxIDAwMDAwIG4gCjAwMDAwMDAzNDkgMDAwMDAgbiAKMDAwMDAwMDQ1OCAwMDAwMCBuIAowMDAwMDAwNTY4IDAwMDAwIG4gCjAwMDAwMDA3NjIgMDAwMDAgbiAKMDAwMDAwMDgzMCAwMDAwMCBuIAowMDAwMDAxMTI2IDAwMDAwIG4gCjAwMDAwMDExODUgMDAwMDAgbiAKdHJhaWxlcgo8PAovSUQgCls8Y2NmZDM1NGQyODM0MjhhODU4ZTliMWQ3M2VlNDQ5ZDM+PGNjZmQzNTRkMjgzNDI4YTg1OGU5YjFkNzNlZTQ0OWQzPl0KJSBSZXBvcnRMYWIgZ2VuZXJhdGVkIFBERiBkb2N1bWVudCAtLSBkaWdlc3QgKGh0dHA6Ly93d3cucmVwb3J0bGFiLmNvbSkKCi9JbmZvIDggMCBSCi9Sb290IDcgMCBSCi9TaXplIDExCj4+CnN0YXJ0eHJlZgoyODM2CiUlRU9GCg==';
+function formatAddressLines(address: string): string[] {
+  address = address.trim();
+  
+  const match1 = address.match(/,\s*([^,]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)$/);
+  if (match1) {
+    const cityStateZip = match1[1].trim();
+    const street = address.slice(0, match1.index).trim();
+    return [street, cityStateZip];
+  }
+  
+  const match2 = address.match(/,\s*([A-Z]{2}\s+\d{5}(?:-\d{4})?)$/);
+  if (match2) {
+    const beforeState = address.slice(0, match2.index);
+    const lastComma = beforeState.lastIndexOf(',');
+    if (lastComma > 0) {
+      const street = beforeState.slice(0, lastComma).trim();
+      const cityStateZip = beforeState.slice(lastComma + 1).trim() + ', ' + match2[1].trim();
+      return [street, cityStateZip];
+    }
+  }
+  
+  return [address];
+}
+
+function titleCase(str: string): string {
+  return str.split(' ').map(word => 
+    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+  ).join(' ');
+}
 
 async function generateUD1PDF(data: UD1Data): Promise<Uint8Array> {
-  // Decode base64 template
-  const binaryString = Buffer.from(UD1_TEMPLATE_BASE64, 'base64');
-  const pdfDoc = await PDFDocument.load(binaryString);
-  
-  const pages = pdfDoc.getPages();
-  const page = pages[0];
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   
   const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
   const timesBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+  const timesItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
   
   const black = rgb(0, 0, 0);
   
-  const county = data.qualifyingCounty.toUpperCase();
-  const plaintiff = data.plaintiffName;
-  const defendant = data.defendantName;
-  const qualifying = data.qualifyingParty;
-  const venueName = qualifying === 'plaintiff' ? plaintiff : defendant;
-  const qualifyingAddr = data.qualifyingAddress;
-  const phone = data.plaintiffPhone || '';
-  const mailingAddr = data.plaintiffAddress;
+  // Extract data
+  const countyName = data.county.trim();
+  const countyUpper = countyName.toUpperCase();
+  const countyTitle = titleCase(countyName);
+  const plaintiffName = data.plaintiffName.trim();
+  const defendantName = data.defendantName.trim();
+  const qualifyingParty = data.qualifyingParty;
+  const qualifyingPartyLabel = qualifyingParty === 'plaintiff' ? 'Plaintiff' : 'Defendant';
+  const qualifyingAddress = data.qualifyingAddress.trim();
+  const plaintiffPhone = data.plaintiffPhone?.trim() || '';
+  const plaintiffAddress = data.plaintiffAddress.trim();
+  const dateFiled = data.dateFiled || '';
   
-  const today = new Date().toLocaleDateString('en-US', { 
-    month: 'long', day: 'numeric', year: 'numeric' 
+  const qualAddrLines = formatAddressLines(qualifyingAddress);
+  const plaintiffAddrLines = formatAddressLines(plaintiffAddress);
+  
+  const displayDate = dateFiled || new Date().toLocaleDateString('en-US', {
+    month: 'long', day: 'numeric', year: 'numeric'
   });
-
-  const addrParts = qualifyingAddr.split(',').map((p: string) => p.trim());
   
-  // COUNTY NAME
-  page.drawText(county, { x: 145, y: 730, size: 11, font: timesBold, color: black });
+  let y = PAGE_HEIGHT - MARGIN_TOP;
   
-  // COUNTY (place of trial)
-  page.drawText(county, { x: 460, y: 716, size: 10, font: timesRoman, color: black });
+  const drawText = (text: string, x: number, yPos: number, font: PDFFont = timesRoman, size: number = 12) => {
+    page.drawText(text, { x, y: yPos, font, size, color: black });
+  };
   
-  // VENUE PARTY NAME
-  page.drawText(venueName, { x: 460, y: 678, size: 9, font: timesRoman, color: black });
+  const drawLine = (x1: number, y1: number, x2: number, y2: number) => {
+    page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness: 0.5, color: black });
+  };
   
-  // PLAINTIFF NAME
-  page.drawText(plaintiff, { x: 180, y: 680, size: 11, font: timesRoman, color: black });
+  const drawUnderlinedText = (text: string, x: number, yPos: number, font: PDFFont = timesRoman, size: number = 12): number => {
+    page.drawText(text, { x, y: yPos, font, size, color: black });
+    const width = font.widthOfTextAtSize(text, size);
+    drawLine(x, yPos - 2, x + width, yPos - 2);
+    return width;
+  };
   
-  // DEFENDANT NAME
-  page.drawText(defendant, { x: 180, y: 610, size: 11, font: timesRoman, color: black });
+  // =========================================================================
+  // HEADER: Left aligned, Bold
+  // =========================================================================
+  drawText('SUPREME COURT OF THE STATE OF NEW YORK', MARGIN_LEFT, y, timesBold);
+  y -= LINE_HEIGHT;
+  drawText(`COUNTY OF ${countyUpper}`, MARGIN_LEFT, y, timesBold);
   
-  // ADDRESS LINES
-  let addrY = 618;
-  for (let i = 0; i < Math.min(addrParts.length, 3); i++) {
-    page.drawText(addrParts[i], { x: 404, y: addrY, size: 9, font: timesRoman, color: black });
-    addrY -= 12;
+  y -= LINE_HEIGHT * 0.5;
+  
+  // =========================================================================
+  // BOXES START
+  // =========================================================================
+  const boxesTopY = y;
+  
+  // BOX 2 CONTENT
+  const box2ContentX = BOX2_LEFT_X + 8;
+  const box2MaxWidth = BOX2_RIGHT_X - box2ContentX - 8;
+  let y2 = boxesTopY - LINE_HEIGHT;
+  
+  drawText('Index No.:', box2ContentX, y2);
+  y2 -= LINE_HEIGHT * 2;
+  
+  drawText('Date Summons filed:', box2ContentX, y2);
+  y2 -= LINE_HEIGHT * 2;
+  
+  // Plaintiff designates line
+  const part1 = 'Plaintiff designates ';
+  const countyDisplay = `${countyTitle} County`;
+  const part1b = ' as the place of trial';
+  
+  const fullWidth1 = timesRoman.widthOfTextAtSize(part1, 12) + 
+                     timesRoman.widthOfTextAtSize(countyDisplay, 12) + 
+                     timesRoman.widthOfTextAtSize(part1b, 12);
+  
+  if (fullWidth1 <= box2MaxWidth) {
+    drawText(part1, box2ContentX, y2);
+    let xPos = box2ContentX + timesRoman.widthOfTextAtSize(part1, 12);
+    xPos += drawUnderlinedText(countyDisplay, xPos, y2);
+    drawText(part1b, xPos, y2);
+  } else {
+    drawText(part1, box2ContentX, y2);
+    const xPos = box2ContentX + timesRoman.widthOfTextAtSize(part1, 12);
+    drawUnderlinedText(countyDisplay, xPos, y2);
+    y2 -= LINE_HEIGHT;
+    drawText('as the place of trial', box2ContentX, y2);
+  }
+  y2 -= LINE_HEIGHT;
+  
+  // Basis of venue line
+  const venueP1 = 'The basis of the venue is: ';
+  const venueP2 = `${qualifyingPartyLabel}'s address`;
+  
+  const fullWidth2 = timesRoman.widthOfTextAtSize(venueP1, 12) + 
+                     timesRoman.widthOfTextAtSize(venueP2, 12);
+  
+  if (fullWidth2 <= box2MaxWidth) {
+    drawText(venueP1, box2ContentX, y2);
+    const xPos = box2ContentX + timesRoman.widthOfTextAtSize(venueP1, 12);
+    drawUnderlinedText(venueP2, xPos, y2);
+  } else {
+    drawText(venueP1, box2ContentX, y2);
+    y2 -= LINE_HEIGHT;
+    drawUnderlinedText(venueP2, box2ContentX, y2);
+  }
+  y2 -= LINE_HEIGHT * 2;
+  
+  // SUMMONS WITH NOTICE (centered)
+  const summonsText = 'SUMMONS WITH NOTICE';
+  const summonsWidth = timesBold.widthOfTextAtSize(summonsText, 12);
+  const box2CenterX = BOX2_LEFT_X + (BOX2_RIGHT_X - BOX2_LEFT_X) / 2;
+  drawUnderlinedText(summonsText, box2CenterX - summonsWidth / 2, y2, timesBold);
+  y2 -= LINE_HEIGHT * 2;
+  
+  // Resides at
+  drawText(`${qualifyingPartyLabel} resides at:`, box2ContentX, y2);
+  y2 -= LINE_HEIGHT;
+  
+  drawText(qualAddrLines[0] || '', box2ContentX, y2);
+  if (qualAddrLines.length > 1) {
+    y2 -= LINE_HEIGHT;
+    drawText(qualAddrLines[1], box2ContentX, y2);
   }
   
-  // DATE
-  page.drawText(today, { x: 105, y: 437, size: 10, font: timesRoman, color: black });
+  const boxesBottomY = y2 - 8;
   
-  // SIGNATURE
-  page.drawText(plaintiff, { x: 380, y: 421, size: 10, font: timesRoman, color: black });
+  // BOX 1 CONTENT (Caption - vertically distributed)
+  const box1ContentX = BOX1_LEFT_X + 8;
+  const boxHeight = boxesTopY - boxesBottomY;
   
-  // PHONE
-  page.drawText(phone, { x: 358, y: 405, size: 9, font: timesRoman, color: black });
+  const plaintiffY = boxesTopY - boxHeight * 0.2;
+  const againstY = boxesTopY - boxHeight * 0.5;
+  const defendantY = boxesTopY - boxHeight * 0.75;
   
-  // MAILING ADDRESS
-  page.drawText(mailingAddr, { x: 348, y: 393, size: 9, font: timesRoman, color: black });
+  drawText(plaintiffName, box1ContentX, plaintiffY);
+  drawText('-against-', box1ContentX + 40, againstY);
+  drawText(defendantName, box1ContentX, defendantY);
+  
+  // DRAW BOX BORDERS
+  // BOX 1: TOP, RIGHT, BOTTOM (no left)
+  drawLine(BOX1_LEFT_X, boxesTopY, BOX1_RIGHT_X, boxesTopY);
+  drawLine(BOX1_RIGHT_X, boxesTopY, BOX1_RIGHT_X, boxesBottomY);
+  drawLine(BOX1_LEFT_X, boxesBottomY, BOX1_RIGHT_X, boxesBottomY);
+  
+  // BOX 2: LEFT only
+  drawLine(BOX2_LEFT_X, boxesTopY, BOX2_LEFT_X, boxesBottomY);
+  
+  // =========================================================================
+  // ACTION FOR A DIVORCE
+  // =========================================================================
+  y = boxesBottomY - LINE_HEIGHT * 1.5;
+  
+  const actionText = 'ACTION FOR A DIVORCE';
+  const actionWidth = timesBold.widthOfTextAtSize(actionText, 12);
+  drawText(actionText, (PAGE_WIDTH - actionWidth) / 2, y, timesBold);
+  
+  y -= LINE_HEIGHT * 1.5;
+  drawText('To the above named Defendant:', MARGIN_LEFT, y, timesItalic);
+  y -= LINE_HEIGHT * 1.5;
+  
+  // =========================================================================
+  // YOU ARE HEREBY SUMMONED (bold) + rest justified
+  // =========================================================================
+  const boldPart = 'YOU ARE HEREBY SUMMONED ';
+  drawText(boldPart, MARGIN_LEFT + 36, y, timesBold);
+  const boldWidth = timesBold.widthOfTextAtSize(boldPart, 12);
+  
+  const restText = 'to serve a notice of appearance on the Plaintiff within twenty (20) days after the service of this summons, exclusive of the day of service (or within thirty (30) days after the service is complete if this summons is not personally delivered to you within the State of New York); and in case of your failure to appear, judgment will be taken against you by default for the relief demanded in the notice set forth below.';
+  
+  // Simple word wrap for the rest
+  const words = restText.split(' ');
+  let currentLine = '';
+  let firstLine = true;
+  let startX = MARGIN_LEFT + 36 + boldWidth;
+  let maxWidth = CONTENT_WIDTH - 36 - boldWidth;
+  
+  for (const word of words) {
+    const testLine = currentLine ? currentLine + ' ' + word : word;
+    const testWidth = timesRoman.widthOfTextAtSize(testLine, 12);
+    
+    if (testWidth <= maxWidth) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) {
+        drawText(currentLine, startX, y);
+        y -= LINE_HEIGHT;
+      }
+      currentLine = word;
+      if (firstLine) {
+        firstLine = false;
+        startX = MARGIN_LEFT;
+        maxWidth = CONTENT_WIDTH;
+      }
+    }
+  }
+  if (currentLine) {
+    drawText(currentLine, startX, y);
+    y -= LINE_HEIGHT;
+  }
+  
+  // =========================================================================
+  // Dated: and Signature Block
+  // =========================================================================
+  y -= LINE_HEIGHT * 2;
+  
+  drawText(`Dated: ${displayDate}`, MARGIN_LEFT, y);
+  
+  const sigX = BOX2_LEFT_X + 8;
+  drawLine(sigX, y - 3, PAGE_WIDTH - MARGIN_RIGHT, y - 3);
+  
+  drawText(plaintiffName, sigX, y);
+  y -= LINE_HEIGHT;
+  
+  drawText(plaintiffAddrLines[0] || '', sigX, y);
+  y -= LINE_HEIGHT;
+  
+  if (plaintiffAddrLines.length > 1) {
+    drawText(plaintiffAddrLines[1], sigX, y);
+    y -= LINE_HEIGHT;
+  }
+  
+  drawText(plaintiffPhone, sigX, y);
+  
+  // =========================================================================
+  // NOTICE Section
+  // =========================================================================
+  y -= LINE_HEIGHT * 2;
+  
+  drawUnderlinedText('NOTICE:', MARGIN_LEFT, y, timesBold);
+  
+  const noticeIndent = MARGIN_LEFT + 72;
+  drawText('The nature of this action is to dissolve the marriage between the parties, on the', noticeIndent, y);
+  
+  y -= LINE_HEIGHT;
+  drawText('grounds: DRL§170 subd.7 – ', noticeIndent, y);
+  
+  const groundsX = noticeIndent + timesRoman.widthOfTextAtSize('grounds: DRL§170 subd.7 – ', 12);
+  const groundsText = 'irretrievable breakdown in relationship for a';
+  drawText(groundsText, groundsX, y, timesBold);
+  drawLine(groundsX, y - 2, groundsX + timesBold.widthOfTextAtSize(groundsText, 12), y - 2);
+  
+  y -= LINE_HEIGHT;
+  const groundsText2 = 'period at least six months';
+  drawText(groundsText2, noticeIndent, y, timesBold);
+  drawLine(noticeIndent, y - 2, noticeIndent + timesBold.widthOfTextAtSize(groundsText2, 12), y - 2);
+  
+  // =========================================================================
+  // Relief Sought
+  // =========================================================================
+  y -= LINE_HEIGHT * 2;
+  
+  const reliefText = 'The relief sought is a judgment of absolute divorce in favor of the Plaintiff dissolving the marriage between the parties in this action.';
+  const reliefWords = reliefText.split(' ');
+  let reliefLine = '';
+  
+  for (const word of reliefWords) {
+    const testLine = reliefLine ? reliefLine + ' ' + word : word;
+    if (timesRoman.widthOfTextAtSize(testLine, 12) <= CONTENT_WIDTH) {
+      reliefLine = testLine;
+    } else {
+      drawText(reliefLine, MARGIN_LEFT, y);
+      y -= LINE_HEIGHT;
+      reliefLine = word;
+    }
+  }
+  if (reliefLine) {
+    drawText(reliefLine, MARGIN_LEFT, y);
+    y -= LINE_HEIGHT;
+  }
+  
+  // =========================================================================
+  // Ancillary Relief
+  // =========================================================================
+  y -= LINE_HEIGHT;
+  
+  drawText('The nature of any ancillary or additional relief requested is:', MARGIN_LEFT, y);
+  y -= LINE_HEIGHT * 2;
+  
+  drawText('NONE', MARGIN_LEFT, y, timesBold);
+  const noneWidth = timesBold.widthOfTextAtSize('NONE', 12);
+  drawText(' – I am not requesting any ancillary relief.', MARGIN_LEFT + noneWidth + 4, y);
+  
+  // =========================================================================
+  // FOOTER
+  // =========================================================================
+  page.drawText('UD-1 (Summons with Notice)', {
+    x: MARGIN_LEFT,
+    y: MARGIN_BOTTOM - 20,
+    font: timesRoman,
+    size: 10,
+    color: black
+  });
   
   return pdfDoc.save();
 }
@@ -86,29 +374,40 @@ export async function POST(req: Request): Promise<Response> {
   try {
     const data: UD1Data = await req.json();
     
-    const required: (keyof UD1Data)[] = ['plaintiffName', 'defendantName', 'qualifyingCounty', 'qualifyingParty', 'qualifyingAddress', 'plaintiffAddress'];
+    const required: (keyof UD1Data)[] = [
+      'plaintiffName', 'defendantName', 'county',
+      'qualifyingParty', 'qualifyingAddress', 'plaintiffAddress'
+    ];
+    
     for (const field of required) {
       if (!data[field]) {
-        return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 });
+        return NextResponse.json(
+          { error: `Missing required field: ${field}` },
+          { status: 400 }
+        );
       }
     }
-
-    if (!data.plaintiffPhone) {
-      data.plaintiffPhone = '';
-    }
+    
+    if (!data.plaintiffPhone) data.plaintiffPhone = '';
     
     const pdfBytes = await generateUD1PDF(data);
+    
+    const safeName = data.plaintiffName.replace(/[^a-zA-Z0-9]/g, '_');
+    const filename = `UD-1_Summons_${safeName}.pdf`;
     
     return new Response(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="UD-1_Summons_${data.plaintiffName.replace(/\s+/g, '_')}.pdf"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
         'Content-Length': pdfBytes.length.toString(),
       },
     });
   } catch (error) {
     console.error('UD-1 generation error:', error);
-    return NextResponse.json({ error: 'Failed to generate document' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to generate document' },
+      { status: 500 }
+    );
   }
 }
