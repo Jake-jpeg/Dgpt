@@ -91,8 +91,8 @@ async function generateUD1PDF(data: UD1Data): Promise<Uint8Array> {
   countyName = countyName.replace(/\s+County$/i, '').trim();  // Remove " County" suffix
   const countyUpper = countyName.toUpperCase();
   const countyTitle = titleCase(countyName);
-  const plaintiffName = data.plaintiffName.trim();
-  const defendantName = data.defendantName.trim();
+  const plaintiffName = data.plaintiffName.trim().toUpperCase();
+  const defendantName = data.defendantName.trim().toUpperCase();
   const qualifyingParty = data.qualifyingParty;
   const qualifyingPartyLabel = qualifyingParty === 'plaintiff' ? 'Plaintiff' : 'Defendant';
   const qualifyingAddress = data.qualifyingAddress.trim();
