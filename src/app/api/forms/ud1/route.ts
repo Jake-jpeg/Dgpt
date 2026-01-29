@@ -1,11 +1,17 @@
 /**
  * DivorceGPT UD-1 (Summons with Notice) PDF Generator
+ * Version: 1.09
  * ====================================================
  * 
  * TWO-BOX LAYOUT:
  * - BOX 1 (Caption): TOP, RIGHT, BOTTOM borders (no left)
  * - BOX 2 (Metadata): LEFT border only
  * - Header: Left-aligned, Bold
+ * 
+ * County Logic:
+ * - Accepts both 'county' and 'filingCounty' field names
+ * - Automatically strips " County" suffix if present
+ * - Uses qualifying party's county (plaintiff's if both apply)
  */
 
 import { NextResponse } from 'next/server';
@@ -30,7 +36,8 @@ const BOX2_RIGHT_X = PAGE_WIDTH - MARGIN_RIGHT;
 interface UD1Data {
   plaintiffName: string;
   defendantName: string;
-  county: string;
+  county?: string;
+  filingCounty?: string;  // Alternative field name
   qualifyingParty: 'plaintiff' | 'defendant';
   qualifyingAddress: string;
   plaintiffPhone: string;
@@ -79,7 +86,9 @@ async function generateUD1PDF(data: UD1Data): Promise<Uint8Array> {
   const black = rgb(0, 0, 0);
   
   // Extract data
-  const countyName = data.county.trim();
+  // Accept both 'county' and 'filingCounty', strip " County" suffix if present
+  let countyName = (data.county || data.filingCounty || '').trim();
+  countyName = countyName.replace(/\s+County$/i, '').trim();  // Remove " County" suffix
   const countyUpper = countyName.toUpperCase();
   const countyTitle = titleCase(countyName);
   const plaintiffName = data.plaintiffName.trim();
@@ -374,8 +383,9 @@ export async function POST(req: Request): Promise<Response> {
   try {
     const data: UD1Data = await req.json();
     
+    // Validate required fields (county OR filingCounty accepted)
     const required: (keyof UD1Data)[] = [
-      'plaintiffName', 'defendantName', 'county',
+      'plaintiffName', 'defendantName',
       'qualifyingParty', 'qualifyingAddress', 'plaintiffAddress'
     ];
     
@@ -386,6 +396,14 @@ export async function POST(req: Request): Promise<Response> {
           { status: 400 }
         );
       }
+    }
+    
+    // Check for county (either field name)
+    if (!data.county && !data.filingCounty) {
+      return NextResponse.json(
+        { error: 'Missing required field: county (or filingCounty)' },
+        { status: 400 }
+      );
     }
     
     if (!data.plaintiffPhone) data.plaintiffPhone = '';
