@@ -97,7 +97,7 @@ print('SUCCESS')
     }
     
     // Return PDF
-    return new NextResponse(result, {
+    return new NextResponse(new Uint8Array(result), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="UD-4_Barriers_to_Remarriage.pdf"`,
