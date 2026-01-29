@@ -194,7 +194,12 @@ function FormsContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
+          plaintiffName: formData.plaintiffName,
+          defendantName: formData.defendantName,
+          filingCounty: formData.qualifyingCounty,  // Map qualifyingCounty to filingCounty
+          qualifyingParty: formData.qualifyingParty,
+          qualifyingAddress: formData.qualifyingAddress,
+          plaintiffAddress: formData.plaintiffAddress,
           plaintiffPhone: formData.plaintiffPhone || '',
         }),
       });
