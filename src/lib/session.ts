@@ -10,6 +10,7 @@ export interface UD1FormData {
   qualifyingCounty: string;
   qualifyingParty: 'plaintiff' | 'defendant' | '';
   qualifyingAddress: string;
+  plaintiffPhone: string;
   plaintiffAddress: string;
 }
 

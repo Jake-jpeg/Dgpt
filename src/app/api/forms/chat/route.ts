@@ -60,6 +60,7 @@ FIELD NAMES (exact):
 • qualifyingCounty = county name only (e.g., "Kings" NOT "Kings County")
 • qualifyingParty = exactly "plaintiff" or "defendant" (whoever meets NY residency)
 • qualifyingAddress = full address WITH ZIP CODE
+• plaintiffPhone = plaintiff's phone number (required for court contact)
 • plaintiffAddress = plaintiff's mailing address WITH ZIP CODE
 
 ═══════════════════════════════════════════════════════════════
@@ -96,7 +97,7 @@ IMPORTANT:
 EXAMPLE: Complete submission WITH ZIP CODE
 ═══════════════════════════════════════════════════════════════
 
-USER: "My name is Jake Kim. Wife is Jane Doe. We live at 74 Fitzgerald Court, Monroe, NY 10950. I've lived here 10 years. This is my mailing address too."
+USER: "My name is Jake Kim. Wife is Jane Doe. We live at 74 Fitzgerald Court, Monroe, NY 10950. I've lived here 10 years. This is my mailing address too. My phone is 845-555-1234."
 
 YOUR RESPONSE:
 "Thank you, Jake! I've recorded all your information:
@@ -104,10 +105,11 @@ YOUR RESPONSE:
 - Plaintiff: Jake Kim
 - Defendant: Jane Doe  
 - Address: 74 Fitzgerald Court, Monroe, NY 10950
+- Phone: (845) 555-1234
 - You meet the residency requirement (10 years)
 - Filing county: Orange County
 
-Everything looks complete! Click 'Print / Save as PDF' when ready.
+Everything looks complete! Click 'Download UD-1' when ready.
 
 \`\`\`json
 {"field": "plaintiffName", "value": "Jake Kim"}
@@ -123,6 +125,9 @@ Everything looks complete! Click 'Print / Save as PDF' when ready.
 \`\`\`
 \`\`\`json
 {"field": "qualifyingAddress", "value": "74 Fitzgerald Court, Monroe, NY 10950"}
+\`\`\`
+\`\`\`json
+{"field": "plaintiffPhone", "value": "(845) 555-1234"}
 \`\`\`
 \`\`\`json
 {"field": "plaintiffAddress", "value": "74 Fitzgerald Court, Monroe, NY 10950"}
@@ -154,8 +159,9 @@ RULES
 4. If address issues persist, direct to admin@divorcegpt.com
 5. NEVER mention UD-2 - it doesn't exist in this process
 6. Brooklyn=Kings, Manhattan=New York, Queens=Queens, Bronx=Bronx, Staten Island=Richmond
-7. When all 6 fields complete with valid data, add {"complete": true}
-8. Be warm and helpful`;
+7. When all 7 fields complete with valid data, add {"complete": true}
+8. Be warm and helpful
+9. Always ask for phone number if not provided`;
 
 export async function POST(req: Request) {
   try {
@@ -163,7 +169,7 @@ export async function POST(req: Request) {
 
     // Build context about what's already collected
     const collectedFields = currentData ? Object.keys(currentData).filter(k => currentData[k]) : [];
-    const allFields = ['plaintiffName', 'defendantName', 'qualifyingCounty', 'qualifyingParty', 'qualifyingAddress', 'plaintiffAddress'];
+    const allFields = ['plaintiffName', 'defendantName', 'qualifyingCounty', 'qualifyingParty', 'qualifyingAddress', 'plaintiffPhone', 'plaintiffAddress'];
     const missingFields = allFields.filter(f => !collectedFields.includes(f));
     
     let contextMessage = '\n\n[SYSTEM STATUS: ';

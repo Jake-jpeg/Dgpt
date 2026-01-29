@@ -193,7 +193,10 @@ function FormsContent() {
       const res = await fetch("/api/forms/ud1", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          plaintiffPhone: formData.plaintiffPhone || '',
+        }),
       });
 
       console.log("Response status:", res.status);
@@ -204,35 +207,20 @@ function FormsContent() {
         throw new Error(errorData.error || "Failed to generate document");
       }
 
-      // Get the HTML content
-      const html = await res.text();
-      console.log("Received HTML, length:", html.length);
+      // Download the PDF directly
+      const blob = await res.blob();
+      console.log("Received PDF, size:", blob.size);
       
-      // Open in new window for printing to PDF
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(html);
-        printWindow.document.close();
-        
-        // Auto-trigger print dialog after a short delay
-        setTimeout(() => {
-          printWindow.print();
-        }, 500);
-      } else {
-        // Fallback: download as HTML if popup blocked
-        const blob = new Blob([html], { type: 'text/html' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `UD-1_Summons_${(formData.plaintiffName || "Document").replace(/\s+/g, "_")}.html`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        alert("Please open the downloaded HTML file and use Print > Save as PDF");
-      }
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `UD-1_Summons_${(formData.plaintiffName || "Document").replace(/\s+/g, "_")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
       
-      console.log("Document generated successfully");
+      console.log("PDF downloaded successfully");
     } catch (error) {
       console.error("Download error:", error);
       alert("Failed to generate document: " + (error instanceof Error ? error.message : "Unknown error"));
@@ -241,7 +229,7 @@ function FormsContent() {
     }
   };
 
-  // Check if all required fields are filled
+  // Check if all required fields are filled (phone is optional but recommended)
   const allFieldsFilled = !!(
     formData.plaintiffName &&
     formData.defendantName &&
@@ -250,6 +238,17 @@ function FormsContent() {
     formData.qualifyingAddress &&
     formData.plaintiffAddress
   );
+  
+  // Count completed fields including phone
+  const completedFields = [
+    formData.plaintiffName,
+    formData.defendantName,
+    formData.qualifyingCounty,
+    formData.qualifyingParty,
+    formData.qualifyingAddress,
+    formData.plaintiffPhone,
+    formData.plaintiffAddress,
+  ].filter(Boolean).length;
 
   // Loading state
   if (isValidating) {
@@ -405,7 +404,7 @@ function FormsContent() {
                 <p className="text-sm text-zinc-500">Summons with Notice</p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-lg font-bold text-zinc-700">
-                {completedFields}/6
+                {completedFields}/7
               </div>
             </div>
             
@@ -413,7 +412,7 @@ function FormsContent() {
             <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-zinc-200">
               <div 
                 className="h-full bg-gradient-to-r from-[#1a365d] to-[#c59d5f] transition-all duration-500"
-                style={{ width: `${(completedFields / 6) * 100}%` }}
+                style={{ width: `${(completedFields / 7) * 100}%` }}
               />
             </div>
             
@@ -453,9 +452,16 @@ function FormsContent() {
                 description="Address of qualifying party"
               />
 
+              {/* Plaintiff Phone */}
+              <FieldCard 
+                label="Phone Number" 
+                value={formData.plaintiffPhone}
+                description="For court contact"
+              />
+
               {/* Plaintiff Address */}
               <FieldCard 
-                label="Plaintiff Address" 
+                label="Mailing Address" 
                 value={formData.plaintiffAddress}
                 description="For service of papers"
               />
@@ -479,9 +485,9 @@ function FormsContent() {
                 ) : (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                     </svg>
-                    Print / Save as PDF
+                    Download UD-1 PDF
                   </span>
                 )}
               </button>
