@@ -83,6 +83,18 @@ def generate_ud4(data, output_path):
     state_signed = data.get('stateSigned', 'NEW YORK').strip().upper()
     county_signed = data.get('countySigned', county_name).strip().upper()
     
+    # Service method for UD-4a: "personal" or "mail"
+    service_method = data.get('serviceMethod', '').lower()
+    
+    # UD-4a fill-in fields (optional - blank if not provided)
+    server_name = data.get('serverName', '').strip()
+    server_address = data.get('serverAddress', '').strip()
+    service_date = data.get('serviceDate', '').strip()
+    service_address = data.get('serviceAddress', '').strip()
+    
+    # Determine if we're filling in or leaving blank
+    manual_fill = data.get('manualFill', False)
+    
     # =========================================================================
     # PAGE 1: UD-4 Sworn Statement
     # =========================================================================
@@ -135,8 +147,13 @@ def generate_ud4(data, output_path):
     box2_x = BOX2_LEFT_X + 8
     title_y = boxes_top_y - LINE_HEIGHT * 1.5
     
+    # Index Number - required at this phase
+    index_number = data.get('indexNumber', '').strip()
     c.setFont("Times-Roman", 12)
-    c.drawString(box2_x, title_y, "Index No.: _______________")
+    if index_number:
+        c.drawString(box2_x, title_y, f"Index No.: {index_number}")
+    else:
+        c.drawString(box2_x, title_y, "Index No.: _______________")
     title_y -= LINE_HEIGHT * 2
     
     c.setFont("Times-Bold", 12)
@@ -181,25 +198,19 @@ def generate_ud4(data, output_path):
     y = draw_wrapped_text(c, para3_text, MARGIN_LEFT, y, CONTENT_WIDTH, "Times-Italic", 12)
     y -= LINE_HEIGHT * 2
     
-    # Signature line
-    sig_x = PAGE_WIDTH / 2 + 20
-    c.line(sig_x, y, PAGE_WIDTH - MARGIN_RIGHT, y)
-    y -= LINE_HEIGHT
-    c.setFont("Times-Roman", 12)
-    c.drawString(sig_x, y, plaintiff_name)
-    y -= LINE_HEIGHT
-    c.setFont("Times-Italic", 10)
-    c.drawString(sig_x, y, "Plaintiff's Signature")
+    # Affirmation under penalty of perjury
+    affirm_text = "I, ________________________ (print or type name), affirm this ___ day of ______, ____, under the penalties of perjury, under the laws of New York, which may include a fine or imprisonment, that the foregoing is true, except as to matters alleged on information and belief and as to those matters I believe it to be true, and I understand that this document may be filed in an action or proceeding in a court of law."
+    y = draw_wrapped_text(c, affirm_text, MARGIN_LEFT, y, CONTENT_WIDTH, "Times-Roman", 12)
     y -= LINE_HEIGHT * 3
     
-    # Notary block
-    c.setFont("Times-Roman", 12)
-    c.drawString(MARGIN_LEFT, y, "Sworn to before me this _____ day of _______________, 20____")
-    y -= LINE_HEIGHT * 2
-    
-    c.line(MARGIN_LEFT, y, MARGIN_LEFT + 200, y)
+    # Signature line
+    c.line(MARGIN_LEFT, y, MARGIN_LEFT + 250, y)
     y -= LINE_HEIGHT
-    c.drawString(MARGIN_LEFT, y, "Notary Public")
+    c.setFont("Times-Roman", 12)
+    c.drawString(MARGIN_LEFT, y, plaintiff_name)
+    y -= LINE_HEIGHT
+    c.setFont("Times-Italic", 10)
+    c.drawString(MARGIN_LEFT, y, "Plaintiff's Signature")
     
     # Footer
     c.setFont("Times-Roman", 10)
@@ -229,18 +240,29 @@ def generate_ud4(data, output_path):
     c.drawString(MARGIN_LEFT, y, f"{plaintiff_name} v. {defendant_name}")
     y -= LINE_HEIGHT * 2
     
-    # Server declaration
-    server_text = "_____________________________ being sworn, says, I am not a party to the action, and am over 18 years of age. I reside at _____________________________________________________."
+    # Server declaration - fill in or blank
+    server_name_display = server_name if server_name else "_____________________________"
+    server_address_display = server_address if server_address else "_____________________________________________________"
+    
+    server_text = f"{server_name_display} being sworn, says, I am not a party to the action, and am over 18 years of age. I reside at {server_address_display}."
     y = draw_wrapped_text(c, server_text, MARGIN_LEFT, y, CONTENT_WIDTH)
     y -= LINE_HEIGHT
     
-    # Service statement
-    service_text = "On _____________________, I served a true copy of the within Sworn Statement of Removal of Barriers to Remarriage on the Defendant:"
+    # Service statement - fill in date or blank
+    service_date_display = service_date if service_date else "___________________"
+    service_text = f"On {service_date_display}, I served a true copy of the within Sworn Statement of Removal of Barriers to Remarriage on the Defendant:"
     y = draw_wrapped_text(c, service_text, MARGIN_LEFT, y, CONTENT_WIDTH)
     y -= LINE_HEIGHT
     
+    # Service address display
+    service_address_display = service_address if service_address else "______________________________________________________________"
+    
     # Option 1 - Personal service
-    c.drawString(MARGIN_LEFT + 20, y, "☐  personally at ______________________________________________________________")
+    personal_box = "[X]" if service_method == "personal" else "[ ]"
+    if service_method == "personal" and service_address:
+        c.drawString(MARGIN_LEFT + 20, y, f"{personal_box}  personally at {service_address_display}")
+    else:
+        c.drawString(MARGIN_LEFT + 20, y, f"{personal_box}  personally at ______________________________________________________________")
     y -= LINE_HEIGHT * 1.5
     
     # OR
@@ -249,19 +271,23 @@ def generate_ud4(data, output_path):
     y -= LINE_HEIGHT * 1.5
     
     # Option 2 - Mail service
+    mail_box = "[X]" if service_method == "mail" else "[ ]"
     c.setFont("Times-Roman", 12)
-    mail_text = "☐  by depositing a true copy thereof enclosed in a post-paid wrapper, in an official depository under the exclusive care and custody of the U.S. Postal Service within New York State, to the address designated by the Defendant at:"
-    c.drawString(MARGIN_LEFT + 20, y, "☐  by depositing a true copy thereof enclosed in a post-paid wrapper, in an official")
+    c.drawString(MARGIN_LEFT + 20, y, f"{mail_box}  by depositing a true copy thereof enclosed in a post-paid wrapper, in an official")
     y -= LINE_HEIGHT
     c.drawString(MARGIN_LEFT + 35, y, "depository under the exclusive care and custody of the U.S. Postal Service within")
     y -= LINE_HEIGHT
     c.drawString(MARGIN_LEFT + 35, y, "New York State, to the address designated by the Defendant at:")
     y -= LINE_HEIGHT
-    c.drawString(MARGIN_LEFT + 35, y, "_________________________________________________________________________")
+    if service_method == "mail" and service_address:
+        c.drawString(MARGIN_LEFT + 35, y, service_address_display)
+    else:
+        c.drawString(MARGIN_LEFT + 35, y, "_________________________________________________________________________")
     y -= LINE_HEIGHT * 2
     
-    # Affirmation
-    affirm_text = "I, ________________________ (print or type name), affirm this ___ day of ______, ____, under the penalties of perjury, under the laws of New York, which may include a fine or imprisonment, that the foregoing is true, except as to matters alleged on information and belief and as to those matters I believe it to be true, and I understand that this document may be filed in an action or proceeding in a court of law."
+    # Affirmation - fill in server name or blank
+    server_name_affirm = server_name if server_name else "________________________"
+    affirm_text = f"I, {server_name_affirm} (print or type name), affirm this ___ day of ______, ____, under the penalties of perjury, under the laws of New York, which may include a fine or imprisonment, that the foregoing is true, except as to matters alleged on information and belief and as to those matters I believe it to be true, and I understand that this document may be filed in an action or proceeding in a court of law."
     y = draw_wrapped_text(c, affirm_text, MARGIN_LEFT, y, CONTENT_WIDTH)
     y -= LINE_HEIGHT * 2
     
@@ -278,14 +304,12 @@ def generate_ud4(data, output_path):
     
     c.setFont("Times-Roman", 12)
     c.drawString(MARGIN_LEFT, y, "Service of the within document is hereby acknowledged.")
-    y -= LINE_HEIGHT * 2
+    y -= LINE_HEIGHT * 4
     
-    # Defendant/Attorney signature
+    # Defendant signature
     c.line(MARGIN_LEFT, y, MARGIN_LEFT + 250, y)
     y -= LINE_HEIGHT
-    c.drawString(MARGIN_LEFT, y, "☐  Defendant's Signature")
-    y -= LINE_HEIGHT
-    c.drawString(MARGIN_LEFT, y, "☐  Defendant's Attorney's Signature")
+    c.drawString(MARGIN_LEFT, y, "Defendant's Signature")
     
     # Footer
     c.setFont("Times-Roman", 10)
@@ -296,12 +320,20 @@ def generate_ud4(data, output_path):
 
 
 if __name__ == "__main__":
+    # Test with AI-filled fields
     test_data = {
         "plaintiffName": "JOHN DOE",
         "defendantName": "JANE DOE",
         "county": "Orange",
         "stateSigned": "New York",
         "countySigned": "Orange",
+        "indexNumber": "12345/2026",
+        "serviceMethod": "mail",
+        # AI-filled fields (optional)
+        "serverName": "Robert Smith",
+        "serverAddress": "789 Elm Street, Newburgh, NY 12550",
+        "serviceAddress": "74 Fitzgerald Court, Monroe, NY 10950",
+        # "serviceDate": "",  # Leave blank - server fills in when they actually serve
     }
     
     output = generate_ud4(test_data, "/home/claude/test_ud4_output.pdf")
