@@ -259,7 +259,7 @@ export async function POST(req: Request) {
     
     const pdfBytes = await generateUD1PDF(data);
     
-    return new Response(pdfBytes, {
+    return new Response(Buffer.from(pdfBytes), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="UD-1_Summons_${data.plaintiffName.replace(/\s+/g, '_')}.pdf"`,
