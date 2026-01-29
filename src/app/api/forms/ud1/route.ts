@@ -294,7 +294,7 @@ async function generateUD1PDF(data: UD1Data): Promise<Uint8Array> {
   const sigX = BOX2_LEFT_X + 8;
   drawLine(sigX, y - 3, PAGE_WIDTH - MARGIN_RIGHT, y - 3);
   
-  drawText(plaintiffName, sigX, y);
+  // Leave space for actual signature (no name printed here)
   y -= LINE_HEIGHT;
   
   drawText(plaintiffAddrLines[0] || '', sigX, y);
