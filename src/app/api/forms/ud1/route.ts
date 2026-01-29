@@ -1,5 +1,5 @@
 // UD-1 (Summons with Notice) PDF Generator
-// Uses jspdf - works reliably on Vercel serverless
+// Clean layout matching official NYS form - no underlines except caption box
 
 import { NextResponse } from 'next/server';
 import { jsPDF } from 'jspdf';
@@ -31,249 +31,224 @@ function generateUD1PDF(data: UD1Data): ArrayBuffer {
     month: 'long', day: 'numeric', year: 'numeric' 
   });
 
-  // Parse address into lines
-  const parseAddress = (addr: string): string[] => {
-    const parts = addr.split(',').map(p => p.trim());
-    if (parts.length >= 3) {
-      return [parts[0], parts[1], parts.slice(2).join(', ')];
-    } else if (parts.length === 2) {
-      return [parts[0], parts[1]];
-    }
-    return [addr];
-  };
+  // Parse address - keep it simple, one line or split by comma
+  const qualifyingAddr = data.qualifyingAddress;
+  const mailingAddr = data.plaintiffAddress;
 
-  const qualifyingAddr = parseAddress(data.qualifyingAddress);
-  const mailingAddr = parseAddress(data.plaintiffAddress);
-
-  // Helper functions
-  const drawLine = (x1: number, y: number, x2: number) => {
-    doc.setLineWidth(0.5);
-    doc.line(x1, y, x2, y);
-  };
-
+  // Checkbox drawing - simple square with X
   const drawCheckbox = (x: number, y: number, checked: boolean = true) => {
     doc.setLineWidth(0.5);
-    doc.rect(x, y - 7, 8, 8);
+    doc.rect(x, y - 6, 7, 7);
     if (checked) {
-      doc.setFontSize(7);
-      doc.text('✓', x + 1.5, y - 1);
+      doc.setFontSize(8);
+      doc.text('X', x + 1.5, y);
     }
   };
 
-  let y = 50;
+  let y = 54;
 
-  // === ROW 1: SUPREME COURT / Index No. ===
+  // ==================== HEADER SECTION ====================
+  
+  // Row 1: SUPREME COURT / Index No.
   doc.setFont('times', 'bold');
   doc.setFontSize(11);
   doc.text('SUPREME COURT OF THE STATE OF NEW YORK', 72, y);
   
   doc.setFont('times', 'normal');
   doc.setFontSize(10);
-  doc.text('Index No.:', 420, y);
-  drawLine(470, y + 2, 560);
+  doc.text('Index No.: _________________', 400, y);
 
-  // === ROW 2: COUNTY OF / Date Summons filed ===
+  // Row 2: COUNTY OF / Date Summons filed
   y += 14;
   doc.setFont('times', 'bold');
   doc.setFontSize(11);
-  doc.text('COUNTY OF', 72, y);
-  doc.setFont('times', 'normal');
-  doc.text(county, 142, y);
-  drawLine(140, y + 2, 220);
+  doc.text('COUNTY OF ' + county, 72, y);
   
+  doc.setFont('times', 'normal');
   doc.setFontSize(10);
-  doc.text('Date Summons filed:', 420, y);
-  drawLine(515, y + 2, 560);
+  doc.text('Date Summons filed: _________________', 400, y);
 
-  // === ROW 3: Dashed line / Plaintiff designates ===
+  // Row 3: Dashed line / Plaintiff designates
   y += 14;
   doc.setFontSize(10);
   doc.text('--------------------------------------------------------------------X', 72, y);
-  doc.text('Plaintiff designates', 420, y);
-  drawLine(510, y + 2, 560);
+  doc.text('Plaintiff designates _________________', 400, y);
 
-  // === ROW 4: County as place of trial ===
+  // Row 4: County as place of trial
   y += 14;
-  doc.text(`${county} County as the place of trial`, 420, y);
+  doc.text(county + ' County as the place of trial', 400, y);
 
-  // === ROW 5: The basis of venue is ===
+  // Row 5: The basis of venue is
   y += 12;
   doc.setFont('times', 'italic');
   doc.setFontSize(9);
-  doc.text('The basis of venue is:', 420, y);
+  doc.text('The basis of venue is:', 400, y);
 
-  // === ROW 6-7: Venue name's address ===
+  // Row 6: Venue party's address
   y += 11;
   doc.setFont('times', 'normal');
-  doc.text(`${venueName}'s`, 420, y);
-  y += 11;
-  doc.text('address.', 420, y);
-
-  // === PLAINTIFF NAME ===
-  y += 25;
-  doc.setFontSize(11);
-  doc.text(plaintiffName, 200, y);
-
-  y += 14;
-  doc.setFont('times', 'italic');
-  doc.text('Plaintiff,', 310, y);
-
-  // === -against- ===
-  y += 18;
-  doc.setFont('times', 'normal');
-  doc.text('-against-', 200, y);
-
-  // === SUMMONS WITH NOTICE ===
-  doc.setFont('times', 'bold');
-  doc.text('SUMMONS WITH NOTICE', 420, y - 10);
-
-  // === Plaintiff/Defendant resides at ===
-  doc.setFont('times', 'italic');
-  doc.setFontSize(9);
-  doc.text('Plaintiff/Defendant resides at:', 420, y + 4);
-  
-  // Address lines with underlines
-  let addrY = y + 18;
-  doc.setFont('times', 'normal');
-  for (let i = 0; i < 3; i++) {
-    drawLine(420, addrY + 2, 560);
-    if (qualifyingAddr[i]) {
-      doc.text(qualifyingAddr[i], 424, addrY);
-    }
-    addrY += 14;
-  }
-
-  // === DEFENDANT NAME ===
-  y += 44;
-  doc.setFontSize(11);
-  doc.text(defendantName, 200, y);
-
-  y += 14;
-  doc.setFont('times', 'italic');
-  doc.text('Defendant.', 305, y);
-
-  // === Closing dashed line ===
+  doc.text(venueName + "'s", 400, y);
   y += 10;
+  doc.text('address.', 400, y);
+
+  // ==================== CAPTION - LEFT SIDE ====================
+  
+  // Plaintiff name (no underline)
+  let captionY = 118;
+  doc.setFontSize(11);
+  doc.text(plaintiffName, 250, captionY);
+  
+  // "Plaintiff," label
+  captionY += 18;
+  doc.setFont('times', 'italic');
+  doc.text('Plaintiff,', 310, captionY);
+
+  // -against-
+  captionY += 22;
+  doc.setFont('times', 'normal');
+  doc.text('-against-', 180, captionY);
+
+  // Defendant name (no underline)
+  captionY += 28;
+  doc.text(defendantName, 250, captionY);
+
+  // "Defendant." label
+  captionY += 18;
+  doc.setFont('times', 'italic');
+  doc.text('Defendant.', 305, captionY);
+
+  // Closing dashed line
+  captionY += 14;
   doc.setFont('times', 'normal');
   doc.setFontSize(10);
-  doc.text('--------------------------------------------------------------------X', 72, y);
+  doc.text('--------------------------------------------------------------------X', 72, captionY);
 
-  // === ACTION FOR A DIVORCE ===
-  y += 22;
+  // ==================== CAPTION - RIGHT SIDE ====================
+  
+  // SUMMONS WITH NOTICE title (aligned with -against-)
   doc.setFont('times', 'bold');
-  doc.setFontSize(12);
-  doc.text('ACTION FOR A DIVORCE', 230, y);
+  doc.setFontSize(11);
+  doc.text('SUMMONS WITH NOTICE', 420, 158);
 
-  // === To the above named Defendant ===
-  y += 18;
+  // Plaintiff/Defendant resides at:
+  doc.setFont('times', 'italic');
+  doc.setFontSize(9);
+  doc.text('Plaintiff/Defendant resides at:', 400, 172);
+
+  // Address (no underlines, just the text)
+  doc.setFont('times', 'normal');
+  doc.setFontSize(10);
+  doc.text(qualifyingAddr, 400, 186);
+
+  // ==================== ACTION FOR A DIVORCE ====================
+  
+  y = captionY + 24;
+  doc.setFont('times', 'bold');
+  doc.setFontSize(13);
+  doc.text('ACTION FOR A DIVORCE', 220, y);
+
+  // To the above named Defendant:
+  y += 20;
   doc.setFont('times', 'italic');
   doc.setFontSize(10);
   doc.text('To the above named Defendant:', 72, y);
 
-  // === YOU ARE HEREBY SUMMONED paragraph ===
-  y += 16;
+  // ==================== YOU ARE HEREBY SUMMONED ====================
+  
+  y += 18;
   doc.setFont('times', 'bold');
   doc.setFontSize(9);
-  doc.text('YOU ARE HEREBY SUMMONED', 90, y);
+  doc.text('YOU ARE HEREBY SUMMONED', 100, y);
   doc.setFont('times', 'normal');
-  doc.text('to serve a notice of appearance on the', 228, y);
+  doc.text(' to serve a notice of appearance on the', 235, y);
   
   // Checkbox for Plaintiff
-  drawCheckbox(410, y);
+  drawCheckbox(430, y);
   doc.setFont('times', 'italic');
-  doc.text('Plaintiff', 422, y);
+  doc.text(' Plaintiff', 440, y);
 
-  y += 11;
+  y += 12;
   doc.setFont('times', 'normal');
-  doc.text('within twenty (20) days after the service of this summons, exclusive of the day of service (or within thirty (30)', 72, y);
+  doc.text('within twenty (20) days after the service of this summons, exclusive of the day of service (or within', 72, y);
   
   y += 11;
-  doc.text('days after the service is complete if this summons is not personally delivered to you within the State of New', 72, y);
+  doc.text('thirty (30) days after the service is complete if this summons is not personally delivered to you within', 72, y);
   
   y += 11;
-  doc.text('York); and in case of your failure to appear, judgment will be taken against you by default for the relief', 72, y);
+  doc.text('the State of New York); and in case of your failure to appear, judgment will be taken against you by', 72, y);
   
   y += 11;
-  doc.text('demanded in the notice set forth below.', 72, y);
+  doc.text('default for the relief demanded in the notice set forth below.', 72, y);
 
-  // === DATED / SIGNATURE SECTION ===
-  y += 22;
+  // ==================== DATED / SIGNATURE ====================
+  
+  y += 24;
   doc.setFontSize(10);
-  doc.text('Dated', 72, y);
-  doc.text(today, 102, y);
-  drawLine(100, y + 2, 200);
+  doc.text('Dated ' + today, 72, y);
 
   // Plaintiff checkbox
   drawCheckbox(320, y);
   doc.setFont('times', 'italic');
-  doc.setFontSize(9);
-  doc.text('Plaintiff', 332, y);
+  doc.text(' Plaintiff', 330, y);
 
-  // Signature line
-  y += 18;
-  drawLine(320, y + 2, 540);
+  // Signature line with name
+  y += 22;
   doc.setFont('times', 'normal');
-  doc.setFontSize(10);
-  doc.text(plaintiffName, 380, y);
+  doc.text(plaintiffName, 320, y);
 
   // Phone
   y += 14;
   doc.setFontSize(9);
-  doc.text('Phone No.:', 320, y);
-  doc.text(data.plaintiffPhone || '', 375, y);
+  doc.text('Phone No.: ' + (data.plaintiffPhone || ''), 320, y);
 
-  // Address
+  // Address label and address
   y += 12;
-  doc.text('Address:', 320, y);
-  
-  y += 11;
-  for (const line of mailingAddr.slice(0, 2)) {
-    doc.text(line, 370, y);
-    y += 11;
-  }
+  doc.text('Address: ' + mailingAddr, 320, y);
 
-  // === NOTICE SECTION ===
-  y += 8;
+  // ==================== NOTICE SECTION ====================
+  
+  y += 24;
   doc.setFont('times', 'bold');
   doc.setFontSize(10);
   doc.text('NOTICE:', 72, y);
   doc.setFont('times', 'normal');
   doc.setFontSize(9);
-  doc.text('The nature of this action is to dissolve the marriage between the parties, on the', 115, y);
+  doc.text(' The nature of this action is to dissolve the marriage between the parties, on the', 110, y);
 
-  y += 11;
-  doc.text('grounds:', 115, y);
+  y += 12;
+  doc.text('grounds:  ', 72, y);
   doc.setFont('times', 'bold');
-  doc.text('DRL §170 subd. 7', 158, y);
-  doc.text('— irretrievable breakdown in relationship for a period of at least six months.', 248, y);
+  doc.text('DRL §170 subd. 7 - irretrievable breakdown in relationship for a period of at least six months', 115, y);
 
   y += 16;
   doc.setFont('times', 'normal');
-  doc.text('The relief sought is a judgment of absolute divorce in favor of the Plaintiff dissolving the marriage between', 72, y);
+  doc.text('The relief sought is a judgment of absolute divorce in favor of the Plaintiff dissolving the marriage', 72, y);
   
   y += 11;
-  doc.text('the parties in this action.', 72, y);
+  doc.text('between the parties in this action.', 72, y);
 
-  // === ANCILLARY RELIEF ===
-  y += 16;
+  // ==================== ANCILLARY RELIEF ====================
+  
+  y += 18;
   doc.text('The nature of any ancillary or additional relief requested (see p.14 of Instructions) is:', 72, y);
 
-  y += 14;
+  y += 16;
   drawCheckbox(72, y);
   doc.setFont('times', 'bold');
-  doc.text('NONE', 84, y);
+  doc.text(' NONE', 82, y);
   doc.setFont('times', 'normal');
-  doc.text('— I am not requesting any ancillary relief;', 115, y);
+  doc.text(' - I am not requesting any ancillary relief;', 110, y);
 
   y += 14;
   doc.setFont('times', 'bold');
   doc.text('AND', 72, y);
   doc.setFont('times', 'normal');
-  doc.text('any other relief the court deems fit and proper', 95, y);
+  doc.text(' any other relief the court deems fit and proper', 94, y);
 
-  // === FOOTER ===
+  // ==================== FOOTER ====================
+  
   doc.setFontSize(8);
-  doc.text('(UD-1 Rev. 1/25/16)', 72, 770);
+  doc.text('(UD-1 Rev. 1/25/16)', 72, 760);
 
   return doc.output('arraybuffer');
 }
