@@ -274,9 +274,14 @@ def generate_ud1(data, output_path):
     defendant_y = boxes_top_y - box_height * 0.75
     
     c.setFont("Times-Roman", 12)
-    c.drawString(box1_content_x, plaintiff_y, plaintiff_name)
+    c.drawString(box1_content_x, plaintiff_y, plaintiff_name + ",")
+    c.setFont("Times-Italic", 12)
+    c.drawString(box1_content_x + 40, plaintiff_y - LINE_HEIGHT, "Plaintiff,")
+    c.setFont("Times-Roman", 12)
     c.drawString(box1_content_x + 40, against_y, "-against-")
-    c.drawString(box1_content_x, defendant_y, defendant_name)
+    c.drawString(box1_content_x, defendant_y, defendant_name + ".")
+    c.setFont("Times-Italic", 12)
+    c.drawString(box1_content_x + 40, defendant_y - LINE_HEIGHT, "Defendant.")
     
     # =========================================================================
     # DRAW BOX BORDERS
