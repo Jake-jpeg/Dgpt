@@ -213,8 +213,9 @@ async function generateUD1PDF(data: UD1Data): Promise<Uint8Array> {
   const box1ContentX = BOX1_LEFT_X + 8;
   const boxHeight = boxesTopY - boxesBottomY;
   
+  // Equal spacing: plaintiff at 20%, -against- at 50%, defendant at 80%
   const plaintiffY = boxesTopY - boxHeight * 0.2;
-  const againstY = boxesTopY - boxHeight * 0.45;
+  const againstY = boxesTopY - boxHeight * 0.5;
   const defendantY = boxesTopY - boxHeight * 0.8;
   
   drawText(plaintiffName + ',', box1ContentX, plaintiffY);
