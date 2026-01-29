@@ -7,9 +7,10 @@ import {
   loadSession, 
   createSession, 
   saveSession, 
+  NY_COUNTIES,
   type SessionData,
   type UD1FormData 
-} from "@/lib/session";
+} from "../../lib/session";
 
 function FormsContent() {
   const searchParams = useSearchParams();
@@ -96,7 +97,7 @@ function FormsContent() {
       };
       saveSession(updatedSession);
     }
-  }, [formData, messages, isComplete, paymentIntentId, session?.createdAt]);
+  }, [formData, messages, isComplete, paymentIntentId]);
 
   const sendInitialGreeting = async () => {
     setIsLoading(true);
@@ -206,8 +207,10 @@ function FormsContent() {
         throw new Error(errorData.error || "Failed to generate document");
       }
 
-      // Download PDF directly
+      // Download the PDF directly
       const blob = await res.blob();
+      console.log("Received PDF, size:", blob.size);
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
