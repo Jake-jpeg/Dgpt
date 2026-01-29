@@ -420,24 +420,106 @@ def generate_ud1(data, output_path):
     
     notice_indent = MARGIN_LEFT + 72
     
+    # Justified NOTICE paragraph with embedded bold/underlined grounds
+    notice_width = CONTENT_WIDTH - (notice_indent - MARGIN_LEFT)
+    
+    # Build the full notice text for justification
+    notice_full = (
+        "The nature of this action is to dissolve the marriage between the parties, on the "
+        "grounds: DRL§170 subd.7 – irretrievable breakdown in relationship for a period of at least six months."
+    )
+    
+    # Word wrap for justified layout
+    words = notice_full.split()
+    lines = []
+    current_line = []
+    current_width = 0
+    space_width = c.stringWidth(' ', "Times-Roman", 12)
     c.setFont("Times-Roman", 12)
-    c.drawString(notice_indent, y, "The nature of this action is to dissolve the marriage between the parties, on the")
     
-    y -= LINE_HEIGHT
-    c.drawString(notice_indent, y, "grounds: DRL§170 subd.7 – ")
+    for word in words:
+        word_width = c.stringWidth(word, "Times-Roman", 12)
+        test_width = current_width + word_width + (space_width if current_line else 0)
+        
+        if test_width <= notice_width:
+            current_line.append(word)
+            current_width = test_width
+        else:
+            if current_line:
+                lines.append(current_line)
+            current_line = [word]
+            current_width = word_width
     
-    grounds_x = notice_indent + c.stringWidth("grounds: DRL§170 subd.7 – ", "Times-Roman", 12)
-    c.setFont("Times-Bold", 12)
-    grounds_text = "irretrievable breakdown in relationship for a"
-    c.drawString(grounds_x, y, grounds_text)
-    text_width = c.stringWidth(grounds_text, "Times-Bold", 12)
-    c.line(grounds_x, y - 2, grounds_x + text_width, y - 2)
+    if current_line:
+        lines.append(current_line)
     
-    y -= LINE_HEIGHT
-    grounds_text_2 = "period at least six months"
-    c.drawString(notice_indent, y, grounds_text_2)
-    text_width_2 = c.stringWidth(grounds_text_2, "Times-Bold", 12)
-    c.line(notice_indent, y - 2, notice_indent + text_width_2, y - 2)
+    # Draw justified lines with special handling for bold/underlined grounds
+    # Track when we enter the grounds phrase (starts at "irretrievable")
+    in_grounds_phrase = False
+    
+    for i, line_words in enumerate(lines):
+        # Track start/end of grounds phrase for continuous underline
+        grounds_start_x = None
+        grounds_end_x = None
+        
+        if i < len(lines) - 1 and len(line_words) > 1:
+            # Justify this line
+            total_word_width = sum(c.stringWidth(w, "Times-Roman", 12) for w in line_words)
+            total_space = notice_width - total_word_width
+            space_between = total_space / (len(line_words) - 1)
+            
+            current_x = notice_indent
+            for word in line_words:
+                word_clean = word.rstrip('.,;:')
+                # Start grounds phrase at "irretrievable"
+                if word_clean == "irretrievable":
+                    in_grounds_phrase = True
+                
+                if in_grounds_phrase:
+                    c.setFont("Times-Bold", 12)
+                    c.drawString(current_x, y, word)
+                    word_width = c.stringWidth(word, "Times-Bold", 12)
+                    if grounds_start_x is None:
+                        grounds_start_x = current_x
+                    grounds_end_x = current_x + word_width
+                    c.setFont("Times-Roman", 12)
+                    # End grounds phrase after "months."
+                    if word_clean == "months":
+                        in_grounds_phrase = False
+                else:
+                    c.drawString(current_x, y, word)
+                    word_width = c.stringWidth(word, "Times-Roman", 12)
+                current_x += word_width + space_between
+        else:
+            # Last line left-aligned
+            current_x = notice_indent
+            for j, word in enumerate(line_words):
+                word_clean = word.rstrip('.,;:')
+                # Start grounds phrase at "irretrievable"
+                if word_clean == "irretrievable":
+                    in_grounds_phrase = True
+                
+                if in_grounds_phrase:
+                    c.setFont("Times-Bold", 12)
+                    c.drawString(current_x, y, word)
+                    word_width = c.stringWidth(word, "Times-Bold", 12)
+                    if grounds_start_x is None:
+                        grounds_start_x = current_x
+                    grounds_end_x = current_x + word_width
+                    c.setFont("Times-Roman", 12)
+                    # End grounds phrase after "months."
+                    if word_clean == "months":
+                        in_grounds_phrase = False
+                else:
+                    c.drawString(current_x, y, word)
+                    word_width = c.stringWidth(word, "Times-Roman", 12)
+                current_x += word_width + space_width
+        
+        # Draw continuous underline for grounds phrase on this line
+        if grounds_start_x is not None and grounds_end_x is not None:
+            c.line(grounds_start_x, y - 2, grounds_end_x, y - 2)
+        
+        y -= LINE_HEIGHT
     
     # =========================================================================
     # Relief Sought Paragraph
