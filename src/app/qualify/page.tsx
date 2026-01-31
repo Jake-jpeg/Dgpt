@@ -186,7 +186,28 @@ export default function QualifyPage() {
               {t.qualify.successMsg}
             </p>
             
-            <div className="mt-8 rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-100">
+            {/* Post-Qualification Disclosure */}
+            <div className="mt-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-100 text-left">
+              <h3 className="font-semibold text-zinc-900 mb-4">What DivorceGPT Does</h3>
+              <p className="text-sm text-zinc-600 mb-4">
+                DivorceGPT is a document preparation service. It uses the official forms promulgated by the New York State Unified Court System.
+              </p>
+              <p className="text-sm text-zinc-600 mb-2">The service:</p>
+              <ul className="text-sm text-zinc-600 mb-4 ml-4 space-y-1">
+                <li>• Transfers your answers onto the required forms</li>
+                <li>• Displays plain-language labels identifying what information each form field requests</li>
+                <li>• Generates a PDF packet for your review before filing</li>
+              </ul>
+              <p className="text-sm text-zinc-600 mb-4">
+                DivorceGPT does not review your answers for legal sufficiency, provide legal advice, or represent you in court.
+              </p>
+              <h4 className="font-semibold text-zinc-900 mb-2">Free Forms Available</h4>
+              <p className="text-sm text-zinc-600">
+                Official uncontested divorce forms are available from the New York State Unified Court System website.
+              </p>
+            </div>
+            
+            <div className="mt-6 rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-100">
               <p className="text-4xl font-bold text-[#1a365d]">$20</p>
               <p className="mt-1 text-sm text-zinc-500">{t.hero.fee}</p>
             </div>
@@ -211,7 +232,7 @@ export default function QualifyPage() {
               }}
               className="mt-8 group inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-[#c59d5f]/30 transition-all duration-200 hover:bg-[#d4ac6e] hover:shadow-2xl hover:-translate-y-0.5"
             >
-              {t.qualify.continue}
+              Continue with DivorceGPT ($20)
               <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
