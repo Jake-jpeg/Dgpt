@@ -24,7 +24,7 @@ export default function PrivacyPage() {
 
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-8">Privacy Policy</h1>
-        <p className="text-sm text-zinc-500 mb-8">Last updated: January 25, 2026</p>
+        <p className="text-sm text-zinc-500 mb-8">Last updated: February 1, 2026</p>
 
         <div className="prose prose-zinc max-w-none">
           <section className="mb-8">
@@ -47,17 +47,17 @@ export default function PrivacyPage() {
 
             <h3 className="text-lg font-medium text-zinc-800 mb-2">Conversation Data</h3>
             <p className="text-zinc-600 mb-4">
-              Your conversations with DivorceGPT are processed by Anthropic's Claude AI. <strong>We do not store conversation logs.</strong> Once your session ends, your conversation is not retained on our servers. Anthropic's data handling practices can be found in their privacy policy.
+              Your conversations with DivorceGPT are processed by Anthropic's Claude AI. <strong>We do not store conversation logs on our servers.</strong> Once your session ends, your conversation is not retained. Anthropic's data handling practices can be found in their privacy policy.
             </p>
 
             <h3 className="text-lg font-medium text-zinc-800 mb-2">Form Data</h3>
             <p className="text-zinc-600 mb-4">
-              Any information you enter for form preparation (names, addresses, dates) is used solely to generate your divorce documents. Sensitive information like Social Security Numbers is processed in memory only and is never stored in our database.
+              Any information you enter for form preparation (names, addresses, dates) is stored locally in your browser session and used solely to generate your divorce documents. Sensitive information like Social Security Numbers is processed in memory only and is never stored on any server or database.
             </p>
 
             <h3 className="text-lg font-medium text-zinc-800 mb-2">Technical Data</h3>
             <p className="text-zinc-600">
-              We collect basic technical data through our hosting providers (Vercel, Cloudflare) including IP addresses, browser type, and access times. This data is used for security and service improvement purposes only.
+              We collect basic technical data through our hosting provider (DigitalOcean) including IP addresses, browser type, and access times. This data is used for security and service improvement purposes only.
             </p>
           </section>
 
@@ -76,10 +76,11 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">What We Don't Do</h2>
             <ul className="list-disc pl-6 text-zinc-600 space-y-2">
               <li>We do <strong>not</strong> sell your personal information</li>
-              <li>We do <strong>not</strong> store your conversations</li>
+              <li>We do <strong>not</strong> store your conversations on our servers</li>
               <li>We do <strong>not</strong> use your data to train AI models</li>
               <li>We do <strong>not</strong> share your information with third parties for marketing</li>
               <li>We do <strong>not</strong> store sensitive information like Social Security Numbers</li>
+              <li>We do <strong>not</strong> maintain a database of user information</li>
             </ul>
           </section>
 
@@ -87,17 +88,27 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Our Technology Stack</h2>
             <p className="text-zinc-600 mb-4">DivorceGPT is built with privacy-focused infrastructure:</p>
             <ul className="list-disc pl-6 text-zinc-600 space-y-2">
-              <li><strong>AI:</strong> Anthropic Claude - conversations are not used for model training</li>
-              <li><strong>Hosting:</strong> Vercel - enterprise-grade security</li>
-              <li><strong>Security:</strong> Cloudflare - DDoS protection and SSL encryption</li>
+              <li><strong>AI:</strong> Anthropic Claude - conversations are not used for model training per Anthropic's commercial terms</li>
+              <li><strong>Hosting:</strong> DigitalOcean App Platform - enterprise-grade security with data centers in the United States</li>
+              <li><strong>PDF Generation:</strong> Server-side processing with no document retention</li>
               <li><strong>Payments:</strong> Stripe - PCI DSS Level 1 compliant</li>
+              <li><strong>Session Data:</strong> Browser localStorage only - no server-side user database</li>
             </ul>
           </section>
 
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Data Retention</h2>
+            <p className="text-zinc-600 mb-4">
+              <strong>Conversation data:</strong> Not retained after your session ends.
+            </p>
+            <p className="text-zinc-600 mb-4">
+              <strong>Form data:</strong> Stored in your browser's localStorage. You can clear this at any time by clearing your browser data.
+            </p>
+            <p className="text-zinc-600 mb-4">
+              <strong>Payment records:</strong> Retained by Stripe as required by law for accounting and tax purposes. We only store transaction IDs, not payment details.
+            </p>
             <p className="text-zinc-600">
-              Conversation data is not retained after your session ends. Payment records are retained as required by law for accounting and tax purposes. You may request deletion of any stored data by contacting us.
+              You may request deletion of any data associated with your payment by contacting us.
             </p>
           </section>
 
@@ -107,8 +118,19 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-6 text-zinc-600 space-y-2">
               <li>Request access to any personal data we hold about you</li>
               <li>Request deletion of your data</li>
+              <li>Clear your local browser data at any time</li>
               <li>Opt out of any marketing communications</li>
               <li>File a complaint with a data protection authority</li>
+            </ul>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Third-Party Services</h2>
+            <p className="text-zinc-600 mb-4">We use the following third-party services:</p>
+            <ul className="list-disc pl-6 text-zinc-600 space-y-2">
+              <li><strong>Stripe:</strong> Payment processing - <a href="https://stripe.com/privacy" className="text-[#1a365d] hover:underline">Privacy Policy</a></li>
+              <li><strong>Anthropic:</strong> AI processing - <a href="https://www.anthropic.com/privacy" className="text-[#1a365d] hover:underline">Privacy Policy</a></li>
+              <li><strong>DigitalOcean:</strong> Hosting - <a href="https://www.digitalocean.com/legal/privacy-policy" className="text-[#1a365d] hover:underline">Privacy Policy</a></li>
             </ul>
           </section>
 

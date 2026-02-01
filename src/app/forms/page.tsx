@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useLanguage } from "../../components/LanguageProvider";
 import { 
   loadSession, 
   createSession, 
@@ -19,6 +20,7 @@ const PDF_SERVICE_URL = process.env.NEXT_PUBLIC_PDF_SERVICE_URL || "http://local
 function FormsContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
+  const { t } = useLanguage();
   
   const [isValidating, setIsValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
@@ -386,11 +388,11 @@ function FormsContent() {
               onClick={() => setShowSidebar(!showSidebar)}
               className={`text-sm underline ${allComplete ? 'text-green-700 hover:text-green-900' : 'text-zinc-500 hover:text-zinc-700'}`}
             >
-              {showSidebar ? 'Hide Panel' : 'Show Panel'}
+              {showSidebar ? t.forms?.hidePanel || 'Hide Panel' : t.forms?.showPanel || 'Show Panel'}
             </button>
             <div className="hidden items-center gap-2 sm:flex">
               <div className={`h-2 w-2 rounded-full ${allComplete ? 'bg-green-500' : 'bg-green-500'} animate-pulse`} />
-              <span className="text-sm text-zinc-500">{allComplete ? 'Complete' : 'Session active'}</span>
+              <span className="text-sm text-zinc-500">{allComplete ? t.forms?.complete || 'Complete' : t.forms?.sessionActive || 'Session active'}</span>
             </div>
           </div>
         </div>
@@ -417,7 +419,7 @@ function FormsContent() {
           </div>
           <div className={`border-t ${allComplete ? 'border-green-200 bg-green-50/80' : 'border-zinc-100 bg-white/80'} p-4`}>
             <div className="mx-auto max-w-2xl flex gap-3">
-              <input ref={inputRef} type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} placeholder={allComplete ? "Ask me anything about your forms..." : "Type your answer..."} className={`flex-1 rounded-full px-5 py-3 text-zinc-900 ring-1 focus:outline-none focus:ring-2 ${allComplete ? 'bg-white ring-green-300 focus:ring-green-500' : 'bg-zinc-100 ring-zinc-200 focus:ring-[#c59d5f]'}`} />
+              <input ref={inputRef} type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} placeholder={allComplete ? t.forms?.askAnything || "Ask me anything about your forms..." : t.forms?.typeAnswer || "Type your answer..."} className={`flex-1 rounded-full px-5 py-3 text-zinc-900 ring-1 focus:outline-none focus:ring-2 ${allComplete ? 'bg-white ring-green-300 focus:ring-green-500' : 'bg-zinc-100 ring-zinc-200 focus:ring-[#c59d5f]'}`} />
               <button onClick={sendMessage} disabled={isLoading || !input.trim()} className={`flex h-12 w-12 items-center justify-center rounded-full text-white disabled:opacity-50 ${allComplete ? 'bg-gradient-to-br from-green-600 to-green-500' : 'bg-gradient-to-br from-[#1a365d] to-[#2c5282]'}`}>
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
               </button>
@@ -430,7 +432,7 @@ function FormsContent() {
             <div className="mx-auto max-w-md">
               {/* Phase Navigation */}
               <div className="mb-6">
-                <div className="text-xs font-medium text-zinc-500 mb-2">DIVORCE WORKFLOW</div>
+                <div className="text-xs font-medium text-zinc-500 mb-2">{t.forms?.divorceWorkflow || 'DIVORCE WORKFLOW'}</div>
                 <div className="flex gap-1">
                   {[1, 2, 3].map((p) => (
                     <button 
@@ -448,15 +450,15 @@ function FormsContent() {
                   ))}
                 </div>
                 <div className="flex justify-between mt-1">
-                  <button onClick={() => goToPhase(1)} className="text-xs text-zinc-400 hover:text-zinc-600">Commence</button>
-                  <button onClick={() => goToPhase(2)} disabled={!phase1Complete} className="text-xs text-zinc-400 hover:text-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed">Submit</button>
-                  <button onClick={() => goToPhase(3)} disabled={!phase2Complete} className="text-xs text-zinc-400 hover:text-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed">Finalize</button>
+                  <button onClick={() => goToPhase(1)} className="text-xs text-zinc-400 hover:text-zinc-600">{t.forms?.commence || 'Commence'}</button>
+                  <button onClick={() => goToPhase(2)} disabled={!phase1Complete} className="text-xs text-zinc-400 hover:text-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed">{t.forms?.submit || 'Submit'}</button>
+                  <button onClick={() => goToPhase(3)} disabled={!phase2Complete} className="text-xs text-zinc-400 hover:text-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed">{t.forms?.finalize || 'Finalize'}</button>
                 </div>
               </div>
 
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className={`text-lg font-bold ${allComplete ? 'text-green-800' : 'text-zinc-900'}`}>Phase {currentPhase}</h2>
+                  <h2 className={`text-lg font-bold ${allComplete ? 'text-green-800' : 'text-zinc-900'}`}>{t.forms?.phase || 'Phase'} {currentPhase}</h2>
                   <p className={`text-sm ${allComplete ? 'text-green-600' : 'text-zinc-500'}`}>{currentPhase === 1 ? 'UD-1 Summons' : currentPhase === 2 ? 'Filing Package' : 'Notice & Service'}</p>
                 </div>
                 <div className={`flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold ${
@@ -471,7 +473,7 @@ function FormsContent() {
               </div>
 
               <div className={`mb-6 rounded-xl p-4 ${allComplete ? 'bg-green-100' : 'bg-zinc-50'}`}>
-                <h3 className={`text-sm font-semibold mb-3 ${allComplete ? 'text-green-800' : 'text-zinc-700'}`}>FORMS</h3>
+                <h3 className={`text-sm font-semibold mb-3 ${allComplete ? 'text-green-800' : 'text-zinc-700'}`}>{t.forms?.forms || 'FORMS'}</h3>
                 <div className="space-y-2 text-sm">
                   {currentPhase === 1 && <FormItem label="UD-1" desc="Summons with Notice" done={phase1Complete} complete={allComplete} />}
                   {currentPhase === 2 && (<>
@@ -496,40 +498,40 @@ function FormsContent() {
               {/* Phase 1 Actions */}
               {(currentPhase === 1 && phase1Complete) && (
                 <div className="mt-6 space-y-3">
-                  <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-green-600 py-4 text-lg font-semibold text-white shadow-xl hover:bg-green-700 disabled:opacity-50">{isGenerating ? 'Generating...' : '✓ Download UD-1'}</button>
-                  <button onClick={advancePhase} className="w-full rounded-full border-2 border-[#1a365d] py-3 text-sm font-semibold text-[#1a365d] hover:bg-[#1a365d] hover:text-white">I have my Index Number → Phase 2</button>
-                  <button onClick={resetToPhase1} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">Start over</button>
+                  <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-green-600 py-4 text-lg font-semibold text-white shadow-xl hover:bg-green-700 disabled:opacity-50">{isGenerating ? t.forms?.generating || 'Generating...' : `✓ ${t.forms?.downloadUD1 || 'Download UD-1'}`}</button>
+                  <button onClick={advancePhase} className="w-full rounded-full border-2 border-[#1a365d] py-3 text-sm font-semibold text-[#1a365d] hover:bg-[#1a365d] hover:text-white">{t.forms?.haveIndexNumber || 'I have my Index Number → Phase 2'}</button>
+                  <button onClick={resetToPhase1} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">{t.forms?.startOver || 'Start over'}</button>
                 </div>
               )}
 
               {/* Phase 2 Actions */}
               {(currentPhase === 2 && !phase2Complete) && (
                 <div className="mt-6">
-                  <button onClick={() => goToPhase(1)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 1</button>
+                  <button onClick={() => goToPhase(1)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">{t.forms?.goBackPhase1 || '← Go back to Phase 1'}</button>
                 </div>
               )}
               {(currentPhase === 2 && phase2Complete) && (
                 <div className="mt-6 space-y-3">
-                  <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-green-600 py-4 text-lg font-semibold text-white shadow-xl hover:bg-green-700 disabled:opacity-50">{isGenerating ? 'Generating...' : '✓ Download Package'}</button>
-                  <button onClick={advancePhase} className="w-full rounded-full border-2 border-[#1a365d] py-3 text-sm font-semibold text-[#1a365d] hover:bg-[#1a365d] hover:text-white">Judgment Entered → Phase 3</button>
-                  <button onClick={() => goToPhase(1)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 1</button>
+                  <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-green-600 py-4 text-lg font-semibold text-white shadow-xl hover:bg-green-700 disabled:opacity-50">{isGenerating ? t.forms?.generating || 'Generating...' : `✓ ${t.forms?.downloadPackage || 'Download Package'}`}</button>
+                  <button onClick={advancePhase} className="w-full rounded-full border-2 border-[#1a365d] py-3 text-sm font-semibold text-[#1a365d] hover:bg-[#1a365d] hover:text-white">{t.forms?.judgmentEntered || 'Judgment Entered → Phase 3'}</button>
+                  <button onClick={() => goToPhase(1)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">{t.forms?.goBackPhase1 || '← Go back to Phase 1'}</button>
                 </div>
               )}
 
               {/* Phase 3 Actions */}
               {(currentPhase === 3 && !phase3Complete) && (
                 <div className="mt-6 space-y-2">
-                  <button onClick={() => goToPhase(2)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 2</button>
-                  <button onClick={() => goToPhase(1)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 1</button>
+                  <button onClick={() => goToPhase(2)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">{t.forms?.goBackPhase2 || '← Go back to Phase 2'}</button>
+                  <button onClick={() => goToPhase(1)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">{t.forms?.goBackPhase1 || '← Go back to Phase 1'}</button>
                 </div>
               )}
               {(currentPhase === 3 && phase3Complete) && (
                 <div className="mt-6 space-y-3">
-                  <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-green-600 py-4 text-lg font-semibold text-white shadow-xl hover:bg-green-700 disabled:opacity-50">{isGenerating ? 'Generating...' : '✓ Download Final Forms'}</button>
-                  <button onClick={() => setShowSidebar(false)} className="w-full rounded-full border-2 border-green-600 py-3 text-sm font-semibold text-green-700 hover:bg-green-600 hover:text-white">Hide Panel & Continue Chatting</button>
+                  <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-green-600 py-4 text-lg font-semibold text-white shadow-xl hover:bg-green-700 disabled:opacity-50">{isGenerating ? t.forms?.generating || 'Generating...' : `✓ ${t.forms?.downloadFinalForms || 'Download Final Forms'}`}</button>
+                  <button onClick={() => setShowSidebar(false)} className="w-full rounded-full border-2 border-green-600 py-3 text-sm font-semibold text-green-700 hover:bg-green-600 hover:text-white">{t.forms?.hidePanelContinue || 'Hide Panel & Continue Chatting'}</button>
                   <div className="flex gap-2">
-                    <button onClick={() => goToPhase(1)} className="flex-1 text-sm text-zinc-500 hover:text-zinc-700 underline">Phase 1</button>
-                    <button onClick={() => goToPhase(2)} className="flex-1 text-sm text-zinc-500 hover:text-zinc-700 underline">Phase 2</button>
+                    <button onClick={() => goToPhase(1)} className="flex-1 text-sm text-zinc-500 hover:text-zinc-700 underline">{t.forms?.phase || 'Phase'} 1</button>
+                    <button onClick={() => goToPhase(2)} className="flex-1 text-sm text-zinc-500 hover:text-zinc-700 underline">{t.forms?.phase || 'Phase'} 2</button>
                   </div>
                 </div>
               )}
@@ -538,8 +540,8 @@ function FormsContent() {
                 <div className="flex gap-3">
                   <svg className={`h-5 w-5 ${allComplete ? 'text-green-700' : 'text-blue-600'}`} fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
                   <div className={`text-sm ${allComplete ? 'text-green-800' : 'text-blue-800'}`}>
-                    <p className="font-medium">{allComplete ? 'All done!' : 'Need help?'}</p>
-                    <p className={allComplete ? 'text-green-700' : 'text-blue-700'}>{allComplete ? 'Ask questions about filing, procedures, or forms.' : 'Just ask in the chat!'}</p>
+                    <p className="font-medium">{allComplete ? t.forms?.allDone || 'All done!' : t.forms?.needHelp || 'Need help?'}</p>
+                    <p className={allComplete ? 'text-green-700' : 'text-blue-700'}>{allComplete ? t.forms?.askQuestions || 'Ask questions about filing, procedures, or forms.' : t.forms?.askInChat || 'Just ask in the chat!'}</p>
                   </div>
                 </div>
               </div>
