@@ -75,7 +75,40 @@ export const dictionary = {
         cooperation: { q: "Will the other spouse cooperate with signing or service of papers?", d: "Spouse will sign acknowledgment or accept service." },
         military: { q: "Is your spouse currently serving in the U.S. military?", d: "Active duty, reserves on active orders, or National Guard on federal activation." }
       },
-      militaryDisqualification: "DivorceGPT cannot prepare documents for cases where a spouse is currently serving in the U.S. military.\n\nActive duty service members have special legal protections under the Servicemembers Civil Relief Act (SCRA), including protections against default judgments. These cases require additional procedural steps and court oversight that fall outside the scope of this document preparation service.\n\nWe recommend consulting with a family law attorney who handles military divorce cases."
+      militaryDisqualification: "DivorceGPT cannot prepare documents for cases where a spouse is currently serving in the U.S. military.\n\nActive duty service members have special legal protections under the Servicemembers Civil Relief Act (SCRA), including protections against default judgments. These cases require additional procedural steps and court oversight that fall outside the scope of this document preparation service.\n\nWe recommend consulting with a family law attorney who handles military divorce cases.",
+      disclosure: {
+        title: "What DivorceGPT Does",
+        description: "DivorceGPT is a document preparation service. It uses the official forms promulgated by the New York State Unified Court System.",
+        serviceTitle: "The service:",
+        services: [
+          "Transfers your answers onto the required forms",
+          "Displays plain-language labels identifying what information each form field requests",
+          "Generates a PDF packet for your review before filing"
+        ],
+        disclaimer: "DivorceGPT does not review your answers for legal sufficiency, provide legal advice, or represent you in court.",
+        freeFormsTitle: "Free Forms Available",
+        freeFormsDesc: "Official uncontested divorce forms are available from the New York State Unified Court System website.",
+        continueButton: "Continue with DivorceGPT ($20)"
+      },
+      fields: {
+        plaintiffName: { label: "Plaintiff Name", desc: "Person filing" },
+        defendantName: { label: "Defendant Name", desc: "Other spouse" },
+        filingCounty: { label: "Filing County", desc: "Where to file" },
+        residencyBasis: { label: "Residency Basis", desc: "Who qualifies" },
+        qualifyingAddress: { label: "Qualifying Address", desc: "Residency address" },
+        phone: { label: "Phone", desc: "Court contact" },
+        plaintiffAddress: { label: "Plaintiff Address", desc: "Mailing address" },
+        defendantAddress: { label: "Defendant Address", desc: "Service address" },
+        ceremonyType: { label: "Ceremony Type", desc: "Civil or Religious" },
+        indexNumber: { label: "Index Number", desc: "From clerk" },
+        marriageDate: { label: "Marriage Date", desc: "When married" },
+        marriageCity: { label: "Marriage City", desc: "Where married" },
+        marriageState: { label: "Marriage State", desc: "State/Country" },
+        breakdownDate: { label: "Breakdown Date", desc: "DRL §170(7)" },
+        entryDate: { label: "Entry Date", desc: "JOD filed date" },
+        currentAddress: { label: "Current Address", desc: "For mailing" },
+        summonsWithNotice: "Summons with Notice"
+      }
     },
     chat: {
       title: "DivorceGPT",
@@ -211,7 +244,40 @@ export const dictionary = {
         cooperation: { q: "¿Cooperará el otro cónyuge firmando o aceptando los documentos?", d: "El cónyuge firmará el reconocimiento o aceptará la notificación (Service of Process)." },
         military: { q: "¿Su cónyuge está actualmente sirviendo en el ejército de EE.UU.?", d: "Servicio activo, reservas en órdenes activas, o Guardia Nacional en activación federal." }
       },
-      militaryDisqualification: "DivorceGPT no puede preparar documentos para casos donde un cónyuge está actualmente sirviendo en el ejército de EE.UU.\n\nLos miembros del servicio activo tienen protecciones legales especiales bajo la Ley de Alivio Civil para Miembros del Servicio (SCRA), incluyendo protecciones contra sentencias en rebeldía. Estos casos requieren pasos procesales adicionales y supervisión judicial que están fuera del alcance de este servicio de preparación de documentos.\n\nRecomendamos consultar con un abogado de derecho familiar que maneje casos de divorcio militar."
+      militaryDisqualification: "DivorceGPT no puede preparar documentos para casos donde un cónyuge está actualmente sirviendo en el ejército de EE.UU.\n\nLos miembros del servicio activo tienen protecciones legales especiales bajo la Ley de Alivio Civil para Miembros del Servicio (SCRA), incluyendo protecciones contra sentencias en rebeldía. Estos casos requieren pasos procesales adicionales y supervisión judicial que están fuera del alcance de este servicio de preparación de documentos.\n\nRecomendamos consultar con un abogado de derecho familiar que maneje casos de divorcio militar.",
+      disclosure: {
+        title: "Qué Hace DivorceGPT",
+        description: "DivorceGPT es un servicio de preparación de documentos. Utiliza los formularios oficiales promulgados por el Sistema de Tribunales Unificados del Estado de Nueva York.",
+        serviceTitle: "El servicio:",
+        services: [
+          "Transfiere sus respuestas a los formularios requeridos",
+          "Muestra etiquetas en lenguaje sencillo identificando qué información solicita cada campo",
+          "Genera un paquete PDF para su revisión antes de presentar"
+        ],
+        disclaimer: "DivorceGPT no revisa sus respuestas para suficiencia legal, no proporciona asesoramiento legal, ni lo representa en la corte.",
+        freeFormsTitle: "Formularios Gratuitos Disponibles",
+        freeFormsDesc: "Los formularios oficiales de divorcio sin oposición están disponibles en el sitio web del Sistema de Tribunales Unificados del Estado de Nueva York.",
+        continueButton: "Continuar con DivorceGPT ($20)"
+      },
+      fields: {
+        plaintiffName: { label: "Nombre del Demandante", desc: "Persona que presenta" },
+        defendantName: { label: "Nombre del Demandado", desc: "Otro cónyuge" },
+        filingCounty: { label: "Condado de Presentación", desc: "Dónde presentar" },
+        residencyBasis: { label: "Base de Residencia", desc: "Quién califica" },
+        qualifyingAddress: { label: "Dirección de Calificación", desc: "Dirección de residencia" },
+        phone: { label: "Teléfono", desc: "Contacto del tribunal" },
+        plaintiffAddress: { label: "Dirección del Demandante", desc: "Dirección postal" },
+        defendantAddress: { label: "Dirección del Demandado", desc: "Dirección de servicio" },
+        ceremonyType: { label: "Tipo de Ceremonia", desc: "Civil o Religiosa" },
+        indexNumber: { label: "Número de Índice", desc: "Del secretario" },
+        marriageDate: { label: "Fecha de Matrimonio", desc: "Cuándo se casaron" },
+        marriageCity: { label: "Ciudad del Matrimonio", desc: "Dónde se casaron" },
+        marriageState: { label: "Estado del Matrimonio", desc: "Estado/País" },
+        breakdownDate: { label: "Fecha de Ruptura", desc: "DRL §170(7)" },
+        entryDate: { label: "Fecha de Entrada", desc: "Fecha de JOD" },
+        currentAddress: { label: "Dirección Actual", desc: "Para correo" },
+        summonsWithNotice: "Citación con Aviso"
+      }
     },
     chat: {
       title: "DivorceGPT",
@@ -347,7 +413,40 @@ export const dictionary = {
         cooperation: { q: "另一方配偶是否会配合签署或接收文件？", d: "配偶将签署确认书或接受法律送达。" },
         military: { q: "您的配偶目前是否在美国军队服役？", d: "现役、现役命令下的预备役、或联邦激活的国民警卫队。" }
       },
-      militaryDisqualification: "DivorceGPT 无法为配偶目前在美国军队服役的案件准备文件。\n\n现役军人根据《军人民事救济法》(SCRA) 享有特殊法律保护，包括针对缺席判决的保护。这些案件需要额外的程序步骤和法院监督，超出了本文件准备服务的范围。\n\n我们建议咨询处理军人离婚案件的家庭法律师。"
+      militaryDisqualification: "DivorceGPT 无法为配偶目前在美国军队服役的案件准备文件。\n\n现役军人根据《军人民事救济法》(SCRA) 享有特殊法律保护，包括针对缺席判决的保护。这些案件需要额外的程序步骤和法院监督，超出了本文件准备服务的范围。\n\n我们建议咨询处理军人离婚案件的家庭法律师。",
+      disclosure: {
+        title: "DivorceGPT 的功能",
+        description: "DivorceGPT 是一项文件准备服务。它使用纽约州统一法院系统颁布的官方表格。",
+        serviceTitle: "该服务：",
+        services: [
+          "将您的答案转移到所需的表格上",
+          "显示通俗易懂的标签，说明每个表格字段要求的信息",
+          "生成 PDF 文件包供您在提交前审阅"
+        ],
+        disclaimer: "DivorceGPT 不审查您的答案是否具有法律充分性，不提供法律建议，也不在法庭上代表您。",
+        freeFormsTitle: "免费表格可用",
+        freeFormsDesc: "官方无争议离婚表格可从纽约州统一法院系统网站获取。",
+        continueButton: "继续使用 DivorceGPT ($20)"
+      },
+      fields: {
+        plaintiffName: { label: "原告姓名", desc: "提交人" },
+        defendantName: { label: "被告姓名", desc: "另一方配偶" },
+        filingCounty: { label: "提交县", desc: "在哪里提交" },
+        residencyBasis: { label: "居住依据", desc: "谁符合条件" },
+        qualifyingAddress: { label: "符合条件的地址", desc: "居住地址" },
+        phone: { label: "电话", desc: "法院联系方式" },
+        plaintiffAddress: { label: "原告地址", desc: "邮寄地址" },
+        defendantAddress: { label: "被告地址", desc: "送达地址" },
+        ceremonyType: { label: "仪式类型", desc: "民事或宗教" },
+        indexNumber: { label: "索引号", desc: "来自书记员" },
+        marriageDate: { label: "结婚日期", desc: "何时结婚" },
+        marriageCity: { label: "结婚城市", desc: "在哪里结婚" },
+        marriageState: { label: "结婚州", desc: "州/国家" },
+        breakdownDate: { label: "破裂日期", desc: "DRL §170(7)" },
+        entryDate: { label: "登记日期", desc: "JOD 提交日期" },
+        currentAddress: { label: "当前地址", desc: "用于邮寄" },
+        summonsWithNotice: "带通知的传票"
+      }
     },
     chat: {
       title: "DivorceGPT",
@@ -483,7 +582,40 @@ export const dictionary = {
         cooperation: { q: "상대방 배우자가 서류 서명 또는 송달에 협조할 것입니까?", d: "배우자가 확인서에 서명하거나 법적 송달(Service)을 수락할 것입니다." },
         military: { q: "배우자가 현재 미국 군에서 복무 중입니까?", d: "현역, 현역 명령 하의 예비역, 또는 연방 활성화된 주방위군." }
       },
-      militaryDisqualification: "DivorceGPT는 배우자가 현재 미국 군에서 복무 중인 경우 서류를 준비할 수 없습니다.\n\n현역 군인은 군인민사구제법(SCRA)에 따라 궐석 판결에 대한 보호를 포함한 특별한 법적 보호를 받습니다. 이러한 사건은 이 문서 준비 서비스의 범위를 벗어나는 추가적인 절차 단계와 법원 감독이 필요합니다.\n\n군인 이혼 사건을 처리하는 가정법 변호사와 상담하시기 바랍니다."
+      militaryDisqualification: "DivorceGPT는 배우자가 현재 미국 군에서 복무 중인 경우 서류를 준비할 수 없습니다.\n\n현역 군인은 군인민사구제법(SCRA)에 따라 궐석 판결에 대한 보호를 포함한 특별한 법적 보호를 받습니다. 이러한 사건은 이 문서 준비 서비스의 범위를 벗어나는 추가적인 절차 단계와 법원 감독이 필요합니다.\n\n군인 이혼 사건을 처리하는 가정법 변호사와 상담하시기 바랍니다.",
+      disclosure: {
+        title: "DivorceGPT가 하는 일",
+        description: "DivorceGPT는 문서 준비 서비스입니다. 뉴욕주 통합 법원 시스템에서 공포한 공식 양식을 사용합니다.",
+        serviceTitle: "서비스 내용:",
+        services: [
+          "귀하의 답변을 필요한 양식에 전송합니다",
+          "각 양식 필드가 요청하는 정보를 식별하는 일반 언어 레이블을 표시합니다",
+          "제출 전 검토를 위한 PDF 패킷을 생성합니다"
+        ],
+        disclaimer: "DivorceGPT는 귀하의 답변이 법적으로 충분한지 검토하지 않으며, 법률 자문을 제공하거나 법정에서 귀하를 대리하지 않습니다.",
+        freeFormsTitle: "무료 양식 이용 가능",
+        freeFormsDesc: "공식 합의 이혼 양식은 뉴욕주 통합 법원 시스템 웹사이트에서 이용할 수 있습니다.",
+        continueButton: "DivorceGPT로 계속하기 ($20)"
+      },
+      fields: {
+        plaintiffName: { label: "원고 이름", desc: "제출하는 사람" },
+        defendantName: { label: "피고 이름", desc: "다른 배우자" },
+        filingCounty: { label: "제출 카운티", desc: "어디에 제출" },
+        residencyBasis: { label: "거주 근거", desc: "누가 자격이 되는지" },
+        qualifyingAddress: { label: "자격 주소", desc: "거주 주소" },
+        phone: { label: "전화", desc: "법원 연락처" },
+        plaintiffAddress: { label: "원고 주소", desc: "우편 주소" },
+        defendantAddress: { label: "피고 주소", desc: "송달 주소" },
+        ceremonyType: { label: "의식 유형", desc: "민사 또는 종교" },
+        indexNumber: { label: "색인 번호", desc: "서기로부터" },
+        marriageDate: { label: "결혼 날짜", desc: "결혼한 날" },
+        marriageCity: { label: "결혼 도시", desc: "결혼한 곳" },
+        marriageState: { label: "결혼 주", desc: "주/국가" },
+        breakdownDate: { label: "파탄 날짜", desc: "DRL §170(7)" },
+        entryDate: { label: "등록 날짜", desc: "JOD 제출 날짜" },
+        currentAddress: { label: "현재 주소", desc: "우편용" },
+        summonsWithNotice: "통지부 소환장"
+      }
     },
     chat: {
       title: "DivorceGPT",
@@ -619,7 +751,40 @@ export const dictionary = {
         cooperation: { q: "Будет ли другой супруг сотрудничать при подписании документов?", d: "Супруг подпишет подтверждение или примет вручение (Service) документов." },
         military: { q: "Служит ли ваш супруг в настоящее время в вооружённых силах США?", d: "Действующая служба, резерв на активных приказах или Национальная гвардия на федеральной активации." }
       },
-      militaryDisqualification: "DivorceGPT не может подготовить документы для случаев, когда супруг в настоящее время служит в вооружённых силах США.\n\nВоеннослужащие имеют особые правовые защиты в соответствии с Законом о гражданской помощи военнослужащим (SCRA), включая защиту от заочных решений. Такие дела требуют дополнительных процессуальных шагов и судебного надзора, которые выходят за рамки данной услуги по подготовке документов.\n\nМы рекомендуем проконсультироваться с адвокатом по семейному праву, который занимается делами о разводе военнослужащих."
+      militaryDisqualification: "DivorceGPT не может подготовить документы для случаев, когда супруг в настоящее время служит в вооружённых силах США.\n\nВоеннослужащие имеют особые правовые защиты в соответствии с Законом о гражданской помощи военнослужащим (SCRA), включая защиту от заочных решений. Такие дела требуют дополнительных процессуальных шагов и судебного надзора, которые выходят за рамки данной услуги по подготовке документов.\n\nМы рекомендуем проконсультироваться с адвокатом по семейному праву, который занимается делами о разводе военнослужащих.",
+      disclosure: {
+        title: "Что делает DivorceGPT",
+        description: "DivorceGPT — это служба подготовки документов. Она использует официальные формы, установленные Единой судебной системой штата Нью-Йорк.",
+        serviceTitle: "Услуга включает:",
+        services: [
+          "Переносит ваши ответы в необходимые формы",
+          "Отображает понятные метки, указывающие, какую информацию запрашивает каждое поле формы",
+          "Создаёт PDF-пакет для вашей проверки перед подачей"
+        ],
+        disclaimer: "DivorceGPT не проверяет ваши ответы на юридическую достаточность, не предоставляет юридические консультации и не представляет вас в суде.",
+        freeFormsTitle: "Бесплатные формы доступны",
+        freeFormsDesc: "Официальные формы для бесспорного развода доступны на веб-сайте Единой судебной системы штата Нью-Йорк.",
+        continueButton: "Продолжить с DivorceGPT ($20)"
+      },
+      fields: {
+        plaintiffName: { label: "Имя истца", desc: "Лицо, подающее иск" },
+        defendantName: { label: "Имя ответчика", desc: "Другой супруг" },
+        filingCounty: { label: "Округ подачи", desc: "Где подавать" },
+        residencyBasis: { label: "Основание проживания", desc: "Кто имеет право" },
+        qualifyingAddress: { label: "Адрес проживания", desc: "Адрес резиденции" },
+        phone: { label: "Телефон", desc: "Контакт суда" },
+        plaintiffAddress: { label: "Адрес истца", desc: "Почтовый адрес" },
+        defendantAddress: { label: "Адрес ответчика", desc: "Адрес вручения" },
+        ceremonyType: { label: "Тип церемонии", desc: "Гражданская или религиозная" },
+        indexNumber: { label: "Индексный номер", desc: "От секретаря" },
+        marriageDate: { label: "Дата брака", desc: "Когда поженились" },
+        marriageCity: { label: "Город брака", desc: "Где поженились" },
+        marriageState: { label: "Штат брака", desc: "Штат/Страна" },
+        breakdownDate: { label: "Дата распада", desc: "DRL §170(7)" },
+        entryDate: { label: "Дата регистрации", desc: "Дата подачи JOD" },
+        currentAddress: { label: "Текущий адрес", desc: "Для почты" },
+        summonsWithNotice: "Повестка с уведомлением"
+      }
     },
     chat: {
       title: "DivorceGPT",
@@ -755,7 +920,40 @@ export const dictionary = {
         cooperation: { q: "Èske lòt mari oswa madanm nan ap kowopere pou siyen oswa resevwa papye yo?", d: "Mari oswa madanm nan pral siyen papye yo oswa aksepte sèvis la (Service of Process)." },
         military: { q: "Èske mari oswa madanm ou ap sèvi nan lame Etazini kounye a?", d: "Sèvis aktif, rezèv sou lòd aktif, oswa Gad Nasyonal sou aktivasyon federal." }
       },
-      militaryDisqualification: "DivorceGPT pa ka prepare dokiman pou ka kote yon mari oswa madanm ap sèvi nan lame Etazini kounye a.\n\nManm sèvis aktif yo gen pwoteksyon legal espesyal anba Lwa sou Sekou Sivil pou Manm Sèvis (SCRA), ki gen ladan pwoteksyon kont jijman pa defo. Ka sa yo mande etap pwosedi adisyonèl ak sipèvizyon tribinal ki pa nan domèn sèvis preparasyon dokiman sa a.\n\nNou rekòmande pou konsilte yon avoka nan lwa fanmi ki jere ka divòs militè."
+      militaryDisqualification: "DivorceGPT pa ka prepare dokiman pou ka kote yon mari oswa madanm ap sèvi nan lame Etazini kounye a.\n\nManm sèvis aktif yo gen pwoteksyon legal espesyal anba Lwa sou Sekou Sivil pou Manm Sèvis (SCRA), ki gen ladan pwoteksyon kont jijman pa defo. Ka sa yo mande etap pwosedi adisyonèl ak sipèvizyon tribinal ki pa nan domèn sèvis preparasyon dokiman sa a.\n\nNou rekòmande pou konsilte yon avoka nan lwa fanmi ki jere ka divòs militè.",
+      disclosure: {
+        title: "Kisa DivorceGPT Fè",
+        description: "DivorceGPT se yon sèvis preparasyon dokiman. Li itilize fòm ofisyèl ki pibliye pa Sistèm Tribinal Inifye Eta New York.",
+        serviceTitle: "Sèvis la:",
+        services: [
+          "Transfere repons ou yo sou fòm ki obligatwa yo",
+          "Montre etikèt nan lang senp ki idantifye ki enfòmasyon chak chan fòm mande",
+          "Jenere yon pakè PDF pou ou revize anvan ou depoze"
+        ],
+        disclaimer: "DivorceGPT pa revize repons ou yo pou wè si yo sifi legalman, pa bay konsèy legal, oswa pa reprezante ou nan tribinal.",
+        freeFormsTitle: "Fòm Gratis Disponib",
+        freeFormsDesc: "Fòm ofisyèl divòs san kontestasyon disponib nan sit entènèt Sistèm Tribinal Inifye Eta New York.",
+        continueButton: "Kontinye ak DivorceGPT ($20)"
+      },
+      fields: {
+        plaintiffName: { label: "Non Pleyan", desc: "Moun ki depoze" },
+        defendantName: { label: "Non Defandè", desc: "Lòt mari/madanm" },
+        filingCounty: { label: "Konte Depo", desc: "Ki kote pou depoze" },
+        residencyBasis: { label: "Baz Rezidans", desc: "Ki moun ki kalifye" },
+        qualifyingAddress: { label: "Adrès Kalifikasyon", desc: "Adrès rezidans" },
+        phone: { label: "Telefòn", desc: "Kontak tribinal" },
+        plaintiffAddress: { label: "Adrès Pleyan", desc: "Adrès postal" },
+        defendantAddress: { label: "Adrès Defandè", desc: "Adrès sèvis" },
+        ceremonyType: { label: "Tip Seremoni", desc: "Sivil oswa Relijye" },
+        indexNumber: { label: "Nimewo Endèks", desc: "Nan sekretè" },
+        marriageDate: { label: "Dat Maryaj", desc: "Ki lè ou te marye" },
+        marriageCity: { label: "Vil Maryaj", desc: "Ki kote ou te marye" },
+        marriageState: { label: "Eta Maryaj", desc: "Eta/Peyi" },
+        breakdownDate: { label: "Dat Kase", desc: "DRL §170(7)" },
+        entryDate: { label: "Dat Antre", desc: "Dat depo JOD" },
+        currentAddress: { label: "Adrès Aktyèl", desc: "Pou lapòs" },
+        summonsWithNotice: "Sitasyon ak Avi"
+      }
     },
     chat: {
       title: "DivorceGPT",

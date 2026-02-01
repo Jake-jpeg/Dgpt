@@ -331,29 +331,29 @@ function FormsContent() {
   };
 
   const phase1Fields = [
-    { key: 'plaintiffName', label: 'Plaintiff Name', desc: 'Person filing' },
-    { key: 'defendantName', label: 'Defendant Name', desc: 'Other spouse' },
-    { key: 'qualifyingCounty', label: 'Filing County', desc: 'Where to file' },
-    { key: 'qualifyingParty', label: 'Residency Basis', desc: 'Who qualifies' },
-    { key: 'qualifyingAddress', label: 'Qualifying Address', desc: 'Residency address' },
-    { key: 'plaintiffPhone', label: 'Phone', desc: 'Court contact' },
-    { key: 'plaintiffAddress', label: 'Plaintiff Address', desc: 'Mailing address' },
-    { key: 'defendantAddress', label: 'Defendant Address', desc: 'Service address' },
-    { key: 'ceremonyType', label: 'Ceremony Type', desc: 'Civil or Religious' },
+    { key: 'plaintiffName', label: t.qualify.fields?.plaintiffName?.label || 'Plaintiff Name', desc: t.qualify.fields?.plaintiffName?.desc || 'Person filing' },
+    { key: 'defendantName', label: t.qualify.fields?.defendantName?.label || 'Defendant Name', desc: t.qualify.fields?.defendantName?.desc || 'Other spouse' },
+    { key: 'qualifyingCounty', label: t.qualify.fields?.filingCounty?.label || 'Filing County', desc: t.qualify.fields?.filingCounty?.desc || 'Where to file' },
+    { key: 'qualifyingParty', label: t.qualify.fields?.residencyBasis?.label || 'Residency Basis', desc: t.qualify.fields?.residencyBasis?.desc || 'Who qualifies' },
+    { key: 'qualifyingAddress', label: t.qualify.fields?.qualifyingAddress?.label || 'Qualifying Address', desc: t.qualify.fields?.qualifyingAddress?.desc || 'Residency address' },
+    { key: 'plaintiffPhone', label: t.qualify.fields?.phone?.label || 'Phone', desc: t.qualify.fields?.phone?.desc || 'Court contact' },
+    { key: 'plaintiffAddress', label: t.qualify.fields?.plaintiffAddress?.label || 'Plaintiff Address', desc: t.qualify.fields?.plaintiffAddress?.desc || 'Mailing address' },
+    { key: 'defendantAddress', label: t.qualify.fields?.defendantAddress?.label || 'Defendant Address', desc: t.qualify.fields?.defendantAddress?.desc || 'Service address' },
+    { key: 'ceremonyType', label: t.qualify.fields?.ceremonyType?.label || 'Ceremony Type', desc: t.qualify.fields?.ceremonyType?.desc || 'Civil or Religious' },
   ];
 
   // Remove hasWaiver - UD-7 IS the waiver
   const phase2Fields = [
-    { key: 'indexNumber', label: 'Index Number', desc: 'From clerk' },
-    { key: 'marriageDate', label: 'Marriage Date', desc: 'When married' },
-    { key: 'marriageCity', label: 'Marriage City', desc: 'Where married' },
-    { key: 'marriageState', label: 'Marriage State', desc: 'State/Country' },
-    { key: 'breakdownDate', label: 'Breakdown Date', desc: 'DRL §170(7)' },
+    { key: 'indexNumber', label: t.qualify.fields?.indexNumber?.label || 'Index Number', desc: t.qualify.fields?.indexNumber?.desc || 'From clerk' },
+    { key: 'marriageDate', label: t.qualify.fields?.marriageDate?.label || 'Marriage Date', desc: t.qualify.fields?.marriageDate?.desc || 'When married' },
+    { key: 'marriageCity', label: t.qualify.fields?.marriageCity?.label || 'Marriage City', desc: t.qualify.fields?.marriageCity?.desc || 'Where married' },
+    { key: 'marriageState', label: t.qualify.fields?.marriageState?.label || 'Marriage State', desc: t.qualify.fields?.marriageState?.desc || 'State/Country' },
+    { key: 'breakdownDate', label: t.qualify.fields?.breakdownDate?.label || 'Breakdown Date', desc: t.qualify.fields?.breakdownDate?.desc || 'DRL §170(7)' },
   ];
 
   const phase3Fields = [
-    { key: 'judgmentEntryDate', label: 'Entry Date', desc: 'JOD filed date' },
-    { key: 'defendantCurrentAddress', label: 'Current Address', desc: 'For mailing' },
+    { key: 'judgmentEntryDate', label: t.qualify.fields?.entryDate?.label || 'Entry Date', desc: t.qualify.fields?.entryDate?.desc || 'JOD filed date' },
+    { key: 'defendantCurrentAddress', label: t.qualify.fields?.currentAddress?.label || 'Current Address', desc: t.qualify.fields?.currentAddress?.desc || 'For mailing' },
   ];
 
   const getPhaseData = (p: number) => p === 1 ? phase1Data : p === 2 ? phase2Data : phase3Data;
@@ -489,7 +489,7 @@ function FormsContent() {
               <div className={`mb-6 rounded-xl p-4 ${allComplete ? 'bg-green-100' : 'bg-zinc-50'}`}>
                 <h3 className={`text-sm font-semibold mb-3 ${allComplete ? 'text-green-800' : 'text-zinc-700'}`}>{t.forms?.forms || 'FORMS'}</h3>
                 <div className="space-y-2 text-sm">
-                  {currentPhase === 1 && <FormItem label="UD-1" desc="Summons with Notice" done={phase1Complete} complete={allComplete} />}
+                  {currentPhase === 1 && <FormItem label="UD-1" desc={t.qualify.fields?.summonsWithNotice || "Summons with Notice"} done={phase1Complete} complete={allComplete} />}
                   {currentPhase === 2 && (<>
                     {phase1Data.ceremonyType === 'religious' && <FormItem label="UD-4" desc="DRL §253 Barriers" done={phase2Complete} highlight complete={allComplete} />}
                     <FormItem label="UD-5" desc="Affirmation of Regularity" done={phase2Complete} complete={allComplete} />
