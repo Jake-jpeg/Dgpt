@@ -12,7 +12,9 @@ import {
   type Phase2Data,
   type Phase3Data,
 } from "../../lib/session";
-import { generatePhase2Package, downloadPdf } from "../../lib/pdfGenerator";
+
+// PDF Service URL - set this in your environment variables
+const PDF_SERVICE_URL = process.env.NEXT_PUBLIC_PDF_SERVICE_URL || "http://localhost:8080";
 
 function FormsContent() {
   const searchParams = useSearchParams();
@@ -181,7 +183,7 @@ function FormsContent() {
     setIsGenerating(true);
     try {
       if (currentPhase === 1) {
-        // Generate UD-1
+        // Generate UD-1 (still using local API since it's pdf-lib based)
         const res = await fetch("/api/forms/ud1", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -206,7 +208,7 @@ function FormsContent() {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
       } else if (currentPhase === 2) {
-        // Generate Phase 2 package using client-side PDF generation
+        // Generate Phase 2 package using Python PDF microservice
         const formData = {
           plaintiffName: phase1Data.plaintiffName || '',
           defendantName: phase1Data.defendantName || '',
@@ -217,28 +219,82 @@ function FormsContent() {
           marriageDate: phase2Data.marriageDate || '',
           marriageCity: phase2Data.marriageCity || '',
           marriageState: phase2Data.marriageState || '',
+          marriagePlace: `${phase2Data.marriageCity || ''}, ${phase2Data.marriageState || ''}`,
           breakdownDate: phase2Data.breakdownDate || '',
           religiousCeremony: phase1Data.ceremonyType === 'religious',
+          // Additional fields for UD-5, UD-6
+          serviceWithinNY: true,
+          defendantAppeared: true,
+          residencyType: 'A',
         };
         
         try {
-          const forms = await generatePhase2Package(formData);
+          const res = await fetch(`${PDF_SERVICE_URL}/generate/phase2-package`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+          });
           
-          // Download each PDF
-          for (const form of forms) {
-            downloadPdf(form.bytes, form.name);
-            // Small delay between downloads
-            await new Promise(resolve => setTimeout(resolve, 500));
+          if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.error || "Failed to generate package");
           }
           
-          alert(`Downloaded ${forms.length} forms:\n${forms.map(f => '• ' + f.name).join('\n')}\n\nNote: UD-5, UD-6, UD-7, UD-9 coming soon.`);
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `Phase2_Filing_Package_${(phase1Data.plaintiffName || "Document").replace(/\s+/g, "_")}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          
+          const formCount = phase1Data.ceremonyType === 'religious' ? 8 : 7;
+          alert(`Downloaded ${formCount} forms in ZIP package:\n• UD-5 Affirmation of Regularity\n• UD-6 Affidavit of Plaintiff\n• UD-7 Affidavit of Defendant\n• UD-9 Note of Issue\n• UD-10 Findings of Fact\n• UD-11 Judgment of Divorce\n• UD-12 Part 130 Certification${phase1Data.ceremonyType === 'religious' ? '\n• UD-4 Barriers to Remarriage' : ''}`);
         } catch (error) {
           console.error('PDF generation error:', error);
           alert('Failed to generate PDFs. Please try again.');
         }
       } else if (currentPhase === 3) {
-        // TODO: Generate Phase 3 forms (UD-14, UD-15)
-        alert("Phase 3 forms generation coming soon!");
+        // Generate Phase 3 package using Python PDF microservice
+        const formData = {
+          plaintiffName: phase1Data.plaintiffName || '',
+          defendantName: phase1Data.defendantName || '',
+          county: phase1Data.qualifyingCounty || '',
+          indexNumber: phase2Data.indexNumber || '',
+          plaintiffAddress: phase1Data.plaintiffAddress || '',
+          defendantAddress: phase1Data.defendantAddress || '',
+          defendantCurrentAddress: phase3Data.defendantCurrentAddress || phase1Data.defendantAddress || '',
+        };
+        
+        try {
+          const res = await fetch(`${PDF_SERVICE_URL}/generate/phase3-package`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+          });
+          
+          if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.error || "Failed to generate package");
+          }
+          
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `Phase3_Final_Forms_${(phase1Data.plaintiffName || "Document").replace(/\s+/g, "_")}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          
+          alert(`Downloaded Phase 3 forms:\n• UD-14 Notice of Entry\n• UD-15 Affidavit of Service by Mail`);
+        } catch (error) {
+          console.error('PDF generation error:', error);
+          alert('Failed to generate PDFs. Please try again.');
+        }
       }
     } catch (error) {
       console.error("Document generation error:", error);
