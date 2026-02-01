@@ -18,6 +18,7 @@ export default function QualifyPage() {
     support: null,
     uncontested: null,
     cooperation: null,
+    military: null,
   });
   
   const [submitted, setSubmitted] = useState(false);
@@ -62,6 +63,12 @@ export default function QualifyPage() {
       question: t.qualify.questions.cooperation.q,
       description: t.qualify.questions.cooperation.d,
       invertLogic: false, // Must answer YES to qualify
+    },
+    {
+      id: "military",
+      question: t.qualify.questions.military.q,
+      description: t.qualify.questions.military.d,
+      invertLogic: true, // Must answer NO to qualify
     },
   ];
 
@@ -237,6 +244,34 @@ export default function QualifyPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
             </button>
+          </div>
+        ) : answers.military === true ? (
+          // Special military disqualification screen
+          <div className="text-center py-12">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-100">
+              <svg className="h-10 w-10 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h2 className="mt-6 text-3xl font-bold tracking-tight text-zinc-900">{t.qualify.failTitle}</h2>
+            
+            <div className="mt-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-100 text-left">
+              {t.qualify.militaryDisqualification.split('\n\n').map((paragraph, i) => (
+                <p key={i} className={`text-sm text-zinc-600 ${i > 0 ? 'mt-4' : ''}`}>
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+            
+            <Link
+              href="/"
+              className="mt-8 inline-flex items-center gap-2 text-[#1a365d] font-medium transition hover:text-[#c59d5f]"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+              </svg>
+              {t.qualify.back}
+            </Link>
           </div>
         ) : (
           <div className="text-center py-12">

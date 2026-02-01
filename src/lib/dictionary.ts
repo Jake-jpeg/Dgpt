@@ -72,8 +72,10 @@ export const dictionary = {
         property: { q: "Is there any property, debts, pensions, or retirement accounts to divide?", d: "Real estate, 401(k), large debts, etc." },
         support: { q: "Is either spouse asking for spousal maintenance (alimony)?", d: "Either now or in the future." },
         uncontested: { q: "Is the divorce uncontested and do both spouses agree to end the marriage?", d: "Both parties want the divorce and agree on all terms." },
-        cooperation: { q: "Will the other spouse cooperate with signing or service of papers?", d: "Spouse will sign acknowledgment or accept service." }
-      }
+        cooperation: { q: "Will the other spouse cooperate with signing or service of papers?", d: "Spouse will sign acknowledgment or accept service." },
+        military: { q: "Is your spouse currently serving in the U.S. military?", d: "Active duty, reserves on active orders, or National Guard on federal activation." }
+      },
+      militaryDisqualification: "DivorceGPT cannot prepare documents for cases where a spouse is currently serving in the U.S. military.\n\nActive duty service members have special legal protections under the Servicemembers Civil Relief Act (SCRA), including protections against default judgments. These cases require additional procedural steps and court oversight that fall outside the scope of this document preparation service.\n\nWe recommend consulting with a family law attorney who handles military divorce cases."
     },
     chat: {
       title: "DivorceGPT",
@@ -178,8 +180,10 @@ export const dictionary = {
         property: { q: "¿Hay propiedades, deudas, pensiones o cuentas de jubilación para dividir?", d: "Bienes raíces, 401(k), deudas grandes, etc." },
         support: { q: "¿Alguno de los cónyuges está solicitando manutención (pensión alimenticia)?", d: "Ya sea ahora o en el futuro." },
         uncontested: { q: "¿El divorcio es de mutuo acuerdo y ambos cónyuges aceptan terminar el matrimonio?", d: "Ambas partes quieren el divorcio y están de acuerdo en todos los términos." },
-        cooperation: { q: "¿Cooperará el otro cónyuge firmando o aceptando los documentos?", d: "El cónyuge firmará el reconocimiento o aceptará la notificación (Service of Process)." }
-      }
+        cooperation: { q: "¿Cooperará el otro cónyuge firmando o aceptando los documentos?", d: "El cónyuge firmará el reconocimiento o aceptará la notificación (Service of Process)." },
+        military: { q: "¿Su cónyuge está actualmente sirviendo en el ejército de EE.UU.?", d: "Servicio activo, reservas en órdenes activas, o Guardia Nacional en activación federal." }
+      },
+      militaryDisqualification: "DivorceGPT no puede preparar documentos para casos donde un cónyuge está actualmente sirviendo en el ejército de EE.UU.\n\nLos miembros del servicio activo tienen protecciones legales especiales bajo la Ley de Alivio Civil para Miembros del Servicio (SCRA), incluyendo protecciones contra sentencias en rebeldía. Estos casos requieren pasos procesales adicionales y supervisión judicial que están fuera del alcance de este servicio de preparación de documentos.\n\nRecomendamos consultar con un abogado de derecho familiar que maneje casos de divorcio militar."
     },
     chat: {
       title: "DivorceGPT",
@@ -284,8 +288,10 @@ export const dictionary = {
         property: { q: "是否有财产、债务、养老金或退休账户需要分配？", d: "房产、401(k)、大额债务等。" },
         support: { q: "任一配偶是否在申请配偶赡养费？", d: "无论是现在还是将来。" },
         uncontested: { q: "离婚是否无争议，且双方都同意结束婚姻？", d: "双方都想要离婚并同意所有条款。" },
-        cooperation: { q: "另一方配偶是否会配合签署或接收文件？", d: "配偶将签署确认书或接受法律送达。" }
-      }
+        cooperation: { q: "另一方配偶是否会配合签署或接收文件？", d: "配偶将签署确认书或接受法律送达。" },
+        military: { q: "您的配偶目前是否在美国军队服役？", d: "现役、现役命令下的预备役、或联邦激活的国民警卫队。" }
+      },
+      militaryDisqualification: "DivorceGPT 无法为配偶目前在美国军队服役的案件准备文件。\n\n现役军人根据《军人民事救济法》(SCRA) 享有特殊法律保护，包括针对缺席判决的保护。这些案件需要额外的程序步骤和法院监督，超出了本文件准备服务的范围。\n\n我们建议咨询处理军人离婚案件的家庭法律师。"
     },
     chat: {
       title: "DivorceGPT",
@@ -390,8 +396,10 @@ export const dictionary = {
         property: { q: "분할할 재산, 부채, 연금 또는 퇴직 계좌가 있습니까?", d: "부동산, 401(k), 다액의 채무 등." },
         support: { q: "배우자 중 한 명이 배우자 부양비(위자료)를 요청하고 있습니까?", d: "현재 또는 미래에." },
         uncontested: { q: "합의 이혼이며 양측 모두 결혼 생활 종료에 동의합니까?", d: "양측 모두 이혼을 원하며 모든 조건에 동의합니다." },
-        cooperation: { q: "상대방 배우자가 서류 서명 또는 송달에 협조할 것입니까?", d: "배우자가 확인서에 서명하거나 법적 송달(Service)을 수락할 것입니다." }
-      }
+        cooperation: { q: "상대방 배우자가 서류 서명 또는 송달에 협조할 것입니까?", d: "배우자가 확인서에 서명하거나 법적 송달(Service)을 수락할 것입니다." },
+        military: { q: "배우자가 현재 미국 군에서 복무 중입니까?", d: "현역, 현역 명령 하의 예비역, 또는 연방 활성화된 주방위군." }
+      },
+      militaryDisqualification: "DivorceGPT는 배우자가 현재 미국 군에서 복무 중인 경우 서류를 준비할 수 없습니다.\n\n현역 군인은 군인민사구제법(SCRA)에 따라 궐석 판결에 대한 보호를 포함한 특별한 법적 보호를 받습니다. 이러한 사건은 이 문서 준비 서비스의 범위를 벗어나는 추가적인 절차 단계와 법원 감독이 필요합니다.\n\n군인 이혼 사건을 처리하는 가정법 변호사와 상담하시기 바랍니다."
     },
     chat: {
       title: "DivorceGPT",
@@ -496,8 +504,10 @@ export const dictionary = {
         property: { q: "Есть ли имущество, долги или пенсии для раздела?", d: "Недвижимость, 401(k), крупные долги и т.д." },
         support: { q: "Требует ли кто-либо из супругов алименты на содержание супруга?", d: "Сейчас или в будущем." },
         uncontested: { q: "Является ли развод бесспорным и согласны ли оба супруга?", d: "Обе стороны хотят развода и согласны со всеми условиями." },
-        cooperation: { q: "Будет ли другой супруг сотрудничать при подписании документов?", d: "Супруг подпишет подтверждение или примет вручение (Service) документов." }
-      }
+        cooperation: { q: "Будет ли другой супруг сотрудничать при подписании документов?", d: "Супруг подпишет подтверждение или примет вручение (Service) документов." },
+        military: { q: "Служит ли ваш супруг в настоящее время в вооружённых силах США?", d: "Действующая служба, резерв на активных приказах или Национальная гвардия на федеральной активации." }
+      },
+      militaryDisqualification: "DivorceGPT не может подготовить документы для случаев, когда супруг в настоящее время служит в вооружённых силах США.\n\nВоеннослужащие имеют особые правовые защиты в соответствии с Законом о гражданской помощи военнослужащим (SCRA), включая защиту от заочных решений. Такие дела требуют дополнительных процессуальных шагов и судебного надзора, которые выходят за рамки данной услуги по подготовке документов.\n\nМы рекомендуем проконсультироваться с адвокатом по семейному праву, который занимается делами о разводе военнослужащих."
     },
     chat: {
       title: "DivorceGPT",
@@ -602,8 +612,10 @@ export const dictionary = {
         property: { q: "Èske gen byen, dèt, pansyon, oswa kont retrèt pou pataje?", d: "Kay, tè, 401(k), gwo dèt, elatriye." },
         support: { q: "Èske youn nan mari oswa madanm yo ap mande sipò (alimony)?", d: "Swa kounye a oswa nan lavni." },
         uncontested: { q: "Èske divòs la san kontestasyon epi èske nou tou de dakò pou fini maryaj la?", d: "Tou de pati yo vle divòs la epi yo dakò sou tout kondisyon yo." },
-        cooperation: { q: "Èske lòt mari oswa madanm nan ap kowopere pou siyen oswa resevwa papye yo?", d: "Mari oswa madanm nan pral siyen papye yo oswa aksepte sèvis la (Service of Process)." }
-      }
+        cooperation: { q: "Èske lòt mari oswa madanm nan ap kowopere pou siyen oswa resevwa papye yo?", d: "Mari oswa madanm nan pral siyen papye yo oswa aksepte sèvis la (Service of Process)." },
+        military: { q: "Èske mari oswa madanm ou ap sèvi nan lame Etazini kounye a?", d: "Sèvis aktif, rezèv sou lòd aktif, oswa Gad Nasyonal sou aktivasyon federal." }
+      },
+      militaryDisqualification: "DivorceGPT pa ka prepare dokiman pou ka kote yon mari oswa madanm ap sèvi nan lame Etazini kounye a.\n\nManm sèvis aktif yo gen pwoteksyon legal espesyal anba Lwa sou Sekou Sivil pou Manm Sèvis (SCRA), ki gen ladan pwoteksyon kont jijman pa defo. Ka sa yo mande etap pwosedi adisyonèl ak sipèvizyon tribinal ki pa nan domèn sèvis preparasyon dokiman sa a.\n\nNou rekòmande pou konsilte yon avoka nan lwa fanmi ki jere ka divòs militè."
     },
     chat: {
       title: "DivorceGPT",
