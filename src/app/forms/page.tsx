@@ -104,6 +104,17 @@ function FormsContent() {
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
     const userMessage = input.trim();
+    
+    // Check if user wants to restart/go back
+    const restartKeywords = ['start over', 'restart', 'go back', 'made a mistake', 'redo', 'begin again', 'phase 1 again'];
+    const wantsRestart = restartKeywords.some(kw => userMessage.toLowerCase().includes(kw));
+    
+    if (wantsRestart && currentPhase > 1) {
+      setInput("");
+      resetToPhase1();
+      return;
+    }
+    
     setInput("");
     const newMessages = [...messages, { role: "user" as const, content: userMessage }];
     setMessages(newMessages);
@@ -136,6 +147,17 @@ function FormsContent() {
       setCurrentPhase(3);
       setMessages(prev => [...prev, { role: "assistant", content: "Welcome to Phase 3! What date was the Judgment entered?" }]);
     }
+  };
+
+  const resetToPhase1 = () => {
+    setCurrentPhase(1);
+    setPhase1Data({});
+    setPhase1Complete(false);
+    setPhase2Data({});
+    setPhase2Complete(false);
+    setPhase3Data({});
+    setPhase3Complete(false);
+    setMessages(prev => [...prev, { role: "assistant", content: "No problem! Let's start fresh with Phase 1. What is the Plaintiff's full legal name? (Please provide it in English, exactly as it appears on your driver's license or government-issued ID)" }]);
   };
 
   const generateDocuments = async () => {
@@ -292,12 +314,23 @@ function FormsContent() {
               <div className="mt-6 space-y-3">
                 <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-[#c59d5f] py-4 text-lg font-semibold text-white shadow-xl disabled:opacity-50">{isGenerating ? 'Generating...' : 'Download UD-1'}</button>
                 <button onClick={advancePhase} className="w-full rounded-full border-2 border-[#1a365d] py-3 text-sm font-semibold text-[#1a365d] hover:bg-[#1a365d] hover:text-white">I have my Index Number → Phase 2</button>
+                <button onClick={resetToPhase1} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">Start over</button>
+              </div>
+            )}
+            {(currentPhase === 2 && !phase2Complete) && (
+              <div className="mt-6">
+                <button onClick={resetToPhase1} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 1</button>
               </div>
             )}
             {(currentPhase === 2 && phase2Complete) && (
               <div className="mt-6 space-y-3">
                 <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-[#c59d5f] py-4 text-lg font-semibold text-white shadow-xl disabled:opacity-50">{isGenerating ? 'Generating...' : 'Download Package'}</button>
                 <button onClick={advancePhase} className="w-full rounded-full border-2 border-[#1a365d] py-3 text-sm font-semibold text-[#1a365d] hover:bg-[#1a365d] hover:text-white">Judgment Entered → Phase 3</button>
+              </div>
+            )}
+            {(currentPhase === 3 && !phase3Complete) && (
+              <div className="mt-6">
+                <button onClick={() => { setCurrentPhase(2); }} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 2</button>
               </div>
             )}
             {(currentPhase === 3 && phase3Complete) && (<button onClick={generateDocuments} disabled={isGenerating} className="mt-6 w-full rounded-full bg-green-600 py-4 text-lg font-semibold text-white shadow-xl disabled:opacity-50">{isGenerating ? 'Generating...' : '✓ Download Final Forms'}</button>)}
