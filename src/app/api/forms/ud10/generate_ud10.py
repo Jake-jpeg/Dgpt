@@ -23,14 +23,17 @@ CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT  # 468 points
 
 # Line height
 LINE_HEIGHT = 14
+DOUBLE_SPACE = 28  # Double spaced for body text
 
 # Box layout positions
 BOX1_LEFT_X = MARGIN_LEFT
 BOX1_RIGHT_X = PAGE_WIDTH / 2
 
 
-def draw_wrapped_text(c, text, x, y, max_width, font_name="Times-Roman", font_size=12, indent=0):
+def draw_wrapped_text(c, text, x, y, max_width, font_name="Times-Roman", font_size=12, indent=0, line_height=None):
     """Draw text that wraps within max_width. Returns final Y position."""
+    if line_height is None:
+        line_height = DOUBLE_SPACE  # Default to double spacing
     c.setFont(font_name, font_size)
     words = text.split()
     lines = []
@@ -61,13 +64,15 @@ def draw_wrapped_text(c, text, x, y, max_width, font_name="Times-Roman", font_si
             first_line = False
         else:
             c.drawString(x + indent, y, line)
-        y -= LINE_HEIGHT
+        y -= line_height
     
     return y
 
 
-def draw_paragraph(c, label, text, x, y, label_font="Times-Bold", text_font="Times-Roman", font_size=12):
+def draw_paragraph(c, label, text, x, y, label_font="Times-Bold", text_font="Times-Roman", font_size=12, line_height=None):
     """Draw a labeled paragraph with bold label and regular text."""
+    if line_height is None:
+        line_height = DOUBLE_SPACE  # Default to double spacing
     # Calculate label width
     c.setFont(label_font, font_size)
     label_width = c.stringWidth(label + " ", label_font, font_size)
@@ -116,7 +121,7 @@ def draw_paragraph(c, label, text, x, y, label_font="Times-Bold", text_font="Tim
             c.drawString(x + label_width, y, line)
         else:
             c.drawString(x, y, line)
-        y -= LINE_HEIGHT
+        y -= line_height
     
     return y
 
