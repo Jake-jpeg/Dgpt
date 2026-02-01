@@ -163,6 +163,7 @@ REQUIRED:
 • marriageCity = city where married
 • marriageState = state/country where married
 • breakdownDate = when relationship became irretrievably broken (DRL §170(7))
+• noReconciliation = "yes" (confirms NO prospect of getting back together)
 
 BREAKDOWN DATE RULES:
 - DRL §170(7) requires relationship "irretrievably broken for at least 6 months"
@@ -172,6 +173,15 @@ BREAKDOWN DATE RULES:
 - Do NOT demand an exact date - approximate timeframes are fine
 - Just confirm it was at least 6 months ago
 - NEVER use the word "separation" or "separated"
+
+RECONCILIATION CHECK - REQUIRED:
+- Ask: "Is there any prospect of you and [defendant name] getting back together?"
+- Answer MUST be NO / "no" / "none" / "absolutely not" / "no chance"
+- If answer is yes/maybe/unsure → DISQUALIFY:
+\`\`\`json
+{"disqualified": true, "reason": "reconciliation_possible"}
+\`\`\`
+"If there's any prospect of reconciliation, we cannot proceed with the divorce. New York requires the relationship to be irretrievably broken with no prospect of reconciliation. Please return when you're certain the marriage is over."
 
 IF RELIGIOUS CEREMONY:
 • hasWaiver = "yes" or "no" (DRL §253 waiver from defendant)
@@ -189,8 +199,8 @@ PHASE 2 FLOW
 1. Confirm user has Index Number
 2. If religious ceremony → ask about DRL §253 waiver
 3. Collect marriage details (date, city, state)
-4. Ask: "When did your relationship become irretrievably broken? (This must be at least 6 months ago)"
-5. Accept approximate answers - do not demand exact dates
+4. Ask: "When did your relationship become irretrievably broken? (Must be at least 6 months ago)"
+5. Ask: "Is there any prospect of you and [defendant] getting back together?" - MUST be NO
 6. Mark Phase 2 complete:
 \`\`\`json
 {"phase2Complete": true}
@@ -346,7 +356,7 @@ export async function POST(req: Request) {
     if (currentPhase === 2) {
       contextMessage += `Phase 2 Data: ${JSON.stringify(phase2Data || {})}. `;
       const isReligious = phase1Data?.ceremonyType === 'religious';
-      const phase2Fields = ['indexNumber', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate'];
+      const phase2Fields = ['indexNumber', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate', 'noReconciliation'];
       if (isReligious) phase2Fields.push('hasWaiver');
       
       const collected = phase2Fields.filter(f => phase2Data?.[f]);

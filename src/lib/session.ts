@@ -24,6 +24,7 @@ export interface Phase2Data {
   marriageCity: string;
   marriageState: string;
   breakdownDate: string; // Date relationship became irretrievably broken (DRL §170(7)) - NOT separation
+  noReconciliation: 'yes' | ''; // Must confirm NO prospect of getting back together
   // UD-4 (religious only)
   hasWaiver: 'yes' | 'no' | '';
   // Service info for UD-4a if applicable
