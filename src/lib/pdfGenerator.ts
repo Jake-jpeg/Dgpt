@@ -201,7 +201,8 @@ export async function generateUD11(data: FormData): Promise<Uint8Array> {
   y -= 60;
   page.drawText(`Dated: _____________________`, { x: margin, y, size: 12, font: timesRoman });
   y -= 14;
-  page.drawText(`ENTER:`, { x: 400, y + 30, size: 12, font: timesBold });
+  const enterY = y + 30;
+  page.drawText(`ENTER:`, { x: 400, y: enterY, size: 12, font: timesBold });
   page.drawText(`_________________________________`, { x: 350, y, size: 12, font: timesRoman });
   y -= 14;
   page.drawText(`J.S.C. / Referee`, { x: 400, y, size: 12, font: timesRoman });
