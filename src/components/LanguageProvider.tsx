@@ -11,7 +11,13 @@ interface LanguageContextType {
   t: Dictionary;
 }
 
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+const defaultContext: LanguageContextType = {
+  lang: "en",
+  setLang: () => {},
+  t: dictionary.en,
+};
+
+const LanguageContext = createContext<LanguageContextType>(defaultContext);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Locale>("en");
@@ -34,11 +40,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const t = dictionary[lang];
 
-  // Prevent hydration mismatch
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
   return (
     <LanguageContext.Provider value={{ lang, setLang, t }}>
       {children}
@@ -47,9 +48,5 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 }
 
 export function useLanguage() {
-  const context = useContext(LanguageContext);
-  if (context === undefined) {
-    throw new Error("useLanguage must be used within a LanguageProvider");
-  }
-  return context;
+  return useContext(LanguageContext);
 }
