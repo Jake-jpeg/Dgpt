@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useLanguage } from "../../components/LanguageProvider";
+import { Locale } from "../../lib/dictionary";
 import { 
   loadSession, 
   createSession, 
@@ -20,7 +21,7 @@ const PDF_SERVICE_URL = process.env.NEXT_PUBLIC_PDF_SERVICE_URL || "http://local
 function FormsContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
-  const { t } = useLanguage();
+  const { t, lang, setLang } = useLanguage();
   
   const [isValidating, setIsValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
@@ -383,7 +384,20 @@ function FormsContent() {
               </p>
             </div>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Language Selector */}
+            <select 
+              value={lang} 
+              onChange={(e) => setLang(e.target.value as Locale)}
+              className="text-sm bg-transparent border border-zinc-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#c59d5f]"
+            >
+              <option value="en">English</option>
+              <option value="es">Español</option>
+              <option value="zh">中文</option>
+              <option value="ko">한국어</option>
+              <option value="ru">Русский</option>
+              <option value="ht">Kreyòl</option>
+            </select>
             <button 
               onClick={() => setShowSidebar(!showSidebar)}
               className={`text-sm underline ${allComplete ? 'text-green-700 hover:text-green-900' : 'text-zinc-500 hover:text-zinc-700'}`}
