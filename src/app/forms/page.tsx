@@ -38,9 +38,18 @@ function FormsContent() {
   const [phase2Complete, setPhase2Complete] = useState(false);
   const [phase3Complete, setPhase3Complete] = useState(false);
   const [isDisqualified, setIsDisqualified] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [allComplete, setAllComplete] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Check if all phases complete
+  useEffect(() => {
+    if (phase1Complete && phase2Complete && phase3Complete) {
+      setAllComplete(true);
+    }
+  }, [phase1Complete, phase2Complete, phase3Complete]);
 
   useEffect(() => {
     const validateSession = async () => {
@@ -132,7 +141,7 @@ function FormsContent() {
         // Route fields to correct phase based on field name, not current phase
         const phase1Fields = ['plaintiffName', 'defendantName', 'qualifyingCounty', 'qualifyingParty', 
                              'qualifyingAddress', 'plaintiffPhone', 'plaintiffAddress', 'defendantAddress', 'ceremonyType'];
-        const phase2Fields = ['indexNumber', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate', 'hasWaiver'];
+        const phase2Fields = ['indexNumber', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate'];
         const phase3Fields = ['judgmentEntryDate', 'defendantCurrentAddress'];
         
         const p1Data: Record<string, string> = {};
@@ -168,6 +177,19 @@ function FormsContent() {
     }
   };
 
+  const goToPhase = (phase: 1 | 2 | 3) => {
+    if (phase === 1) {
+      setCurrentPhase(1);
+      setMessages(prev => [...prev, { role: "assistant", content: "Returning to Phase 1. How can I help you with your UD-1 information?" }]);
+    } else if (phase === 2 && phase1Complete) {
+      setCurrentPhase(2);
+      setMessages(prev => [...prev, { role: "assistant", content: "Returning to Phase 2. How can I help you with your submission package?" }]);
+    } else if (phase === 3 && phase2Complete) {
+      setCurrentPhase(3);
+      setMessages(prev => [...prev, { role: "assistant", content: "Returning to Phase 3. How can I help you with the post-judgment forms?" }]);
+    }
+  };
+
   const resetToPhase1 = () => {
     setCurrentPhase(1);
     setPhase1Data({});
@@ -176,6 +198,7 @@ function FormsContent() {
     setPhase2Complete(false);
     setPhase3Data({});
     setPhase3Complete(false);
+    setAllComplete(false);
     setMessages(prev => [...prev, { role: "assistant", content: "No problem! Let's start fresh with Phase 1. What is the Plaintiff's full legal name? (Please provide it in English, exactly as it appears on your driver's license or government-issued ID)" }]);
   };
 
@@ -251,7 +274,7 @@ function FormsContent() {
           document.body.removeChild(a);
           
           const formCount = phase1Data.ceremonyType === 'religious' ? 8 : 7;
-          alert(`Downloaded ${formCount} forms in ZIP package:\n• UD-5 Affirmation of Regularity\n• UD-6 Affidavit of Plaintiff\n• UD-7 Affidavit of Defendant\n• UD-9 Note of Issue\n• UD-10 Findings of Fact\n• UD-11 Judgment of Divorce\n• UD-12 Part 130 Certification${phase1Data.ceremonyType === 'religious' ? '\n• UD-4 Barriers to Remarriage' : ''}`);
+          alert(`Downloaded ${formCount} forms in ZIP package:\n• UD-5 Affirmation of Regularity\n• UD-6 Affirmation of Plaintiff\n• UD-7 Affirmation of Defendant\n• UD-9 Note of Issue\n• UD-10 Findings of Fact\n• UD-11 Judgment of Divorce\n• UD-12 Part 130 Certification${phase1Data.ceremonyType === 'religious' ? '\n• UD-4 Barriers to Remarriage' : ''}`);
         } catch (error) {
           console.error('PDF generation error:', error);
           alert('Failed to generate PDFs. Please try again.');
@@ -316,13 +339,13 @@ function FormsContent() {
     { key: 'ceremonyType', label: 'Ceremony Type', desc: 'Civil or Religious' },
   ];
 
+  // Remove hasWaiver - UD-7 IS the waiver
   const phase2Fields = [
     { key: 'indexNumber', label: 'Index Number', desc: 'From clerk' },
     { key: 'marriageDate', label: 'Marriage Date', desc: 'When married' },
     { key: 'marriageCity', label: 'Marriage City', desc: 'Where married' },
     { key: 'marriageState', label: 'Marriage State', desc: 'State/Country' },
     { key: 'breakdownDate', label: 'Breakdown Date', desc: 'DRL §170(7)' },
-    ...(phase1Data.ceremonyType === 'religious' ? [{ key: 'hasWaiver', label: 'DRL §253 Waiver', desc: 'Barriers check' }] : []),
   ];
 
   const phase3Fields = [
@@ -336,28 +359,54 @@ function FormsContent() {
   const currentData = getPhaseData(currentPhase) as Record<string, string | undefined>;
   const completedCount = currentFields.filter(f => currentData[f.key]).length;
 
+  // Determine theme colors based on completion status
+  const isPhaseComplete = currentPhase === 1 ? phase1Complete : currentPhase === 2 ? phase2Complete : phase3Complete;
+  const themeColor = allComplete ? 'green' : isPhaseComplete ? 'green' : 'default';
+
   if (isValidating) return <div className="flex min-h-screen items-center justify-center bg-zinc-50"><div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#1a365d] border-t-transparent" /></div>;
   if (!isValid || !sessionId) return <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4"><div className="text-center"><h2 className="text-xl font-bold">Session Not Found</h2><Link href="/qualify" className="mt-4 inline-block rounded-full bg-[#c59d5f] px-6 py-3 text-white">Start Over</Link></div></div>;
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50">
-      <header className="sticky top-0 z-50 border-b border-zinc-100 bg-white/80 backdrop-blur-sm">
+    <div className={`flex min-h-screen flex-col ${allComplete ? 'bg-green-50' : 'bg-zinc-50'}`}>
+      <header className={`sticky top-0 z-50 border-b ${allComplete ? 'border-green-200 bg-green-50/80' : 'border-zinc-100 bg-white/80'} backdrop-blur-sm`}>
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282]"><span className="text-lg">⚖️</span></div>
-            <div><h1 className="text-lg font-semibold text-zinc-900">DivorceGPT</h1><p className="text-xs text-zinc-500">Phase {currentPhase}: {currentPhase === 1 ? 'Commencement' : currentPhase === 2 ? 'Submission' : 'Post-Judgment'}</p></div>
+            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${allComplete ? 'bg-gradient-to-br from-green-600 to-green-500' : 'bg-gradient-to-br from-[#1a365d] to-[#2c5282]'}`}>
+              <span className="text-lg">{allComplete ? '✓' : '⚖️'}</span>
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-zinc-900">DivorceGPT</h1>
+              <p className="text-xs text-zinc-500">
+                {allComplete ? 'All Phases Complete!' : `Phase ${currentPhase}: ${currentPhase === 1 ? 'Commencement' : currentPhase === 2 ? 'Submission' : 'Post-Judgment'}`}
+              </p>
+            </div>
           </Link>
-          <div className="hidden items-center gap-2 sm:flex"><div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /><span className="text-sm text-zinc-500">Session active</span></div>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setShowSidebar(!showSidebar)}
+              className={`text-sm underline ${allComplete ? 'text-green-700 hover:text-green-900' : 'text-zinc-500 hover:text-zinc-700'}`}
+            >
+              {showSidebar ? 'Hide Panel' : 'Show Panel'}
+            </button>
+            <div className="hidden items-center gap-2 sm:flex">
+              <div className={`h-2 w-2 rounded-full ${allComplete ? 'bg-green-500' : 'bg-green-500'} animate-pulse`} />
+              <span className="text-sm text-zinc-500">{allComplete ? 'Complete' : 'Session active'}</span>
+            </div>
+          </div>
         </div>
       </header>
 
       <main className="flex flex-1 flex-col lg:flex-row">
-        <div className="flex flex-1 flex-col lg:w-2/3 lg:border-r lg:border-zinc-200">
+        <div className={`flex flex-1 flex-col ${showSidebar ? 'lg:w-2/3' : 'lg:w-full'} ${showSidebar ? 'lg:border-r lg:border-zinc-200' : ''}`}>
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="mx-auto max-w-2xl space-y-4">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-white" : "bg-white text-zinc-800 ring-1 ring-zinc-100"}`}>
+                  <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${msg.role === "user" 
+                    ? allComplete 
+                      ? "bg-gradient-to-br from-green-600 to-green-500 text-white" 
+                      : "bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-white" 
+                    : "bg-white text-zinc-800 ring-1 ring-zinc-100"}`}>
                     <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
                   </div>
                 </div>
@@ -366,105 +415,168 @@ function FormsContent() {
               <div ref={messagesEndRef} />
             </div>
           </div>
-          <div className="border-t border-zinc-100 bg-white/80 p-4">
+          <div className={`border-t ${allComplete ? 'border-green-200 bg-green-50/80' : 'border-zinc-100 bg-white/80'} p-4`}>
             <div className="mx-auto max-w-2xl flex gap-3">
-              <input ref={inputRef} type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} placeholder="Type your answer..." className="flex-1 rounded-full bg-zinc-100 px-5 py-3 text-zinc-900 ring-1 ring-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#c59d5f]" />
-              <button onClick={sendMessage} disabled={isLoading || !input.trim()} className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-white disabled:opacity-50">
+              <input ref={inputRef} type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} placeholder={allComplete ? "Ask me anything about your forms..." : "Type your answer..."} className={`flex-1 rounded-full px-5 py-3 text-zinc-900 ring-1 focus:outline-none focus:ring-2 ${allComplete ? 'bg-white ring-green-300 focus:ring-green-500' : 'bg-zinc-100 ring-zinc-200 focus:ring-[#c59d5f]'}`} />
+              <button onClick={sendMessage} disabled={isLoading || !input.trim()} className={`flex h-12 w-12 items-center justify-center rounded-full text-white disabled:opacity-50 ${allComplete ? 'bg-gradient-to-br from-green-600 to-green-500' : 'bg-gradient-to-br from-[#1a365d] to-[#2c5282]'}`}>
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
               </button>
             </div>
           </div>
         </div>
 
-        <div className="border-t border-zinc-200 bg-white p-4 sm:p-6 lg:w-1/3 lg:border-t-0 lg:overflow-y-auto">
-          <div className="mx-auto max-w-md">
-            <div className="mb-6">
-              <div className="text-xs font-medium text-zinc-500 mb-2">DIVORCE WORKFLOW</div>
-              <div className="flex gap-1">{[1, 2, 3].map((p) => (<div key={p} className={`flex-1 h-2 rounded-full ${p < currentPhase ? 'bg-green-500' : p === currentPhase ? 'bg-[#c59d5f]' : 'bg-zinc-200'}`} />))}</div>
-              <div className="flex justify-between mt-1 text-xs text-zinc-400"><span>Commence</span><span>Submit</span><span>Finalize</span></div>
+        {showSidebar && (
+          <div className={`border-t ${allComplete ? 'border-green-200 bg-green-50' : 'border-zinc-200 bg-white'} p-4 sm:p-6 lg:w-1/3 lg:border-t-0 lg:overflow-y-auto`}>
+            <div className="mx-auto max-w-md">
+              {/* Phase Navigation */}
+              <div className="mb-6">
+                <div className="text-xs font-medium text-zinc-500 mb-2">DIVORCE WORKFLOW</div>
+                <div className="flex gap-1">
+                  {[1, 2, 3].map((p) => (
+                    <button 
+                      key={p} 
+                      onClick={() => goToPhase(p as 1 | 2 | 3)}
+                      disabled={p === 2 && !phase1Complete || p === 3 && !phase2Complete}
+                      className={`flex-1 h-2 rounded-full transition-all cursor-pointer hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50 ${
+                        p < currentPhase || (p === 1 && phase1Complete) || (p === 2 && phase2Complete) || (p === 3 && phase3Complete)
+                          ? 'bg-green-500' 
+                          : p === currentPhase 
+                            ? allComplete ? 'bg-green-500' : 'bg-[#c59d5f]' 
+                            : 'bg-zinc-200'
+                      }`} 
+                    />
+                  ))}
+                </div>
+                <div className="flex justify-between mt-1">
+                  <button onClick={() => goToPhase(1)} className="text-xs text-zinc-400 hover:text-zinc-600">Commence</button>
+                  <button onClick={() => goToPhase(2)} disabled={!phase1Complete} className="text-xs text-zinc-400 hover:text-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed">Submit</button>
+                  <button onClick={() => goToPhase(3)} disabled={!phase2Complete} className="text-xs text-zinc-400 hover:text-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed">Finalize</button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className={`text-lg font-bold ${allComplete ? 'text-green-800' : 'text-zinc-900'}`}>Phase {currentPhase}</h2>
+                  <p className={`text-sm ${allComplete ? 'text-green-600' : 'text-zinc-500'}`}>{currentPhase === 1 ? 'UD-1 Summons' : currentPhase === 2 ? 'Filing Package' : 'Notice & Service'}</p>
+                </div>
+                <div className={`flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold ${
+                  isPhaseComplete ? 'bg-green-500 text-white' : 'bg-zinc-100 text-zinc-700'
+                }`}>
+                  {isPhaseComplete ? '✓' : `${completedCount}/${currentFields.length}`}
+                </div>
+              </div>
+              
+              <div className={`mb-6 h-2 w-full overflow-hidden rounded-full ${allComplete ? 'bg-green-200' : 'bg-zinc-200'}`}>
+                <div className={`h-full transition-all ${allComplete ? 'bg-green-500' : 'bg-gradient-to-r from-[#1a365d] to-[#c59d5f]'}`} style={{ width: `${(completedCount / currentFields.length) * 100}%` }} />
+              </div>
+
+              <div className={`mb-6 rounded-xl p-4 ${allComplete ? 'bg-green-100' : 'bg-zinc-50'}`}>
+                <h3 className={`text-sm font-semibold mb-3 ${allComplete ? 'text-green-800' : 'text-zinc-700'}`}>FORMS</h3>
+                <div className="space-y-2 text-sm">
+                  {currentPhase === 1 && <FormItem label="UD-1" desc="Summons with Notice" done={phase1Complete} complete={allComplete} />}
+                  {currentPhase === 2 && (<>
+                    {phase1Data.ceremonyType === 'religious' && <FormItem label="UD-4" desc="DRL §253 Barriers" done={phase2Complete} highlight complete={allComplete} />}
+                    <FormItem label="UD-5" desc="Affirmation of Regularity" done={phase2Complete} complete={allComplete} />
+                    <FormItem label="UD-6" desc="Plaintiff's Affirmation" done={phase2Complete} complete={allComplete} />
+                    <FormItem label="UD-7" desc="Defendant's Affirmation" done={phase2Complete} complete={allComplete} />
+                    <FormItem label="UD-9" desc="Note of Issue" done={phase2Complete} complete={allComplete} />
+                    <FormItem label="UD-10" desc="Findings of Fact" done={phase2Complete} complete={allComplete} />
+                    <FormItem label="UD-11" desc="Judgment of Divorce" done={phase2Complete} complete={allComplete} />
+                    <FormItem label="UD-12" desc="Part 130 Certification" done={phase2Complete} complete={allComplete} />
+                  </>)}
+                  {currentPhase === 3 && (<>
+                    <FormItem label="UD-14" desc="Notice of Entry" done={phase3Complete} complete={allComplete} />
+                    <FormItem label="UD-15" desc="Affidavit of Service" done={phase3Complete} complete={allComplete} />
+                  </>)}
+                </div>
+              </div>
+              
+              <div className="space-y-3">{currentFields.map((f) => (<FieldCard key={f.key} label={f.label} value={currentData[f.key]} description={f.desc} complete={allComplete} />))}</div>
+
+              {/* Phase 1 Actions */}
+              {(currentPhase === 1 && phase1Complete) && (
+                <div className="mt-6 space-y-3">
+                  <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-green-600 py-4 text-lg font-semibold text-white shadow-xl hover:bg-green-700 disabled:opacity-50">{isGenerating ? 'Generating...' : '✓ Download UD-1'}</button>
+                  <button onClick={advancePhase} className="w-full rounded-full border-2 border-[#1a365d] py-3 text-sm font-semibold text-[#1a365d] hover:bg-[#1a365d] hover:text-white">I have my Index Number → Phase 2</button>
+                  <button onClick={resetToPhase1} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">Start over</button>
+                </div>
+              )}
+
+              {/* Phase 2 Actions */}
+              {(currentPhase === 2 && !phase2Complete) && (
+                <div className="mt-6">
+                  <button onClick={() => goToPhase(1)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 1</button>
+                </div>
+              )}
+              {(currentPhase === 2 && phase2Complete) && (
+                <div className="mt-6 space-y-3">
+                  <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-green-600 py-4 text-lg font-semibold text-white shadow-xl hover:bg-green-700 disabled:opacity-50">{isGenerating ? 'Generating...' : '✓ Download Package'}</button>
+                  <button onClick={advancePhase} className="w-full rounded-full border-2 border-[#1a365d] py-3 text-sm font-semibold text-[#1a365d] hover:bg-[#1a365d] hover:text-white">Judgment Entered → Phase 3</button>
+                  <button onClick={() => goToPhase(1)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 1</button>
+                </div>
+              )}
+
+              {/* Phase 3 Actions */}
+              {(currentPhase === 3 && !phase3Complete) && (
+                <div className="mt-6 space-y-2">
+                  <button onClick={() => goToPhase(2)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 2</button>
+                  <button onClick={() => goToPhase(1)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 1</button>
+                </div>
+              )}
+              {(currentPhase === 3 && phase3Complete) && (
+                <div className="mt-6 space-y-3">
+                  <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-green-600 py-4 text-lg font-semibold text-white shadow-xl hover:bg-green-700 disabled:opacity-50">{isGenerating ? 'Generating...' : '✓ Download Final Forms'}</button>
+                  <button onClick={() => setShowSidebar(false)} className="w-full rounded-full border-2 border-green-600 py-3 text-sm font-semibold text-green-700 hover:bg-green-600 hover:text-white">Hide Panel & Continue Chatting</button>
+                  <div className="flex gap-2">
+                    <button onClick={() => goToPhase(1)} className="flex-1 text-sm text-zinc-500 hover:text-zinc-700 underline">Phase 1</button>
+                    <button onClick={() => goToPhase(2)} className="flex-1 text-sm text-zinc-500 hover:text-zinc-700 underline">Phase 2</button>
+                  </div>
+                </div>
+              )}
+
+              <div className={`mt-6 rounded-xl p-4 ${allComplete ? 'bg-green-200' : 'bg-blue-50'}`}>
+                <div className="flex gap-3">
+                  <svg className={`h-5 w-5 ${allComplete ? 'text-green-700' : 'text-blue-600'}`} fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+                  <div className={`text-sm ${allComplete ? 'text-green-800' : 'text-blue-800'}`}>
+                    <p className="font-medium">{allComplete ? 'All done!' : 'Need help?'}</p>
+                    <p className={allComplete ? 'text-green-700' : 'text-blue-700'}>{allComplete ? 'Ask questions about filing, procedures, or forms.' : 'Just ask in the chat!'}</p>
+                  </div>
+                </div>
+              </div>
             </div>
-
-            <div className="flex items-center justify-between mb-4">
-              <div><h2 className="text-lg font-bold text-zinc-900">Phase {currentPhase}</h2><p className="text-sm text-zinc-500">{currentPhase === 1 ? 'UD-1 Summons' : currentPhase === 2 ? 'Filing Package' : 'Notice & Service'}</p></div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-lg font-bold text-zinc-700">{completedCount}/{currentFields.length}</div>
-            </div>
-            
-            <div className="mb-6 h-2 w-full overflow-hidden rounded-full bg-zinc-200"><div className="h-full bg-gradient-to-r from-[#1a365d] to-[#c59d5f] transition-all" style={{ width: `${(completedCount / currentFields.length) * 100}%` }} /></div>
-
-            <div className="mb-6 rounded-xl bg-zinc-50 p-4">
-              <h3 className="text-sm font-semibold text-zinc-700 mb-3">FORMS</h3>
-              <div className="space-y-2 text-sm">
-                {currentPhase === 1 && <FormItem label="UD-1" desc="Summons with Notice" done={phase1Complete} />}
-                {currentPhase === 2 && (<>
-                  {phase1Data.ceremonyType === 'religious' && <FormItem label="UD-4" desc="DRL §253 Barriers" done={!!phase2Data.hasWaiver} highlight />}
-                  <FormItem label="UD-5" desc="Affirmation of Regularity" done={phase2Complete} />
-                  <FormItem label="UD-6" desc="Plaintiff's Affidavit" done={phase2Complete} />
-                  <FormItem label="UD-7" desc="Defendant's Affidavit" done={phase2Complete} />
-                  <FormItem label="UD-9" desc="Note of Issue" done={phase2Complete} />
-                  <FormItem label="UD-10" desc="Findings of Fact" done={phase2Complete} />
-                  <FormItem label="UD-11" desc="Judgment of Divorce" done={phase2Complete} />
-                  <FormItem label="UD-12" desc="Part 130 Certification" done={phase2Complete} />
-                </>)}
-                {currentPhase === 3 && (<><FormItem label="UD-14" desc="Notice of Entry" done={phase3Complete} /><FormItem label="UD-15" desc="Affidavit of Service" done={phase3Complete} /></>)}
-              </div>
-            </div>
-            
-            <div className="space-y-3">{currentFields.map((f) => (<FieldCard key={f.key} label={f.label} value={currentData[f.key]} description={f.desc} />))}</div>
-
-            {(currentPhase === 1 && phase1Complete) && (
-              <div className="mt-6 space-y-3">
-                <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-[#c59d5f] py-4 text-lg font-semibold text-white shadow-xl disabled:opacity-50">{isGenerating ? 'Generating...' : 'Download UD-1'}</button>
-                <button onClick={advancePhase} className="w-full rounded-full border-2 border-[#1a365d] py-3 text-sm font-semibold text-[#1a365d] hover:bg-[#1a365d] hover:text-white">I have my Index Number → Phase 2</button>
-                <button onClick={resetToPhase1} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">Start over</button>
-              </div>
-            )}
-            {(currentPhase === 2 && !phase2Complete) && (
-              <div className="mt-6">
-                <button onClick={resetToPhase1} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 1</button>
-              </div>
-            )}
-            {(currentPhase === 2 && phase2Complete) && (
-              <div className="mt-6 space-y-3">
-                <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-[#c59d5f] py-4 text-lg font-semibold text-white shadow-xl disabled:opacity-50">{isGenerating ? 'Generating...' : 'Download Package'}</button>
-                <button onClick={advancePhase} className="w-full rounded-full border-2 border-[#1a365d] py-3 text-sm font-semibold text-[#1a365d] hover:bg-[#1a365d] hover:text-white">Judgment Entered → Phase 3</button>
-              </div>
-            )}
-            {(currentPhase === 3 && !phase3Complete) && (
-              <div className="mt-6">
-                <button onClick={() => { setCurrentPhase(2); }} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 2</button>
-              </div>
-            )}
-            {(currentPhase === 3 && phase3Complete) && (<button onClick={generateDocuments} disabled={isGenerating} className="mt-6 w-full rounded-full bg-green-600 py-4 text-lg font-semibold text-white shadow-xl disabled:opacity-50">{isGenerating ? 'Generating...' : '✓ Download Final Forms'}</button>)}
-
-            <div className="mt-6 rounded-xl bg-blue-50 p-4"><div className="flex gap-3"><svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg><div className="text-sm text-blue-800"><p className="font-medium">Need help?</p><p className="text-blue-700">Just ask in the chat!</p></div></div></div>
           </div>
-        </div>
+        )}
       </main>
 
-      <footer className="border-t border-zinc-100 bg-white py-4"><p className="text-center text-xs text-zinc-500">DivorceGPT is a document preparation service. This is not legal advice.</p></footer>
+      <footer className={`border-t py-4 ${allComplete ? 'border-green-200 bg-green-50' : 'border-zinc-100 bg-white'}`}>
+        <p className="text-center text-xs text-zinc-500">DivorceGPT is a document preparation service. This is not legal advice.</p>
+      </footer>
     </div>
   );
 }
 
-function FormItem({ label, desc, done, highlight }: { label: string; desc: string; done: boolean; highlight?: boolean }) {
+function FormItem({ label, desc, done, highlight, complete }: { label: string; desc: string; done: boolean; highlight?: boolean; complete?: boolean }) {
   return (
     <div className={`flex items-center justify-between py-1 ${highlight ? 'text-amber-700' : ''}`}>
       <div className="flex items-center gap-2">
-        {done ? <svg className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg> : <div className={`h-4 w-4 rounded-full border-2 ${highlight ? 'border-amber-400' : 'border-zinc-300'}`} />}
+        {done ? <svg className={`h-4 w-4 ${complete ? 'text-green-600' : 'text-green-500'}`} fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg> : <div className={`h-4 w-4 rounded-full border-2 ${highlight ? 'border-amber-400' : 'border-zinc-300'}`} />}
         <span className="font-medium">{label}</span>
       </div>
-      <span className={`text-xs ${highlight ? 'text-amber-600' : 'text-zinc-400'}`}>{desc}</span>
+      <span className={`text-xs ${highlight ? 'text-amber-600' : complete ? 'text-green-600' : 'text-zinc-400'}`}>{desc}</span>
     </div>
   );
 }
 
-function FieldCard({ label, value, description }: { label: string; value?: string; description: string }) {
+function FieldCard({ label, value, description, complete }: { label: string; value?: string; description: string; complete?: boolean }) {
   const done = !!value;
   return (
-    <div className={`rounded-xl p-4 ${done ? "bg-green-50 ring-1 ring-green-200" : "bg-zinc-50 ring-1 ring-zinc-200"}`}>
+    <div className={`rounded-xl p-4 ${done ? complete ? "bg-green-100 ring-1 ring-green-300" : "bg-green-50 ring-1 ring-green-200" : "bg-zinc-50 ring-1 ring-zinc-200"}`}>
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1"><span className="text-sm font-medium text-zinc-700">{label}</span>{done ? <p className="mt-1 truncate text-sm text-zinc-900">{value}</p> : <p className="mt-1 text-xs text-zinc-400">{description}</p>}</div>
-        {done ? <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500"><svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg></div> : <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-200"><span className="text-xs text-zinc-400">...</span></div>}
+        <div className="min-w-0 flex-1">
+          <span className={`text-sm font-medium ${complete ? 'text-green-800' : 'text-zinc-700'}`}>{label}</span>
+          {done ? <p className={`mt-1 truncate text-sm ${complete ? 'text-green-900' : 'text-zinc-900'}`}>{value}</p> : <p className="mt-1 text-xs text-zinc-400">{description}</p>}
+        </div>
+        {done ? <div className={`flex h-6 w-6 items-center justify-center rounded-full ${complete ? 'bg-green-600' : 'bg-green-500'}`}><svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg></div> : <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-200"><span className="text-xs text-zinc-400">...</span></div>}
       </div>
     </div>
   );
