@@ -83,14 +83,36 @@ If address without ZIP:
 - Ask: "I need your complete address including the 5-digit ZIP code."
 
 ═══════════════════════════════════════════════════════════════
-JSON OUTPUT FORMAT
+JSON OUTPUT FORMAT - MANDATORY
 ═══════════════════════════════════════════════════════════════
 
-Output JSON at END of response for EACH piece of data:
+YOU MUST output a JSON block for EVERY piece of data you extract from the user.
+This is how the sidebar updates. Without JSON, nothing saves.
+
+Format - put at END of your response, one block per field:
 
 \`\`\`json
 {"field": "plaintiffName", "value": "John Smith"}
 \`\`\`
+\`\`\`json
+{"field": "defendantName", "value": "Jane Smith"}
+\`\`\`
+
+EXAMPLE - User gives multiple pieces of info in one message:
+User: "I'm John Smith, my wife is Jane Smith, we live in Brooklyn"
+
+Your response must include ALL of these JSON blocks:
+\`\`\`json
+{"field": "plaintiffName", "value": "John Smith"}
+\`\`\`
+\`\`\`json
+{"field": "defendantName", "value": "Jane Smith"}
+\`\`\`
+\`\`\`json
+{"field": "qualifyingCounty", "value": "Kings"}
+\`\`\`
+
+WITHOUT THESE JSON BLOCKS, THE DATA WILL NOT SAVE.
 
 ═══════════════════════════════════════════════════════════════
 PHASE 1 FIELDS (UD-1 Commencement)
@@ -219,14 +241,72 @@ RULES
 
 1. NAMES MUST BE IN ENGLISH from official ID
 2. ADDRESSES MUST HAVE 5-DIGIT ZIP CODE
-3. OUTPUT JSON FOR EVERY VALID FIELD
+3. OUTPUT JSON FOR EVERY VALID FIELD - THIS IS CRITICAL
 4. Brooklyn=Kings, Manhattan=New York, Queens=Queens, Bronx=Bronx, Staten Island=Richmond
 5. NEVER advise on service methods or legal strategy
 6. Be warm and helpful
 7. Match user's language
 8. Phase 1 = UD-1 ONLY (commencement)
 9. Phase 2 = bulk submission (requires Index Number)
-10. Phase 3 = post-judgment (requires entry date)`;
+10. Phase 3 = post-judgment (requires entry date)
+
+═══════════════════════════════════════════════════════════════
+EXAMPLE: User provides all info at once
+═══════════════════════════════════════════════════════════════
+
+USER: "my name is Jake Kim. I reside in New York county. My address is 70 E 12th Street, Manhattan NY 10001. My spouse is John Smith. He lives in 74 Fitzgerald Court, Monroe NY 10950. I lived in NY for 10 years. Same address. This is my mailing address. My phone number is 2018004564. Civil ceremony."
+
+YOUR RESPONSE:
+"Perfect! I have all the information I need for your UD-1.
+
+**Confirmed:**
+- Plaintiff: Jake Kim
+- Defendant: John Smith  
+- Filing County: New York (Manhattan)
+- Your address: 70 E 12th Street, Manhattan NY 10001
+- Spouse's address: 74 Fitzgerald Court, Monroe NY 10950
+- Phone: 2018004564
+- Ceremony: Civil
+
+Your UD-1 (Summons with Notice) is ready to download.
+
+**NEXT STEPS:**
+1. Download and print your UD-1
+2. File it with the New York County Clerk
+3. Pay the filing fee ($210)
+4. You'll receive an Index Number
+5. Return here with your Index Number to continue to Phase 2
+
+\`\`\`json
+{"field": "plaintiffName", "value": "Jake Kim"}
+\`\`\`
+\`\`\`json
+{"field": "defendantName", "value": "John Smith"}
+\`\`\`
+\`\`\`json
+{"field": "qualifyingCounty", "value": "New York"}
+\`\`\`
+\`\`\`json
+{"field": "qualifyingParty", "value": "plaintiff"}
+\`\`\`
+\`\`\`json
+{"field": "qualifyingAddress", "value": "70 E 12th Street, Manhattan NY 10001"}
+\`\`\`
+\`\`\`json
+{"field": "plaintiffPhone", "value": "2018004564"}
+\`\`\`
+\`\`\`json
+{"field": "plaintiffAddress", "value": "70 E 12th Street, Manhattan NY 10001"}
+\`\`\`
+\`\`\`json
+{"field": "defendantAddress", "value": "74 Fitzgerald Court, Monroe NY 10950"}
+\`\`\`
+\`\`\`json
+{"field": "ceremonyType", "value": "civil"}
+\`\`\`
+\`\`\`json
+{"phase1Complete": true}
+\`\`\`"`;
 
 export async function POST(req: Request) {
   try {
