@@ -12,6 +12,7 @@ import {
   type Phase2Data,
   type Phase3Data,
 } from "../../lib/session";
+import { generatePhase2Package, downloadPdf } from "../../lib/pdfGenerator";
 
 function FormsContent() {
   const searchParams = useSearchParams();
@@ -126,9 +127,25 @@ function FormsContent() {
       });
       const data = await res.json();
       if (data.extractedData) {
-        if (currentPhase === 1) setPhase1Data(prev => ({ ...prev, ...data.extractedData }));
-        else if (currentPhase === 2) setPhase2Data(prev => ({ ...prev, ...data.extractedData }));
-        else if (currentPhase === 3) setPhase3Data(prev => ({ ...prev, ...data.extractedData }));
+        // Route fields to correct phase based on field name, not current phase
+        const phase1Fields = ['plaintiffName', 'defendantName', 'qualifyingCounty', 'qualifyingParty', 
+                             'qualifyingAddress', 'plaintiffPhone', 'plaintiffAddress', 'defendantAddress', 'ceremonyType'];
+        const phase2Fields = ['indexNumber', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate', 'hasWaiver'];
+        const phase3Fields = ['judgmentEntryDate', 'defendantCurrentAddress'];
+        
+        const p1Data: Record<string, string> = {};
+        const p2Data: Record<string, string> = {};
+        const p3Data: Record<string, string> = {};
+        
+        for (const [key, value] of Object.entries(data.extractedData)) {
+          if (phase1Fields.includes(key)) p1Data[key] = value as string;
+          else if (phase2Fields.includes(key)) p2Data[key] = value as string;
+          else if (phase3Fields.includes(key)) p3Data[key] = value as string;
+        }
+        
+        if (Object.keys(p1Data).length > 0) setPhase1Data(prev => ({ ...prev, ...p1Data }));
+        if (Object.keys(p2Data).length > 0) setPhase2Data(prev => ({ ...prev, ...p2Data }));
+        if (Object.keys(p3Data).length > 0) setPhase3Data(prev => ({ ...prev, ...p3Data }));
       }
       if (data.phase1Complete) setPhase1Complete(true);
       if (data.phase2Complete) setPhase2Complete(true);
@@ -189,20 +206,35 @@ function FormsContent() {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
       } else if (currentPhase === 2) {
-        // Phase 2 package - list forms for user
-        const forms = ['UD-5 (Affirmation of Regularity)', 'UD-6 (Plaintiff\'s Affidavit)', 'UD-7 (Defendant\'s Affidavit)', 'UD-9 (Note of Issue)', 'UD-10 (Findings of Fact)', 'UD-11 (Judgment of Divorce)', 'UD-12 (Part 130 Certification)'];
-        if (phase1Data.ceremonyType === 'religious') {
-          forms.unshift('UD-4 (DRL §253 Barriers to Remarriage)');
-        }
+        // Generate Phase 2 package using client-side PDF generation
+        const formData = {
+          plaintiffName: phase1Data.plaintiffName || '',
+          defendantName: phase1Data.defendantName || '',
+          county: phase1Data.qualifyingCounty || '',
+          indexNumber: phase2Data.indexNumber || '',
+          plaintiffAddress: phase1Data.plaintiffAddress || '',
+          defendantAddress: phase1Data.defendantAddress || '',
+          marriageDate: phase2Data.marriageDate || '',
+          marriageCity: phase2Data.marriageCity || '',
+          marriageState: phase2Data.marriageState || '',
+          breakdownDate: phase2Data.breakdownDate || '',
+          religiousCeremony: phase1Data.ceremonyType === 'religious',
+        };
         
-        // For now show confirmation - PDF bundling requires backend setup
-        const confirmed = window.confirm(
-          `Phase 2 Submission Package Ready!\n\nForms included:\n${forms.map(f => '• ' + f).join('\n')}\n\nClick OK to proceed. PDF generation is being finalized.`
-        );
-        
-        if (confirmed) {
-          // Mark as downloaded/acknowledged
-          console.log('Phase 2 package acknowledged:', { phase1Data, phase2Data });
+        try {
+          const forms = await generatePhase2Package(formData);
+          
+          // Download each PDF
+          for (const form of forms) {
+            downloadPdf(form.bytes, form.name);
+            // Small delay between downloads
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+          
+          alert(`Downloaded ${forms.length} forms:\n${forms.map(f => '• ' + f.name).join('\n')}\n\nNote: UD-5, UD-6, UD-7, UD-9 coming soon.`);
+        } catch (error) {
+          console.error('PDF generation error:', error);
+          alert('Failed to generate PDFs. Please try again.');
         }
       } else if (currentPhase === 3) {
         // TODO: Generate Phase 3 forms (UD-14, UD-15)
