@@ -138,7 +138,48 @@ function FormsContent() {
     }
   };
 
-  const generateDocuments = async () => { setIsGenerating(true); alert("Document generation coming soon!"); setIsGenerating(false); };
+  const generateDocuments = async () => {
+    setIsGenerating(true);
+    try {
+      if (currentPhase === 1) {
+        // Generate UD-1
+        const res = await fetch("/api/forms/ud1", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            plaintiffName: phase1Data.plaintiffName,
+            defendantName: phase1Data.defendantName,
+            filingCounty: phase1Data.qualifyingCounty,
+            qualifyingParty: phase1Data.qualifyingParty,
+            qualifyingAddress: phase1Data.qualifyingAddress,
+            plaintiffAddress: phase1Data.plaintiffAddress,
+            plaintiffPhone: phase1Data.plaintiffPhone || '',
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to generate UD-1");
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `UD-1_Summons_${(phase1Data.plaintiffName || "Document").replace(/\s+/g, "_")}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else if (currentPhase === 2) {
+        // TODO: Generate Phase 2 package (UD-4*, UD-5, UD-6, UD-7, UD-9, UD-10, UD-11, UD-12)
+        alert("Phase 2 package generation coming soon!");
+      } else if (currentPhase === 3) {
+        // TODO: Generate Phase 3 forms (UD-14, UD-15)
+        alert("Phase 3 forms generation coming soon!");
+      }
+    } catch (error) {
+      console.error("Document generation error:", error);
+      alert("Failed to generate document. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const phase1Fields = [
     { key: 'plaintiffName', label: 'Plaintiff Name', desc: 'Person filing' },
