@@ -162,9 +162,16 @@ REQUIRED:
 • marriageDate = date of marriage
 • marriageCity = city where married
 • marriageState = state/country where married
-• breakdownDate = date relationship became irretrievably broken (DRL §170(7))
+• breakdownDate = when relationship became irretrievably broken (DRL §170(7))
 
-IMPORTANT: DRL §170(7) requires the relationship to have been "irretrievably broken for at least 6 months" - NOT physical separation. The parties may still live together. Ask: "When did your relationship become irretrievably broken?" NOT "When did you separate?"
+BREAKDOWN DATE RULES:
+- DRL §170(7) requires relationship "irretrievably broken for at least 6 months"
+- This is NOT physical separation - parties may still live together
+- Ask: "When did your relationship become irretrievably broken?"
+- ACCEPT approximate answers: "a year ago", "6 months ago", "January 2023", "last summer", "2024"
+- Do NOT demand an exact date - approximate timeframes are fine
+- Just confirm it was at least 6 months ago
+- NEVER use the word "separation" or "separated"
 
 IF RELIGIOUS CEREMONY:
 • hasWaiver = "yes" or "no" (DRL §253 waiver from defendant)
@@ -182,8 +189,9 @@ PHASE 2 FLOW
 1. Confirm user has Index Number
 2. If religious ceremony → ask about DRL §253 waiver
 3. Collect marriage details (date, city, state)
-4. Collect separation date
-5. Mark Phase 2 complete:
+4. Ask: "When did your relationship become irretrievably broken? (This must be at least 6 months ago)"
+5. Accept approximate answers - do not demand exact dates
+6. Mark Phase 2 complete:
 \`\`\`json
 {"phase2Complete": true}
 \`\`\`

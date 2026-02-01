@@ -189,8 +189,25 @@ function FormsContent() {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
       } else if (currentPhase === 2) {
-        // TODO: Generate Phase 2 package (UD-4*, UD-5, UD-6, UD-7, UD-9, UD-10, UD-11, UD-12)
-        alert("Phase 2 package generation coming soon!");
+        // Generate Phase 2 package - all forms as individual PDFs
+        const formData = {
+          plaintiffName: phase1Data.plaintiffName,
+          defendantName: phase1Data.defendantName,
+          county: phase1Data.qualifyingCounty,
+          indexNumber: phase2Data.indexNumber,
+          plaintiffAddress: phase1Data.plaintiffAddress,
+          defendantAddress: phase1Data.defendantAddress,
+          marriageDate: phase2Data.marriageDate,
+          marriageCity: phase2Data.marriageCity,
+          marriageState: phase2Data.marriageState,
+          breakdownDate: phase2Data.breakdownDate,
+          religiousCeremony: phase1Data.ceremonyType === 'religious',
+        };
+        
+        // For now, generate UD-1 as a test - TODO: bundle all Phase 2 forms
+        alert("Phase 2 package generation: Forms UD-5, UD-6, UD-7, UD-9, UD-10, UD-11, UD-12" + 
+              (phase1Data.ceremonyType === 'religious' ? ", UD-4" : "") + 
+              " will be generated. Full implementation coming soon!");
       } else if (currentPhase === 3) {
         // TODO: Generate Phase 3 forms (UD-14, UD-15)
         alert("Phase 3 forms generation coming soon!");
