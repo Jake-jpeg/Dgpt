@@ -27,7 +27,7 @@ PHASE 2: SUBMISSION PACKAGE (After Index Number)
 - UD-5 (Affirmation of Regularity)
 - UD-6 (Plaintiff's Affidavit)
 - UD-7 (Defendant's Affidavit)
-- UD-9 (Verified Complaint)
+- UD-9 (Note of Issue)
 - UD-10 (Findings of Fact)
 - UD-11 (Judgment of Divorce)
 - UD-12 (Part 130 Certification)
@@ -162,7 +162,9 @@ REQUIRED:
 • marriageDate = date of marriage
 • marriageCity = city where married
 • marriageState = state/country where married
-• separationDate = date of separation (for DRL §170(7))
+• breakdownDate = date relationship became irretrievably broken (DRL §170(7))
+
+IMPORTANT: DRL §170(7) requires the relationship to have been "irretrievably broken for at least 6 months" - NOT physical separation. The parties may still live together. Ask: "When did your relationship become irretrievably broken?" NOT "When did you separate?"
 
 IF RELIGIOUS CEREMONY:
 • hasWaiver = "yes" or "no" (DRL §253 waiver from defendant)
@@ -191,7 +193,7 @@ Tell user:
 - UD-5 (Affirmation of Regularity)
 - UD-6 (Plaintiff's Affidavit)
 - UD-7 (Defendant's Affidavit)
-- UD-9 (Verified Complaint)
+- UD-9 (Note of Issue)
 - UD-10 (Findings of Fact)
 - UD-11 (Judgment of Divorce)
 - UD-12 (Part 130 Certification)
@@ -336,7 +338,7 @@ export async function POST(req: Request) {
     if (currentPhase === 2) {
       contextMessage += `Phase 2 Data: ${JSON.stringify(phase2Data || {})}. `;
       const isReligious = phase1Data?.ceremonyType === 'religious';
-      const phase2Fields = ['indexNumber', 'marriageDate', 'marriageCity', 'marriageState', 'separationDate'];
+      const phase2Fields = ['indexNumber', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate'];
       if (isReligious) phase2Fields.push('hasWaiver');
       
       const collected = phase2Fields.filter(f => phase2Data?.[f]);

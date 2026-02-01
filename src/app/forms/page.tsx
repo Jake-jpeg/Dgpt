@@ -198,7 +198,7 @@ function FormsContent() {
     { key: 'marriageDate', label: 'Marriage Date', desc: 'When married' },
     { key: 'marriageCity', label: 'Marriage City', desc: 'Where married' },
     { key: 'marriageState', label: 'Marriage State', desc: 'State/Country' },
-    { key: 'separationDate', label: 'Separation Date', desc: 'DRL §170(7)' },
+    { key: 'breakdownDate', label: 'Breakdown Date', desc: 'DRL §170(7)' },
     ...(phase1Data.ceremonyType === 'religious' ? [{ key: 'hasWaiver', label: 'DRL §253 Waiver', desc: 'Barriers check' }] : []),
   ];
 
@@ -277,7 +277,7 @@ function FormsContent() {
                   <FormItem label="UD-5" desc="Affirmation of Regularity" done={phase2Complete} />
                   <FormItem label="UD-6" desc="Plaintiff's Affidavit" done={phase2Complete} />
                   <FormItem label="UD-7" desc="Defendant's Affidavit" done={phase2Complete} />
-                  <FormItem label="UD-9" desc="Verified Complaint" done={phase2Complete} />
+                  <FormItem label="UD-9" desc="Note of Issue" done={phase2Complete} />
                   <FormItem label="UD-10" desc="Findings of Fact" done={phase2Complete} />
                   <FormItem label="UD-11" desc="Judgment of Divorce" done={phase2Complete} />
                   <FormItem label="UD-12" desc="Part 130 Certification" done={phase2Complete} />
