@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "../components/LanguageProvider";
 import { Locale } from "../lib/dictionary";
@@ -15,8 +16,20 @@ const languages = [
 
 export default function Home() {
   const { lang, setLang, t } = useLanguage();
+  const [mounted, setMounted] = useState(false);
 
-  if (!t) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Show loading state during SSR/hydration
+  if (!mounted || !t) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#1a365d] border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50">
