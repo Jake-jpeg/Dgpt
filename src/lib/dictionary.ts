@@ -951,6 +951,7 @@ export const dictionary = {
         defendantAddress: { label: "Adrès Defandè", desc: "Adrès sèvis" },
         ceremonyType: { label: "Tip Seremoni", desc: "Sivil oswa Relijye" },
         indexNumber: { label: "Nimewo Endèks", desc: "Nan sekretè" },
+        summonsDate: { label: "Dat Sitasyon", desc: "Dat sou UD-1" },
         marriageDate: { label: "Dat Maryaj", desc: "Ki lè ou te marye" },
         marriageCity: { label: "Vil Maryaj", desc: "Ki kote ou te marye" },
         marriageState: { label: "Eta Maryaj", desc: "Eta/Peyi" },
