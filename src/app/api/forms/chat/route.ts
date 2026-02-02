@@ -275,10 +275,17 @@ PHASE 2 FIELDS (Submission Package)
 
 REQUIRED:
 • indexNumber = format like "12345/2026"
+• summonsDate = date on the UD-1 Summons with Notice (NOT service date - this is the document date)
 • marriageDate = date of marriage
 • marriageCity = city where married
 • marriageState = state/country where married
 • breakdownDate = when relationship became irretrievably broken
+
+SUMMONS DATE:
+- This is the DATE ON THE UD-1 document, not when it was served
+- The user has this from Phase 1 - it's printed on their Summons with Notice
+- Used in UD-7 paragraph 1: "I admit service of the Summons with Notice dated [summonsDate]..."
+- Ask: "What is the date on your Summons with Notice (UD-1)?"
 
 BREAKDOWN DATE:
 - DRL §170(7) requires relationship "irretrievably broken for at least 6 months"
@@ -465,7 +472,7 @@ export async function POST(req: Request) {
       contextMessage += `Phase 2 Data: ${JSON.stringify(phase2Data || {})}. `;
       const isReligious = phase1Data?.ceremonyType === 'religious';
       // Remove hasWaiver from required fields - UD-7 IS the waiver
-      const phase2Fields = ['indexNumber', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate'];
+      const phase2Fields = ['indexNumber', 'summonsDate', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate'];
       
       const collected = phase2Fields.filter(f => phase2Data?.[f]);
       const missing = phase2Fields.filter(f => !phase2Data?.[f]);
