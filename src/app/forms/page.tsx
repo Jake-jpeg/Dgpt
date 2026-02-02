@@ -144,7 +144,7 @@ function FormsContent() {
         // Route fields to correct phase based on field name, not current phase
         const phase1Fields = ['plaintiffName', 'defendantName', 'qualifyingCounty', 'qualifyingParty', 
                              'qualifyingAddress', 'plaintiffPhone', 'plaintiffAddress', 'defendantAddress', 'ceremonyType'];
-        const phase2Fields = ['indexNumber', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate'];
+        const phase2Fields = ['indexNumber', 'summonsDate', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate'];
         const phase3Fields = ['judgmentEntryDate', 'defendantCurrentAddress'];
         
         const p1Data: Record<string, string> = {};
@@ -240,7 +240,9 @@ function FormsContent() {
           defendantName: phase1Data.defendantName || '',
           county: phase1Data.qualifyingCounty || '',
           indexNumber: phase2Data.indexNumber || '',
+          summonsDate: phase2Data.summonsDate || '',
           plaintiffAddress: phase1Data.plaintiffAddress || '',
+          plaintiffPhone: phase1Data.plaintiffPhone || '',
           defendantAddress: phase1Data.defendantAddress || '',
           marriageDate: phase2Data.marriageDate || '',
           marriageCity: phase2Data.marriageCity || '',
@@ -345,6 +347,7 @@ function FormsContent() {
   // Remove hasWaiver - UD-7 IS the waiver
   const phase2Fields = [
     { key: 'indexNumber', label: t.qualify.fields?.indexNumber?.label || 'Index Number', desc: t.qualify.fields?.indexNumber?.desc || 'From clerk' },
+    { key: 'summonsDate', label: t.qualify.fields?.summonsDate?.label || 'Summons Date', desc: t.qualify.fields?.summonsDate?.desc || 'Date on UD-1' },
     { key: 'marriageDate', label: t.qualify.fields?.marriageDate?.label || 'Marriage Date', desc: t.qualify.fields?.marriageDate?.desc || 'When married' },
     { key: 'marriageCity', label: t.qualify.fields?.marriageCity?.label || 'Marriage City', desc: t.qualify.fields?.marriageCity?.desc || 'Where married' },
     { key: 'marriageState', label: t.qualify.fields?.marriageState?.label || 'Marriage State', desc: t.qualify.fields?.marriageState?.desc || 'State/Country' },
