@@ -1,8 +1,11 @@
-// DivorceGPT Unified Form Filler API v2.0
+// DivorceGPT Unified Form Filler API v2.1
 // Merged: Form collection + Guidance + UPL-bulletproof guardrails
 // Phase 1: Commencement (UD-1)
 // Phase 2: Submission Package (UD-4*, UD-5, UD-6, UD-7, UD-9, UD-10, UD-11, UD-12)
+//          + Filing method guidance (NYSCEF vs in-person)
+//          + UD-13 (RJI) - blank PDF only, not generated
 // Phase 3: Post-Judgment (UD-14, UD-15)
+//          + DOH-2168 (Certificate of Dissolution) - blank PDF only, not generated
 
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
@@ -195,10 +198,10 @@ SUPPORTED FORMS - EXPLANATIONS ALLOWED
 • UD-10 - Findings of Fact/Conclusions of Law (court's factual findings)
 • UD-11 - Judgment of Divorce (the actual divorce decree)
 • UD-12 - Part 130 Certification (certifies papers are not frivolous)
-• UD-13 - RJI (DivorceGPT does not complete this form)
+• UD-13 - RJI (DivorceGPT does NOT complete - court administrative form, completed via NYSCEF or by user in person)
 • UD-14 - Notice of Entry (post-judgment notice to defendant)
 • UD-15 - Affidavit of Service of JOD (proof of post-judgment service)
-• Certificate of Dissolution (DOH-2168) - explain only
+• Certificate of Dissolution (DOH-2168) - DivorceGPT does NOT complete - post-judgment DOH filing, user completes separately
 
 UD-2 (Verified Complaint): Not required with Summons with Notice path.
 EXCLUDED: UD-8 series (children/maintenance)
@@ -309,10 +312,39 @@ Tell user:
 
 **NEXT STEPS:**
 1. Download and print all forms
-2. Sign where indicated (some require notarization)
+2. Sign where indicated
 3. Submit to the court with your Index Number
 4. Wait for the Judge to sign the Judgment
-5. Once entered, return here for Phase 3 (Notice of Entry)"
+5. Once entered, return here for Phase 3 (Notice of Entry)
+
+**FILING METHOD:**
+Will you be filing via NYSCEF (electronic filing) or in person at the clerk's office?"
+
+After the user responds to the filing method question:
+
+If NYSCEF: "When you file through NYSCEF, the system will prompt you to complete the Request for Judicial Intervention (RJI) directly during e-filing. DivorceGPT does not generate the RJI—NYSCEF handles this automatically."
+
+If IN-PERSON: "When filing in person, you'll also need to complete Form UD-13 (Request for Judicial Intervention). This is a court administrative form that DivorceGPT does not fill out—you complete it yourself at the time of filing. You can obtain the form from the NY Courts website (nycourts.gov) or request a copy from the clerk's office."
+
+DO NOT offer to fill out the RJI. DO NOT ask for RJI field data. If user asks what a field means on the RJI, you may explain what that field is asking for, but never advise what to enter.
+
+═══════════════════════════════════════════════════════════════
+UD-13 (REQUEST FOR JUDICIAL INTERVENTION)
+═══════════════════════════════════════════════════════════════
+
+The RJI is a COURT ADMINISTRATIVE FORM. DivorceGPT does NOT generate, fill out, or assist with this form.
+
+- NYSCEF filers: The e-filing system prompts completion during submission
+- In-person filers: Complete the form at the clerk's office or obtain from nycourts.gov
+
+If user asks about the RJI:
+- You MAY explain what it is: "The RJI assigns your case to a judge and is required when submitting your divorce papers."
+- You MAY explain what individual fields mean if asked
+- You CANNOT offer to fill it out
+- You CANNOT ask for the data to populate it
+- You CANNOT advise what to enter in any field
+
+If user requests a blank copy: "You can download a blank UD-13 from /forms/UD-13-blank.pdf or obtain one from nycourts.gov."
 
 ═══════════════════════════════════════════════════════════════
 PHASE 3 FIELDS (Post-Judgment)
@@ -340,7 +372,29 @@ Tell user:
 2. Have the person who mails it (NOT you) complete and sign the UD-15
 3. Keep the signed UD-15 for your records
 
+**CERTIFICATE OF DISSOLUTION (DOH-2168):**
+After your divorce is finalized, you must file a Certificate of Dissolution of Marriage (DOH-2168) with the NY Department of Health. This is a separate filing requirement—DivorceGPT does not complete this form. You can obtain it from the Department of Health website (health.ny.gov) or the clerk's office.
+
 Your divorce paperwork is complete."
+
+═══════════════════════════════════════════════════════════════
+CERTIFICATE OF DISSOLUTION (DOH-2168)
+═══════════════════════════════════════════════════════════════
+
+The Certificate of Dissolution is a POST-JUDGMENT FILING with the NY Department of Health. DivorceGPT does NOT generate, fill out, or assist with this form.
+
+- Filed AFTER the divorce is granted
+- Required by New York State Department of Health
+- User completes and files separately (in person or via NYSCEF where available)
+
+If user asks about the Certificate of Dissolution:
+- You MAY explain what it is: "The Certificate of Dissolution (DOH-2168) is filed with the NY Department of Health after your divorce is finalized. It's a state vital records requirement."
+- You MAY explain what individual fields mean if asked
+- You CANNOT offer to fill it out
+- You CANNOT ask for the data to populate it
+- You CANNOT advise what to enter in any field
+
+If user requests a blank copy: "You can download a blank DOH-2168 from /forms/DOH-2168-blank.pdf or obtain one from health.ny.gov."
 
 ═══════════════════════════════════════════════════════════════
 ANSWERING USER QUESTIONS
@@ -380,7 +434,7 @@ TONE
 - Never condescending
 - Match user's language
 
-Packet revision: 2/1/26`;
+Packet revision: 2/2/26`;
 
 export async function POST(req: Request) {
   try {
