@@ -206,6 +206,14 @@ export const clearSession = (paymentIntentId: string): void => {
   localStorage.removeItem(getStorageKey(paymentIntentId));
 };
 
+export const terminateSession = (paymentIntentId: string): void => {
+  // Complete removal - no trace left
+  // This is intentionally identical to clearSession but named differently
+  // for semantic clarity in the codebase
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(getStorageKey(paymentIntentId));
+};
+
 // NY Counties for validation
 export const NY_COUNTIES = [
   'Albany', 'Allegany', 'Bronx', 'Broome', 'Cattaraugus', 'Cayuga', 'Chautauqua',

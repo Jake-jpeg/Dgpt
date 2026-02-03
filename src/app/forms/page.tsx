@@ -9,6 +9,7 @@ import {
   loadSession, 
   createSession, 
   saveSession, 
+  terminateSession,
   type SessionData,
   type Phase1Data,
   type Phase2Data,
@@ -41,6 +42,7 @@ function FormsContent() {
   const [phase2Complete, setPhase2Complete] = useState(false);
   const [phase3Complete, setPhase3Complete] = useState(false);
   const [isDisqualified, setIsDisqualified] = useState(false);
+  const [isTerminated, setIsTerminated] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [allComplete, setAllComplete] = useState(false);
   
@@ -165,6 +167,18 @@ function FormsContent() {
       if (data.phase2Complete) setPhase2Complete(true);
       if (data.phase3Complete) setPhase3Complete(true);
       if (data.isDisqualified) setIsDisqualified(true);
+      
+      // Handle termination - pure disengagement
+      if (data.isTerminated) {
+        setIsTerminated(true);
+        setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+        // Clear all session data immediately
+        if (paymentIntentId) {
+          terminateSession(paymentIntentId);
+        }
+        return; // Stop processing
+      }
+      
       setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
     } catch { setMessages(prev => [...prev, { role: "assistant", content: "Sorry, something went wrong." }]); }
     finally { setIsLoading(false); inputRef.current?.focus(); }
@@ -371,6 +385,34 @@ function FormsContent() {
 
   if (isValidating) return <div className="flex min-h-screen items-center justify-center bg-zinc-50"><div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#1a365d] border-t-transparent" /></div>;
   if (!isValid || !sessionId) return <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4"><div className="text-center"><h2 className="text-xl font-bold">Session Not Found</h2><Link href="/qualify" className="mt-4 inline-block rounded-full bg-[#c59d5f] px-6 py-3 text-white">Start Over</Link></div></div>;
+
+  // Termination screen - pure disengagement, no details
+  if (isTerminated) return (
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4">
+      <div className="max-w-md text-center">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+          <svg className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-bold text-zinc-900 mb-4">Session Ended</h2>
+        <p className="text-zinc-600 mb-6">
+          This session has been terminated. Your payment will be refunded within 5-10 business days.
+        </p>
+        <div className="bg-blue-50 rounded-xl p-4 text-left text-sm text-blue-800 mb-6">
+          <p className="font-semibold mb-2">If you need support:</p>
+          <ul className="space-y-1">
+            <li>• National Domestic Violence Hotline: 1-800-799-7233</li>
+            <li>• Crisis Text Line: Text HOME to 741741</li>
+            <li>• Emergency Services: 911</li>
+          </ul>
+        </div>
+        <Link href="/" className="inline-block rounded-full bg-zinc-200 px-6 py-3 text-zinc-700 hover:bg-zinc-300">
+          Return Home
+        </Link>
+      </div>
+    </div>
+  );
 
   return (
     <div className={`flex min-h-screen flex-col ${allComplete ? 'bg-green-50' : 'bg-zinc-50'}`}>
