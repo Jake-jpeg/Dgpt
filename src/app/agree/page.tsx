@@ -1,16 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
+// Multilingual courtesy note - same message in all 6 supported languages
+const courtesyNotes = {
+  en: "These documents are in English. If you need help understanding them, please consult a translator before continuing.",
+  es: "Estos documentos están en inglés. Si necesita ayuda para entenderlos, consulte a un traductor antes de continuar.",
+  zh: "这些文件是英文的。如果您需要帮助理解它们，请在继续之前咨询翻译人员。",
+  ko: "이 문서들은 영어로 작성되어 있습니다. 이해하는 데 도움이 필요하시면 계속하기 전에 번역사와 상담하십시오.",
+  ru: "Эти документы на английском языке. Если вам нужна помощь в их понимании, пожалуйста, обратитесь к переводчику, прежде чем продолжить.",
+  ht: "Dokiman sa yo nan lang Anglè. Si ou bezwen èd pou konprann yo, tanpri konsilte yon tradiktè anvan ou kontinye.",
+};
 
 export default function AgreePage() {
-  const router = useRouter();
   const [hasReadTerms, setHasReadTerms] = useState(false);
   const [hasReadPrivacy, setHasReadPrivacy] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [agreedAt, setAgreedAt] = useState<string | null>(null);
+  
+  // Four confirmation checkboxes
+  const [confirmNotLawFirm, setConfirmNotLawFirm] = useState(false);
+  const [confirmNoDataStored, setConfirmNoDataStored] = useState(false);
+  const [confirmTermination, setConfirmTermination] = useState(false);
+  const [confirmReadDocs, setConfirmReadDocs] = useState(false);
 
   // Track when links are clicked
   const handleTermsClick = () => {
@@ -21,19 +33,13 @@ export default function AgreePage() {
     setHasReadPrivacy(true);
   };
 
-  // Handle checkbox change
-  const handleAgreeChange = (checked: boolean) => {
-    setAgreedToTerms(checked);
-    if (checked) {
-      setAgreedAt(new Date().toISOString());
-    } else {
-      setAgreedAt(null);
-    }
-  };
+  // All conditions for proceeding
+  const allConfirmed = confirmNotLawFirm && confirmNoDataStored && confirmTermination && confirmReadDocs;
+  const canProceed = hasReadTerms && hasReadPrivacy && allConfirmed;
 
   // Proceed to payment
   const handleProceed = async () => {
-    if (!agreedToTerms || !hasReadTerms || !hasReadPrivacy) return;
+    if (!canProceed) return;
     
     setIsProcessing(true);
     try {
@@ -42,7 +48,7 @@ export default function AgreePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           returnUrl: window.location.origin,
-          agreedAt: agreedAt,
+          agreedAt: new Date().toISOString(),
         }),
       });
       const data = await res.json();
@@ -57,8 +63,6 @@ export default function AgreePage() {
       setIsProcessing(false);
     }
   };
-
-  const canProceed = hasReadTerms && hasReadPrivacy && agreedToTerms;
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -80,7 +84,7 @@ export default function AgreePage() {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="text-center mb-10">
+        <div className="text-center mb-8">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#1a365d]/10 mb-4">
             <svg className="h-8 w-8 text-[#1a365d]" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
@@ -88,8 +92,19 @@ export default function AgreePage() {
           </div>
           <h2 className="text-3xl font-bold tracking-tight text-zinc-900">Before You Continue</h2>
           <p className="mt-2 text-zinc-600">
-            Please review our Terms of Service and Privacy Policy
+            Review the documents below, then confirm each statement to continue.
           </p>
+        </div>
+
+        {/* Multilingual Courtesy Note */}
+        <div className="mb-8 rounded-xl bg-blue-50 p-4 ring-1 ring-blue-200">
+          <div className="space-y-1 text-sm text-blue-800">
+            {Object.entries(courtesyNotes).map(([lang, note]) => (
+              <p key={lang} className={lang === 'en' ? 'font-medium' : 'text-blue-700'}>
+                {note}
+              </p>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -101,7 +116,7 @@ export default function AgreePage() {
                   <h3 className="font-semibold text-zinc-900">Terms of Service</h3>
                   {hasReadTerms && (
                     <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                      Reviewed
+                      ✓ Opened
                     </span>
                   )}
                 </div>
@@ -110,8 +125,9 @@ export default function AgreePage() {
                 </p>
               </div>
               <a
-                href="/terms"
+                href="/terms?review=true"
                 target="_blank"
+                rel="noopener noreferrer"
                 onClick={handleTermsClick}
                 className="flex-shrink-0 rounded-full bg-[#1a365d] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#2c5282]"
               >
@@ -128,7 +144,7 @@ export default function AgreePage() {
                   <h3 className="font-semibold text-zinc-900">Privacy Policy</h3>
                   {hasReadPrivacy && (
                     <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                      Reviewed
+                      ✓ Opened
                     </span>
                   )}
                 </div>
@@ -137,8 +153,9 @@ export default function AgreePage() {
                 </p>
               </div>
               <a
-                href="/privacy"
+                href="/privacy?review=true"
                 target="_blank"
+                rel="noopener noreferrer"
                 onClick={handlePrivacyClick}
                 className="flex-shrink-0 rounded-full bg-[#1a365d] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#2c5282]"
               >
@@ -147,52 +164,65 @@ export default function AgreePage() {
             </div>
           </div>
 
-          {/* Key Points Summary */}
-          <div className="rounded-2xl bg-amber-50 p-6 ring-1 ring-amber-200">
-            <h3 className="font-semibold text-amber-900 mb-3">Key Points</h3>
-            <ul className="space-y-2 text-sm text-amber-800">
-              <li className="flex items-start gap-2">
-                <span className="mt-0.5">•</span>
-                <span>DivorceGPT is a <strong>document preparation service</strong>, not a law firm</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-0.5">•</span>
-                <span>We do <strong>not provide legal advice</strong> — consult an attorney for legal questions</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-0.5">•</span>
-                <span>We do <strong>not store your data</strong> — form info stays in your browser only</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-0.5">•</span>
-                <span>Threats, fraud, or dangerous content will result in <strong>immediate session termination</strong></span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Agreement Checkbox */}
+          {/* Four Confirmation Checkboxes */}
           <div className={`rounded-2xl p-6 ring-1 transition-all duration-200 ${
-            canProceed 
-              ? 'bg-green-50 ring-green-300' 
-              : 'bg-white ring-zinc-200'
+            allConfirmed ? 'bg-green-50 ring-green-300' : 'bg-white ring-zinc-200'
           }`}>
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreedToTerms}
-                onChange={(e) => handleAgreeChange(e.target.checked)}
-                disabled={!hasReadTerms || !hasReadPrivacy}
-                className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d] disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              <span className={`text-sm ${!hasReadTerms || !hasReadPrivacy ? 'text-zinc-400' : 'text-zinc-700'}`}>
-                I have read and agree to the <strong>Terms of Service</strong> and <strong>Privacy Policy</strong>. I understand that DivorceGPT is a document preparation service and does not provide legal advice.
-              </span>
-            </label>
-            {(!hasReadTerms || !hasReadPrivacy) && (
-              <p className="mt-3 text-xs text-zinc-500 italic">
-                Please click "Read" on both documents above to enable this checkbox.
-              </p>
-            )}
+            <h3 className="font-semibold text-zinc-900 mb-4">Please confirm each statement:</h3>
+            
+            <div className="space-y-4">
+              {/* Checkbox 1: Not a law firm */}
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={confirmNotLawFirm}
+                  onChange={(e) => setConfirmNotLawFirm(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]"
+                />
+                <span className="text-sm text-zinc-700">
+                  I understand DivorceGPT is <strong>not a law firm</strong> and does not provide legal advice
+                </span>
+              </label>
+
+              {/* Checkbox 2: No data stored */}
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={confirmNoDataStored}
+                  onChange={(e) => setConfirmNoDataStored(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]"
+                />
+                <span className="text-sm text-zinc-700">
+                  I understand my data is <strong>not stored</strong> — I am responsible for saving my documents
+                </span>
+              </label>
+
+              {/* Checkbox 3: Termination policy */}
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={confirmTermination}
+                  onChange={(e) => setConfirmTermination(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]"
+                />
+                <span className="text-sm text-zinc-700">
+                  I understand threats or fraud will result in <strong>immediate session termination</strong>
+                </span>
+              </label>
+
+              {/* Checkbox 4: Read documents */}
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={confirmReadDocs}
+                  onChange={(e) => setConfirmReadDocs(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]"
+                />
+                <span className="text-sm text-zinc-700">
+                  I have read the <strong>Terms of Service</strong> and <strong>Privacy Policy</strong>
+                </span>
+              </label>
+            </div>
           </div>
 
           {/* Price and Continue */}
@@ -223,6 +253,15 @@ export default function AgreePage() {
                 "Agree & Continue to Payment"
               )}
             </button>
+
+            {!canProceed && (
+              <p className="mt-3 text-sm text-zinc-500">
+                {(!hasReadTerms || !hasReadPrivacy) 
+                  ? "Please open and read both documents above"
+                  : "Please confirm all statements above"
+                }
+              </p>
+            )}
             
             <p className="mt-4 text-xs text-zinc-500">
               Secure payment processed by Stripe

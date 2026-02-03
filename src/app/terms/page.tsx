@@ -1,14 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function TermsPage() {
+function TermsContent() {
+  const searchParams = useSearchParams();
+  const isReviewMode = searchParams.get("review") === "true";
+
   return (
     <div className="min-h-screen bg-zinc-50">
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-sm bg-white/80 border-b border-zinc-100">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center">
+          <div className="flex h-16 items-center justify-between">
             <Link href="/" className="flex items-center gap-3 transition hover:opacity-80">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282] shadow-lg shadow-[#1a365d]/20">
                 <span className="text-lg">⚖️</span>
@@ -18,6 +23,14 @@ export default function TermsPage() {
                 <p className="text-xs text-zinc-500">Terms of Service</p>
               </div>
             </Link>
+            {isReviewMode && (
+              <button
+                onClick={() => window.close()}
+                className="rounded-full bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition"
+              >
+                ✓ Done Reading — Close Tab
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -213,15 +226,37 @@ export default function TermsPage() {
           </section>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-zinc-200">
-          <Link href="/" className="text-[#1a365d] hover:text-[#c59d5f] font-medium inline-flex items-center gap-2">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-            </svg>
-            Back to Home
-          </Link>
-        </div>
+        {/* Floating close button for mobile in review mode */}
+        {isReviewMode && (
+          <div className="fixed bottom-6 right-6 z-50 lg:hidden">
+            <button
+              onClick={() => window.close()}
+              className="rounded-full bg-green-600 px-6 py-3 text-sm font-medium text-white shadow-lg hover:bg-green-700 transition"
+            >
+              ✓ Done Reading
+            </button>
+          </div>
+        )}
+
+        {!isReviewMode && (
+          <div className="mt-12 pt-8 border-t border-zinc-200">
+            <Link href="/" className="text-[#1a365d] hover:text-[#c59d5f] font-medium inline-flex items-center gap-2">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+              </svg>
+              Back to Home
+            </Link>
+          </div>
+        )}
       </main>
     </div>
+  );
+}
+
+export default function TermsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-zinc-50 flex items-center justify-center"><div className="h-12 w-12 animate-spin rounded-full border-4 border-[#1a365d] border-t-transparent" /></div>}>
+      <TermsContent />
+    </Suspense>
   );
 }
