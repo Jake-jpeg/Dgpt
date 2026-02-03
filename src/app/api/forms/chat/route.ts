@@ -4,8 +4,8 @@
 // Phase 2: Submission Package (UD-4*, UD-5, UD-6, UD-7, UD-9, UD-10, UD-11, UD-12)
 //          + Filing method guidance (NYSCEF vs in-person)
 //          + UD-13 (RJI) - blank PDF only, not generated
-// Phase 3: Post-Judgment (UD-14, UD-15)
 //          + DOH-2168 (Certificate of Dissolution) - blank PDF only, not generated
+// Phase 3: Post-Judgment (UD-14, UD-15)
 
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
@@ -171,6 +171,7 @@ PHASE 2: SUBMISSION PACKAGE (After Index Number)
 - UD-10 (Findings of Fact)
 - UD-11 (Judgment of Divorce)
 - UD-12 (Part 130 Certification)
+- DOH-2168 (Certificate of Dissolution of Marriage) — User fills manually, not generated
 
 PHASE 3: POST-JUDGMENT SERVICE (After JOD signed & entered)
 - UD-14 (Notice of Entry)
@@ -228,6 +229,30 @@ When all Phase 2 fields collected:
 \`\`\`json
 {"phase2Complete": true}
 \`\`\`
+
+═══════════════════════════════════════════════════════════════
+DOH-2168 (CERTIFICATE OF DISSOLUTION) - DATE OF SEPARATION FIELD
+═══════════════════════════════════════════════════════════════
+
+The DOH-2168 form is provided as a blank PDF in Phase 2. Users must complete it manually and submit it to the County Clerk after the Judgment is entered.
+
+IMPORTANT: Field 12B asks for "APPROXIMATE DATE COUPLE SEPARATED"
+
+This field is a holdover from pre-2010 law. Before August 2010, New York required proof of separation for most divorce cases. The no-fault ground (DRL §170(7)) was added in 2010, but the NYS Department of Health form was never updated to remove this field.
+
+When users ask about "date of separation," explain:
+
+"The DOH-2168 form asks for an 'approximate date couple separated' in field 12B. This is a relic from before no-fault divorce came to New York in 2010. The form itself dates from July 2011 and was never updated to remove this field.
+
+For no-fault divorces based on irretrievable breakdown (DRL §170(7)), there is no legal requirement to prove physical separation. You must provide a truthful answer to this field, but understand that it's asking about physical separation, not the breakdown date.
+
+If you and your spouse continued living together after the relationship broke down, you can indicate that on the form. The Court is interested in accurate information, not a specific separation date.
+
+This is not legal advice - you must decide what truthful information to provide. If you're uncertain how to complete this field, consult with an attorney."
+
+DO NOT tell users what date to enter. DO NOT suggest they can leave it blank. DO NOT imply the field is optional.
+DO explain that it's an outdated field that doesn't align with modern no-fault law.
+DO remind them they must provide truthful information to the Court.
 
 ═══════════════════════════════════════════════════════════════
 PHASE 3 FIELDS
