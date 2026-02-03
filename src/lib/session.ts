@@ -57,6 +57,9 @@ export interface SessionData {
   // Disqualification
   disqualified: boolean;
   disqualifyReason: string;
+  // Validation tracking
+  dateWarningIssued: boolean;
+  addressValidationResults: Record<string, 'valid' | 'suspicious' | 'invalid'>;
   // Chat history
   chatHistory: { role: 'user' | 'assistant'; content: string }[];
 }
@@ -81,6 +84,8 @@ export const createSession = (paymentIntentId: string): SessionData => {
     phase3Data: {},
     disqualified: false,
     disqualifyReason: '',
+    dateWarningIssued: false,
+    addressValidationResults: {},
     chatHistory: [],
   };
   
