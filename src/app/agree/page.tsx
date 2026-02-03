@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 // Multilingual courtesy note - same message in all 6 supported languages
@@ -13,10 +14,12 @@ const courtesyNotes = {
   ht: "Dokiman sa yo nan lang Anglè. Si ou bezwen èd pou konprann yo, tanpri konsilte yon tradiktè anvan ou kontinye.",
 };
 
-export default function AgreePage() {
+function AgreeContent() {
+  const searchParams = useSearchParams();
   const [hasReadTerms, setHasReadTerms] = useState(false);
   const [hasReadPrivacy, setHasReadPrivacy] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [freeKey, setFreeKey] = useState(searchParams.get("key") || "");
   
   // Four confirmation checkboxes
   const [confirmNotLawFirm, setConfirmNotLawFirm] = useState(false);
@@ -49,6 +52,7 @@ export default function AgreePage() {
         body: JSON.stringify({ 
           returnUrl: window.location.origin,
           agreedAt: new Date().toISOString(),
+          freeKey: freeKey.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -232,6 +236,17 @@ export default function AgreePage() {
               <p className="text-sm text-zinc-500">One-time fee • No subscription</p>
             </div>
             
+            {/* Free Access Key Input */}
+            <div className="mb-4">
+              <input
+                type="text"
+                value={freeKey}
+                onChange={(e) => setFreeKey(e.target.value)}
+                placeholder="Have an access code? Enter it here"
+                className="w-full rounded-lg border border-zinc-200 px-4 py-2 text-sm text-center placeholder:text-zinc-400 focus:border-[#1a365d] focus:outline-none focus:ring-1 focus:ring-[#1a365d]"
+              />
+            </div>
+            
             <button
               onClick={handleProceed}
               disabled={!canProceed || isProcessing}
@@ -290,5 +305,17 @@ export default function AgreePage() {
         </p>
       </footer>
     </div>
+  );
+}
+
+export default function AgreePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#1a365d] border-t-transparent" />
+      </div>
+    }>
+      <AgreeContent />
+    </Suspense>
   );
 }

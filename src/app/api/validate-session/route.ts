@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
+import Stripe from 'stripe';
 
-// STUB: Replace with real Stripe when ready
-// import Stripe from 'stripe';
-// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { 
+  apiVersion: '2023-10-16' 
+});
+
+// Free access keys - must match create-checkout
+const FREE_ACCESS_KEYS = (process.env.FREE_ACCESS_KEYS || '').split(',').filter(Boolean);
 
 export async function POST(req: Request) {
   try {
@@ -12,21 +16,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ valid: false, error: 'No session ID' }, { status: 400 });
     }
 
-    // STUB: Accept any session ID that starts with 'cs_test_' for testing
-    // In production, this would validate against Stripe API
-    if (sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_')) {
-      return NextResponse.json({ 
-        valid: true,
-        // Use the session ID as the payment intent ID for localStorage keying
-        paymentIntentId: 'pi_' + sessionId.replace('cs_test_', '').replace('cs_', ''),
-        customerEmail: null,
-      });
+    // Check for free access key bypass
+    if (sessionId.startsWith('cs_free_')) {
+      // Extract the key from cs_free_{key}_{timestamp}
+      const parts = sessionId.replace('cs_free_', '').split('_');
+      const key = parts.slice(0, -1).join('_'); // Everything except last part (timestamp)
+      
+      if (FREE_ACCESS_KEYS.includes(key)) {
+        return NextResponse.json({ 
+          valid: true,
+          paymentIntentId: 'pi_free_' + key,
+          customerEmail: null,
+        });
+      }
     }
-    
-    return NextResponse.json({ valid: false, error: 'Invalid session' });
-    
-    /* PRODUCTION CODE:
+
+    // Validate real Stripe session
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+    
     if (session.payment_status === 'paid') {
       return NextResponse.json({ 
         valid: true,
@@ -34,8 +41,9 @@ export async function POST(req: Request) {
         customerEmail: session.customer_details?.email || null,
       });
     }
+    
     return NextResponse.json({ valid: false, error: 'Payment not completed' });
-    */
+    
   } catch (error) {
     console.error('Session validation error:', error);
     return NextResponse.json({ valid: false, error: 'Invalid session' }, { status: 400 });
