@@ -24,120 +24,127 @@ export default function PrivacyPage() {
 
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-8">Privacy Policy</h1>
-        <p className="text-sm text-zinc-500 mb-8">Last updated: February 1, 2026</p>
+        <p className="text-sm text-zinc-500 mb-8">Last updated: February 2, 2026</p>
 
         <div className="prose prose-zinc max-w-none">
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Overview</h2>
-            <p className="text-zinc-600 mb-4">
-              This Privacy Policy explains how we collect, use, and protect your information when you use DivorceGPT, our New York uncontested divorce form assistance service.
-            </p>
-            <p className="text-zinc-600">
-              <strong>The short version:</strong> We collect minimal data, don't store your conversations, and never sell your information.
+          
+          {/* Core Principle - Highlighted */}
+          <section className="mb-8 p-6 bg-[#1a365d] rounded-xl">
+            <h2 className="text-xl font-semibold text-white mb-3">Our Core Principle</h2>
+            <p className="text-zinc-200 text-lg">
+              DivorceGPT does not retain your data. We do not store your conversations, your form answers, or your personal information on our servers.
             </p>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Information We Collect</h2>
+            <h2 className="text-xl font-semibold text-zinc-900 mb-4">What We Collect</h2>
             
-            <h3 className="text-lg font-medium text-zinc-800 mb-2">Payment Information</h3>
-            <p className="text-zinc-600 mb-4">
-              When you make a payment, your payment details are processed directly by Stripe, a PCI-compliant payment processor. We do not store your credit card number, CVV, or full payment details on our servers. We only receive confirmation of successful payment and a transaction ID.
-            </p>
+            <div className="space-y-4">
+              <div className="rounded-xl bg-white p-5 ring-1 ring-zinc-200">
+                <h3 className="font-semibold text-zinc-900 mb-2">Payment Transaction Record</h3>
+                <p className="text-zinc-600 text-sm">
+                  Stripe processes your payment and provides us with a transaction ID. We retain this ID solely for IRS tax reporting requirements. We do not receive or store your credit card number, CVV, or billing details.
+                </p>
+                <p className="text-xs text-zinc-500 mt-2">Retention: As required by law for tax purposes (typically 7 years)</p>
+              </div>
 
-            <h3 className="text-lg font-medium text-zinc-800 mb-2">Conversation Data</h3>
-            <p className="text-zinc-600 mb-4">
-              Your conversations with DivorceGPT are processed by Anthropic's Claude AI. <strong>We do not store conversation logs on our servers.</strong> Once your session ends, your conversation is not retained. Anthropic's data handling practices can be found in their privacy policy.
-            </p>
+              <div className="rounded-xl bg-white p-5 ring-1 ring-zinc-200">
+                <h3 className="font-semibold text-zinc-900 mb-2">Server Logs</h3>
+                <p className="text-zinc-600 text-sm">
+                  Our hosting provider (DigitalOcean) automatically collects IP addresses and access timestamps for security purposes. These logs are not linked to your identity or form data.
+                </p>
+                <p className="text-xs text-zinc-500 mt-2">Retention: 30 days (automatic deletion)</p>
+              </div>
+            </div>
+          </section>
 
-            <h3 className="text-lg font-medium text-zinc-800 mb-2">Form Data</h3>
-            <p className="text-zinc-600 mb-4">
-              Any information you enter for form preparation (names, addresses, dates) is stored locally in your browser session and used solely to generate your divorce documents. Sensitive information like Social Security Numbers is processed in memory only and is never stored on any server or database.
-            </p>
+          <section className="mb-8">
+            <h2 className="text-xl font-semibold text-zinc-900 mb-4">What We Do NOT Collect or Store</h2>
+            <div className="rounded-xl bg-red-50 p-5 ring-1 ring-red-200">
+              <ul className="space-y-2 text-zinc-700">
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 font-bold">✗</span>
+                  <span>Conversation logs or chat history</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 font-bold">✗</span>
+                  <span>Form data you enter (names, addresses, dates)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 font-bold">✗</span>
+                  <span>Social Security Numbers (our system blocks these)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 font-bold">✗</span>
+                  <span>Generated PDF documents</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 font-bold">✗</span>
+                  <span>User accounts or profiles</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-500 font-bold">✗</span>
+                  <span>Email addresses (unless you contact us directly)</span>
+                </li>
+              </ul>
+            </div>
+          </section>
 
-            <h3 className="text-lg font-medium text-zinc-800 mb-2">Technical Data</h3>
+          <section className="mb-8">
+            <h2 className="text-xl font-semibold text-zinc-900 mb-4">How It Works</h2>
+            <div className="space-y-3 text-zinc-600">
+              <p>
+                <strong>Your browser stores your progress.</strong> Form data is saved in your browser's localStorage and never transmitted to our servers for storage. You can clear this at any time by clearing your browser data.
+              </p>
+              <p>
+                <strong>AI processes but doesn't remember.</strong> Your conversations are processed by Anthropic's Claude AI to generate responses. Per Anthropic's commercial API terms, these conversations are not used for AI training and are not retained after your session.
+              </p>
+              <p>
+                <strong>PDFs are generated and discarded.</strong> When you download your forms, the PDF is generated server-side, sent to your browser, and immediately discarded. We do not keep copies.
+              </p>
+            </div>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Third-Party Services</h2>
+            <p className="text-zinc-600 mb-4">DivorceGPT uses the following services. Their privacy practices are governed by their own policies:</p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between py-2 border-b border-zinc-100">
+                <span className="font-medium text-zinc-900">Stripe</span>
+                <span className="text-sm text-zinc-500">Payment processing</span>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-zinc-100">
+                <span className="font-medium text-zinc-900">Anthropic</span>
+                <span className="text-sm text-zinc-500">AI processing (Claude)</span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="font-medium text-zinc-900">DigitalOcean</span>
+                <span className="text-sm text-zinc-500">Hosting infrastructure</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Session Termination</h2>
             <p className="text-zinc-600">
-              We collect basic technical data through our hosting provider (DigitalOcean) including IP addresses, browser type, and access times. This data is used for security and service improvement purposes only.
-            </p>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-zinc-900 mb-4">How We Use Your Information</h2>
-            <ul className="list-disc pl-6 text-zinc-600 space-y-2">
-              <li>To provide the divorce form explanation and preparation service</li>
-              <li>To process your payment</li>
-              <li>To generate your divorce documents</li>
-              <li>To improve our service and fix technical issues</li>
-              <li>To comply with legal obligations</li>
-            </ul>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-zinc-900 mb-4">What We Don't Do</h2>
-            <ul className="list-disc pl-6 text-zinc-600 space-y-2">
-              <li>We do <strong>not</strong> sell your personal information</li>
-              <li>We do <strong>not</strong> store your conversations on our servers</li>
-              <li>We do <strong>not</strong> use your data to train AI models</li>
-              <li>We do <strong>not</strong> share your information with third parties for marketing</li>
-              <li>We do <strong>not</strong> store sensitive information like Social Security Numbers</li>
-              <li>We do <strong>not</strong> maintain a database of user information</li>
-            </ul>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Our Technology Stack</h2>
-            <p className="text-zinc-600 mb-4">DivorceGPT is built with privacy-focused infrastructure:</p>
-            <ul className="list-disc pl-6 text-zinc-600 space-y-2">
-              <li><strong>AI:</strong> Anthropic Claude - conversations are not used for model training per Anthropic's commercial terms</li>
-              <li><strong>Hosting:</strong> DigitalOcean App Platform - enterprise-grade security with data centers in the United States</li>
-              <li><strong>PDF Generation:</strong> Server-side processing with no document retention</li>
-              <li><strong>Payments:</strong> Stripe - PCI DSS Level 1 compliant</li>
-              <li><strong>Session Data:</strong> Browser localStorage only - no server-side user database</li>
-            </ul>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Data Retention</h2>
-            <p className="text-zinc-600 mb-4">
-              <strong>Conversation data:</strong> Not retained after your session ends.
-            </p>
-            <p className="text-zinc-600 mb-4">
-              <strong>Form data:</strong> Stored in your browser's localStorage. You can clear this at any time by clearing your browser data.
-            </p>
-            <p className="text-zinc-600 mb-4">
-              <strong>Payment records:</strong> Retained by Stripe as required by law for accounting and tax purposes. We only store transaction IDs, not payment details.
-            </p>
-            <p className="text-zinc-600">
-              You may request deletion of any data associated with your payment by contacting us.
+              DivorceGPT reserves the right to terminate any session for violations of our Terms of Service. Upon termination, any data in your browser session is cleared. Because we do not store your data server-side, there is nothing to delete on our end.
             </p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Your Rights</h2>
-            <p className="text-zinc-600 mb-4">You have the right to:</p>
+            <p className="text-zinc-600 mb-4">Because we don't retain your data, traditional data rights (access, deletion, portability) are largely moot. However:</p>
             <ul className="list-disc pl-6 text-zinc-600 space-y-2">
-              <li>Request access to any personal data we hold about you</li>
-              <li>Request deletion of your data</li>
-              <li>Clear your local browser data at any time</li>
-              <li>Opt out of any marketing communications</li>
-              <li>File a complaint with a data protection authority</li>
+              <li>You can clear your browser localStorage at any time to remove all local session data</li>
+              <li>You can request deletion of your Stripe transaction record by contacting us (note: we may be required to retain certain records for tax compliance)</li>
+              <li>You can contact us with any privacy questions</li>
             </ul>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Third-Party Services</h2>
-            <p className="text-zinc-600 mb-4">We use the following third-party services:</p>
-            <ul className="list-disc pl-6 text-zinc-600 space-y-2">
-              <li><strong>Stripe:</strong> Payment processing - <a href="https://stripe.com/privacy" className="text-[#1a365d] hover:underline">Privacy Policy</a></li>
-              <li><strong>Anthropic:</strong> AI processing - <a href="https://www.anthropic.com/privacy" className="text-[#1a365d] hover:underline">Privacy Policy</a></li>
-              <li><strong>DigitalOcean:</strong> Hosting - <a href="https://www.digitalocean.com/legal/privacy-policy" className="text-[#1a365d] hover:underline">Privacy Policy</a></li>
-            </ul>
-          </section>
-
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Contact Us</h2>
+            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Contact</h2>
             <p className="text-zinc-600">
-              If you have questions about this Privacy Policy or your data, contact us at:<br />
+              For privacy questions, contact us at:<br />
               <strong>Email:</strong> admin@divorcegpt.com
             </p>
           </section>
@@ -145,7 +152,7 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Changes to This Policy</h2>
             <p className="text-zinc-600">
-              We may update this Privacy Policy from time to time. We will notify users of any material changes by posting the new policy on this page with an updated revision date.
+              We may update this Privacy Policy from time to time. Material changes will be posted on this page with an updated revision date.
             </p>
           </section>
         </div>

@@ -24,7 +24,7 @@ export default function TermsPage() {
 
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-8">Terms of Service</h1>
-        <p className="text-sm text-zinc-500 mb-8">Last updated: January 25, 2026</p>
+        <p className="text-sm text-zinc-500 mb-8">Last updated: February 2, 2026</p>
 
         <div className="prose prose-zinc max-w-none">
           <section className="mb-8">
@@ -34,6 +34,7 @@ export default function TermsPage() {
             </p>
           </section>
 
+          {/* Critical Notice */}
           <section className="mb-8 p-6 bg-amber-50 rounded-xl border border-amber-200">
             <h2 className="text-xl font-semibold text-amber-900 mb-4">⚠️ Important: Not Legal Advice</h2>
             <p className="text-amber-800 mb-4">
@@ -60,13 +61,13 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Service Description</h2>
             <p className="text-zinc-600 mb-4">
-              DivorceGPT is an AI-powered tool that:
+              DivorceGPT is an automated document preparation service that:
             </p>
             <ul className="list-disc pl-6 text-zinc-600 space-y-2">
-              <li>Explains New York State uncontested divorce forms (UD series, DRL forms)</li>
-              <li>Describes what information forms require</li>
-              <li>Explains legal terminology used in divorce documents</li>
-              <li>Provides information about filing procedures, fees, and court processes</li>
+              <li>Transfers your answers onto official New York State court forms</li>
+              <li>Displays plain-language labels identifying what information each form field requests</li>
+              <li>Generates PDF packets for your review before filing</li>
+              <li>Explains what forms are, what fields mean, and filing procedures</li>
               <li>Responds in multiple languages (English, Spanish, Chinese, Korean, Russian, Haitian Creole)</li>
             </ul>
           </section>
@@ -83,9 +84,37 @@ export default function TermsPage() {
               <li>Neither spouse is requesting spousal maintenance</li>
               <li>Both spouses agree to the divorce</li>
               <li>The other spouse will cooperate with paperwork</li>
+              <li>Neither spouse is an active duty military service member</li>
             </ul>
             <p className="text-zinc-600 mt-4">
-              If your situation does not meet these criteria, this service may not be appropriate for you.
+              If your situation does not meet these criteria, this service is not appropriate for you.
+            </p>
+          </section>
+
+          {/* Prohibited Conduct & Termination - NEW SECTION */}
+          <section className="mb-8 p-6 bg-red-50 rounded-xl border border-red-200">
+            <h2 className="text-xl font-semibold text-red-900 mb-4">Prohibited Conduct & Session Termination</h2>
+            <p className="text-red-800 mb-4">
+              DivorceGPT will <strong>immediately terminate your session</strong> if you:
+            </p>
+            <ul className="list-disc pl-6 text-red-800 space-y-2 mb-4">
+              <li>Make threats of violence toward any person, including your spouse</li>
+              <li>Express intent to harm children or any indication of child endangerment</li>
+              <li>Request assistance with falsifying court documents or forging signatures</li>
+              <li>Attempt to use the service for fraudulent purposes</li>
+              <li>Make statements indicating someone is in immediate danger</li>
+            </ul>
+            <p className="text-red-800 mb-4">
+              Upon termination:
+            </p>
+            <ul className="list-disc pl-6 text-red-800 space-y-2">
+              <li>Your session will end immediately</li>
+              <li>All browser session data will be cleared</li>
+              <li>Your payment will be refunded within 5-10 business days</li>
+              <li>Crisis resources will be displayed</li>
+            </ul>
+            <p className="text-red-800 mt-4 text-sm">
+              DivorceGPT is not a law enforcement service and does not report users to authorities. Termination is solely to disengage from the session.
             </p>
           </section>
 
@@ -112,8 +141,9 @@ export default function TermsPage() {
             </p>
             <ul className="list-disc pl-6 text-zinc-600 space-y-2">
               <li>If you do not pass the eligibility check, you will not be charged</li>
-              <li>Once you have accessed the form preparation service, no refunds are available</li>
+              <li>If your session is terminated for policy violations, your payment will be refunded</li>
               <li>If you experience technical issues preventing service delivery, contact us for resolution</li>
+              <li>Once you have successfully completed form generation, no refunds are available</li>
             </ul>
           </section>
 
@@ -126,6 +156,7 @@ export default function TermsPage() {
               <li>Not attempt to circumvent eligibility requirements</li>
               <li>Not use the service to generate fraudulent documents</li>
               <li>Understand that you are responsible for reviewing and filing your own documents</li>
+              <li>Not enter sensitive information (SSNs, bank accounts) into the chat — you will add these to printed forms yourself</li>
             </ul>
           </section>
 
@@ -135,7 +166,7 @@ export default function TermsPage() {
               TO THE MAXIMUM EXTENT PERMITTED BY LAW:
             </p>
             <ul className="list-disc pl-6 text-zinc-600 space-y-2">
-              <li>DivorceGPT and June Guided Solutions are not liable for any damages arising from your use of this service</li>
+              <li>DivorceGPT and June Guided Solutions LLC are not liable for any damages arising from your use of this service</li>
               <li>We are not responsible for the outcome of your divorce case</li>
               <li>We are not responsible for errors in court filings or rejections by the court</li>
               <li>Our total liability is limited to the amount you paid for the service ($20)</li>
@@ -152,7 +183,7 @@ export default function TermsPage() {
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Intellectual Property</h2>
             <p className="text-zinc-600">
-              The DivorceGPT service, including its design, code, and content (excluding court forms which are public domain), is the property of DivorceGPT. You may not copy, modify, or distribute our proprietary content without permission.
+              The DivorceGPT service, including its design, code, and content (excluding court forms which are public domain), is the property of June Guided Solutions LLC. You may not copy, modify, or distribute our proprietary content without permission.
             </p>
           </section>
 
