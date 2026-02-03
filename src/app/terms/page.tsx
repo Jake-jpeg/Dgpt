@@ -37,7 +37,7 @@ function TermsContent() {
 
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-8">Terms of Service</h1>
-        <p className="text-sm text-zinc-500 mb-8">Last updated: February 2, 2026</p>
+        <p className="text-sm text-zinc-500 mb-8">Last updated: February 3, 2026</p>
 
         <div className="prose prose-zinc max-w-none">
           <section className="mb-8">
@@ -128,6 +128,24 @@ function TermsContent() {
             </ul>
             <p className="text-red-800 mt-4 text-sm">
               DivorceGPT is not a law enforcement service and does not report users to authorities. Termination is solely to disengage from the session.
+            </p>
+          </section>
+
+          {/* Right to Refuse Service - NEW SECTION */}
+          <section className="mb-8">
+            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Right to Refuse Service</h2>
+            <p className="text-zinc-600 mb-4">
+              DivorceGPT reserves the right, at its sole discretion, to refuse or terminate service to any user at any time, with or without cause, and with or without notice. This includes, but is not limited to, situations where:
+            </p>
+            <ul className="list-disc pl-6 text-zinc-600 space-y-2 mb-4">
+              <li>Information provided appears inconsistent, contradictory, or implausible</li>
+              <li>There is reasonable suspicion of bad-faith use of the service</li>
+              <li>User conduct suggests the service is being used for purposes other than legitimate document preparation</li>
+              <li>Repeated errors in basic information entry after correction prompts</li>
+              <li>Any other reason at the discretion of June Guided Solutions LLC</li>
+            </ul>
+            <p className="text-zinc-600">
+              If service is refused or terminated under this section, your payment will be refunded. No explanation is required, and the decision is final and not subject to appeal.
             </p>
           </section>
 

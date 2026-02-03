@@ -552,7 +552,7 @@ function FormsContent() {
                 </div>
               </div>
               
-              <div className="space-y-3">{currentFields.map((f) => (<FieldCard key={f.key} label={f.label} value={currentData[f.key]} description={f.desc} complete={allComplete} />))}</div>
+              <div className="space-y-3">{currentFields.map((f) => (<FieldCard key={f.key} label={f.label} value={currentData[f.key]} description={f.desc} complete={allComplete} fieldKey={f.key} />))}</div>
 
               {/* Phase 1 Actions */}
               {(currentPhase === 1 && phase1Complete) && (
@@ -628,14 +628,30 @@ function FormItem({ label, desc, done, highlight, complete }: { label: string; d
   );
 }
 
-function FieldCard({ label, value, description, complete }: { label: string; value?: string; description: string; complete?: boolean }) {
+function FieldCard({ label, value, description, complete, fieldKey }: { label: string; value?: string; description: string; complete?: boolean; fieldKey?: string }) {
   const done = !!value;
+  
+  // Format phone number for display
+  const formatPhoneNumber = (phone: string): string => {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10) {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    }
+    if (digits.length === 11 && digits[0] === '1') {
+      return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+    }
+    return phone; // Return as-is if not standard format
+  };
+  
+  const displayValue = fieldKey === 'plaintiffPhone' && value ? formatPhoneNumber(value) : value;
+  const displayLabel = fieldKey === 'plaintiffPhone' ? 'Phone Number' : label;
+  
   return (
     <div className={`rounded-xl p-4 ${done ? complete ? "bg-green-100 ring-1 ring-green-300" : "bg-green-50 ring-1 ring-green-200" : "bg-zinc-50 ring-1 ring-zinc-200"}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <span className={`text-sm font-medium ${complete ? 'text-green-800' : 'text-zinc-700'}`}>{label}</span>
-          {done ? <p className={`mt-1 truncate text-sm ${complete ? 'text-green-900' : 'text-zinc-900'}`}>{value}</p> : <p className="mt-1 text-xs text-zinc-400">{description}</p>}
+          <span className={`text-sm font-medium ${complete ? 'text-green-800' : 'text-zinc-700'}`}>{displayLabel}</span>
+          {done ? <p className={`mt-1 truncate text-sm ${complete ? 'text-green-900' : 'text-zinc-900'}`}>{displayValue}</p> : <p className="mt-1 text-xs text-zinc-400">{description}</p>}
         </div>
         {done ? <div className={`flex h-6 w-6 items-center justify-center rounded-full ${complete ? 'bg-green-600' : 'bg-green-500'}`}><svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg></div> : <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-200"><span className="text-xs text-zinc-400">...</span></div>}
       </div>
