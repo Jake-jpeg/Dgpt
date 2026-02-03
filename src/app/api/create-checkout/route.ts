@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Lazy initialization to avoid build-time errors
+let stripe: Stripe | null = null;
+const getStripe = () => {
+  if (!stripe) {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  }
+  return stripe;
+};
 
 // Free access keys - bypass Stripe for testing/promos
 const FREE_ACCESS_KEYS = (process.env.FREE_ACCESS_KEYS || '').split(',').filter(Boolean);
@@ -20,7 +27,7 @@ export async function POST(req: Request) {
     }
     
     // Create real Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
         price_data: {
