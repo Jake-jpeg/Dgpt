@@ -100,10 +100,12 @@ function FormsContent() {
         currentPhase, phase1Complete, phase2Complete, phase3Complete,
         phase1Data, phase2Data, phase3Data,
         disqualified: isDisqualified, disqualifyReason: '', chatHistory: messages,
+        dateWarningIssued: session?.dateWarningIssued || false,
+        addressValidationResults: session?.addressValidationResults || {},
       };
       saveSession(updatedSession);
     }
-  }, [phase1Data, phase2Data, phase3Data, messages, currentPhase, phase1Complete, phase2Complete, phase3Complete, paymentIntentId, isDisqualified]);
+  }, [phase1Data, phase2Data, phase3Data, messages, currentPhase, phase1Complete, phase2Complete, phase3Complete, paymentIntentId, isDisqualified, session]);
 
   const sendInitialGreeting = async () => {
     setIsLoading(true);
