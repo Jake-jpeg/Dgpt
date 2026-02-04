@@ -417,7 +417,7 @@ function FormsContent() {
   );
 
   return (
-    <div className={`flex min-h-screen flex-col ${allComplete ? 'bg-green-50' : 'bg-zinc-50'}`}>
+    <div className={`flex h-screen flex-col overflow-hidden ${allComplete ? 'bg-green-50' : 'bg-zinc-50'}`}>
       <header className={`sticky top-0 z-50 border-b ${allComplete ? 'border-green-200 bg-green-50/80' : 'border-zinc-100 bg-white/80'} backdrop-blur-sm`}>
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-3">
@@ -459,8 +459,8 @@ function FormsContent() {
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col lg:flex-row">
-        <div className={`flex flex-1 flex-col ${showSidebar ? 'lg:w-2/3' : 'lg:w-full'} ${showSidebar ? 'lg:border-r lg:border-zinc-200' : ''}`}>
+      <main className="flex flex-1 flex-col lg:flex-row lg:overflow-hidden">
+        <div className={`flex flex-1 flex-col ${showSidebar ? 'lg:w-2/3' : 'lg:w-full'} ${showSidebar ? 'lg:border-r lg:border-zinc-200' : ''} lg:overflow-hidden`}>
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="mx-auto max-w-2xl space-y-4">
               {messages.map((msg, i) => (
