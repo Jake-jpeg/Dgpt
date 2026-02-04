@@ -45,6 +45,10 @@ function FormsContent() {
   const [isTerminated, setIsTerminated] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [allComplete, setAllComplete] = useState(false);
+  const [messageCount, setMessageCount] = useState(0);
+  const [isExhausted, setIsExhausted] = useState(false);
+  
+  const MAX_MESSAGES = 200;
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -81,7 +85,14 @@ function FormsContent() {
           setPhase3Complete(existingSession.phase3Complete);
           setMessages(existingSession.chatHistory || []);
           setIsDisqualified(existingSession.disqualified);
-          if (existingSession.chatHistory.length === 0) setTimeout(() => sendInitialGreeting(), 500);
+          // Load message count and check if exhausted
+          const count = existingSession.messageCount || 0;
+          setMessageCount(count);
+          if (count >= MAX_MESSAGES) {
+            setIsExhausted(true);
+          } else if (existingSession.chatHistory.length === 0) {
+            setTimeout(() => sendInitialGreeting(), 500);
+          }
         }
       } catch (error) { console.error("Session validation error:", error); }
       finally { setIsValidating(false); }
@@ -102,10 +113,11 @@ function FormsContent() {
         disqualified: isDisqualified, disqualifyReason: '', chatHistory: messages,
         dateWarningIssued: session?.dateWarningIssued || false,
         addressValidationResults: session?.addressValidationResults || {},
+        messageCount,
       };
       saveSession(updatedSession);
     }
-  }, [phase1Data, phase2Data, phase3Data, messages, currentPhase, phase1Complete, phase2Complete, phase3Complete, paymentIntentId, isDisqualified, session]);
+  }, [phase1Data, phase2Data, phase3Data, messages, currentPhase, phase1Complete, phase2Complete, phase3Complete, paymentIntentId, isDisqualified, session, messageCount]);
 
   const sendInitialGreeting = async () => {
     setIsLoading(true);
@@ -122,6 +134,13 @@ function FormsContent() {
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
+    
+    // Check if session is exhausted
+    if (messageCount >= MAX_MESSAGES) {
+      setIsExhausted(true);
+      return;
+    }
+    
     const userMessage = input.trim();
     
     // Check if user wants to restart/go back
@@ -138,6 +157,11 @@ function FormsContent() {
     const newMessages = [...messages, { role: "user" as const, content: userMessage }];
     setMessages(newMessages);
     setIsLoading(true);
+    
+    // Increment message count
+    const newCount = messageCount + 1;
+    setMessageCount(newCount);
+    
     try {
       const res = await fetch("/api/forms/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -411,6 +435,35 @@ function FormsContent() {
         </div>
         <Link href="/" className="inline-block rounded-full bg-zinc-200 px-6 py-3 text-zinc-700 hover:bg-zinc-300">
           Return Home
+        </Link>
+      </div>
+    </div>
+  );
+
+  // Exhausted session screen - message limit reached
+  if (isExhausted) return (
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4">
+      <div className="max-w-md text-center">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+          <svg className="h-8 w-8 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-bold text-zinc-900 mb-4">Session Limit Reached</h2>
+        <p className="text-zinc-600 mb-6">
+          You've reached the maximum number of messages for this session ({MAX_MESSAGES} messages). 
+          This limit ensures fair usage for all users.
+        </p>
+        <div className="bg-amber-50 rounded-xl p-4 text-left text-sm text-amber-800 mb-6">
+          <p className="font-semibold mb-2">Your options:</p>
+          <ul className="space-y-1">
+            <li>• If you've completed your forms, you can still download them from your browser's saved files</li>
+            <li>• To continue with additional assistance, you'll need to start a new session</li>
+            <li>• For technical support, email admin@divorcegpt.com</li>
+          </ul>
+        </div>
+        <Link href="/qualify" className="inline-block rounded-full bg-[#c59d5f] px-6 py-3 text-white hover:bg-[#d4ac6e]">
+          Start New Session ($20)
         </Link>
       </div>
     </div>

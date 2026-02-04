@@ -62,6 +62,8 @@ export interface SessionData {
   addressValidationResults: Record<string, 'valid' | 'suspicious' | 'invalid'>;
   // Chat history
   chatHistory: { role: 'user' | 'assistant'; content: string }[];
+  // Rate limiting - max 200 messages per session
+  messageCount: number;
 }
 
 // Legacy type alias for backwards compatibility
@@ -87,6 +89,7 @@ export const createSession = (paymentIntentId: string): SessionData => {
     dateWarningIssued: false,
     addressValidationResults: {},
     chatHistory: [],
+    messageCount: 0,
   };
   
   if (typeof window !== 'undefined') {
