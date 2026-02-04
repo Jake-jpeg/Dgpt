@@ -1,7 +1,7 @@
-// Session management with 30-day TTL
+// Session management with 90-day TTL
 // Stores form progress in localStorage, keyed by Stripe payment intent ID
 
-const SESSION_TTL_DAYS = 30;
+const SESSION_TTL_DAYS = 90;
 const STORAGE_PREFIX = 'divorcegpt_';
 
 // Phase 1: Commencement (UD-1)

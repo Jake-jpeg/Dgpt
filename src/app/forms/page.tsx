@@ -116,7 +116,7 @@ function FormsContent() {
       });
       const data = await res.json();
       setMessages([{ role: "assistant", content: data.reply }]);
-    } catch { setMessages([{ role: "assistant", content: "Welcome! Let's start Phase 1 - the Summons with Notice (UD-1). What is the Plaintiff's full legal name?" }]); }
+    } catch { setMessages([{ role: "assistant", content: "Welcome to DivorceGPT. I'll help you prepare your uncontested divorce forms for New York State.\n\n**Before we begin:** Do you have any questions about how this system works? I can explain:\n• What the three phases mean (Phase 1, 2, and 3)\n• What happens after you complete each phase\n• How long the process typically takes\n• Technical support options\n\nIf you'd like to learn more first, just ask. Otherwise, say **'Let's start'** and we'll begin collecting your information for the UD-1 (Summons with Notice).\n\nYour session is valid for 90 days." }]); }
     finally { setIsLoading(false); }
   };
 
