@@ -75,6 +75,57 @@ function FormsContent() {
           setPaymentIntentId(data.paymentIntentId);
           let existingSession = loadSession(data.paymentIntentId);
           if (!existingSession) existingSession = createSession(data.paymentIntentId);
+          
+          // ═══════════════════════════════════════════════════════════
+          // SESSION DATA INTEGRITY CHECK
+          // If a phase is marked complete but required fields are missing,
+          // reset the completion flag. Prevents corrupt/stale sessions.
+          // ═══════════════════════════════════════════════════════════
+          const p1 = existingSession.phase1Data || {};
+          const p1Fields = ['plaintiffName', 'defendantName', 'qualifyingCounty', 'qualifyingParty', 
+                           'qualifyingAddress', 'plaintiffPhone', 'plaintiffAddress', 'defendantAddress', 'ceremonyType'];
+          const p1Valid = p1Fields.every(f => (p1 as Record<string, string>)[f]);
+          let wasRepaired = false;
+          if (existingSession.phase1Complete && !p1Valid) {
+            existingSession.phase1Complete = false;
+            wasRepaired = true;
+          }
+          
+          const p2 = existingSession.phase2Data || {};
+          const p2Fields = ['indexNumber', 'summonsDate', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate'];
+          const p2Valid = p2Fields.every(f => (p2 as Record<string, string>)[f]);
+          if (existingSession.phase2Complete && !p2Valid) {
+            existingSession.phase2Complete = false;
+            wasRepaired = true;
+          }
+          
+          const p3 = existingSession.phase3Data || {};
+          const p3Fields = ['judgmentEntryDate', 'defendantCurrentAddress'];
+          const p3Valid = p3Fields.every(f => (p3 as Record<string, string>)[f]);
+          if (existingSession.phase3Complete && !p3Valid) {
+            existingSession.phase3Complete = false;
+            wasRepaired = true;
+          }
+          
+          // If phase completion was downgraded, also fix currentPhase
+          if (!existingSession.phase1Complete && existingSession.currentPhase > 1) {
+            existingSession.currentPhase = 1;
+          }
+          if (!existingSession.phase2Complete && existingSession.currentPhase > 2) {
+            existingSession.currentPhase = 2;
+          }
+          
+          // If session was repaired, clear stale chat and inject recovery message
+          if (wasRepaired) {
+            existingSession.chatHistory = [{
+              role: 'assistant' as const,
+              content: "Welcome back. Your previous session had incomplete data, so I've reset it. Let's pick up where we left off.\n\nPlease provide your information again and I'll prepare your forms. You can give me everything at once:\n• Your full legal name\n• Your spouse's full legal name\n• Your address (with ZIP)\n• Your spouse's address (with ZIP)\n• Your phone number\n• Which county you're filing in\n• Whether you or your spouse meets the residency requirement\n• Whether the marriage was civil or religious"
+            }];
+          }
+          
+          // Save the corrected session back
+          saveSession(existingSession);
+          
           setSession(existingSession);
           setCurrentPhase(existingSession.currentPhase);
           setPhase1Data(existingSession.phase1Data || {});
@@ -242,7 +293,8 @@ function FormsContent() {
     setPhase3Data({});
     setPhase3Complete(false);
     setAllComplete(false);
-    setMessages(prev => [...prev, { role: "assistant", content: "No problem! Let's start fresh with Phase 1. What is the Plaintiff's full legal name? (Please provide it in English, exactly as it appears on your driver's license or government-issued ID)" }]);
+    // Clean slate - wipe old chat so user isn't confused by stale messages
+    setMessages([{ role: "assistant", content: "Let's start fresh with Phase 1.\n\nYou can give me all your information at once:\n• Your full legal name\n• Your spouse's full legal name\n• Your address (with ZIP)\n• Your spouse's address (with ZIP)\n• Your phone number\n• Which county you're filing in\n• Whether you or your spouse meets the residency requirement\n• Whether the marriage was civil or religious\n\nOr we can go one question at a time — just say **\"Let's start\"**." }]);
   };
 
   const generateDocuments = async () => {
@@ -661,6 +713,13 @@ function FormsContent() {
                   </div>
                 </div>
               )}
+
+              {/* Always-visible Start Fresh - recovery escape hatch */}
+              <div className="mt-4">
+                <button onClick={resetToPhase1} className="w-full rounded-lg border border-red-200 bg-red-50 py-2 text-sm font-medium text-red-600 hover:bg-red-100 hover:border-red-300 transition-colors">
+                  ↺ Start fresh (clear all data)
+                </button>
+              </div>
 
               <div className={`mt-6 rounded-xl p-4 ${allComplete ? 'bg-green-200' : 'bg-blue-50'}`}>
                 <div className="flex gap-3">
