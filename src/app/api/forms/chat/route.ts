@@ -111,6 +111,8 @@ When collecting dates, apply these rules:
 3. SUMMONS DATE must be after MARRIAGE DATE
 4. BREAKDOWN DATE must be at least 6 months before today (DRL §170(7) requirement)
 5. BREAKDOWN DATE must be after MARRIAGE DATE
+6. JUDGMENT ENTRY DATE must be on or before today (cannot be future - the Judgment must already be entered)
+7. JUDGMENT ENTRY DATE must be after SUMMONS DATE
 
 If a date violates these rules, state the issue neutrally:
 "That date does not appear to be valid. [Specific issue - e.g., 'The summons date cannot be before the marriage date.']. Please verify and re-enter."
@@ -537,6 +539,29 @@ export async function POST(req: Request) {
           const value = parsed.value;
 
           // ═══════════════════════════════════════════════════════════════
+          // SERVER-SIDE NAME VALIDATION
+          // ═══════════════════════════════════════════════════════════════
+          if (['plaintiffName', 'defendantName'].includes(field)) {
+            // Must be at least 3 characters (first + last minimum)
+            if (value.trim().length < 3) {
+              validationWarning = `Please provide a full legal name (first and last name).`;
+              continue;
+            }
+            // Should contain at least a first and last name (space-separated)
+            if (!/\s/.test(value.trim())) {
+              validationWarning = `Please provide both first and last name.`;
+              continue;
+            }
+            // No numbers in names
+            if (/\d/.test(value)) {
+              validationWarning = `Name should not contain numbers. Please re-enter your legal name.`;
+              continue;
+            }
+            extractedData[field] = value;
+            continue;
+          }
+
+          // ═══════════════════════════════════════════════════════════════
           // SERVER-SIDE ADDRESS VALIDATION
           // ═══════════════════════════════════════════════════════════════
           if (['qualifyingAddress', 'plaintiffAddress', 'defendantAddress', 'defendantCurrentAddress'].includes(field)) {
@@ -547,6 +572,19 @@ export async function POST(req: Request) {
               continue; // Don't save invalid address
             }
             
+            // Must have a state abbreviation or state name
+            const statePattern = /\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC|Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New\s+Hampshire|New\s+Jersey|New\s+Mexico|New\s+York|North\s+Carolina|North\s+Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode\s+Island|South\s+Carolina|South\s+Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West\s+Virginia|Wisconsin|Wyoming)\b/i;
+            if (!statePattern.test(value)) {
+              validationWarning = `Address must include a state (e.g., "NY" or "New York"). Please re-enter the complete address.`;
+              continue;
+            }
+            
+            // Minimum length sanity check (street + city + state + zip = at least ~20 chars)
+            if (value.trim().length < 15) {
+              validationWarning = `Address appears incomplete. Please provide a full street address including city, state, and ZIP code.`;
+              continue;
+            }
+            
             // Additional check: must have street number
             const hasStreetNumber = /^\d+\s/.test(value.trim()) || /\s\d+[,\s]/.test(value);
             if (!hasStreetNumber) {
@@ -554,8 +592,6 @@ export async function POST(req: Request) {
               // Still save it, but warn
             }
             
-            // Google Address Validation happens async on client side
-            // This is the server-side fallback
             extractedData[field] = value;
             continue;
           }
@@ -664,6 +700,41 @@ export async function POST(req: Request) {
             if (digits.length > 11 || (digits.length === 11 && digits[0] !== '1')) {
               validationWarning = `Phone number format not recognized. Please use format like (555) 123-4567.`;
               continue;
+            }
+            extractedData[field] = value;
+            continue;
+          }
+
+          // ═══════════════════════════════════════════════════════════════
+          // JUDGMENT ENTRY DATE VALIDATION
+          // ═══════════════════════════════════════════════════════════════
+          if (field === 'judgmentEntryDate') {
+            const entryDate = parseDate(value);
+            if (!entryDate) {
+              validationWarning = `Could not parse judgment entry date. Please use format like "February 28, 2027".`;
+              continue;
+            }
+            const today = new Date();
+            today.setHours(23, 59, 59, 999); // End of today
+            if (entryDate > today) {
+              validationWarning = `The Judgment entry date cannot be in the future. The Judgment must already be entered by the County Clerk before proceeding. Please verify.`;
+              continue;
+            }
+            // Must be after summons date if we have it
+            if (phase2Data?.summonsDate) {
+              const summonsDate = parseDate(phase2Data.summonsDate);
+              if (summonsDate && entryDate < summonsDate) {
+                validationWarning = `Judgment entry date (${value}) cannot be before the summons date (${phase2Data.summonsDate}). Please verify.`;
+                continue;
+              }
+            }
+            // Must be after marriage date if we have it
+            if (phase2Data?.marriageDate) {
+              const marriageDate = parseDate(phase2Data.marriageDate);
+              if (marriageDate && entryDate < marriageDate) {
+                validationWarning = `Judgment entry date cannot be before the marriage date. Please verify.`;
+                continue;
+              }
             }
             extractedData[field] = value;
             continue;
