@@ -33,7 +33,7 @@ export async function POST(req: Request) {
         price_data: {
           currency: 'usd',
           product_data: {
-            name: 'DivorceGPT - NY Uncontested Divorce Forms',
+            name: 'DivorceGPT by June Guided Solutions, LLC',
             description: 'Document preparation for New York uncontested divorces. No legal advice provided.',
           },
           unit_amount: 2000, // $20.00

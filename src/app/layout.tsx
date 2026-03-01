@@ -5,7 +5,7 @@ import "./globals.css";
 import { LanguageProvider } from "../components/LanguageProvider"; 
 
 export const metadata: Metadata = {
-  title: "DivorceGPT - New York Uncontested Divorce Made Simple",
+  title: "DivorceGPT by June Guided Solutions, LLC",
   description: "Get your New York divorce forms prepared and explained in plain language.",
 };
 

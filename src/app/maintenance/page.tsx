@@ -92,7 +92,7 @@ export default function MaintenancePage() {
         {/* Footer */}
         <div className="mt-8 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-500">
-            DivorceGPT • Uncontested Divorce Made Simple
+            DivorceGPT by June Guided Solutions, LLC
           </p>
         </div>
       </div>
