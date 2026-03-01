@@ -249,30 +249,42 @@ function FormsContent() {
     setIsGenerating(true);
     try {
       if (currentPhase === 1) {
-        // Generate UD-1 (still using local API since it's pdf-lib based)
-        const res = await fetch("/api/forms/ud1", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            plaintiffName: phase1Data.plaintiffName,
-            defendantName: phase1Data.defendantName,
-            filingCounty: phase1Data.qualifyingCounty,
-            qualifyingParty: phase1Data.qualifyingParty,
-            qualifyingAddress: phase1Data.qualifyingAddress,
-            plaintiffAddress: phase1Data.plaintiffAddress,
-            plaintiffPhone: phase1Data.plaintiffPhone || '',
-          }),
-        });
-        if (!res.ok) throw new Error("Failed to generate UD-1");
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `UD-1_Summons_${(phase1Data.plaintiffName || "Document").replace(/\s+/g, "_")}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        // Generate UD-1 via Python ReportLab microservice (unified pipeline)
+        const formData = {
+          plaintiffName: phase1Data.plaintiffName || '',
+          defendantName: phase1Data.defendantName || '',
+          county: phase1Data.qualifyingCounty || '',
+          qualifyingParty: phase1Data.qualifyingParty || '',
+          qualifyingAddress: phase1Data.qualifyingAddress || '',
+          plaintiffAddress: phase1Data.plaintiffAddress || '',
+          plaintiffPhone: phase1Data.plaintiffPhone || '',
+        };
+        
+        try {
+          const res = await fetch(`${PDF_SERVICE_URL}/generate/ny/ud1`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+          });
+          
+          if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.error || "Failed to generate UD-1");
+          }
+          
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `UD-1_Summons_${(phase1Data.plaintiffName || "Document").replace(/\s+/g, "_")}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } catch (error) {
+          console.error('UD-1 generation error:', error);
+          alert('Failed to generate UD-1. Please try again.');
+        }
       } else if (currentPhase === 2) {
         // Generate Phase 2 package using Python PDF microservice
         const formData = {
