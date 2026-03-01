@@ -181,13 +181,56 @@ PHASE 3: POST-JUDGMENT SERVICE (After JOD signed & entered)
 JSON OUTPUT FORMAT - MANDATORY FOR DATA EXTRACTION
 ═══════════════════════════════════════════════════════════════
 
-You MUST output a JSON block for EVERY piece of data you extract from the user.
-This is how the sidebar updates. Without JSON, nothing saves.
+CRITICAL: The sidebar ONLY updates when you output JSON blocks. If you confirm data conversationally but skip the JSON, NOTHING SAVES. The user will see empty fields.
 
-Format - put at END of your response:
+OUTPUT ONE JSON BLOCK PER FIELD. When the user provides multiple pieces of information in a single message, you MUST output a separate JSON block for EACH field. Stack them at the END of your response.
+
+Format:
 \`\`\`json
 {"field": "plaintiffName", "value": "John Smith"}
 \`\`\`
+\`\`\`json
+{"field": "defendantName", "value": "Jane Smith"}
+\`\`\`
+
+EXAMPLE - User gives everything at once:
+User: "My name is John Smith, my wife is Jane Smith. I live at 123 Main St, Bronx, NY 10451. She lives at 456 Oak Ave, Yonkers, NY 10701. My phone is 914-555-1234. We got married in a civil ceremony. I am filing in Bronx County and I qualify based on my address."
+
+You MUST output ALL of these JSON blocks:
+\`\`\`json
+{"field": "plaintiffName", "value": "John Smith"}
+\`\`\`
+\`\`\`json
+{"field": "defendantName", "value": "Jane Smith"}
+\`\`\`
+\`\`\`json
+{"field": "qualifyingCounty", "value": "Bronx"}
+\`\`\`
+\`\`\`json
+{"field": "qualifyingParty", "value": "plaintiff"}
+\`\`\`
+\`\`\`json
+{"field": "qualifyingAddress", "value": "123 Main St, Bronx, NY 10451"}
+\`\`\`
+\`\`\`json
+{"field": "plaintiffPhone", "value": "914-555-1234"}
+\`\`\`
+\`\`\`json
+{"field": "plaintiffAddress", "value": "123 Main St, Bronx, NY 10451"}
+\`\`\`
+\`\`\`json
+{"field": "defendantAddress", "value": "456 Oak Ave, Yonkers, NY 10701"}
+\`\`\`
+\`\`\`json
+{"field": "ceremonyType", "value": "civil"}
+\`\`\`
+
+RULES:
+- If a user says "I live at X" and "this is my mailing address", output BOTH qualifyingAddress AND plaintiffAddress with the same value.
+- If a user says "I am the qualifying party" or "I qualify", output qualifyingParty as "plaintiff".
+- If the user says they live in a county and are filing there, they are the qualifying party — output qualifyingParty as "plaintiff".
+- NEVER skip a JSON block because you mentioned the data conversationally. The sidebar is blind to your text.
+- When in doubt, OUTPUT THE JSON. Duplicate output is harmless. Missing output breaks the product.
 
 ═══════════════════════════════════════════════════════════════
 PHASE 1 FIELDS
@@ -209,7 +252,7 @@ NAMES: Must be in English from official ID. If user provides non-Latin script, a
 ADDRESSES: Must include 5-digit ZIP code.
 PHONE: Must be 10 digits.
 
-When all Phase 1 fields collected:
+When all Phase 1 fields collected, ALSO output:
 \`\`\`json
 {"phase1Complete": true}
 \`\`\`
@@ -655,6 +698,51 @@ export async function POST(req: Request) {
     if (currentPhase === 2 && !phase1Data?.plaintiffName && extractedData['indexNumber']) {
       isDisqualified = true;
       disqualifyReason = 'outside_counsel_case';
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SERVER-SIDE PHASE COMPLETION SAFETY NET
+    // Don't rely solely on Claude outputting {phaseXComplete: true}.
+    // Merge extracted data with existing data and check if all fields present.
+    // ═══════════════════════════════════════════════════════════════
+    
+    // Smart field inference: auto-fill missing fields from available data
+    // If plaintiffAddress is set but qualifyingAddress is not (and plaintiff is qualifying party), copy it
+    const mergedP1 = { ...phase1Data, ...extractedData };
+    if (mergedP1.plaintiffAddress && !mergedP1.qualifyingAddress && mergedP1.qualifyingParty === 'plaintiff') {
+      extractedData['qualifyingAddress'] = mergedP1.plaintiffAddress as string;
+    }
+    // If qualifyingAddress is set but plaintiffAddress is not, and qualifying party is plaintiff, copy it
+    if (mergedP1.qualifyingAddress && !mergedP1.plaintiffAddress && mergedP1.qualifyingParty === 'plaintiff') {
+      extractedData['plaintiffAddress'] = mergedP1.qualifyingAddress as string;
+    }
+    
+    if (currentPhase === 1 && !phase1Complete) {
+      const phase1Fields = ['plaintiffName', 'defendantName', 'qualifyingCounty', 'qualifyingParty', 
+                           'qualifyingAddress', 'plaintiffPhone', 'plaintiffAddress', 'defendantAddress', 'ceremonyType'];
+      const merged = { ...phase1Data, ...extractedData };
+      const allPresent = phase1Fields.every(f => merged[f]);
+      if (allPresent) {
+        phase1Complete = true;
+      }
+    }
+    
+    if (currentPhase === 2 && !phase2Complete) {
+      const phase2Fields = ['indexNumber', 'summonsDate', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate'];
+      const merged = { ...phase2Data, ...extractedData };
+      const allPresent = phase2Fields.every(f => merged[f]);
+      if (allPresent) {
+        phase2Complete = true;
+      }
+    }
+    
+    if (currentPhase === 3 && !phase3Complete) {
+      const phase3Fields = ['judgmentEntryDate', 'defendantCurrentAddress'];
+      const merged = { ...phase3Data, ...extractedData };
+      const allPresent = phase3Fields.every(f => merged[f]);
+      if (allPresent) {
+        phase3Complete = true;
+      }
     }
 
     // Clean reply and append validation warning if present
