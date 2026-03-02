@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 // 1. This imports your Tailwind styles so the site looks good
 import "./globals.css"; 
 // 2. This imports the engine we just built
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: "Get your New York divorce forms prepared and explained in plain language.",
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
