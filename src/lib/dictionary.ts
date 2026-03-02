@@ -109,7 +109,7 @@ export const dictionary = {
         marriageCounty: { label: "Marriage County", desc: "County where married" },
         marriageState: { label: "Marriage State", desc: "State/Country" },
         breakdownDate: { label: "Breakdown Date", desc: "DRL §170(7)" },
-        entryDate: { label: "Entry Date", desc: "JOD filed date" },
+        entryDate: { label: "Judgment Entry Date", desc: "Date clerk entered JOD (not signing date)" },
         currentAddress: { label: "Current Address", desc: "For mailing" },
         summonsWithNotice: "Summons with Notice"
       }
@@ -280,7 +280,7 @@ export const dictionary = {
         marriageCounty: { label: "Condado del Matrimonio", desc: "Condado donde se casaron" },
         marriageState: { label: "Estado del Matrimonio", desc: "Estado/País" },
         breakdownDate: { label: "Fecha de Ruptura", desc: "DRL §170(7)" },
-        entryDate: { label: "Fecha de Entrada", desc: "Fecha de JOD" },
+        entryDate: { label: "Fecha de Entrada del Juicio", desc: "Fecha en que el secretario registró (no fecha de firma)" },
         currentAddress: { label: "Dirección Actual", desc: "Para correo" },
         summonsWithNotice: "Citación con Aviso"
       }
@@ -451,7 +451,7 @@ export const dictionary = {
         marriageCounty: { label: "结婚县", desc: "结婚的县" },
         marriageState: { label: "结婚州", desc: "州/国家" },
         breakdownDate: { label: "破裂日期", desc: "DRL §170(7)" },
-        entryDate: { label: "登记日期", desc: "JOD 提交日期" },
+        entryDate: { label: "判决登记日期", desc: "书记员登记日期（非签署日期）" },
         currentAddress: { label: "当前地址", desc: "用于邮寄" },
         summonsWithNotice: "带通知的传票"
       }
@@ -622,7 +622,7 @@ export const dictionary = {
         marriageCounty: { label: "결혼 카운티", desc: "결혼한 카운티" },
         marriageState: { label: "결혼 주", desc: "주/국가" },
         breakdownDate: { label: "파탄 날짜", desc: "DRL §170(7)" },
-        entryDate: { label: "등록 날짜", desc: "JOD 제출 날짜" },
+        entryDate: { label: "판결 등록 날짜", desc: "서기관 등록일 (서명일 아님)" },
         currentAddress: { label: "현재 주소", desc: "우편용" },
         summonsWithNotice: "통지부 소환장"
       }
@@ -793,7 +793,7 @@ export const dictionary = {
         marriageCounty: { label: "Округ брака", desc: "Округ, где поженились" },
         marriageState: { label: "Штат брака", desc: "Штат/Страна" },
         breakdownDate: { label: "Дата распада", desc: "DRL §170(7)" },
-        entryDate: { label: "Дата регистрации", desc: "Дата подачи JOD" },
+        entryDate: { label: "Дата регистрации решения", desc: "Дата регистрации клерком (не дата подписи)" },
         currentAddress: { label: "Текущий адрес", desc: "Для почты" },
         summonsWithNotice: "Повестка с уведомлением"
       }
@@ -964,7 +964,7 @@ export const dictionary = {
         marriageCounty: { label: "Konte Maryaj", desc: "Konte kote ou te marye" },
         marriageState: { label: "Eta Maryaj", desc: "Eta/Peyi" },
         breakdownDate: { label: "Dat Kase", desc: "DRL §170(7)" },
-        entryDate: { label: "Dat Antre", desc: "Dat depo JOD" },
+        entryDate: { label: "Dat Antre Jijman", desc: "Dat grefye te anrejistre (pa dat siyen)" },
         currentAddress: { label: "Adrès Aktyèl", desc: "Pou lapòs" },
         summonsWithNotice: "Sitasyon ak Avi"
       }

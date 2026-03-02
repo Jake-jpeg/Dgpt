@@ -529,7 +529,7 @@ function FormsContent() {
   ];
 
   const phase3Fields = [
-    { key: 'judgmentEntryDate', label: t.qualify.fields?.entryDate?.label || 'Entry Date', desc: t.qualify.fields?.entryDate?.desc || 'JOD filed date' },
+    { key: 'judgmentEntryDate', label: t.qualify.fields?.entryDate?.label || 'Judgment Entry Date', desc: t.qualify.fields?.entryDate?.desc || 'Date clerk entered JOD (not signing date)' },
     { key: 'defendantCurrentAddress', label: t.qualify.fields?.currentAddress?.label || 'Current Address', desc: t.qualify.fields?.currentAddress?.desc || 'For mailing' },
   ];
 
