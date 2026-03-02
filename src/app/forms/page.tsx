@@ -55,6 +55,15 @@ function FormsContent() {
   const [customerEmail, setCustomerEmail] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<'chat' | 'panel'>('chat');
   const [showBookmarkBar, setShowBookmarkBar] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // JS-based mobile detection — replaces CSS lg: breakpoints that flash on mobile
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
   
   // Check localStorage for dismissed bookmark bar after mount
   useEffect(() => {
@@ -725,12 +734,14 @@ function FormsContent() {
           </div>
           <div className="flex items-center gap-3">
             {/* Desktop-only sidebar toggle */}
-            <button 
-              onClick={() => setShowSidebar(!showSidebar)}
-              className={`hidden lg:block text-sm underline ${allComplete ? 'text-green-700 hover:text-green-900' : 'text-zinc-500 hover:text-zinc-700'}`}
-            >
-              {showSidebar ? t.forms?.hidePanel || 'Hide Panel' : t.forms?.showPanel || 'Show Panel'}
-            </button>
+            {!isMobile && (
+              <button 
+                onClick={() => setShowSidebar(!showSidebar)}
+                className={`text-sm underline ${allComplete ? 'text-green-700 hover:text-green-900' : 'text-zinc-500 hover:text-zinc-700'}`}
+              >
+                {showSidebar ? t.forms?.hidePanel || 'Hide Panel' : t.forms?.showPanel || 'Show Panel'}
+              </button>
+            )}
             <div className="hidden items-center gap-2 sm:flex">
               <div className={`h-2 w-2 rounded-full ${allComplete ? 'bg-green-500' : 'bg-green-500'} animate-pulse`} />
               <span className="text-sm text-zinc-500">{allComplete ? t.forms?.complete || 'Complete' : t.forms?.sessionActive || 'Session active'}</span>
@@ -813,30 +824,32 @@ function FormsContent() {
       )}
 
       {/* Mobile Tab Switcher */}
-      <div className={`lg:hidden flex border-b ${allComplete ? 'border-green-200 bg-green-50' : 'border-zinc-200 bg-white'}`}>
-        <button
-          onClick={() => setMobileTab('chat')}
-          className={`flex-1 py-2.5 text-sm font-semibold text-center transition-colors ${
-            mobileTab === 'chat'
-              ? allComplete ? 'text-green-700 border-b-2 border-green-600' : 'text-[#1a365d] border-b-2 border-[#1a365d]'
-              : 'text-zinc-400'
-          }`}
-        >
-          💬 Chat
-        </button>
-        <button
-          onClick={() => setMobileTab('panel')}
-          className={`flex-1 py-2.5 text-sm font-semibold text-center transition-colors ${
-            mobileTab === 'panel'
-              ? allComplete ? 'text-green-700 border-b-2 border-green-600' : 'text-[#1a365d] border-b-2 border-[#1a365d]'
-              : 'text-zinc-400'
-          }`}
-        >
-          📋 Forms {isPhaseComplete ? '✓' : `(${completedCount}/${currentFields.length})`}
-        </button>
-      </div>
+      {isMobile && (
+        <div className={`flex border-b ${allComplete ? 'border-green-200 bg-green-50' : 'border-zinc-200 bg-white'}`}>
+          <button
+            onClick={() => setMobileTab('chat')}
+            className={`flex-1 py-2.5 text-sm font-semibold text-center transition-colors ${
+              mobileTab === 'chat'
+                ? allComplete ? 'text-green-700 border-b-2 border-green-600' : 'text-[#1a365d] border-b-2 border-[#1a365d]'
+                : 'text-zinc-400'
+            }`}
+          >
+            💬 Chat
+          </button>
+          <button
+            onClick={() => setMobileTab('panel')}
+            className={`flex-1 py-2.5 text-sm font-semibold text-center transition-colors ${
+              mobileTab === 'panel'
+                ? allComplete ? 'text-green-700 border-b-2 border-green-600' : 'text-[#1a365d] border-b-2 border-[#1a365d]'
+                : 'text-zinc-400'
+            }`}
+          >
+            📋 Forms {isPhaseComplete ? '✓' : `(${completedCount}/${currentFields.length})`}
+          </button>
+        </div>
+      )}
 
-      <main className="flex flex-1 flex-col lg:flex-row lg:overflow-hidden">
+      <main className={`flex flex-1 ${isMobile ? 'flex-col' : 'flex-row'} overflow-hidden`}>
         {isValidating ? (
           <div className="flex flex-1 items-center justify-center">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#1a365d] border-t-transparent" />
@@ -844,7 +857,8 @@ function FormsContent() {
         ) : (
         <>
         {/* Chat area - always visible on desktop, tab-controlled on mobile */}
-        <div className={`flex-1 flex-col ${showSidebar ? 'lg:w-2/3' : 'lg:w-full'} ${showSidebar ? 'lg:border-r lg:border-zinc-200' : ''} lg:overflow-hidden lg:flex ${mobileTab === 'chat' ? 'flex' : 'hidden lg:flex'}`}>
+        {(!isMobile || mobileTab === 'chat') && (
+          <div className={`flex flex-1 flex-col ${!isMobile ? (showSidebar ? 'w-2/3 border-r border-zinc-200' : 'w-full') : ''} overflow-hidden`}>
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="mx-auto max-w-2xl space-y-4">
               {messages.map((msg, i) => (
@@ -870,11 +884,12 @@ function FormsContent() {
               </button>
             </div>
           </div>
-        </div>
+          </div>
+        )}
 
         {/* Panel - always visible on desktop (if sidebar on), tab-controlled on mobile */}
-        {(showSidebar || mobileTab === 'panel') && (
-          <div className={`${allComplete ? 'border-green-200 bg-green-50' : 'border-zinc-200 bg-white'} p-4 sm:p-6 lg:w-1/3 lg:border-t-0 lg:overflow-y-auto ${mobileTab === 'panel' ? 'flex-1 overflow-y-auto' : 'hidden lg:block'} ${showSidebar ? 'lg:block' : 'lg:hidden'}`}>
+        {(isMobile ? mobileTab === 'panel' : showSidebar) && (
+          <div className={`${allComplete ? 'border-green-200 bg-green-50' : 'border-zinc-200 bg-white'} p-4 sm:p-6 ${isMobile ? 'flex-1 overflow-y-auto' : 'w-1/3 border-t-0 overflow-y-auto'}`}>
             <div className="mx-auto max-w-md">
               {/* Phase Navigation */}
               <div className="mb-6">
