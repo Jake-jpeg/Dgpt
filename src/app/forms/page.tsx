@@ -50,6 +50,9 @@ function FormsContent() {
   const [isExpired, setIsExpired] = useState(false);
   const [showSessionInfo, setShowSessionInfo] = useState(false);
   const [isSessionComplete, setIsSessionComplete] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [customerEmail, setCustomerEmail] = useState<string | null>(null);
   
   const MAX_MESSAGES = 200;
   
@@ -159,6 +162,19 @@ function FormsContent() {
           } else if (existingSession.chatHistory.length === 0) {
             setShowSessionInfo(true);
             setTimeout(() => sendInitialGreeting(), 500);
+            
+            // Send session link email on first visit
+            if (data.customerEmail) {
+              setCustomerEmail(data.customerEmail);
+              const sessionUrl = window.location.href;
+              fetch('/api/send-session-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: data.customerEmail, sessionUrl }),
+              })
+                .then(res => { if (res.ok) setEmailSent(true); })
+                .catch(err => console.error('Email send failed:', err));
+            }
           }
         }
       } catch (error) { console.error("Session validation error:", error); }
@@ -201,6 +217,24 @@ function FormsContent() {
       setMessages([{ role: "assistant", content: data.reply }]);
     } catch { setMessages([{ role: "assistant", content: "Welcome to DivorceGPT. I'll help you prepare your uncontested divorce forms for New York State.\n\n**Before we begin:** Do you have any questions about how this system works? I can explain:\n• What the three phases mean (Phase 1, 2, and 3)\n• What happens after you complete each phase\n• How long the process typically takes\n• Technical support options\n\nIf you'd like to learn more first, just ask. Otherwise, say **'Let's start'** and we'll begin collecting your information for the UD-1 (Summons with Notice).\n\nYour session is valid for 12 months. Bookmark this page now — this URL is how you return." }]); }
     finally { setIsLoading(false); }
+  };
+
+  const copySessionLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2500);
+    } catch {
+      // Fallback for older browsers
+      const input = document.createElement('input');
+      input.value = window.location.href;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2500);
+    }
   };
 
   const sendMessage = async () => {
@@ -706,23 +740,83 @@ function FormsContent() {
         </div>
       </header>
 
-      {/* Session Info Banner - shown on first visit after payment */}
+      {/* Persistent session access bar - always visible until user has interacted */}
       {showSessionInfo && (
-        <div className="bg-[#1a365d] text-white px-4 py-3">
-          <div className="mx-auto max-w-4xl flex items-start justify-between gap-4">
-            <div className="text-sm space-y-1">
-              <p className="font-semibold">⚡ Important: Save Your Access</p>
-              <p className="text-zinc-300">Bookmark this page now — this URL is how you return to your session. There are no accounts or passwords. Your progress is saved in this browser.</p>
-              <p className="text-zinc-300">Each phase generates documents once. When you download, save your files immediately — they cannot be regenerated.</p>
-              <p className="text-zinc-300">Your session is valid for 12 months. You can also find this link in your Stripe payment receipt email.</p>
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2">
+          <div className="mx-auto max-w-4xl flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-amber-600 text-lg shrink-0">🔑</span>
+              <p className="text-sm text-amber-800 font-medium truncate">
+                <span className="underline decoration-2 decoration-amber-400">This page is your only way back.</span>
+                {' '}No accounts. No passwords.
+              </p>
             </div>
-            <button 
-              onClick={() => setShowSessionInfo(false)} 
-              className="shrink-0 text-zinc-400 hover:text-white text-lg leading-none mt-1"
-              aria-label="Dismiss"
-            >
-              ✕
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={copySessionLink}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
+                  linkCopied
+                    ? 'bg-green-600 text-white'
+                    : 'bg-amber-600 text-white hover:bg-amber-700'
+                }`}
+              >
+                {linkCopied ? '✓ Copied!' : '📋 Copy Link'}
+              </button>
+              {emailSent && (
+                <span className="text-xs text-green-700 font-medium">✓ Emailed</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detailed onboarding panel - dismissable, shown on first visit */}
+      {showSessionInfo && (
+        <div className="bg-[#1a365d] text-white px-4 py-4">
+          <div className="mx-auto max-w-4xl">
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <h3 className="font-bold text-base">Welcome to DivorceGPT — Here's How It Works</h3>
+              <button 
+                onClick={() => setShowSessionInfo(false)} 
+                className="shrink-0 text-zinc-400 hover:text-white text-lg leading-none"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="grid gap-3 sm:grid-cols-3 mb-4">
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="bg-[#c59d5f] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">1</span>
+                  <span className="font-semibold text-sm">Commencement</span>
+                </div>
+                <p className="text-xs text-zinc-300 leading-relaxed">Answer questions in the chat. We generate your UD-1 (Summons with Notice). File it with your county clerk to get an Index Number.</p>
+              </div>
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="bg-[#c59d5f] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">2</span>
+                  <span className="font-semibold text-sm">Submission</span>
+                </div>
+                <p className="text-xs text-zinc-300 leading-relaxed">Come back with your Index Number. We generate your full filing package — 7 to 8 forms ready to submit to the court.</p>
+              </div>
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="bg-[#c59d5f] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">3</span>
+                  <span className="font-semibold text-sm">Post-Judgment</span>
+                </div>
+                <p className="text-xs text-zinc-300 leading-relaxed">After your judgment is entered, come back to generate your Notice of Entry and Affidavit of Service forms.</p>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-300">
+              <span>✓ 12-month access</span>
+              <span>✓ Up to 5 downloads per phase</span>
+              <span>✓ Progress saved in this browser</span>
+              {emailSent && customerEmail && (
+                <span className="text-green-300">✓ Session link emailed to {customerEmail}</span>
+              )}
+            </div>
           </div>
         </div>
       )}
