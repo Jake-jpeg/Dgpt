@@ -54,6 +54,12 @@ function FormsContent() {
   const [emailSent, setEmailSent] = useState(false);
   const [customerEmail, setCustomerEmail] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<'chat' | 'panel'>('chat');
+  const [showBookmarkBar, setShowBookmarkBar] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('dgpt_bookmark_dismissed') !== 'true';
+    }
+    return true;
+  });
   
   const MAX_MESSAGES = 200;
   
@@ -729,10 +735,10 @@ function FormsContent() {
         </div>
       </header>
 
-      {/* Persistent session access bar - always visible until user has interacted */}
-      {showSessionInfo && (
+      {/* Persistent bookmark bar - visible until user explicitly dismisses, remembered in localStorage */}
+      {showBookmarkBar && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2">
-          <div className="mx-auto max-w-4xl flex items-center justify-between gap-3">
+          <div className="mx-auto max-w-4xl flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-amber-600 text-lg shrink-0">🔑</span>
               <p className="text-sm text-amber-800 font-medium truncate">
@@ -752,8 +758,18 @@ function FormsContent() {
                 {linkCopied ? '✓ Copied!' : '📋 Copy Link'}
               </button>
               {emailSent && (
-                <span className="text-xs text-green-700 font-medium">✓ Emailed</span>
+                <span className="hidden sm:inline text-xs text-green-700 font-medium">✓ Emailed</span>
               )}
+              <button
+                onClick={() => {
+                  setShowBookmarkBar(false);
+                  localStorage.setItem('dgpt_bookmark_dismissed', 'true');
+                }}
+                className="text-amber-400 hover:text-amber-700 text-lg leading-none ml-1"
+                aria-label="Dismiss bookmark bar"
+              >
+                ✕
+              </button>
             </div>
           </div>
         </div>
