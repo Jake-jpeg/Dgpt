@@ -54,17 +54,30 @@ function FormsContent() {
   const [emailSent, setEmailSent] = useState(false);
   const [customerEmail, setCustomerEmail] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<'chat' | 'panel'>('chat');
-  const [showBookmarkBar, setShowBookmarkBar] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('dgpt_bookmark_dismissed') !== 'true';
+  const [showBookmarkBar, setShowBookmarkBar] = useState(true);
+  
+  // Check localStorage after mount to avoid hydration mismatch
+  useEffect(() => {
+    if (localStorage.getItem('dgpt_bookmark_dismissed') === 'true') {
+      setShowBookmarkBar(false);
     }
-    return true;
-  });
+  }, []);
   
   const MAX_MESSAGES = 200;
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Force viewport meta tag - ensures mobile rendering works regardless of layout.tsx
+  useEffect(() => {
+    let viewportMeta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
+    if (!viewportMeta) {
+      viewportMeta = document.createElement('meta');
+      viewportMeta.name = 'viewport';
+      document.head.appendChild(viewportMeta);
+    }
+    viewportMeta.content = 'width=device-width, initial-scale=1, maximum-scale=1';
+  }, []);
 
   // Check if all phases complete
   useEffect(() => {
