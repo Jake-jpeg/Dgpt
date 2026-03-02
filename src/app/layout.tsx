@@ -22,6 +22,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+      </head>
       <body className="antialiased bg-zinc-50">
         {/* 3. We wrap the whole app here so every page can access the dictionary */}
         <LanguageProvider>
