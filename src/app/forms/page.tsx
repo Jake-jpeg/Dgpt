@@ -53,6 +53,7 @@ function FormsContent() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [customerEmail, setCustomerEmail] = useState<string | null>(null);
+  const [mobileTab, setMobileTab] = useState<'chat' | 'panel'>('chat');
   
   const MAX_MESSAGES = 200;
   
@@ -700,35 +701,23 @@ function FormsContent() {
   return (
     <div className={`flex h-screen flex-col overflow-hidden ${allComplete ? 'bg-green-50' : 'bg-zinc-50'}`}>
       <header className={`sticky top-0 z-50 border-b ${allComplete ? 'border-green-200 bg-green-50/80' : 'border-zinc-100 bg-white/80'} backdrop-blur-sm`}>
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${allComplete ? 'bg-gradient-to-br from-green-600 to-green-500' : 'bg-gradient-to-br from-[#1a365d] to-[#2c5282]'}`}>
-              <span className="text-lg">{allComplete ? '✓' : '⚖️'}</span>
+        <div className="mx-auto flex h-12 max-w-7xl items-center justify-between px-4">
+          <Link href="/" className="flex items-center gap-2">
+            <div className={`flex h-8 w-8 items-center justify-center rounded-full ${allComplete ? 'bg-gradient-to-br from-green-600 to-green-500' : 'bg-gradient-to-br from-[#1a365d] to-[#2c5282]'}`}>
+              <span className="text-sm">{allComplete ? '✓' : '⚖️'}</span>
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-zinc-900">DivorceGPT</h1>
-              <p className="text-xs text-zinc-500">
+              <h1 className="text-base font-semibold text-zinc-900 leading-tight">DivorceGPT</h1>
+              <p className="text-[10px] text-zinc-500 leading-tight">
                 {allComplete ? 'All Phases Complete!' : `Phase ${currentPhase}: ${currentPhase === 1 ? 'Commencement' : currentPhase === 2 ? 'Submission' : 'Post-Judgment'}`}
               </p>
             </div>
           </Link>
           <div className="flex items-center gap-3">
-            {/* Language Selector */}
-            <select 
-              value={lang} 
-              onChange={(e) => setLang(e.target.value as Locale)}
-              className="text-sm bg-transparent border border-zinc-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#c59d5f]"
-            >
-              <option value="en">English</option>
-              <option value="es">Español</option>
-              <option value="zh">中文</option>
-              <option value="ko">한국어</option>
-              <option value="ru">Русский</option>
-              <option value="ht">Kreyòl</option>
-            </select>
+            {/* Desktop-only sidebar toggle */}
             <button 
               onClick={() => setShowSidebar(!showSidebar)}
-              className={`text-sm underline ${allComplete ? 'text-green-700 hover:text-green-900' : 'text-zinc-500 hover:text-zinc-700'}`}
+              className={`hidden lg:block text-sm underline ${allComplete ? 'text-green-700 hover:text-green-900' : 'text-zinc-500 hover:text-zinc-700'}`}
             >
               {showSidebar ? t.forms?.hidePanel || 'Hide Panel' : t.forms?.showPanel || 'Show Panel'}
             </button>
@@ -821,8 +810,33 @@ function FormsContent() {
         </div>
       )}
 
+      {/* Mobile Tab Switcher */}
+      <div className={`lg:hidden flex border-b ${allComplete ? 'border-green-200 bg-green-50' : 'border-zinc-200 bg-white'}`}>
+        <button
+          onClick={() => setMobileTab('chat')}
+          className={`flex-1 py-2.5 text-sm font-semibold text-center transition-colors ${
+            mobileTab === 'chat'
+              ? allComplete ? 'text-green-700 border-b-2 border-green-600' : 'text-[#1a365d] border-b-2 border-[#1a365d]'
+              : 'text-zinc-400'
+          }`}
+        >
+          💬 Chat
+        </button>
+        <button
+          onClick={() => setMobileTab('panel')}
+          className={`flex-1 py-2.5 text-sm font-semibold text-center transition-colors ${
+            mobileTab === 'panel'
+              ? allComplete ? 'text-green-700 border-b-2 border-green-600' : 'text-[#1a365d] border-b-2 border-[#1a365d]'
+              : 'text-zinc-400'
+          }`}
+        >
+          📋 Forms {isPhaseComplete ? '✓' : `(${completedCount}/${currentFields.length})`}
+        </button>
+      </div>
+
       <main className="flex flex-1 flex-col lg:flex-row lg:overflow-hidden">
-        <div className={`flex flex-1 flex-col ${showSidebar ? 'lg:w-2/3' : 'lg:w-full'} ${showSidebar ? 'lg:border-r lg:border-zinc-200' : ''} lg:overflow-hidden`}>
+        {/* Chat area - always visible on desktop, tab-controlled on mobile */}
+        <div className={`flex-1 flex-col ${showSidebar ? 'lg:w-2/3' : 'lg:w-full'} ${showSidebar ? 'lg:border-r lg:border-zinc-200' : ''} lg:overflow-hidden lg:flex ${mobileTab === 'chat' ? 'flex' : 'hidden lg:flex'}`}>
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="mx-auto max-w-2xl space-y-4">
               {messages.map((msg, i) => (
@@ -850,8 +864,9 @@ function FormsContent() {
           </div>
         </div>
 
-        {showSidebar && (
-          <div className={`border-t ${allComplete ? 'border-green-200 bg-green-50' : 'border-zinc-200 bg-white'} p-4 sm:p-6 lg:w-1/3 lg:border-t-0 lg:overflow-y-auto`}>
+        {/* Panel - always visible on desktop (if sidebar on), tab-controlled on mobile */}
+        {(showSidebar || mobileTab === 'panel') && (
+          <div className={`${allComplete ? 'border-green-200 bg-green-50' : 'border-zinc-200 bg-white'} p-4 sm:p-6 lg:w-1/3 lg:border-t-0 lg:overflow-y-auto ${mobileTab === 'panel' ? 'flex-1 overflow-y-auto' : 'hidden lg:block'} ${showSidebar ? 'lg:block' : 'lg:hidden'}`}>
             <div className="mx-auto max-w-md">
               {/* Phase Navigation */}
               <div className="mb-6">
@@ -980,8 +995,22 @@ function FormsContent() {
         )}
       </main>
 
-      <footer className={`border-t py-4 ${allComplete ? 'border-green-200 bg-green-50' : 'border-zinc-100 bg-white'}`}>
-        <p className="text-center text-xs text-zinc-500">DivorceGPT is a document preparation service. This is not legal advice.</p>
+      <footer className={`border-t py-3 ${allComplete ? 'border-green-200 bg-green-50' : 'border-zinc-100 bg-white'}`}>
+        <div className="flex items-center justify-center gap-4">
+          <p className="text-center text-xs text-zinc-500">DivorceGPT is a document preparation service. This is not legal advice.</p>
+          <select 
+            value={lang} 
+            onChange={(e) => setLang(e.target.value as Locale)}
+            className="text-xs bg-transparent border border-zinc-200 rounded px-1.5 py-0.5 text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#c59d5f]"
+          >
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="zh">中文</option>
+            <option value="ko">한국어</option>
+            <option value="ru">Русский</option>
+            <option value="ht">Kreyòl</option>
+          </select>
+        </div>
       </footer>
     </div>
   );
