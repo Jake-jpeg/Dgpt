@@ -452,6 +452,7 @@ function FormsContent() {
           plaintiffAddress: phase1Data.plaintiffAddress || '',
           defendantAddress: phase1Data.defendantAddress || '',
           defendantCurrentAddress: phase3Data.defendantCurrentAddress || phase1Data.defendantAddress || '',
+          judgmentEntryDate: phase3Data.judgmentEntryDate || '',
         };
         
         try {
