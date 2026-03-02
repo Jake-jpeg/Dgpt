@@ -47,8 +47,10 @@ export const dictionary = {
       items: [
         { q: "Is this legal advice?", a: "No. DivorceGPT explains what divorce forms ask for and how to file them. It does not provide legal advice. For legal advice, consult an attorney." },
         { q: "What technology powers DivorceGPT?", a: "DivorceGPT uses Claude AI combined with custom legal document guardrails for New York filings. Your conversations are not stored." },
-        { q: "How long does the process take?", a: "You can complete your forms in one session. After filing, New York courts typically process uncontested divorces in 2-4 months." },
+        { q: "How long does the process take?", a: "You can complete your forms in one session. After filing, New York courts typically process uncontested divorces in 2-4 months. Your session remains valid for 12 months." },
+        { q: "How do I access my session?", a: "After payment, you'll be redirected to your session page. Bookmark this page — the URL is your access link. There are no accounts or passwords. You can also find this link in your Stripe receipt email." },
         { q: "What if my spouse won't cooperate?", a: "This service is for uncontested divorces where both spouses agree. If your spouse won't cooperate, you may need a contested divorce attorney." },
+        { q: "Can I regenerate my documents?", a: "Each phase allows one document generation. When you download your forms, save them immediately. Documents cannot be regenerated once downloaded." },
         { q: "Can I get a refund?", a: "If you don't qualify after the eligibility check, you won't be charged. Once forms are generated, refunds are not available." }
       ]
     },

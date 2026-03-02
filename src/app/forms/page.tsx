@@ -48,6 +48,7 @@ function FormsContent() {
   const [messageCount, setMessageCount] = useState(0);
   const [isExhausted, setIsExhausted] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
+  const [showSessionInfo, setShowSessionInfo] = useState(false);
   
   const MAX_MESSAGES = 200;
   
@@ -151,6 +152,7 @@ function FormsContent() {
           if (count >= MAX_MESSAGES) {
             setIsExhausted(true);
           } else if (existingSession.chatHistory.length === 0) {
+            setShowSessionInfo(true);
             setTimeout(() => sendInitialGreeting(), 500);
           }
         }
@@ -192,7 +194,7 @@ function FormsContent() {
       });
       const data = await res.json();
       setMessages([{ role: "assistant", content: data.reply }]);
-    } catch { setMessages([{ role: "assistant", content: "Welcome to DivorceGPT. I'll help you prepare your uncontested divorce forms for New York State.\n\n**Before we begin:** Do you have any questions about how this system works? I can explain:\n• What the three phases mean (Phase 1, 2, and 3)\n• What happens after you complete each phase\n• How long the process typically takes\n• Technical support options\n\nIf you'd like to learn more first, just ask. Otherwise, say **'Let's start'** and we'll begin collecting your information for the UD-1 (Summons with Notice).\n\nYour session is valid for 12 months with up to 3 document generations included." }]); }
+    } catch { setMessages([{ role: "assistant", content: "Welcome to DivorceGPT. I'll help you prepare your uncontested divorce forms for New York State.\n\n**Before we begin:** Do you have any questions about how this system works? I can explain:\n• What the three phases mean (Phase 1, 2, and 3)\n• What happens after you complete each phase\n• How long the process typically takes\n• Technical support options\n\nIf you'd like to learn more first, just ask. Otherwise, say **'Let's start'** and we'll begin collecting your information for the UD-1 (Summons with Notice).\n\nYour session is valid for 12 months. Bookmark this page now — this URL is how you return." }]); }
     finally { setIsLoading(false); }
   };
 
@@ -593,7 +595,7 @@ function FormsContent() {
           </ul>
         </div>
         <Link href="/qualify" className="inline-block rounded-full bg-[#c59d5f] px-6 py-3 text-white hover:bg-[#d4ac6e]">
-          Start New Session ($39)
+          Start New Session ($29)
         </Link>
       </div>
     </div>
@@ -641,6 +643,27 @@ function FormsContent() {
           </div>
         </div>
       </header>
+
+      {/* Session Info Banner - shown on first visit after payment */}
+      {showSessionInfo && (
+        <div className="bg-[#1a365d] text-white px-4 py-3">
+          <div className="mx-auto max-w-4xl flex items-start justify-between gap-4">
+            <div className="text-sm space-y-1">
+              <p className="font-semibold">⚡ Important: Save Your Access</p>
+              <p className="text-zinc-300">Bookmark this page now — this URL is how you return to your session. There are no accounts or passwords. Your progress is saved in this browser.</p>
+              <p className="text-zinc-300">Each phase generates documents once. When you download, save your files immediately — they cannot be regenerated.</p>
+              <p className="text-zinc-300">Your session is valid for 12 months. You can also find this link in your Stripe payment receipt email.</p>
+            </div>
+            <button 
+              onClick={() => setShowSessionInfo(false)} 
+              className="shrink-0 text-zinc-400 hover:text-white text-lg leading-none mt-1"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       <main className="flex flex-1 flex-col lg:flex-row lg:overflow-hidden">
         <div className={`flex flex-1 flex-col ${showSidebar ? 'lg:w-2/3' : 'lg:w-full'} ${showSidebar ? 'lg:border-r lg:border-zinc-200' : ''} lg:overflow-hidden`}>

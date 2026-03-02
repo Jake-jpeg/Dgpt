@@ -234,6 +234,7 @@ function AgreeContent() {
             <div className="mb-4">
               <p className="text-4xl font-bold text-[#1a365d]">$29</p>
               <p className="text-sm text-zinc-500">One-time fee • 12-month access • No subscription</p>
+              <p className="text-xs text-zinc-400 mt-2">After payment, you'll be redirected to your session. Bookmark the page — that URL is how you return. No accounts or passwords needed.</p>
             </div>
             
             {/* Free Access Key Input */}
