@@ -58,8 +58,12 @@ function FormsContent() {
   
   // Check localStorage after mount to avoid hydration mismatch
   useEffect(() => {
-    if (localStorage.getItem('dgpt_bookmark_dismissed') === 'true') {
-      setShowBookmarkBar(false);
+    try {
+      if (localStorage.getItem('dgpt_bookmark_dismissed') === 'true') {
+        setShowBookmarkBar(false);
+      }
+    } catch {
+      // localStorage may be blocked in incognito - keep bar visible
     }
   }, []);
   
@@ -67,17 +71,6 @@ function FormsContent() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Force viewport meta tag - ensures mobile rendering works regardless of layout.tsx
-  useEffect(() => {
-    let viewportMeta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
-    if (!viewportMeta) {
-      viewportMeta = document.createElement('meta');
-      viewportMeta.name = 'viewport';
-      document.head.appendChild(viewportMeta);
-    }
-    viewportMeta.content = 'width=device-width, initial-scale=1, maximum-scale=1';
-  }, []);
 
   // Check if all phases complete
   useEffect(() => {
@@ -598,8 +591,8 @@ function FormsContent() {
   const isPhaseComplete = currentPhase === 1 ? phase1Complete : currentPhase === 2 ? phase2Complete : phase3Complete;
   const themeColor = allComplete ? 'green' : isPhaseComplete ? 'green' : 'default';
 
-  if (isValidating) return <div className="flex min-h-screen items-center justify-center bg-zinc-50"><div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#1a365d] border-t-transparent" /></div>;
-  if (!isValid || !sessionId) return <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4"><div className="text-center"><h2 className="text-xl font-bold">Session Not Found</h2><Link href="/qualify" className="mt-4 inline-block rounded-full bg-[#c59d5f] px-6 py-3 text-white">Start Over</Link></div></div>;
+  if (!sessionId) return <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4"><div className="text-center"><h2 className="text-xl font-bold">Session Not Found</h2><Link href="/qualify" className="mt-4 inline-block rounded-full bg-[#c59d5f] px-6 py-3 text-white">Start Over</Link></div></div>;
+  if (!isValidating && !isValid) return <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4"><div className="text-center"><h2 className="text-xl font-bold">Session Not Found</h2><Link href="/qualify" className="mt-4 inline-block rounded-full bg-[#c59d5f] px-6 py-3 text-white">Start Over</Link></div></div>;
 
   // Termination screen - pure disengagement, no details
   if (isTerminated) return (
@@ -776,7 +769,7 @@ function FormsContent() {
               <button
                 onClick={() => {
                   setShowBookmarkBar(false);
-                  localStorage.setItem('dgpt_bookmark_dismissed', 'true');
+                  try { localStorage.setItem('dgpt_bookmark_dismissed', 'true'); } catch {}
                 }}
                 className="text-amber-400 hover:text-amber-700 text-lg leading-none ml-1"
                 aria-label="Dismiss bookmark bar"
@@ -864,6 +857,12 @@ function FormsContent() {
       </div>
 
       <main className="flex flex-1 flex-col lg:flex-row lg:overflow-hidden">
+        {isValidating ? (
+          <div className="flex flex-1 items-center justify-center">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#1a365d] border-t-transparent" />
+          </div>
+        ) : (
+        <>
         {/* Chat area - always visible on desktop, tab-controlled on mobile */}
         <div className={`flex-1 flex-col ${showSidebar ? 'lg:w-2/3' : 'lg:w-full'} ${showSidebar ? 'lg:border-r lg:border-zinc-200' : ''} lg:overflow-hidden lg:flex ${mobileTab === 'chat' ? 'flex' : 'hidden lg:flex'}`}>
           <div className="flex-1 overflow-y-auto p-4 sm:p-6" style={{ overscrollBehaviorX: 'none' }}>
@@ -1022,6 +1021,8 @@ function FormsContent() {
             </div>
           </div>
         )}
+        </>
+        )}
       </main>
 
       <footer className={`border-t py-3 ${allComplete ? 'border-green-200 bg-green-50' : 'border-zinc-100 bg-white'}`}>
@@ -1089,5 +1090,16 @@ function FieldCard({ label, value, description, complete, fieldKey }: { label: s
 }
 
 export default function FormsPage() {
+  // Force viewport meta tag outside Suspense so it survives remounts
+  useEffect(() => {
+    let viewportMeta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
+    if (!viewportMeta) {
+      viewportMeta = document.createElement('meta');
+      viewportMeta.name = 'viewport';
+      document.head.appendChild(viewportMeta);
+    }
+    viewportMeta.content = 'width=device-width, initial-scale=1, maximum-scale=1';
+  }, []);
+
   return (<Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-zinc-50"><div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#1a365d] border-t-transparent" /></div>}><FormsContent /></Suspense>);
 }
