@@ -520,7 +520,7 @@ function FormsContent() {
   // Remove hasWaiver - UD-7 IS the waiver
   const phase2Fields = [
     { key: 'indexNumber', label: t.qualify.fields?.indexNumber?.label || 'Index Number', desc: t.qualify.fields?.indexNumber?.desc || 'From clerk' },
-    { key: 'summonsDate', label: t.qualify.fields?.summonsDate?.label || 'Summons Date', desc: t.qualify.fields?.summonsDate?.desc || 'Date on UD-1' },
+    { key: 'summonsDate', label: t.qualify.fields?.summonsDate?.label || 'Filing Date', desc: t.qualify.fields?.summonsDate?.desc || 'Date UD-1 was filed' },
     { key: 'marriageDate', label: t.qualify.fields?.marriageDate?.label || 'Marriage Date', desc: t.qualify.fields?.marriageDate?.desc || 'When married' },
     { key: 'marriageCity', label: t.qualify.fields?.marriageCity?.label || 'Marriage City', desc: t.qualify.fields?.marriageCity?.desc || 'Where married' },
     { key: 'marriageCounty', label: t.qualify.fields?.marriageCounty?.label || 'Marriage County', desc: t.qualify.fields?.marriageCounty?.desc || 'County where married' },

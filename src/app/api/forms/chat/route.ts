@@ -107,15 +107,15 @@ DATE VALIDATION RULES
 When collecting dates, apply these rules:
 
 1. MARRIAGE DATE must be in the past (cannot be future)
-2. SUMMONS DATE must be on or before today (cannot be future)
-3. SUMMONS DATE must be after MARRIAGE DATE
+2. FILING DATE (summonsDate) must be on or before today (cannot be future — this is when the County Clerk accepted the UD-1)
+3. FILING DATE must be after MARRIAGE DATE
 4. BREAKDOWN DATE must be at least 6 months before today (DRL §170(7) requirement)
 5. BREAKDOWN DATE must be after MARRIAGE DATE
 6. JUDGMENT ENTRY DATE must be on or before today (cannot be future - the Judgment must already be entered)
-7. JUDGMENT ENTRY DATE must be after SUMMONS DATE
+7. JUDGMENT ENTRY DATE must be after FILING DATE
 
 If a date violates these rules, state the issue neutrally:
-"That date does not appear to be valid. [Specific issue - e.g., 'The summons date cannot be before the marriage date.']. Please verify and re-enter."
+"That date does not appear to be valid. [Specific issue - e.g., 'The filing date cannot be before the marriage date.']. Please verify and re-enter."
 
 ═══════════════════════════════════════════════════════════════
 SCOPE LIMITATIONS - AUTOMATIC DISQUALIFICATION
@@ -264,7 +264,7 @@ PHASE 2 FIELDS
 ═══════════════════════════════════════════════════════════════
 
 • indexNumber = format like "12345/2026"
-• summonsDate = date on the UD-1 document (NOT service date)
+• summonsDate = date the UD-1 was filed with the County Clerk (NOT the date you signed it — the date the clerk accepted it). You can find this on your NYSCEF confirmation or the clerk's filing stamp.
 • marriageDate = date of marriage
 • marriageCity = city/town/village where married
 • marriageCounty = county where married (e.g., "Orange", "Kings", "New York")
@@ -635,19 +635,19 @@ export async function POST(req: Request) {
           if (field === 'summonsDate') {
             const summonsDate = parseDate(value);
             if (!summonsDate) {
-              validationWarning = `Could not parse summons date. Please use format like "January 10, 2027".`;
+              validationWarning = `Could not parse filing date. Please use format like "January 10, 2027".`;
               continue;
             }
             const today = new Date();
             if (summonsDate > today) {
-              validationWarning = `Summons date cannot be in the future. The date on your UD-1 should be the date you signed it. Please verify.`;
+              validationWarning = `The filing date cannot be in the future. This should be the date the County Clerk accepted your UD-1. Please verify.`;
               continue;
             }
             // Check against marriage date if we have it
             if (phase2Data?.marriageDate) {
               const marriageDate = parseDate(phase2Data.marriageDate);
               if (marriageDate && summonsDate < marriageDate) {
-                validationWarning = `Summons date (${value}) cannot be before marriage date (${phase2Data.marriageDate}). Please verify your dates.`;
+                validationWarning = `Filing date (${value}) cannot be before marriage date (${phase2Data.marriageDate}). Please verify your dates.`;
                 continue;
               }
             }
@@ -739,7 +739,7 @@ export async function POST(req: Request) {
             if (phase2Data?.summonsDate) {
               const summonsDate = parseDate(phase2Data.summonsDate);
               if (summonsDate && entryDate < summonsDate) {
-                validationWarning = `Judgment entry date (${value}) cannot be before the summons date (${phase2Data.summonsDate}). Please verify.`;
+                validationWarning = `Judgment entry date (${value}) cannot be before the filing date (${phase2Data.summonsDate}). Please verify.`;
                 continue;
               }
             }

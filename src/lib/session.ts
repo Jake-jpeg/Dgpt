@@ -20,7 +20,7 @@ export interface Phase1Data {
 // Phase 2: Submission Package (after Index Number)
 export interface Phase2Data {
   indexNumber: string;
-  summonsDate: string; // Date on the UD-1 Summons with Notice
+  summonsDate: string; // Date UD-1 was filed with County Clerk (filing date)
   marriageDate: string;
   marriageCity: string;
   marriageCounty: string;
