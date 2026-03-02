@@ -67,10 +67,10 @@ export interface SessionData {
   messageCount: number;
   // Generation cap - max 3 full packet generations per session
   generationCount: number;
-  // Phase generation locks - once generated, phase is locked
-  phase1Generated: boolean;
-  phase2Generated: boolean;
-  phase3Generated: boolean;
+  // Phase generation counters - max 5 per phase
+  phase1Generated: number;
+  phase2Generated: number;
+  phase3Generated: number;
 }
 
 // Legacy type alias for backwards compatibility
@@ -98,9 +98,9 @@ export const createSession = (paymentIntentId: string): SessionData => {
     chatHistory: [],
     messageCount: 0,
     generationCount: 0,
-    phase1Generated: false,
-    phase2Generated: false,
-    phase3Generated: false,
+    phase1Generated: 0,
+    phase2Generated: 0,
+    phase3Generated: 0,
   };
   
   if (typeof window !== 'undefined') {

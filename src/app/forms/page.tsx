@@ -151,8 +151,8 @@ function FormsContent() {
           const count = existingSession.messageCount || 0;
           setMessageCount(count);
           
-          // Check if session is fully complete (Phase 3 generated)
-          if (existingSession.phase3Generated) {
+          // Check if session is fully complete (Phase 3 generation limit reached)
+          if ((existingSession.phase3Generated || 0) >= 5) {
             setIsSessionComplete(true);
           } else if (count >= MAX_MESSAGES) {
             setIsExhausted(true);
@@ -182,9 +182,9 @@ function FormsContent() {
         addressValidationResults: session?.addressValidationResults || {},
         messageCount,
         generationCount: session?.generationCount || 0,
-        phase1Generated: session?.phase1Generated || false,
-        phase2Generated: session?.phase2Generated || false,
-        phase3Generated: session?.phase3Generated || false,
+        phase1Generated: session?.phase1Generated || 0,
+        phase2Generated: session?.phase2Generated || 0,
+        phase3Generated: session?.phase3Generated || 0,
       };
       saveSession(updatedSession);
     }
@@ -318,18 +318,19 @@ function FormsContent() {
   };
 
   const generateDocuments = async () => {
-    // Per-phase generation lock check
+    // Per-phase generation limit check (5 per phase)
     if (session) {
-      if (currentPhase === 1 && session.phase1Generated) {
-        alert('Phase 1 documents have already been generated and downloaded. Please save your files when downloading — documents cannot be regenerated.');
+      const MAX_PHASE_GENERATIONS = 5;
+      if (currentPhase === 1 && (session.phase1Generated || 0) >= MAX_PHASE_GENERATIONS) {
+        alert('You have reached the maximum number of Phase 1 document generations (5). For technical support, email admin@divorcegpt.com.');
         return;
       }
-      if (currentPhase === 2 && session.phase2Generated) {
-        alert('Phase 2 documents have already been generated and downloaded. Please save your files when downloading — documents cannot be regenerated.');
+      if (currentPhase === 2 && (session.phase2Generated || 0) >= MAX_PHASE_GENERATIONS) {
+        alert('You have reached the maximum number of Phase 2 document generations (5). For technical support, email admin@divorcegpt.com.');
         return;
       }
-      if (currentPhase === 3 && session.phase3Generated) {
-        alert('Phase 3 documents have already been generated and downloaded. Your session is now complete. Thank you for using DivorceGPT.');
+      if (currentPhase === 3 && (session.phase3Generated || 0) >= MAX_PHASE_GENERATIONS) {
+        alert('You have reached the maximum number of Phase 3 document generations (5). For technical support, email admin@divorcegpt.com.');
         return;
       }
     }
@@ -369,6 +370,14 @@ function FormsContent() {
           a.click();
           window.URL.revokeObjectURL(url);
           document.body.removeChild(a);
+          
+          const used = (session?.phase1Generated || 0) + 1;
+          const remaining = 5 - used;
+          if (remaining > 0) {
+            alert(`UD-1 downloaded successfully.\n\nYou have ${remaining} download${remaining === 1 ? '' : 's'} remaining for Phase 1.\nSave your file now.`);
+          } else {
+            alert(`UD-1 downloaded successfully.\n\nThis was your final download for Phase 1. No more regenerations available.\nMake sure you have saved your file.`);
+          }
         } catch (error) {
           console.error('UD-1 generation error:', error);
           alert('Failed to generate UD-1. Please try again.');
@@ -421,7 +430,14 @@ function FormsContent() {
           document.body.removeChild(a);
           
           const formCount = phase1Data.ceremonyType === 'religious' ? 8 : 7;
-          alert(`Downloaded ${formCount} forms in ZIP package:\n• UD-5 Affirmation of Regularity\n• UD-6 Affirmation of Plaintiff\n• UD-7 Affirmation of Defendant\n• UD-9 Note of Issue\n• UD-10 Findings of Fact\n• UD-11 Judgment of Divorce\n• UD-12 Part 130 Certification${phase1Data.ceremonyType === 'religious' ? '\n• UD-4 Barriers to Remarriage' : ''}`);
+          const used2 = (session?.phase2Generated || 0) + 1;
+          const remaining2 = 5 - used2;
+          const formList = `• UD-5 Affirmation of Regularity\n• UD-6 Affirmation of Plaintiff\n• UD-7 Affirmation of Defendant\n• UD-9 Note of Issue\n• UD-10 Findings of Fact\n• UD-11 Judgment of Divorce\n• UD-12 Part 130 Certification${phase1Data.ceremonyType === 'religious' ? '\n• UD-4 Barriers to Remarriage' : ''}`;
+          if (remaining2 > 0) {
+            alert(`Downloaded ${formCount} forms in ZIP package:\n${formList}\n\nYou have ${remaining2} download${remaining2 === 1 ? '' : 's'} remaining for Phase 2.\nSave your files now.`);
+          } else {
+            alert(`Downloaded ${formCount} forms in ZIP package:\n${formList}\n\nThis was your final download for Phase 2. No more regenerations available.\nMake sure you have saved your files.`);
+          }
         } catch (error) {
           console.error('PDF generation error:', error);
           alert('Failed to generate PDFs. Please try again.');
@@ -460,7 +476,13 @@ function FormsContent() {
           window.URL.revokeObjectURL(url);
           document.body.removeChild(a);
           
-          alert(`Downloaded Phase 3 forms:\n• UD-14 Notice of Entry\n• UD-15 Affidavit of Service by Mail`);
+          const used3 = (session?.phase3Generated || 0) + 1;
+          const remaining3 = 5 - used3;
+          if (remaining3 > 0) {
+            alert(`Downloaded Phase 3 forms:\n• UD-14 Notice of Entry\n• UD-15 Affirmation of Service by Mail\n\nYou have ${remaining3} download${remaining3 === 1 ? '' : 's'} remaining for Phase 3.\nSave your files now.`);
+          } else {
+            alert(`Downloaded Phase 3 forms:\n• UD-14 Notice of Entry\n• UD-15 Affirmation of Service by Mail\n\nThis was your final download for Phase 3. Your session is now complete.\nMake sure you have saved your files.`);
+          }
         } catch (error) {
           console.error('PDF generation error:', error);
           alert('Failed to generate PDFs. Please try again.');
@@ -470,12 +492,12 @@ function FormsContent() {
       console.error("Document generation error:", error);
       alert("Failed to generate document. Please try again.");
     } finally {
-      // Lock the phase after successful generation
+      // Increment phase generation counter
       if (session && paymentIntentId) {
         session.generationCount = (session.generationCount || 0) + 1;
-        if (currentPhase === 1) session.phase1Generated = true;
-        if (currentPhase === 2) session.phase2Generated = true;
-        if (currentPhase === 3) session.phase3Generated = true;
+        if (currentPhase === 1) session.phase1Generated = (session.phase1Generated || 0) + 1;
+        if (currentPhase === 2) session.phase2Generated = (session.phase2Generated || 0) + 1;
+        if (currentPhase === 3) session.phase3Generated = (session.phase3Generated || 0) + 1;
         saveSession(session);
         setSession({ ...session });
       }

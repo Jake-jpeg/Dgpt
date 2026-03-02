@@ -171,7 +171,7 @@ function TermsContent() {
               <strong>Access Window:</strong> Your session is valid for 12 months from the date of purchase. This covers all three phases of the divorce filing process. DivorceGPT does not track court timelines or provide ongoing assistance during this period — the access window is solely for document generation.
             </p>
             <p className="text-zinc-600 mb-4">
-              <strong>Document Generation:</strong> Each phase (Phase 1, Phase 2, Phase 3) allows one document generation event. Once you generate and download your documents for a phase, that phase is complete and cannot be regenerated. You are responsible for saving your downloaded files. DivorceGPT does not store copies of generated documents.
+              <strong>Document Generation:</strong> Each phase (Phase 1, Phase 2, Phase 3) allows up to 5 document generation attempts. You will be notified of your remaining attempts after each download. Once all 5 attempts for a phase are used, no further regeneration is available for that phase. You are responsible for saving your downloaded files. DivorceGPT does not store copies of generated documents.
             </p>
             <p className="text-zinc-600 mb-4">
               <strong>Session Completion:</strong> Once Phase 3 documents have been generated, your session is complete and access to the AI assistant ends. Previously downloaded documents remain valid.
