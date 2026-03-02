@@ -49,6 +49,7 @@ function FormsContent() {
   const [isExhausted, setIsExhausted] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
   const [showSessionInfo, setShowSessionInfo] = useState(false);
+  const [isSessionComplete, setIsSessionComplete] = useState(false);
   
   const MAX_MESSAGES = 200;
   
@@ -102,7 +103,7 @@ function FormsContent() {
           }
           
           const p2 = existingSession.phase2Data || {};
-          const p2Fields = ['indexNumber', 'summonsDate', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate'];
+          const p2Fields = ['indexNumber', 'summonsDate', 'marriageDate', 'marriageCity', 'marriageCounty', 'marriageState', 'breakdownDate'];
           const p2Valid = p2Fields.every(f => (p2 as Record<string, string>)[f]);
           if (existingSession.phase2Complete && !p2Valid) {
             existingSession.phase2Complete = false;
@@ -149,7 +150,11 @@ function FormsContent() {
           // Load message count and check if exhausted
           const count = existingSession.messageCount || 0;
           setMessageCount(count);
-          if (count >= MAX_MESSAGES) {
+          
+          // Check if session is fully complete (Phase 3 generated)
+          if (existingSession.phase3Generated) {
+            setIsSessionComplete(true);
+          } else if (count >= MAX_MESSAGES) {
             setIsExhausted(true);
           } else if (existingSession.chatHistory.length === 0) {
             setShowSessionInfo(true);
@@ -238,7 +243,7 @@ function FormsContent() {
         // Route fields to correct phase based on field name, not current phase
         const phase1Fields = ['plaintiffName', 'defendantName', 'qualifyingCounty', 'qualifyingParty', 
                              'qualifyingAddress', 'plaintiffPhone', 'plaintiffAddress', 'defendantAddress', 'ceremonyType'];
-        const phase2Fields = ['indexNumber', 'summonsDate', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate'];
+        const phase2Fields = ['indexNumber', 'summonsDate', 'marriageDate', 'marriageCity', 'marriageCounty', 'marriageState', 'breakdownDate'];
         const phase3Fields = ['judgmentEntryDate', 'defendantCurrentAddress'];
         
         const p1Data: Record<string, string> = {};
@@ -381,9 +386,11 @@ function FormsContent() {
           defendantAddress: phase1Data.defendantAddress || '',
           marriageDate: phase2Data.marriageDate || '',
           marriageCity: phase2Data.marriageCity || '',
+          marriageCounty: phase2Data.marriageCounty || '',
           marriageState: phase2Data.marriageState || '',
-          marriagePlace: `${phase2Data.marriageCity || ''}, ${phase2Data.marriageState || ''}`,
+          marriagePlace: `${phase2Data.marriageCity || ''}, ${phase2Data.marriageCounty || ''} County, ${phase2Data.marriageState || ''}`,
           breakdownDate: phase2Data.breakdownDate || '',
+          filingDate: phase2Data.summonsDate || '',
           religiousCeremony: phase1Data.ceremonyType === 'religious',
           // Additional fields for UD-5, UD-6
           serviceWithinNY: true,
@@ -494,6 +501,7 @@ function FormsContent() {
     { key: 'summonsDate', label: t.qualify.fields?.summonsDate?.label || 'Summons Date', desc: t.qualify.fields?.summonsDate?.desc || 'Date on UD-1' },
     { key: 'marriageDate', label: t.qualify.fields?.marriageDate?.label || 'Marriage Date', desc: t.qualify.fields?.marriageDate?.desc || 'When married' },
     { key: 'marriageCity', label: t.qualify.fields?.marriageCity?.label || 'Marriage City', desc: t.qualify.fields?.marriageCity?.desc || 'Where married' },
+    { key: 'marriageCounty', label: t.qualify.fields?.marriageCounty?.label || 'Marriage County', desc: t.qualify.fields?.marriageCounty?.desc || 'County where married' },
     { key: 'marriageState', label: t.qualify.fields?.marriageState?.label || 'Marriage State', desc: t.qualify.fields?.marriageState?.desc || 'State/Country' },
     { key: 'breakdownDate', label: t.qualify.fields?.breakdownDate?.label || 'Breakdown Date', desc: t.qualify.fields?.breakdownDate?.desc || 'DRL §170(7)' },
   ];
@@ -596,6 +604,37 @@ function FormsContent() {
         </div>
         <Link href="/qualify" className="inline-block rounded-full bg-[#c59d5f] px-6 py-3 text-white hover:bg-[#d4ac6e]">
           Start New Session ($29)
+        </Link>
+      </div>
+    </div>
+  );
+
+  // Session complete screen - Phase 3 generated, fully done
+  if (isSessionComplete) return (
+    <div className="flex min-h-screen items-center justify-center bg-green-50 p-4">
+      <div className="max-w-md text-center">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+          <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-bold text-zinc-900 mb-4">Your Divorce Forms Are Complete</h2>
+        <p className="text-zinc-600 mb-6">
+          All three phases have been generated and downloaded. Your DivorceGPT session is now complete.
+        </p>
+        <div className="bg-green-100 rounded-xl p-4 text-left text-sm text-green-800 mb-6">
+          <p className="font-semibold mb-2">Next steps:</p>
+          <ul className="space-y-1">
+            <li>• Mail a copy of the Judgment of Divorce to the Defendant (UD-15)</li>
+            <li>• File your proof of service with the County Clerk</li>
+            <li>• Your previously downloaded documents remain valid</li>
+          </ul>
+        </div>
+        <div className="bg-zinc-100 rounded-xl p-4 text-left text-sm text-zinc-600 mb-6">
+          <p>If you need technical support, email <strong>admin@divorcegpt.com</strong></p>
+        </div>
+        <Link href="/" className="inline-block rounded-full bg-zinc-200 px-6 py-3 text-zinc-700 hover:bg-zinc-300">
+          Return Home
         </Link>
       </div>
     </div>

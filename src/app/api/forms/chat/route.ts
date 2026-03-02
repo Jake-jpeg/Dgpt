@@ -266,7 +266,8 @@ PHASE 2 FIELDS
 • indexNumber = format like "12345/2026"
 • summonsDate = date on the UD-1 document (NOT service date)
 • marriageDate = date of marriage
-• marriageCity = city where married
+• marriageCity = city/town/village where married
+• marriageCounty = county where married (e.g., "Orange", "Kings", "New York")
 • marriageState = state/country where married
 • breakdownDate = when relationship became irretrievably broken (must be 6+ months ago)
 
@@ -452,7 +453,7 @@ export async function POST(req: Request) {
       contextMessage += `Phase 2 Data: ${JSON.stringify(phase2Data || {})}. `;
       const isReligious = phase1Data?.ceremonyType === 'religious';
       // Remove hasWaiver from required fields - UD-7 IS the waiver
-      const phase2Fields = ['indexNumber', 'summonsDate', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate'];
+      const phase2Fields = ['indexNumber', 'summonsDate', 'marriageDate', 'marriageCity', 'marriageCounty', 'marriageState', 'breakdownDate'];
       
       const collected = phase2Fields.filter(f => phase2Data?.[f]);
       const missing = phase2Fields.filter(f => !phase2Data?.[f]);
@@ -813,7 +814,7 @@ export async function POST(req: Request) {
     }
     
     if (currentPhase === 2 && !phase2Complete) {
-      const phase2Fields = ['indexNumber', 'summonsDate', 'marriageDate', 'marriageCity', 'marriageState', 'breakdownDate'];
+      const phase2Fields = ['indexNumber', 'summonsDate', 'marriageDate', 'marriageCity', 'marriageCounty', 'marriageState', 'breakdownDate'];
       const merged = { ...phase2Data, ...extractedData };
       const allPresent = phase2Fields.every(f => merged[f]);
       if (allPresent) {

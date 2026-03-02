@@ -174,6 +174,12 @@ function TermsContent() {
               <strong>Document Generation:</strong> Each phase (Phase 1, Phase 2, Phase 3) allows one document generation event. Once you generate and download your documents for a phase, that phase is complete and cannot be regenerated. You are responsible for saving your downloaded files. DivorceGPT does not store copies of generated documents.
             </p>
             <p className="text-zinc-600 mb-4">
+              <strong>Session Completion:</strong> Once Phase 3 documents have been generated, your session is complete and access to the AI assistant ends. Previously downloaded documents remain valid.
+            </p>
+            <p className="text-zinc-600 mb-4">
+              <strong>Usage Limits:</strong> Each session is limited to 200 AI messages. If you reach this limit before completing all phases, your session ends. This limit exists to ensure fair usage across all users. A new session requires a new purchase.
+            </p>
+            <p className="text-zinc-600 mb-4">
               <strong>Session Expiration:</strong> If your session expires after 12 months, you must purchase a new session at the standard rate of $29 USD. A new session requires re-entry of all information. Court processing delays are outside the scope of this service and do not extend your access window.
             </p>
             <p className="text-zinc-600 mb-4">

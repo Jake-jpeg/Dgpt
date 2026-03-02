@@ -23,6 +23,7 @@ export interface Phase2Data {
   summonsDate: string; // Date on the UD-1 Summons with Notice
   marriageDate: string;
   marriageCity: string;
+  marriageCounty: string;
   marriageState: string;
   breakdownDate: string; // When relationship became irretrievably broken (DRL §170(7))
   // UD-4 (religious only)
