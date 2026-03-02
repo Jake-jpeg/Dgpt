@@ -56,15 +56,13 @@ function FormsContent() {
   const [mobileTab, setMobileTab] = useState<'chat' | 'panel'>('chat');
   const [showBookmarkBar, setShowBookmarkBar] = useState(true);
   
-  // Check localStorage after mount to avoid hydration mismatch
+  // Check localStorage for dismissed bookmark bar after mount
   useEffect(() => {
     try {
       if (localStorage.getItem('dgpt_bookmark_dismissed') === 'true') {
         setShowBookmarkBar(false);
       }
-    } catch {
-      // localStorage may be blocked in incognito - keep bar visible
-    }
+    } catch {}
   }, []);
   
   const MAX_MESSAGES = 200;
@@ -741,7 +739,7 @@ function FormsContent() {
         </div>
       </header>
 
-      {/* Persistent bookmark bar - visible until user explicitly dismisses, remembered in localStorage */}
+      {/* Bookmark bar - persists until user dismisses with X */}
       {showBookmarkBar && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2">
           <div className="mx-auto max-w-4xl flex items-center justify-between gap-2">
@@ -753,29 +751,11 @@ function FormsContent() {
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={copySessionLink}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${
-                  linkCopied
-                    ? 'bg-green-600 text-white'
-                    : 'bg-amber-600 text-white hover:bg-amber-700'
-                }`}
-              >
+              <button onClick={copySessionLink} className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${linkCopied ? 'bg-green-600 text-white' : 'bg-amber-600 text-white hover:bg-amber-700'}`}>
                 {linkCopied ? '✓ Copied!' : '📋 Copy Link'}
               </button>
-              {emailSent && (
-                <span className="hidden sm:inline text-xs text-green-700 font-medium">✓ Emailed</span>
-              )}
-              <button
-                onClick={() => {
-                  setShowBookmarkBar(false);
-                  try { localStorage.setItem('dgpt_bookmark_dismissed', 'true'); } catch {}
-                }}
-                className="text-amber-400 hover:text-amber-700 text-lg leading-none ml-1"
-                aria-label="Dismiss bookmark bar"
-              >
-                ✕
-              </button>
+              {emailSent && (<span className="hidden sm:inline text-xs text-green-700 font-medium">✓ Emailed</span>)}
+              <button onClick={() => { setShowBookmarkBar(false); try { localStorage.setItem('dgpt_bookmark_dismissed', 'true'); } catch {} }} className="text-amber-400 hover:text-amber-700 text-lg leading-none ml-1" aria-label="Dismiss">✕</button>
             </div>
           </div>
         </div>
@@ -865,7 +845,7 @@ function FormsContent() {
         <>
         {/* Chat area - always visible on desktop, tab-controlled on mobile */}
         <div className={`flex-1 flex-col ${showSidebar ? 'lg:w-2/3' : 'lg:w-full'} ${showSidebar ? 'lg:border-r lg:border-zinc-200' : ''} lg:overflow-hidden lg:flex ${mobileTab === 'chat' ? 'flex' : 'hidden lg:flex'}`}>
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6" style={{ overscrollBehaviorX: 'none' }}>
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="mx-auto max-w-2xl space-y-4">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -1090,16 +1070,10 @@ function FieldCard({ label, value, description, complete, fieldKey }: { label: s
 }
 
 export default function FormsPage() {
-  // Force viewport meta tag outside Suspense so it survives remounts
   useEffect(() => {
-    let viewportMeta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
-    if (!viewportMeta) {
-      viewportMeta = document.createElement('meta');
-      viewportMeta.name = 'viewport';
-      document.head.appendChild(viewportMeta);
-    }
-    viewportMeta.content = 'width=device-width, initial-scale=1, maximum-scale=1';
+    let v = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
+    if (!v) { v = document.createElement('meta'); v.name = 'viewport'; document.head.appendChild(v); }
+    v.content = 'width=device-width, initial-scale=1, maximum-scale=1';
   }, []);
-
   return (<Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-zinc-50"><div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#1a365d] border-t-transparent" /></div>}><FormsContent /></Suspense>);
 }
