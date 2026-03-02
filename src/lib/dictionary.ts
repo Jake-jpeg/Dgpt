@@ -47,8 +47,8 @@ export const dictionary = {
       items: [
         { q: "Is this legal advice?", a: "No. DivorceGPT explains what divorce forms ask for and how to file them. It does not provide legal advice. For legal advice, consult an attorney." },
         { q: "What technology powers DivorceGPT?", a: "DivorceGPT uses Claude AI combined with custom legal document guardrails for New York filings. Your conversations are not stored." },
-        { q: "How long does the process take?", a: "You can complete your forms in one session. After filing, New York courts typically process uncontested divorces in 2-4 months. Your session remains valid for 12 months." },
-        { q: "How do I access my session?", a: "After payment, you'll be redirected to your session page. Bookmark this page — the URL is your access link. There are no accounts or passwords. You can also find this link in your Stripe receipt email." },
+        { q: "How long does the process take?", a: "You can complete your forms in minutes, but the overall divorce process takes time — the court needs to process filings between each phase. Timeline varies by county. Your session remains valid for 12 months to cover even the slowest courts." },
+        { q: "How do I access my session?", a: "After payment, you'll be redirected to your session page. Bookmark this page — the URL is your access link. There are no accounts or passwords." },
         { q: "What if my spouse won't cooperate?", a: "This service is for uncontested divorces where both spouses agree. If your spouse won't cooperate, you may need a contested divorce attorney." },
         { q: "Can I regenerate my documents?", a: "Each phase allows one document generation. When you download your forms, save them immediately. Documents cannot be regenerated once downloaded." },
         { q: "Can I get a refund?", a: "If you don't qualify after the eligibility check, you won't be charged. Once forms are generated, refunds are not available." }
@@ -220,7 +220,7 @@ export const dictionary = {
       items: [
         { q: "¿Es esto asesoramiento legal?", a: "No. DivorceGPT explica qué piden los formularios y cómo presentarlos. No proporciona asesoramiento legal. Para ello, consulte a un abogado." },
         { q: "¿Qué tecnología usa DivorceGPT?", a: "DivorceGPT utiliza Claude AI combinado con protecciones de documentos legales personalizadas para presentaciones en Nueva York." },
-        { q: "¿Cuánto tiempo toma el proceso?", a: "Puede completar sus formularios en una sesión. Después de presentar, las cortes de NY suelen procesar divorcios de mutuo acuerdo en 2-4 meses." },
+        { q: "¿Cuánto tiempo toma el proceso?", a: "Puede completar sus formularios en minutos, pero el proceso general de divorcio toma tiempo — el tribunal necesita procesar las presentaciones entre cada fase. El tiempo varía según el condado. Su sesión es válida por 12 meses." },
         { q: "¿Qué pasa si mi cónyuge no coopera?", a: "Este servicio es para divorcios donde ambos están de acuerdo. Si su cónyuge no coopera, puede necesitar un abogado para divorcio contencioso." },
         { q: "¿Puedo obtener un reembolso?", a: "Si no califica después de la verificación, no se le cobrará. Una vez generados los formularios, no hay reembolsos." }
       ]
@@ -391,7 +391,7 @@ export const dictionary = {
       items: [
         { q: "这是法律建议吗？", a: "不是。DivorceGPT 解释离婚表格的要求和提交方式。它不提供法律建议。如需法律建议，请咨询律师。" },
         { q: "DivorceGPT 使用什么技术？", a: "DivorceGPT 使用 Claude AI，并结合针对纽约申请的自定义法律文档护栏。" },
-        { q: "这个过程需要多长时间？", a: "您可以在一次会话中完成表格。提交后，纽约法院通常在 2-4 个月内处理无争议离婚。" },
+        { q: "这个过程需要多长时间？", a: "您可以在几分钟内完成表格，但整个离婚过程需要时间——法院需要在每个阶段之间处理文件。时间因县而异。您的会话有效期为12个月。" },
         { q: "如果我的配偶不配合怎么办？", a: "此服务适用于双方同意的无争议离婚。如果您的配偶不配合，您可能需要聘请争议离婚律师。" },
         { q: "我可以退款吗？", a: "如果您在资格检查后不符合条件，我们将不会收费。一旦生成表格，则不予退款。" }
       ]
@@ -562,7 +562,7 @@ export const dictionary = {
       items: [
         { q: "이것은 법률 자문인가요?", a: "아니요. DivorceGPT는 이혼 서류의 내용과 제출 방법을 설명합니다. 법률 자문이 아닙니다. 법률 자문은 변호사와 상담하세요." },
         { q: "DivorceGPT는 어떤 기술을 사용하나요?", a: "DivorceGPT는 Claude AI와 뉴욕 법원 제출을 위한 맞춤형 법적 문서 가이드라인을 결합하여 사용합니다." },
-        { q: "절차는 얼마나 걸리나요?", a: "한 번의 세션으로 서류를 완료할 수 있습니다. 제출 후, 뉴욕 법원은 일반적으로 2-4개월 내에 합의 이혼을 처리합니다." },
+        { q: "절차는 얼마나 걸리나요?", a: "서류는 몇 분 안에 완료할 수 있지만, 전체 이혼 절차는 시간이 걸립니다 — 법원이 각 단계 사이에 서류를 처리해야 합니다. 소요 시간은 카운티마다 다릅니다. 세션은 12개월 동안 유효합니다." },
         { q: "배우자가 협조하지 않으면 어떻게 하나요?", a: "이 서비스는 양측이 동의하는 합의 이혼을 위한 것입니다. 협조하지 않을 경우, 소송 이혼 전문 변호사가 필요할 수 있습니다." },
         { q: "환불받을 수 있나요?", a: "자격 확인 후 이용 대상이 아니면 비용이 청구되지 않습니다. 서류가 생성된 후에는 환불되지 않습니다." }
       ]
@@ -733,7 +733,7 @@ export const dictionary = {
       items: [
         { q: "Это юридическая консультация?", a: "Нет. DivorceGPT объясняет формы и процедуру подачи. Это не юридическая консультация. За советом обратитесь к адвокату." },
         { q: "Какая технология используется?", a: "DivorceGPT использует Claude AI вместе со специальными юридическими алгоритмами для документов штата Нью-Йорк." },
-        { q: "Сколько времени занимает процесс?", a: "Вы можете заполнить формы за один раз. Суды Нью-Йорка обычно рассматривают бесспорные разводы 2-4 месяца." },
+        { q: "Сколько времени занимает процесс?", a: "Заполнение форм занимает считанные минуты, но весь процесс развода требует времени — суд обрабатывает документы между каждым этапом. Сроки зависят от округа. Ваша сессия действительна 12 месяцев." },
         { q: "Что если супруг не сотрудничает?", a: "Этот сервис для случаев, когда оба согласны. Если супруг против, вам может понадобиться адвокат для спорного развода." },
         { q: "Можно ли вернуть деньги?", a: "Если вы не пройдете проверку права, деньги не спишутся. После создания форм возврат невозможен." }
       ]
@@ -904,7 +904,7 @@ export const dictionary = {
       items: [
         { q: "Èske sa se konsèy legal?", a: "Non. DivorceGPT esplike kisa fòm divòs yo mande ak kijan pou depoze yo. Li pa bay konsèy legal. Pou konsèy legal, konsilte yon avoka." },
         { q: "Ki teknoloji DivorceGPT itilize?", a: "DivorceGPT itilize Claude AI ansanm ak règ dokiman legal espesyal pou depo nan New York." },
-        { q: "Konbyen tan pwosesis la pran?", a: "Ou ka fini fòm ou yo nan yon sèl fwa. Apre ou depoze, tribinal New York anjeneral trete divòs san kontestasyon nan 2-4 mwa." },
+        { q: "Konbyen tan pwosesis la pran?", a: "Ou ka fini fòm yo nan kèk minit, men pwosesis divòs la pran tan — tribinal la bezwen trete dokiman ant chak faz. Tan an varye selon konte a. Sesyon ou an valab pou 12 mwa." },
         { q: "Kisa si mari/madanm mwen pa kowopere?", a: "Sèvis sa a se pou lè nou tou de dakò. Si mari/madanm ou pa kowopere, ou ka bezwen yon avoka pou divòs ki gen kontestasyon." },
         { q: "Èske mwen ka jwenn ranbousman?", a: "Si ou pa kalifye apre tcheke a, nou pap chaje ou. Yon fwa fòm yo fin fèt, pa gen ranbousman." }
       ]
