@@ -37,7 +37,7 @@ function TermsContent() {
 
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-8">Terms of Service</h1>
-        <p className="text-sm text-zinc-500 mb-8">Last updated: February 3, 2026</p>
+        <p className="text-sm text-zinc-500 mb-8">Last updated: March 1, 2026</p>
 
         <div className="prose prose-zinc max-w-none">
           <section className="mb-8">
@@ -163,9 +163,18 @@ function TermsContent() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Payment and Refunds</h2>
+            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Payment, Access, and Document Generation</h2>
             <p className="text-zinc-600 mb-4">
-              <strong>Payment:</strong> The service fee is $20 USD, payable via Stripe. Payment is required before accessing form preparation features.
+              <strong>Payment:</strong> The service fee is $29 USD, payable via Stripe. Payment is required before accessing form preparation features.
+            </p>
+            <p className="text-zinc-600 mb-4">
+              <strong>Access Window:</strong> Your session is valid for 12 months from the date of purchase. This covers all three phases of the divorce filing process. DivorceGPT does not track court timelines or provide ongoing assistance during this period — the access window is solely for document generation.
+            </p>
+            <p className="text-zinc-600 mb-4">
+              <strong>Document Generation:</strong> Each phase (Phase 1, Phase 2, Phase 3) allows one document generation event. Once you generate and download your documents for a phase, that phase is complete and cannot be regenerated. You are responsible for saving your downloaded files. DivorceGPT does not store copies of generated documents.
+            </p>
+            <p className="text-zinc-600 mb-4">
+              <strong>Session Expiration:</strong> If your session expires after 12 months, you must purchase a new session at the restart rate of $39 USD. A new session requires re-entry of all information. Court processing delays are outside the scope of this service and do not extend your access window.
             </p>
             <p className="text-zinc-600 mb-4">
               <strong>Refund Policy:</strong>
@@ -174,7 +183,8 @@ function TermsContent() {
               <li>If you do not pass the eligibility check, you will not be charged</li>
               <li>If your session is terminated for policy violations, your payment will be refunded</li>
               <li>If you experience technical issues preventing service delivery, contact us for resolution</li>
-              <li>Once you have successfully completed form generation, no refunds are available</li>
+              <li>Once you have successfully generated documents for any phase, no refunds are available</li>
+              <li>Session expiration does not entitle you to a refund</li>
             </ul>
           </section>
 
@@ -187,6 +197,7 @@ function TermsContent() {
               <li>Not attempt to circumvent eligibility requirements</li>
               <li>Not use the service to generate fraudulent documents</li>
               <li>Understand that you are responsible for reviewing and filing your own documents</li>
+              <li>Save and securely store all generated documents upon download — documents cannot be regenerated once a phase is complete</li>
               <li>Not enter sensitive information (SSNs, bank accounts) into the chat — you will add these to printed forms yourself</li>
             </ul>
           </section>
@@ -200,7 +211,7 @@ function TermsContent() {
               <li>DivorceGPT and June Guided Solutions LLC are not liable for any damages arising from your use of this service</li>
               <li>We are not responsible for the outcome of your divorce case</li>
               <li>We are not responsible for errors in court filings or rejections by the court</li>
-              <li>Our total liability is limited to the amount you paid for the service ($20)</li>
+              <li>Our total liability is limited to the amount you paid for the service ($29)</li>
             </ul>
           </section>
 

@@ -232,8 +232,8 @@ function AgreeContent() {
           {/* Price and Continue */}
           <div className="text-center pt-4">
             <div className="mb-4">
-              <p className="text-4xl font-bold text-[#1a365d]">$20</p>
-              <p className="text-sm text-zinc-500">One-time fee • No subscription</p>
+              <p className="text-4xl font-bold text-[#1a365d]">$29</p>
+              <p className="text-sm text-zinc-500">One-time fee • 12-month access • No subscription</p>
             </div>
             
             {/* Free Access Key Input */}

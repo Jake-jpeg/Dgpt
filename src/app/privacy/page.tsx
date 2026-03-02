@@ -37,7 +37,7 @@ function PrivacyContent() {
 
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-8">Privacy Policy</h1>
-        <p className="text-sm text-zinc-500 mb-8">Last updated: February 2, 2026</p>
+        <p className="text-sm text-zinc-500 mb-8">Last updated: March 1, 2026</p>
 
         <div className="prose prose-zinc max-w-none">
           
@@ -138,9 +138,12 @@ function PrivacyContent() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Session Termination</h2>
-            <p className="text-zinc-600">
+            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Session Termination and Expiration</h2>
+            <p className="text-zinc-600 mb-4">
               DivorceGPT reserves the right to terminate any session for violations of our Terms of Service. Upon termination, any data in your browser session is cleared. Because we do not store your data server-side, there is nothing to delete on our end.
+            </p>
+            <p className="text-zinc-600">
+              Sessions expire automatically 12 months after purchase. Upon expiration, your browser localStorage data remains on your device until you clear it — DivorceGPT does not remotely access or delete your browser data. However, expired sessions cannot access DivorceGPT's AI processing or document generation features.
             </p>
           </section>
 

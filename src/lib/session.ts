@@ -1,7 +1,7 @@
-// Session management with 90-day TTL
+// Session management with 12-month TTL
 // Stores form progress in localStorage, keyed by Stripe payment intent ID
 
-const SESSION_TTL_DAYS = 90;
+const SESSION_TTL_DAYS = 365;
 const STORAGE_PREFIX = 'divorcegpt_';
 
 // Phase 1: Commencement (UD-1)
@@ -64,6 +64,12 @@ export interface SessionData {
   chatHistory: { role: 'user' | 'assistant'; content: string }[];
   // Rate limiting - max 200 messages per session
   messageCount: number;
+  // Generation cap - max 3 full packet generations per session
+  generationCount: number;
+  // Phase generation locks - once generated, phase is locked
+  phase1Generated: boolean;
+  phase2Generated: boolean;
+  phase3Generated: boolean;
 }
 
 // Legacy type alias for backwards compatibility
@@ -90,6 +96,10 @@ export const createSession = (paymentIntentId: string): SessionData => {
     addressValidationResults: {},
     chatHistory: [],
     messageCount: 0,
+    generationCount: 0,
+    phase1Generated: false,
+    phase2Generated: false,
+    phase3Generated: false,
   };
   
   if (typeof window !== 'undefined') {
@@ -128,10 +138,10 @@ export const loadSession = (paymentIntentId: string): SessionData | null => {
     const now = new Date();
     const daysElapsed = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
     
-    // Check 30-day expiry
+    // Check 12-month expiry
     if (daysElapsed > SESSION_TTL_DAYS) {
       localStorage.removeItem(getStorageKey(paymentIntentId));
-      return null;
+      return { ...data, expired: true } as SessionData & { expired?: boolean };
     }
     
     return data as SessionData;

@@ -7,7 +7,7 @@ export const dictionary = {
       subtitle: "Made Simple",
       description: "Get your divorce forms prepared and explained in plain language. No lawyers needed for simple, uncontested cases.",
       cta: "Check If You Qualify",
-      fee: "$20 one-time fee • No hidden costs"
+      fee: "$29 one-time fee • No hidden costs"
     },
     howToUse: {
       title: "How to Use",
@@ -24,7 +24,7 @@ export const dictionary = {
       subtitle: "Four simple steps to complete your divorce",
       steps: [
         { title: "Check Eligibility", desc: "Answer a few questions to confirm this service is right for you." },
-        { title: "Pay $20", desc: "One-time payment. No hidden fees. No subscriptions." },
+        { title: "Pay $29", desc: "One-time payment. No hidden fees. No subscriptions." },
         { title: "Get Your Forms", desc: "Receive your prepared divorce forms ready for filing." },
         { title: "Ask Questions", desc: "Use DivorceGPT to understand any part of the process." }
       ]
@@ -88,7 +88,7 @@ export const dictionary = {
         disclaimer: "DivorceGPT does not review your answers for legal sufficiency, provide legal advice, or represent you in court.",
         freeFormsTitle: "Free Forms Available",
         freeFormsDesc: "Official uncontested divorce forms are available from the New York State Unified Court System website.",
-        continueButton: "Continue with DivorceGPT ($20)"
+        continueButton: "Continue with DivorceGPT ($29)"
       },
       fields: {
         plaintiffName: { label: "Plaintiff Name", desc: "Person filing" },
@@ -177,7 +177,7 @@ export const dictionary = {
       subtitle: "Simplificado",
       description: "Prepare y entienda sus formularios de divorcio en lenguaje sencillo. No necesita abogados para casos simples y sin disputa.",
       cta: "Verifique Si Califica",
-      fee: "Tarifa única de $20 • Sin costos ocultos"
+      fee: "Tarifa única de $29 • Sin costos ocultos"
     },
     howToUse: {
       title: "Cómo Usar",
@@ -194,7 +194,7 @@ export const dictionary = {
       subtitle: "Cuatro pasos simples para completar su divorcio",
       steps: [
         { title: "Verificar Elegibilidad", desc: "Responda unas preguntas para confirmar que este servicio es para usted." },
-        { title: "Pagar $20", desc: "Pago único. Sin cargos ocultos. Sin suscripciones." },
+        { title: "Pagar $29", desc: "Pago único. Sin cargos ocultos. Sin suscripciones." },
         { title: "Obtener Formularios", desc: "Reciba sus formularios de divorcio listos para presentar." },
         { title: "Hacer Preguntas", desc: "Use DivorceGPT para entender cualquier parte del proceso." }
       ]
@@ -258,7 +258,7 @@ export const dictionary = {
         disclaimer: "DivorceGPT no revisa sus respuestas para suficiencia legal, no proporciona asesoramiento legal, ni lo representa en la corte.",
         freeFormsTitle: "Formularios Gratuitos Disponibles",
         freeFormsDesc: "Los formularios oficiales de divorcio sin oposición están disponibles en el sitio web del Sistema de Tribunales Unificados del Estado de Nueva York.",
-        continueButton: "Continuar con DivorceGPT ($20)"
+        continueButton: "Continuar con DivorceGPT ($29)"
       },
       fields: {
         plaintiffName: { label: "Nombre del Demandante", desc: "Persona que presenta" },
@@ -347,7 +347,7 @@ export const dictionary = {
       subtitle: "简单易办",
       description: "用通俗易懂的语言准备并解释您的离婚表格。简单无争议的案件无需律师。",
       cta: "检查您是否符合资格",
-      fee: "一次性费用 $20 • 无隐藏费用"
+      fee: "一次性费用 $29 • 无隐藏费用"
     },
     howToUse: {
       title: "如何使用",
@@ -364,7 +364,7 @@ export const dictionary = {
       subtitle: "完成离婚的四个简单步骤",
       steps: [
         { title: "资格检查", desc: "回答几个问题以确认此服务适合您。" },
-        { title: "支付 $20", desc: "一次性付款。无隐藏费用。无订阅。" },
+        { title: "支付 $29", desc: "一次性付款。无隐藏费用。无订阅。" },
         { title: "获取表格", desc: "接收准备好的离婚表格，即可提交。" },
         { title: "咨询提问", desc: "使用 DivorceGPT 了解流程的任何部分。" }
       ]
@@ -428,7 +428,7 @@ export const dictionary = {
         disclaimer: "DivorceGPT 不审查您的答案是否具有法律充分性，不提供法律建议，也不在法庭上代表您。",
         freeFormsTitle: "免费表格可用",
         freeFormsDesc: "官方无争议离婚表格可从纽约州统一法院系统网站获取。",
-        continueButton: "继续使用 DivorceGPT ($20)"
+        continueButton: "继续使用 DivorceGPT ($29)"
       },
       fields: {
         plaintiffName: { label: "原告姓名", desc: "提交人" },
@@ -517,7 +517,7 @@ export const dictionary = {
       subtitle: "간편한 절차",
       description: "이해하기 쉬운 언어로 이혼 서류를 준비하고 설명해 드립니다. 간단한 합의 이혼의 경우 변호사가 필요하지 않습니다.",
       cta: "자격 확인하기",
-      fee: "$20 일회성 비용 • 숨겨진 비용 없음"
+      fee: "$29 일회성 비용 • 숨겨진 비용 없음"
     },
     howToUse: {
       title: "이용 방법",
@@ -534,7 +534,7 @@ export const dictionary = {
       subtitle: "이혼 절차를 완료하는 4단계",
       steps: [
         { title: "자격 확인", desc: "몇 가지 질문에 답하여 서비스 이용 가능 여부를 확인하세요." },
-        { title: "$20 결제", desc: "일회성 결제. 숨겨진 수수료 없음. 구독 없음." },
+        { title: "$29 결제", desc: "일회성 결제. 숨겨진 수수료 없음. 구독 없음." },
         { title: "서류 받기", desc: "법원에 제출할 준비가 된 이혼 서류를 받으세요." },
         { title: "질문하기", desc: "DivorceGPT를 사용하여 절차에 대해 문의하세요." }
       ]
@@ -598,7 +598,7 @@ export const dictionary = {
         disclaimer: "DivorceGPT는 귀하의 답변이 법적으로 충분한지 검토하지 않으며, 법률 자문을 제공하거나 법정에서 귀하를 대리하지 않습니다.",
         freeFormsTitle: "무료 양식 이용 가능",
         freeFormsDesc: "공식 합의 이혼 양식은 뉴욕주 통합 법원 시스템 웹사이트에서 이용할 수 있습니다.",
-        continueButton: "DivorceGPT로 계속하기 ($20)"
+        continueButton: "DivorceGPT로 계속하기 ($29)"
       },
       fields: {
         plaintiffName: { label: "원고 이름", desc: "제출하는 사람" },
@@ -687,7 +687,7 @@ export const dictionary = {
       subtitle: "Это просто",
       description: "Подготовка и разъяснение форм на простом языке. Для простых случаев без споров адвокат не нужен.",
       cta: "Проверьте право на услугу",
-      fee: "Разовый платеж $20 • Без скрытых комиссий"
+      fee: "Разовый платеж $29 • Без скрытых комиссий"
     },
     howToUse: {
       title: "Как использовать",
@@ -704,7 +704,7 @@ export const dictionary = {
       subtitle: "Четыре простых шага для оформления развода",
       steps: [
         { title: "Проверка права", desc: "Ответьте на вопросы, чтобы узнать, подходит ли вам этот сервис." },
-        { title: "Оплата $20", desc: "Разовый платеж. Никаких подписок." },
+        { title: "Оплата $29", desc: "Разовый платеж. Никаких подписок." },
         { title: "Получение форм", desc: "Получите готовые формы для подачи в суд." },
         { title: "Вопросы", desc: "Используйте DivorceGPT, чтобы понять процесс." }
       ]
@@ -768,7 +768,7 @@ export const dictionary = {
         disclaimer: "DivorceGPT не проверяет ваши ответы на юридическую достаточность, не предоставляет юридические консультации и не представляет вас в суде.",
         freeFormsTitle: "Бесплатные формы доступны",
         freeFormsDesc: "Официальные формы для бесспорного развода доступны на веб-сайте Единой судебной системы штата Нью-Йорк.",
-        continueButton: "Продолжить с DivorceGPT ($20)"
+        continueButton: "Продолжить с DivorceGPT ($29)"
       },
       fields: {
         plaintiffName: { label: "Имя истца", desc: "Лицо, подающее иск" },
@@ -857,7 +857,7 @@ export const dictionary = {
       subtitle: "Fè Senp",
       description: "Jwenn fòm divòs ou yo prepare epi esplike nan langaj senp. Ou pa bezwen avoka pou ka senp kote nou dakò.",
       cta: "Tcheke Si Ou Kalifye",
-      fee: "Frè $20 yon sèl fwa • Pa gen lòt frè kache"
+      fee: "Frè $29 yon sèl fwa • Pa gen lòt frè kache"
     },
     howToUse: {
       title: "Kijan Pou Itilize",
@@ -874,7 +874,7 @@ export const dictionary = {
       subtitle: "Kat etap senp pou fini divòs ou",
       steps: [
         { title: "Tcheke Elijiblite", desc: "Reponn kèk kesyon pou wè si sèvis sa a bon pou ou." },
-        { title: "Peye $20", desc: "Peman yon sèl fwa. Pa gen frè kache. Pa gen abònman." },
+        { title: "Peye $29", desc: "Peman yon sèl fwa. Pa gen frè kache. Pa gen abònman." },
         { title: "Jwenn Fòm Ou Yo", desc: "Resevwa fòm divòs ou tou prepare pou depoze nan tribinal." },
         { title: "Poze Kesyon", desc: "Itilize DivorceGPT pou konprann nenpòt pati nan pwosesis la." }
       ]
@@ -938,7 +938,7 @@ export const dictionary = {
         disclaimer: "DivorceGPT pa revize repons ou yo pou wè si yo sifi legalman, pa bay konsèy legal, oswa pa reprezante ou nan tribinal.",
         freeFormsTitle: "Fòm Gratis Disponib",
         freeFormsDesc: "Fòm ofisyèl divòs san kontestasyon disponib nan sit entènèt Sistèm Tribinal Inifye Eta New York.",
-        continueButton: "Kontinye ak DivorceGPT ($20)"
+        continueButton: "Kontinye ak DivorceGPT ($29)"
       },
       fields: {
         plaintiffName: { label: "Non Pleyan", desc: "Moun ki depoze" },

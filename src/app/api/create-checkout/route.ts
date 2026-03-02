@@ -15,7 +15,7 @@ const FREE_ACCESS_KEYS = (process.env.FREE_ACCESS_KEYS || '').split(',').filter(
 
 export async function POST(req: Request) {
   try {
-    const { returnUrl, freeKey } = await req.json();
+    const { returnUrl, freeKey, isRestart } = await req.json();
     
     // Check for free access key bypass
     if (freeKey && FREE_ACCESS_KEYS.includes(freeKey)) {
@@ -26,6 +26,12 @@ export async function POST(req: Request) {
       });
     }
     
+    // Pricing: $29 for new sessions, $39 for restart after expiry
+    const unitAmount = isRestart ? 3900 : 2900;
+    const description = isRestart 
+      ? 'DivorceGPT restart session. AI-powered document preparation for New York uncontested divorces. 12-month access. No legal advice provided.'
+      : 'AI-powered document preparation for New York uncontested divorces. Includes all phases. 12-month access. No legal advice provided.';
+    
     // Create real Stripe checkout session
     const session = await getStripe().checkout.sessions.create({
       payment_method_types: ['card'],
@@ -34,9 +40,9 @@ export async function POST(req: Request) {
           currency: 'usd',
           product_data: {
             name: 'DivorceGPT by June Guided Solutions, LLC',
-            description: 'Document preparation for New York uncontested divorces. No legal advice provided.',
+            description,
           },
-          unit_amount: 2000, // $20.00
+          unit_amount: unitAmount,
         },
         quantity: 1,
       }],

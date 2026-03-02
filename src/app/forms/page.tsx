@@ -47,6 +47,7 @@ function FormsContent() {
   const [allComplete, setAllComplete] = useState(false);
   const [messageCount, setMessageCount] = useState(0);
   const [isExhausted, setIsExhausted] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
   
   const MAX_MESSAGES = 200;
   
@@ -74,6 +75,14 @@ function FormsContent() {
           setIsValid(true);
           setPaymentIntentId(data.paymentIntentId);
           let existingSession = loadSession(data.paymentIntentId);
+          
+          // Check if session expired
+          if (existingSession && (existingSession as SessionData & { expired?: boolean }).expired) {
+            setIsExpired(true);
+            setIsValidating(false);
+            return;
+          }
+          
           if (!existingSession) existingSession = createSession(data.paymentIntentId);
           
           // ═══════════════════════════════════════════════════════════
@@ -165,6 +174,10 @@ function FormsContent() {
         dateWarningIssued: session?.dateWarningIssued || false,
         addressValidationResults: session?.addressValidationResults || {},
         messageCount,
+        generationCount: session?.generationCount || 0,
+        phase1Generated: session?.phase1Generated || false,
+        phase2Generated: session?.phase2Generated || false,
+        phase3Generated: session?.phase3Generated || false,
       };
       saveSession(updatedSession);
     }
@@ -179,7 +192,7 @@ function FormsContent() {
       });
       const data = await res.json();
       setMessages([{ role: "assistant", content: data.reply }]);
-    } catch { setMessages([{ role: "assistant", content: "Welcome to DivorceGPT. I'll help you prepare your uncontested divorce forms for New York State.\n\n**Before we begin:** Do you have any questions about how this system works? I can explain:\n• What the three phases mean (Phase 1, 2, and 3)\n• What happens after you complete each phase\n• How long the process typically takes\n• Technical support options\n\nIf you'd like to learn more first, just ask. Otherwise, say **'Let's start'** and we'll begin collecting your information for the UD-1 (Summons with Notice).\n\nYour session is valid for 90 days." }]); }
+    } catch { setMessages([{ role: "assistant", content: "Welcome to DivorceGPT. I'll help you prepare your uncontested divorce forms for New York State.\n\n**Before we begin:** Do you have any questions about how this system works? I can explain:\n• What the three phases mean (Phase 1, 2, and 3)\n• What happens after you complete each phase\n• How long the process typically takes\n• Technical support options\n\nIf you'd like to learn more first, just ask. Otherwise, say **'Let's start'** and we'll begin collecting your information for the UD-1 (Summons with Notice).\n\nYour session is valid for 12 months with up to 3 document generations included." }]); }
     finally { setIsLoading(false); }
   };
 
@@ -298,6 +311,22 @@ function FormsContent() {
   };
 
   const generateDocuments = async () => {
+    // Per-phase generation lock check
+    if (session) {
+      if (currentPhase === 1 && session.phase1Generated) {
+        alert('Phase 1 documents have already been generated and downloaded. Please save your files when downloading — documents cannot be regenerated.');
+        return;
+      }
+      if (currentPhase === 2 && session.phase2Generated) {
+        alert('Phase 2 documents have already been generated and downloaded. Please save your files when downloading — documents cannot be regenerated.');
+        return;
+      }
+      if (currentPhase === 3 && session.phase3Generated) {
+        alert('Phase 3 documents have already been generated and downloaded. Your session is now complete. Thank you for using DivorceGPT.');
+        return;
+      }
+    }
+    
     setIsGenerating(true);
     try {
       if (currentPhase === 1) {
@@ -432,6 +461,15 @@ function FormsContent() {
       console.error("Document generation error:", error);
       alert("Failed to generate document. Please try again.");
     } finally {
+      // Lock the phase after successful generation
+      if (session && paymentIntentId) {
+        session.generationCount = (session.generationCount || 0) + 1;
+        if (currentPhase === 1) session.phase1Generated = true;
+        if (currentPhase === 2) session.phase2Generated = true;
+        if (currentPhase === 3) session.phase3Generated = true;
+        saveSession(session);
+        setSession({ ...session });
+      }
       setIsGenerating(false);
     }
   };
@@ -527,7 +565,35 @@ function FormsContent() {
           </ul>
         </div>
         <Link href="/qualify" className="inline-block rounded-full bg-[#c59d5f] px-6 py-3 text-white hover:bg-[#d4ac6e]">
-          Start New Session ($20)
+          Start New Session ($29)
+        </Link>
+      </div>
+    </div>
+  );
+
+  // Expired session screen - 12-month window elapsed
+  if (isExpired) return (
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4">
+      <div className="max-w-md text-center">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-200">
+          <svg className="h-8 w-8 text-zinc-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-bold text-zinc-900 mb-4">Session Expired</h2>
+        <p className="text-zinc-600 mb-6">
+          Your 12-month access window has elapsed. If you still need to generate documents, you can start a new session.
+        </p>
+        <div className="bg-zinc-100 rounded-xl p-4 text-left text-sm text-zinc-700 mb-6">
+          <p className="font-semibold mb-2">Please note:</p>
+          <ul className="space-y-1">
+            <li>• A new session requires re-entry of all information</li>
+            <li>• Previously downloaded documents remain valid — check your saved files</li>
+            <li>• For technical support, email admin@divorcegpt.com</li>
+          </ul>
+        </div>
+        <Link href="/qualify" className="inline-block rounded-full bg-[#c59d5f] px-6 py-3 text-white hover:bg-[#d4ac6e]">
+          Start New Session ($39)
         </Link>
       </div>
     </div>
