@@ -699,10 +699,10 @@ function FormsContent() {
   );
 
   return (
-    <div className={`flex h-screen flex-col overflow-hidden ${allComplete ? 'bg-green-50' : 'bg-zinc-50'}`}>
+    <div className={`flex h-screen flex-col overflow-hidden ${allComplete ? 'bg-green-50' : 'bg-zinc-50'}`} style={{ overscrollBehaviorX: 'none', touchAction: 'pan-y' }}>
       <header className={`sticky top-0 z-50 border-b ${allComplete ? 'border-green-200 bg-green-50/80' : 'border-zinc-100 bg-white/80'} backdrop-blur-sm`}>
         <div className="mx-auto flex h-12 max-w-7xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <div className={`flex h-8 w-8 items-center justify-center rounded-full ${allComplete ? 'bg-gradient-to-br from-green-600 to-green-500' : 'bg-gradient-to-br from-[#1a365d] to-[#2c5282]'}`}>
               <span className="text-sm">{allComplete ? '✓' : '⚖️'}</span>
             </div>
@@ -712,7 +712,7 @@ function FormsContent() {
                 {allComplete ? 'All Phases Complete!' : `Phase ${currentPhase}: ${currentPhase === 1 ? 'Commencement' : currentPhase === 2 ? 'Submission' : 'Post-Judgment'}`}
               </p>
             </div>
-          </Link>
+          </div>
           <div className="flex items-center gap-3">
             {/* Desktop-only sidebar toggle */}
             <button 
@@ -837,7 +837,7 @@ function FormsContent() {
       <main className="flex flex-1 flex-col lg:flex-row lg:overflow-hidden">
         {/* Chat area - always visible on desktop, tab-controlled on mobile */}
         <div className={`flex-1 flex-col ${showSidebar ? 'lg:w-2/3' : 'lg:w-full'} ${showSidebar ? 'lg:border-r lg:border-zinc-200' : ''} lg:overflow-hidden lg:flex ${mobileTab === 'chat' ? 'flex' : 'hidden lg:flex'}`}>
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6" style={{ overscrollBehaviorX: 'none' }}>
             <div className="mx-auto max-w-2xl space-y-4">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
