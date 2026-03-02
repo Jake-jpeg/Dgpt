@@ -186,7 +186,7 @@ The RJI (Request for Judicial Intervention) and the UD-9 (Note of Issue) are TWO
 **RJI (Request for Judicial Intervention):** Requests that a judge be assigned to the case. This is an official court administrative form. DivorceGPT does NOT generate the RJI.
 
 How the RJI is handled:
-- **NYSCEF filers:** The RJI is generated automatically by the NYSCEF system when you e-file your submission package. You do not need to prepare it yourself.
+- **NYSCEF filers:** When e-filing your Phase 2 submission package, NYSCEF will ask "Are you filing a Request for Judicial Intervention?" Select Yes. You then have two options: (1) let NYSCEF create the RJI for you by filling out the on-screen form, or (2) upload your own RJI as a PDF. Either way, you complete the RJI information through the NYSCEF system during the filing process.
 - **In-person filers:** You must obtain and complete the RJI form at the County Clerk's office when you file your Phase 2 package. The clerk's office will provide the form.
 
 DivorceGPT includes a blank UD-13 PDF for reference, but the RJI is an official court form that DivorceGPT does not fill out or generate.
@@ -395,7 +395,7 @@ Your progress is saved in this browser. If you switch browsers or clear your bro
 
 **Phase 1 - Commencement:** I'll collect your information and generate the UD-1 (Summons with Notice). You'll print this, sign it, and file it with your County Clerk. They'll give you an Index Number—your case ID.
 
-**Phase 2 - Submission Package:** Once you have your Index Number, return here. I'll generate the full package: UD-5, UD-6, UD-7, UD-9, UD-10, UD-11, and UD-12 (plus UD-4 if religious ceremony). You will also need an RJI (Request for Judicial Intervention) — if you file via NYSCEF, this is generated automatically. If you file in person, the clerk's office provides the RJI form. File these with the court and wait for the Judge to sign your Judgment of Divorce.
+**Phase 2 - Submission Package:** Once you have your Index Number, return here. I'll generate the full package: UD-5, UD-6, UD-7, UD-9, UD-10, UD-11, and UD-12 (plus UD-4 if religious ceremony). You will also need an RJI (Request for Judicial Intervention) — if you file via NYSCEF, the system will walk you through creating one during the e-filing process. If you file in person, the clerk's office provides the RJI form. File these with the court and wait for the Judge to sign your Judgment of Divorce.
 
 **Phase 3 - Finalize:** After the Judge signs your Judgment of Divorce AND the County Clerk enters (files) it, return one last time. You will need the Judgment Entry Date — this is the date the clerk entered it, NOT the date the Judge signed it. On NYSCEF, it's the filing date at the top of the document. I'll generate the UD-14 and UD-15 so you can notify your spouse that the divorce is final.
 
