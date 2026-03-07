@@ -75,9 +75,11 @@ export const dictionary = {
         support: { q: "Is either spouse asking for spousal maintenance (alimony)?", d: "Either now or in the future." },
         uncontested: { q: "Is the divorce uncontested and do both spouses agree to end the marriage?", d: "Both parties want the divorce and agree on all terms." },
         cooperation: { q: "Will the other spouse cooperate with signing or service of papers?", d: "Spouse will sign acknowledgment or accept service." },
-        military: { q: "Is your spouse currently serving in the U.S. military?", d: "Active duty, reserves on active orders, or National Guard on federal activation." }
+        military: { q: "Is your spouse currently serving in the U.S. military?", d: "Active duty, reserves on active orders, or National Guard on federal activation." },
+        domesticViolence: { q: "Has there been any domestic violence case, restraining order, or order of protection between you and your spouse?", d: "This includes any current or past TRO, final restraining order, order of protection, or DV complaint — even if it was dismissed or withdrawn." }
       },
       militaryDisqualification: "DivorceGPT cannot prepare documents for cases where a spouse is currently serving in the U.S. military.\n\nActive duty service members have special legal protections under the Servicemembers Civil Relief Act (SCRA), including protections against default judgments. These cases require additional procedural steps and court oversight that fall outside the scope of this document preparation service.\n\nWe recommend consulting with a family law attorney who handles military divorce cases.",
+      dvDisqualification: "DivorceGPT cannot prepare documents for cases involving domestic violence history between the parties.\n\nDomestic violence cases — including active or past restraining orders, orders of protection, or DV complaints — create legal complexities that fall outside the scope of this document preparation service. These may include address confidentiality requirements, modified service procedures, custody presumptions, and mandatory court disclosures.\n\nEven if the order was dismissed or has expired, the history must be disclosed on court forms and may affect how the court processes your case.\n\nWe recommend consulting with a family law attorney experienced in domestic violence matters. If you are in danger, contact the National Domestic Violence Hotline at 1-800-799-7233.",
       disclosure: {
         title: "What DivorceGPT Does",
         description: "DivorceGPT is a document preparation service. It uses the official forms promulgated by the New York State Unified Court System.",
@@ -246,9 +248,11 @@ export const dictionary = {
         support: { q: "¿Alguno de los cónyuges está solicitando manutención (pensión alimenticia)?", d: "Ya sea ahora o en el futuro." },
         uncontested: { q: "¿El divorcio es de mutuo acuerdo y ambos cónyuges aceptan terminar el matrimonio?", d: "Ambas partes quieren el divorcio y están de acuerdo en todos los términos." },
         cooperation: { q: "¿Cooperará el otro cónyuge firmando o aceptando los documentos?", d: "El cónyuge firmará el reconocimiento o aceptará la notificación (Service of Process)." },
-        military: { q: "¿Su cónyuge está actualmente sirviendo en el ejército de EE.UU.?", d: "Servicio activo, reservas en órdenes activas, o Guardia Nacional en activación federal." }
+        military: { q: "¿Su cónyuge está actualmente sirviendo en el ejército de EE.UU.?", d: "Servicio activo, reservas en órdenes activas, o Guardia Nacional en activación federal." },
+        domesticViolence: { q: "¿Ha habido algún caso de violencia doméstica, orden de restricción u orden de protección entre usted y su cónyuge?", d: "Esto incluye cualquier TRO actual o pasada, orden de restricción final, orden de protección o denuncia de violencia doméstica, incluso si fue desestimada o retirada." }
       },
       militaryDisqualification: "DivorceGPT no puede preparar documentos para casos donde un cónyuge está actualmente sirviendo en el ejército de EE.UU.\n\nLos miembros del servicio activo tienen protecciones legales especiales bajo la Ley de Alivio Civil para Miembros del Servicio (SCRA), incluyendo protecciones contra sentencias en rebeldía. Estos casos requieren pasos procesales adicionales y supervisión judicial que están fuera del alcance de este servicio de preparación de documentos.\n\nRecomendamos consultar con un abogado de derecho familiar que maneje casos de divorcio militar.",
+      dvDisqualification: "DivorceGPT no puede preparar documentos para casos que involucren historial de violencia doméstica entre las partes.\n\nLos casos de violencia doméstica — incluyendo órdenes de restricción activas o pasadas, órdenes de protección o denuncias de violencia doméstica — crean complejidades legales que están fuera del alcance de este servicio de preparación de documentos. Estos pueden incluir requisitos de confidencialidad de dirección, procedimientos de notificación modificados, presunciones de custodia y divulgaciones obligatorias ante el tribunal.\n\nIncluso si la orden fue desestimada o ha expirado, el historial debe ser divulgado en los formularios judiciales y puede afectar cómo el tribunal procesa su caso.\n\nRecomendamos consultar con un abogado de derecho familiar con experiencia en asuntos de violencia doméstica. Si está en peligro, comuníquese con la Línea Nacional de Violencia Doméstica al 1-800-799-7233.",
       disclosure: {
         title: "Qué Hace DivorceGPT",
         description: "DivorceGPT es un servicio de preparación de documentos. Utiliza los formularios oficiales promulgados por el Sistema de Tribunales Unificados del Estado de Nueva York.",
@@ -417,9 +421,11 @@ export const dictionary = {
         support: { q: "任一配偶是否在申请配偶赡养费？", d: "无论是现在还是将来。" },
         uncontested: { q: "离婚是否无争议，且双方都同意结束婚姻？", d: "双方都想要离婚并同意所有条款。" },
         cooperation: { q: "另一方配偶是否会配合签署或接收文件？", d: "配偶将签署确认书或接受法律送达。" },
-        military: { q: "您的配偶目前是否在美国军队服役？", d: "现役、现役命令下的预备役、或联邦激活的国民警卫队。" }
+        military: { q: "您的配偶目前是否在美国军队服役？", d: "现役、现役命令下的预备役、或联邦激活的国民警卫队。" },
+        domesticViolence: { q: "您和配偶之间是否有过任何家庭暴力案件、限制令或保护令？", d: "这包括任何当前或过去的临时限制令、最终限制令、保护令或家庭暴力投诉——即使已被驳回或撤回。" }
       },
       militaryDisqualification: "DivorceGPT 无法为配偶目前在美国军队服役的案件准备文件。\n\n现役军人根据《军人民事救济法》(SCRA) 享有特殊法律保护，包括针对缺席判决的保护。这些案件需要额外的程序步骤和法院监督，超出了本文件准备服务的范围。\n\n我们建议咨询处理军人离婚案件的家庭法律师。",
+      dvDisqualification: "DivorceGPT 无法为涉及双方家庭暴力历史的案件准备文件。\n\n家庭暴力案件——包括当前或过去的限制令、保护令或家庭暴力投诉——会产生超出本文件准备服务范围的法律复杂性。这些可能包括地址保密要求、修改后的送达程序、监护权推定和强制性法院披露。\n\n即使该命令已被驳回或已过期，该历史也必须在法庭表格上披露，并可能影响法院处理您案件的方式。\n\n我们建议咨询有家庭暴力事务经验的家庭法律师。如果您处于危险之中，请联系全国家庭暴力热线 1-800-799-7233。",
       disclosure: {
         title: "DivorceGPT 的功能",
         description: "DivorceGPT 是一项文件准备服务。它使用纽约州统一法院系统颁布的官方表格。",
@@ -588,9 +594,11 @@ export const dictionary = {
         support: { q: "배우자 중 한 명이 배우자 부양비(위자료)를 요청하고 있습니까?", d: "현재 또는 미래에." },
         uncontested: { q: "합의 이혼이며 양측 모두 결혼 생활 종료에 동의합니까?", d: "양측 모두 이혼을 원하며 모든 조건에 동의합니다." },
         cooperation: { q: "상대방 배우자가 서류 서명 또는 송달에 협조할 것입니까?", d: "배우자가 확인서에 서명하거나 법적 송달(Service)을 수락할 것입니다." },
-        military: { q: "배우자가 현재 미국 군에서 복무 중입니까?", d: "현역, 현역 명령 하의 예비역, 또는 연방 활성화된 주방위군." }
+        military: { q: "배우자가 현재 미국 군에서 복무 중입니까?", d: "현역, 현역 명령 하의 예비역, 또는 연방 활성화된 주방위군." },
+        domesticViolence: { q: "귀하와 배우자 사이에 가정폭력 사건, 접근금지 명령, 또는 보호 명령이 있었습니까?", d: "현재 또는 과거의 임시 접근금지 명령, 최종 접근금지 명령, 보호 명령 또는 가정폭력 신고를 포함합니다 — 기각되었거나 철회된 경우도 포함됩니다." }
       },
       militaryDisqualification: "DivorceGPT는 배우자가 현재 미국 군에서 복무 중인 경우 서류를 준비할 수 없습니다.\n\n현역 군인은 군인민사구제법(SCRA)에 따라 궐석 판결에 대한 보호를 포함한 특별한 법적 보호를 받습니다. 이러한 사건은 이 문서 준비 서비스의 범위를 벗어나는 추가적인 절차 단계와 법원 감독이 필요합니다.\n\n군인 이혼 사건을 처리하는 가정법 변호사와 상담하시기 바랍니다.",
+      dvDisqualification: "DivorceGPT는 당사자 간에 가정폭력 이력이 있는 사건에 대해 서류를 준비할 수 없습니다.\n\n가정폭력 사건 — 현재 또는 과거의 접근금지 명령, 보호 명령, 또는 가정폭력 신고를 포함 — 은 이 문서 준비 서비스의 범위를 벗어나는 법적 복잡성을 만듭니다. 이에는 주소 기밀 요건, 수정된 송달 절차, 양육권 추정 및 법원 의무 공개가 포함될 수 있습니다.\n\n명령이 기각되었거나 만료된 경우에도 해당 이력은 법원 양식에 공개되어야 하며 법원이 귀하의 사건을 처리하는 방식에 영향을 줄 수 있습니다.\n\n가정폭력 문제에 경험이 있는 가정법 변호사와 상담하시기 바랍니다. 위험한 상황에 있다면 전국 가정폭력 핫라인 1-800-799-7233으로 연락하십시오.",
       disclosure: {
         title: "DivorceGPT가 하는 일",
         description: "DivorceGPT는 문서 준비 서비스입니다. 뉴욕주 통합 법원 시스템에서 공포한 공식 양식을 사용합니다.",
@@ -759,9 +767,11 @@ export const dictionary = {
         support: { q: "Требует ли кто-либо из супругов алименты на содержание супруга?", d: "Сейчас или в будущем." },
         uncontested: { q: "Является ли развод бесспорным и согласны ли оба супруга?", d: "Обе стороны хотят развода и согласны со всеми условиями." },
         cooperation: { q: "Будет ли другой супруг сотрудничать при подписании документов?", d: "Супруг подпишет подтверждение или примет вручение (Service) документов." },
-        military: { q: "Служит ли ваш супруг в настоящее время в вооружённых силах США?", d: "Действующая служба, резерв на активных приказах или Национальная гвардия на федеральной активации." }
+        military: { q: "Служит ли ваш супруг в настоящее время в вооружённых силах США?", d: "Действующая служба, резерв на активных приказах или Национальная гвардия на федеральной активации." },
+        domesticViolence: { q: "Были ли между вами и вашим супругом случаи домашнего насилия, запретительные ордера или ордера защиты?", d: "Включает любые текущие или прошлые временные запретительные ордера, постоянные запретительные ордера, ордера защиты или жалобы на домашнее насилие — даже если они были отклонены или отозваны." }
       },
       militaryDisqualification: "DivorceGPT не может подготовить документы для случаев, когда супруг в настоящее время служит в вооружённых силах США.\n\nВоеннослужащие имеют особые правовые защиты в соответствии с Законом о гражданской помощи военнослужащим (SCRA), включая защиту от заочных решений. Такие дела требуют дополнительных процессуальных шагов и судебного надзора, которые выходят за рамки данной услуги по подготовке документов.\n\nМы рекомендуем проконсультироваться с адвокатом по семейному праву, который занимается делами о разводе военнослужащих.",
+      dvDisqualification: "DivorceGPT не может подготовить документы для дел, связанных с историей домашнего насилия между сторонами.\n\nДела о домашнем насилии — включая действующие или прошлые запретительные ордера, ордера защиты или жалобы на домашнее насилие — создают юридические сложности, выходящие за рамки данной услуги подготовки документов. Они могут включать требования конфиденциальности адреса, изменённые процедуры вручения, презумпции опеки и обязательные раскрытия в суде.\n\nДаже если ордер был отклонён или истёк, эта история должна быть раскрыта в судебных формах и может повлиять на рассмотрение вашего дела судом.\n\nМы рекомендуем проконсультироваться с адвокатом по семейному праву, имеющим опыт в делах домашнего насилия. Если вы в опасности, обратитесь на Национальную горячую линию домашнего насилия: 1-800-799-7233.",
       disclosure: {
         title: "Что делает DivorceGPT",
         description: "DivorceGPT — это служба подготовки документов. Она использует официальные формы, установленные Единой судебной системой штата Нью-Йорк.",
@@ -930,9 +940,11 @@ export const dictionary = {
         support: { q: "Èske youn nan mari oswa madanm yo ap mande sipò (alimony)?", d: "Swa kounye a oswa nan lavni." },
         uncontested: { q: "Èske divòs la san kontestasyon epi èske nou tou de dakò pou fini maryaj la?", d: "Tou de pati yo vle divòs la epi yo dakò sou tout kondisyon yo." },
         cooperation: { q: "Èske lòt mari oswa madanm nan ap kowopere pou siyen oswa resevwa papye yo?", d: "Mari oswa madanm nan pral siyen papye yo oswa aksepte sèvis la (Service of Process)." },
-        military: { q: "Èske mari oswa madanm ou ap sèvi nan lame Etazini kounye a?", d: "Sèvis aktif, rezèv sou lòd aktif, oswa Gad Nasyonal sou aktivasyon federal." }
+        military: { q: "Èske mari oswa madanm ou ap sèvi nan lame Etazini kounye a?", d: "Sèvis aktif, rezèv sou lòd aktif, oswa Gad Nasyonal sou aktivasyon federal." },
+        domesticViolence: { q: "Èske te gen nenpòt ka vyolans domestik, lòd restriksyon, oswa lòd pwoteksyon ant ou menm ak mari oswa madanm ou?", d: "Sa gen ladan nenpòt TRO aktyèl oswa pase, lòd restriksyon final, lòd pwoteksyon, oswa plent vyolans domestik — menm si li te rejte oswa retire." }
       },
       militaryDisqualification: "DivorceGPT pa ka prepare dokiman pou ka kote yon mari oswa madanm ap sèvi nan lame Etazini kounye a.\n\nManm sèvis aktif yo gen pwoteksyon legal espesyal anba Lwa sou Sekou Sivil pou Manm Sèvis (SCRA), ki gen ladan pwoteksyon kont jijman pa defo. Ka sa yo mande etap pwosedi adisyonèl ak sipèvizyon tribinal ki pa nan domèn sèvis preparasyon dokiman sa a.\n\nNou rekòmande pou konsilte yon avoka nan lwa fanmi ki jere ka divòs militè.",
+      dvDisqualification: "DivorceGPT pa ka prepare dokiman pou ka ki gen istwa vyolans domestik ant pati yo.\n\nKa vyolans domestik — ki gen ladan lòd restriksyon aktyèl oswa pase, lòd pwoteksyon, oswa plent vyolans domestik — kreye konplikasyon legal ki pa nan domèn sèvis preparasyon dokiman sa a. Sa yo ka gen ladan egzijans konfidansyalite adrès, pwosedi sèvis modifye, sipozisyon gadyen, ak obligasyon divilgasyon nan tribinal.\n\nMenm si lòd la te rejte oswa ekspire, istwa a dwe divilge sou fòm tribinal yo epi ka afekte fason tribinal la trete ka ou a.\n\nNou rekòmande pou konsilte yon avoka nan lwa fanmi ki gen eksperyans nan kesyon vyolans domestik. Si ou an danje, kontakte Liy Nasyonal Vyolans Domestik nan 1-800-799-7233.",
       disclosure: {
         title: "Kisa DivorceGPT Fè",
         description: "DivorceGPT se yon sèvis preparasyon dokiman. Li itilize fòm ofisyèl ki pibliye pa Sistèm Tribinal Inifye Eta New York.",
