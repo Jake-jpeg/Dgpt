@@ -54,7 +54,7 @@ const states = [
 // URL is https://www.youtube.com/watch?v=dQw4w9WgXcQ
 // then set this to "dQw4w9WgXcQ"
 // ============================================================
-const YOUTUBE_VIDEO_ID = "nA9bf64rrA8";
+const YOUTUBE_VIDEO_ID = "YOUR_VIDEO_ID_HERE";
 
 export default function Home() {
   const { lang, setLang, t } = useLanguage();
@@ -139,13 +139,23 @@ export default function Home() {
           {/* YouTube Video Embed */}
           <div className="mx-auto max-w-3xl">
             <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/40 ring-1 ring-white/10 aspect-video bg-black">
-              <iframe
-                src={`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?rel=0&modestbranding=1`}
-                title="DivorceGPT Demo"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute inset-0 w-full h-full"
-              />
+              {YOUTUBE_VIDEO_ID !== "YOUR_VIDEO_ID_HERE" ? (
+                <iframe
+                  src={`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?rel=0&modestbranding=1`}
+                  title="DivorceGPT Demo"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full"
+                />
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-400">
+                  <svg className="h-16 w-16 mb-4 opacity-40" fill="none" viewBox="0 0 24 24" strokeWidth="1" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+                  </svg>
+                  <p className="text-sm font-medium">Demo video coming soon</p>
+                  <p className="text-xs mt-1 text-zinc-500">Replace YOUR_VIDEO_ID_HERE in page.tsx</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
