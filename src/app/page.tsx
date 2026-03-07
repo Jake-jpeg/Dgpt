@@ -14,6 +14,48 @@ const languages = [
   { code: "ht", label: "Kreyòl Ayisyen" },
 ];
 
+const states = [
+  {
+    code: "ny",
+    name: "New York",
+    abbr: "NY",
+    live: true,
+    href: "/ny",
+    tagline: "Uncontested divorce filing — no lawyer needed.",
+    price: "$29",
+    counties: "All 62 counties",
+  },
+  {
+    code: "nj",
+    name: "New Jersey",
+    abbr: "NJ",
+    live: false,
+    href: "/nj",
+    tagline: "Uncontested divorce filing for New Jersey.",
+    price: "$29",
+    counties: "All 21 counties",
+  },
+  {
+    code: "nv",
+    name: "Nevada",
+    abbr: "NV",
+    live: false,
+    href: "/nv",
+    tagline: "Uncontested divorce filing for Nevada.",
+    price: "$29",
+    counties: "All 17 counties",
+  },
+];
+
+// ============================================================
+// YOUTUBE VIDEO ID
+// After uploading your demo to YouTube, replace this value
+// with the video ID from the URL. For example, if your video
+// URL is https://www.youtube.com/watch?v=dQw4w9WgXcQ
+// then set this to "dQw4w9WgXcQ"
+// ============================================================
+const YOUTUBE_VIDEO_ID = "YOUR_VIDEO_ID_HERE";
+
 export default function Home() {
   const { lang, setLang, t } = useLanguage();
   const [mounted, setMounted] = useState(false);
@@ -22,7 +64,6 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  // Show loading state during SSR/hydration
   if (!mounted || !t) {
     return (
       <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
@@ -33,7 +74,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      {/* Header - Clean, no nav links */}
+      {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-sm bg-white/80 border-b border-zinc-100">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
@@ -43,15 +84,14 @@ export default function Home() {
               </div>
               <div>
                 <h1 className="text-lg font-semibold text-zinc-900">DivorceGPT</h1>
-                <p className="text-xs text-zinc-500">{t.hero.title}</p>
+                <p className="text-xs text-zinc-500">AI-Powered Document Preparation</p>
               </div>
             </div>
             
-            {/* Mobile-friendly Language Select */}
             <select 
               value={lang} 
               onChange={(e) => setLang(e.target.value as Locale)}
-              className="ml-auto rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 focus:border-[#c59d5f] focus:outline-none"
+              className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 focus:border-[#c59d5f] focus:outline-none"
             >
               {languages.map((l) => (
                 <option key={l.code} value={l.code}>{l.label}</option>
@@ -61,70 +101,160 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#1a365d] via-[#1e3a5f] to-[#234876] pt-16 pb-32">
+      {/* Hero with Video */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#1a365d] via-[#1e3a5f] to-[#234876] pt-16 pb-24">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-[#c59d5f]/10 blur-3xl" />
           <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-[#c59d5f]/10 blur-3xl" />
         </div>
         
-        <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            {t.hero.title}
-          </h2>
-          <p className="mt-2 text-2xl font-semibold text-[#c59d5f] sm:text-3xl">{t.hero.subtitle}</p>
-          <p className="mt-6 text-lg text-zinc-300 max-w-2xl mx-auto">
-            {t.hero.description}
-          </p>
-          
-          {/* Language Buttons (Desktop) */}
-          <div className="mt-10 flex flex-wrap justify-center gap-2">
-            {languages.map((l) => (
-              <button
-                key={l.code}
-                onClick={() => setLang(l.code as Locale)}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                  lang === l.code
-                    ? "bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30"
-                    : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white backdrop-blur-sm"
+        <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+              Uncontested Divorce
+            </h2>
+            <p className="mt-2 text-2xl font-semibold text-[#c59d5f] sm:text-3xl">Made Simple</p>
+            <p className="mt-6 text-lg text-zinc-300 max-w-2xl mx-auto">
+              {t.hero.description}
+            </p>
+            
+            {/* Language Buttons */}
+            <div className="mt-8 flex flex-wrap justify-center gap-2">
+              {languages.map((l) => (
+                <button
+                  key={l.code}
+                  onClick={() => setLang(l.code as Locale)}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                    lang === l.code
+                      ? "bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30"
+                      : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white backdrop-blur-sm"
+                  }`}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* YouTube Video Embed */}
+          <div className="mx-auto max-w-3xl">
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/40 ring-1 ring-white/10 aspect-video bg-black">
+              {YOUTUBE_VIDEO_ID !== "YOUR_VIDEO_ID_HERE" ? (
+                <iframe
+                  src={`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?rel=0&modestbranding=1`}
+                  title="DivorceGPT Demo"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full"
+                />
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-400">
+                  <svg className="h-16 w-16 mb-4 opacity-40" fill="none" viewBox="0 0 24 24" strokeWidth="1" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+                  </svg>
+                  <p className="text-sm font-medium">Demo video coming soon</p>
+                  <p className="text-xs mt-1 text-zinc-500">Replace YOUR_VIDEO_ID_HERE in page.tsx</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Select Your State */}
+      <section className="py-24 bg-white">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">Select Your State</h3>
+            <p className="mt-4 text-lg text-zinc-600">Choose your state to begin preparing your uncontested divorce documents.</p>
+          </div>
+
+          <div className="grid gap-8 md:grid-cols-3">
+            {states.map((state) => (
+              <Link
+                key={state.code}
+                href={state.href}
+                className={`group relative rounded-2xl p-8 transition-all duration-300 ${
+                  state.live
+                    ? "bg-gradient-to-b from-[#1a365d] to-[#234876] text-white shadow-xl shadow-[#1a365d]/20 hover:shadow-2xl hover:shadow-[#1a365d]/30 hover:-translate-y-1"
+                    : "bg-zinc-50 text-zinc-900 ring-1 ring-zinc-200 hover:ring-zinc-300 hover:shadow-lg"
                 }`}
               >
-                {l.label}
-              </button>
+                {/* State badge */}
+                <div className={`inline-flex h-14 w-14 items-center justify-center rounded-xl text-xl font-bold ${
+                  state.live
+                    ? "bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30"
+                    : "bg-zinc-200 text-zinc-400"
+                }`}>
+                  {state.abbr}
+                </div>
+
+                {/* State name + status */}
+                <div className="mt-6">
+                  <h4 className={`text-2xl font-bold ${state.live ? "text-white" : "text-zinc-900"}`}>
+                    {state.name}
+                  </h4>
+                  {state.live ? (
+                    <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-green-500/20 px-3 py-1 text-xs font-semibold text-green-300">
+                      <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+                      Live Now
+                    </span>
+                  ) : (
+                    <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-500">
+                      Coming Soon
+                    </span>
+                  )}
+                </div>
+
+                {/* Details */}
+                <p className={`mt-4 text-sm ${state.live ? "text-zinc-300" : "text-zinc-500"}`}>
+                  {state.tagline}
+                </p>
+                
+                <div className={`mt-6 flex items-center justify-between border-t pt-4 ${
+                  state.live ? "border-white/10" : "border-zinc-200"
+                }`}>
+                  <span className={`text-sm ${state.live ? "text-zinc-400" : "text-zinc-400"}`}>
+                    {state.counties}
+                  </span>
+                  {state.live && (
+                    <span className="text-lg font-bold text-[#c59d5f]">{state.price}</span>
+                  )}
+                </div>
+
+                {/* Arrow indicator for live states */}
+                {state.live && (
+                  <div className="absolute top-8 right-8 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition-all duration-200 group-hover:bg-[#c59d5f] group-hover:shadow-lg">
+                    <svg className="h-5 w-5 text-white transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </div>
+                )}
+              </Link>
             ))}
           </div>
 
-          <div className="mt-10">
-            <Link
-              href="/qualify"
-              className="group inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-[#c59d5f]/30 transition-all duration-200 hover:bg-[#d4ac6e] hover:shadow-2xl hover:shadow-[#c59d5f]/40 hover:-translate-y-0.5"
-            >
-              {t.hero.cta}
-              <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
-            </Link>
-          </div>
-          
-          <p className="mt-4 text-sm text-zinc-400">{t.hero.fee}</p>
+          <p className="mt-12 text-center text-sm text-zinc-400">
+            More states coming soon. DivorceGPT is expanding nationwide.
+          </p>
         </div>
       </section>
 
       {/* How It Works */}
-      <section className="py-24 bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
+      <section className="py-24 bg-zinc-50">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
             <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">{t.howItWorks.title}</h3>
             <p className="mt-4 text-lg text-zinc-600">{t.howItWorks.subtitle}</p>
           </div>
           
-          <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {t.howItWorks.steps.map((step, index) => (
               <div key={index} className="relative">
                 {index < t.howItWorks.steps.length - 1 && (
                   <div className="hidden lg:block absolute top-8 left-[60%] w-full h-0.5 bg-gradient-to-r from-[#c59d5f] to-transparent" />
                 )}
-                <div className="relative rounded-2xl bg-zinc-50 p-8 transition-all duration-200 hover:bg-zinc-100 hover:shadow-lg">
+                <div className="relative rounded-2xl bg-white p-8 transition-all duration-200 hover:shadow-lg">
                   <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-xl font-bold text-white shadow-lg shadow-[#1a365d]/20">
                     {index + 1}
                   </div>
@@ -137,80 +267,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How to Use - Now 4 columns */}
-      <section className="py-24 bg-zinc-50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">{t.howToUse.title}</h3>
-            <p className="mt-4 text-lg text-zinc-600">{t.howToUse.subtitle}</p>
-          </div>
-          
-          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {t.howToUse.cards.map((card, index) => (
-              <div key={index} className="group rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-100 transition-all duration-200 hover:shadow-xl hover:ring-[#c59d5f]/20 hover:-translate-y-1">
-                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-white shadow-lg shadow-[#1a365d]/20 transition-transform duration-200 group-hover:scale-110">
-                   <span className="text-xl">{index === 0 ? '📝' : '💡'}</span>
-                 </div>
-                 <h4 className="mt-6 text-lg font-semibold text-zinc-900">{card.title}</h4>
-                 <p className="mt-2 text-sm text-zinc-600">{card.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Eligibility Section */}
-      <section className="py-24 bg-gradient-to-b from-[#1a365d] via-[#1e3a5f] to-[#234876]">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-          <h3 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{t.eligibilitySection.title}</h3>
-          <p className="mt-4 text-lg text-zinc-300">{t.eligibilitySection.subtitle}</p>
-          
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 text-left max-w-2xl mx-auto">
-            {t.eligibilitySection.items.map((item, index) => (
-              <div key={index} className="flex items-center gap-3 rounded-xl bg-white/10 backdrop-blur-sm px-4 py-3 ring-1 ring-white/10">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#c59d5f] text-white">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                </div>
-                <span className="text-white">{item}</span>
-              </div>
-            ))}
-          </div>
-          
-          <div className="mt-12">
-            <Link
-              href="/qualify"
-              className="group inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-[#c59d5f]/30 transition-all duration-200 hover:bg-[#d4ac6e] hover:shadow-2xl hover:-translate-y-0.5"
-            >
-              {t.eligibilitySection.cta}
-              <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="py-24 bg-white">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">{t.faq.title}</h3>
-          </div>
-          
-          <div className="mt-12 space-y-4">
-            {t.faq.items.map((faq, index) => (
-              <div key={index} className="rounded-2xl bg-zinc-50 p-6 transition-all duration-200 hover:bg-zinc-100">
-                <h4 className="text-lg font-semibold text-zinc-900">{faq.q}</h4>
-                <p className="mt-2 text-zinc-600">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Footer - Original Design Restored */}
+      {/* Footer */}
       <footer className="border-t border-zinc-100 bg-zinc-50 py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
