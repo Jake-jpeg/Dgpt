@@ -34,6 +34,7 @@ export interface StateConfig {
   stripeProductDescription: string;
   phaseLabels: { 1: string; 2: string; 3: string };
   phaseForms: { 1: FormDef[]; 2: FormDef[]; 3: FormDef[] };
+  breakdownMonths?: number;
 }
 
 // Import all state configs
