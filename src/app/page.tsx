@@ -45,6 +45,36 @@ const states = [
     price: "$29",
     counties: "All 17 counties",
   },
+  {
+    code: "ut",
+    name: "Utah",
+    abbr: "UT",
+    live: false,
+    href: "#",
+    tagline: "Uncontested divorce filing for Utah.",
+    price: "$29",
+    counties: "All 29 counties",
+  },
+  {
+    code: "wy",
+    name: "Wyoming",
+    abbr: "WY",
+    live: false,
+    href: "#",
+    tagline: "Uncontested divorce filing for Wyoming.",
+    price: "$29",
+    counties: "All 23 counties",
+  },
+  {
+    code: "id",
+    name: "Idaho",
+    abbr: "ID",
+    live: false,
+    href: "#",
+    tagline: "Uncontested divorce filing for Idaho.",
+    price: "$29",
+    counties: "All 44 counties",
+  },
 ];
 
 // ============================================================
@@ -159,7 +189,7 @@ export default function Home() {
             <p className="mt-4 text-lg text-zinc-600">Choose your state to begin preparing your uncontested divorce documents.</p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {states.map((state) => (
               <Link
                 key={state.code}
@@ -225,7 +255,7 @@ export default function Home() {
           </div>
 
           <p className="mt-12 text-center text-sm text-zinc-400">
-            More states coming soon. DivorceGPT is expanding nationwide.
+            DivorceGPT is expanding nationwide — all 50 states.
           </p>
         </div>
       </section>

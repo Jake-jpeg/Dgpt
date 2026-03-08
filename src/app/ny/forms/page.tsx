@@ -332,7 +332,7 @@ function FormsContent() {
       
       setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
     } catch { setMessages(prev => [...prev, { role: "assistant", content: "Sorry, something went wrong." }]); }
-    finally { setIsLoading(false); inputRef.current?.focus(); }
+    finally { setIsLoading(false); if (!isMobile) inputRef.current?.focus(); }
   };
 
   const advancePhase = () => {
