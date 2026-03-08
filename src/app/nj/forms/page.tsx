@@ -396,7 +396,7 @@ function FormsContent() {
         };
         
         try {
-          const res = await fetch(`${PDF_SERVICE_URL}/generate/nj/complaint-package`, {
+          const res = await fetch(`${PDF_SERVICE_URL}/generate/nj/phase1-package`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(formData),

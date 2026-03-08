@@ -291,12 +291,30 @@ export async function POST(
 
           if (field === 'plaintiffPhone') {
             const digits = value.replace(/\D/g, '');
-            if (digits.length < 10) {
-              validationWarning = `Please provide a complete 10-digit phone number.`;
+            // Accept 10-digit US numbers as-is
+            if (digits.length === 10) {
+              extractedData[field] = value;
               continue;
             }
-            if (digits.length > 11 || (digits.length === 11 && digits[0] !== '1')) {
-              validationWarning = `Phone number format not recognized. Please use format like (555) 123-4567.`;
+            // Accept 11-digit with leading 1 (US country code)
+            if (digits.length === 11 && digits[0] === '1') {
+              extractedData[field] = value;
+              continue;
+            }
+            // Accept 9 digits — likely missing leading digit, still save it
+            // (court needs a contact number, imperfect is better than empty)
+            if (digits.length === 9) {
+              validationWarning = `That appears to be 9 digits. If this is a US number, it should be 10 digits (area code + 7 digits). Please verify. If it's an international number, include your country code.`;
+              extractedData[field] = value; // Save it anyway — user can correct
+              continue;
+            }
+            if (digits.length < 9) {
+              validationWarning = `Please provide a complete phone number (10 digits for US, or include country code for international).`;
+              continue;
+            }
+            // International numbers (12+ digits) — accept them
+            if (digits.length > 11) {
+              extractedData[field] = value;
               continue;
             }
             extractedData[field] = value;
