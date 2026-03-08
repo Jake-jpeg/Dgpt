@@ -297,6 +297,24 @@ function FormsContent() {
       if (data.isTerminated) {
         setIsTerminated(true);
         setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+        
+        // Send termination alert to admin
+        try {
+          const triggerMsg = userMessage;
+          const allMsgs = [...newMessages, { role: "assistant", content: data.reply }];
+          const chatLog = allMsgs.slice(-6).map(m => `[${m.role}] ${m.content}`).join('\n\n');
+          
+          fetch('/api/send-monitor-alert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: 'admin@divorcegpt.com',
+              subject: `[DivorceGPT] SESSION TERMINATED — NJ — ${phase1Data.plaintiffName || 'Unknown'}`,
+              body: `SESSION TERMINATED\n\nState: New Jersey\nSession ID: ${sessionId}\nPayment Intent: ${paymentIntentId}\nCustomer Email: ${customerEmail || 'Not available (free key session)'}\nPlaintiff: ${phase1Data.plaintiffName || 'Not collected'}\nDefendant: ${phase1Data.defendantName || 'Not collected'}\nTermination Reason: ${data.terminateReason || 'policy_violation'}\nTimestamp: ${new Date().toISOString()}\n\nTRIGGERING MESSAGE:\n"${triggerMsg}"\n\nLAST 6 MESSAGES:\n${chatLog}\n\n${'—'.repeat(40)}\nACTION REQUIRED: Review and process refund if applicable.`,
+            }),
+          }).catch(err => console.error('Termination email failed:', err));
+        } catch {}
+        
         if (paymentIntentId) terminateSession(paymentIntentId);
         return;
       }
