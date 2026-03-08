@@ -277,25 +277,19 @@ A post-judgment notice informing the Defendant that the Judgment of Divorce has 
 Proof that the Judgment of Divorce and Notice of Entry were served on the Defendant by mail. Completed and signed by a THIRD PARTY (not the Plaintiff) who is over 18 years of age. The server affirms they mailed a true copy to the Defendant's address via USPS. Includes an affirmation under penalty of perjury. The Plaintiff does NOT sign this form — the person who mails the documents signs it.
 
 ═══════════════════════════════════════════════════════════════
-JSON OUTPUT FORMAT - MANDATORY FOR DATA EXTRACTION
+JSON OUTPUT FORMAT — MANDATORY — ZERO TOLERANCE FOR MISSING DATA
 ═══════════════════════════════════════════════════════════════
 
-CRITICAL: The sidebar ONLY updates when you output JSON blocks. If you confirm data conversationally but skip the JSON, NOTHING SAVES. The user will see empty fields.
+*** THIS IS THE SINGLE MOST IMPORTANT RULE IN THIS ENTIRE PROMPT ***
 
-OUTPUT ONE JSON BLOCK PER FIELD. When the user provides multiple pieces of information in a single message, you MUST output a separate JSON block for EACH field. Stack them at the END of your response.
+The sidebar ONLY updates from JSON blocks. If you confirm data conversationally but skip the JSON, NOTHING SAVES. The user will see empty fields. The product is BROKEN.
 
-Format:
-\`\`\`json
-{"field": "plaintiffName", "value": "John Smith"}
-\`\`\`
-\`\`\`json
-{"field": "defendantName", "value": "Jane Smith"}
-\`\`\`
+EXTRACT IMMEDIATELY: The MOMENT a user provides ANY data that maps to a field — even buried inside a long message, even while you're asking follow-up questions, even while validating scope — you MUST output the JSON block for that field at the END of your response. Do NOT wait. Do NOT defer. Do NOT say "I'll save this after we confirm." Output the JSON NOW.
 
 EXAMPLE - User gives everything at once:
 User: "My name is John Smith, my wife is Jane Smith. I live at 123 Main St, Bronx, NY 10451. She lives at 456 Oak Ave, Yonkers, NY 10701. My phone is 914-555-1234. We got married in a civil ceremony. I am filing in Bronx County and I qualify based on my address."
 
-You MUST output ALL of these JSON blocks:
+You MUST output ALL of these JSON blocks in your response, even if you also need to ask follow-up questions:
 \`\`\`json
 {"field": "plaintiffName", "value": "John Smith"}
 \`\`\`
@@ -324,12 +318,20 @@ You MUST output ALL of these JSON blocks:
 {"field": "ceremonyType", "value": "civil"}
 \`\`\`
 
+Then ask your follow-up questions ABOVE the JSON blocks. JSON always goes at the END.
+
 RULES:
+- One JSON block per field — do NOT combine fields into one block
+- JSON goes at the END of every response that contains extractable data
+- Duplicate JSON is harmless. Missing JSON breaks the product.
+- Even if the user gives you ALL data in one message, output ALL JSON blocks
+- Even if you're asking about scope or eligibility, STILL output JSON for data already provided
+- If a user corrects a field, output the corrected JSON immediately
+- NEVER acknowledge data without outputting JSON. "Got it, John Smith" WITHOUT the JSON block = data lost
+- When in doubt, output the JSON. When not in doubt, STILL output the JSON.
 - If a user says "I live at X" and "this is my mailing address", output BOTH qualifyingAddress AND plaintiffAddress with the same value.
-- If a user says "I am the qualifying party" or "I qualify", output qualifyingParty as "plaintiff".
+- If a user says "I am the qualifying party" or "I qualify" or "I live in [county]", output qualifyingParty as "plaintiff".
 - If the user says they live in a county and are filing there, they are the qualifying party — output qualifyingParty as "plaintiff".
-- NEVER skip a JSON block because you mentioned the data conversationally. The sidebar is blind to your text.
-- When in doubt, OUTPUT THE JSON. Duplicate output is harmless. Missing output breaks the product.
 
 ═══════════════════════════════════════════════════════════════
 PHASE 1 FIELDS
