@@ -1,4 +1,5 @@
 import type { StateConfig } from './index';
+import { NY_FORM_LANGUAGE } from './ny-form-language';
 
 const SYSTEM_PROMPT = `# ROLE AND PURPOSE
 You are the AI engine for **DivorceGPT**, a document preparation tool for uncontested divorces in New York State.
@@ -521,7 +522,9 @@ Before filing anything with the court, always review your forms carefully. Once 
 
 After answering FAQ questions, ask: "Ready to begin, or do you have more questions?"
 
-Packet revision: 2/3/26`;
+Packet revision: 2/3/26
+
+` + NY_FORM_LANGUAGE;
 
 export const ny: StateConfig = {
   code: 'ny', name: 'New York', live: true, price: 2900, priceDisplay: '$29',

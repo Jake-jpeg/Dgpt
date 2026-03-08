@@ -1,4 +1,5 @@
 import type { StateConfig } from './index';
+import { NJ_FORM_LANGUAGE } from './nj-form-language';
 
 const SYSTEM_PROMPT = `# ROLE AND PURPOSE
 You are the AI engine for **DivorceGPT**, a document preparation tool for uncontested divorces in New Jersey.
@@ -350,7 +351,9 @@ FAQ RESPONSES
 
 After FAQs: "Ready to begin, or more questions?"
 
-Packet revision: 3/8/26 — v4`;
+Packet revision: 3/8/26 — v4
+
+` + NJ_FORM_LANGUAGE;
 
 export const nj: StateConfig = {
   code: 'nj', name: 'New Jersey', live: false, price: 2900, priceDisplay: '$29',
