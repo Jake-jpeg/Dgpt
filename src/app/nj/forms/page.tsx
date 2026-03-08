@@ -125,7 +125,7 @@ function FormsContent() {
           
           // NJ Phase 3 field validation
           const p3 = existingSession.phase3Data || {};
-          const p3Fields = ['serviceDate', 'serviceMethod', 'appearanceDate'];
+          const p3Fields = ['serviceDate', 'appearanceDate'];
           const p3Valid = p3Fields.every(f => (p3 as Record<string, string>)[f]);
           if (existingSession.phase3Complete && !p3Valid) {
             existingSession.phase3Complete = false;
@@ -273,7 +273,7 @@ function FormsContent() {
                                 'plaintiffPhone', 'filingCounty', 'marriageDate', 'marriageCity', 
                                 'marriageState', 'ceremonyType', 'breakdownDate', 'residencyDate', 'residencyParty'];
         const njPhase2Fields = ['docketNumber', 'complaintDate'];
-        const njPhase3Fields = ['serviceDate', 'serviceMethod', 'appearanceDate'];
+        const njPhase3Fields = ['serviceDate', 'appearanceDate'];
         
         const p1Data: Record<string, string> = {};
         const p2Data: Record<string, string> = {};
@@ -495,7 +495,7 @@ function FormsContent() {
           docketNumber: phase2Data.docketNumber || '',
           complaintDate: phase2Data.complaintDate || '',
           serviceDate: phase3Data.serviceDate || '',
-          serviceMethod: phase3Data.serviceMethod || '',
+          serviceMethod: 'acknowledgment',
           appearanceDate: phase3Data.appearanceDate || '',
           marriageDate: phase1Data.marriageDate || '',
           marriageCity: phase1Data.marriageCity || '',
@@ -578,9 +578,8 @@ function FormsContent() {
   ];
 
   const phase3Fields = [
-    { key: 'serviceDate', label: 'Service Date', desc: 'Date spouse served' },
-    { key: 'serviceMethod', label: 'Service Method', desc: 'How served' },
-    { key: 'appearanceDate', label: 'Appearance/Default', desc: 'Spouse response' },
+    { key: 'serviceDate', label: 'Service Date', desc: 'Date Acknowledgment signed' },
+    { key: 'appearanceDate', label: 'Appearance/Default', desc: 'Spouse response or default' },
   ];
 
   const phase1Forms = [

@@ -68,7 +68,7 @@ DATE VALIDATION RULES
 3. BREAKDOWN DATE must be after MARRIAGE DATE
 4. RESIDENCY DATE must be at least 12 months before today
 5. COMPLAINT DATE (Phase 2) must be on or before today
-6. SERVICE DATE (Phase 2) must be after COMPLAINT DATE
+6. SERVICE DATE (Phase 3) must be after COMPLAINT DATE
 7. APPEARANCE DATE (Phase 3) must be after SERVICE DATE
 
 If a date violates these rules:
@@ -335,9 +335,10 @@ When all collected:
 PHASE 3 FIELDS
 ═══════════════════════════════════════════════════════════════
 
-• serviceDate = date defendant was served
-• serviceMethod = "personal", "certified_mail", or "acknowledgment"
+• serviceDate = date defendant signed the Acknowledgment of Service
 • appearanceDate = date defendant filed Appearance, or "default" if no response after 35 days
+
+NOTE ON SERVICE METHOD: DivorceGPT only handles fully cooperative uncontested divorces. The ONLY acceptable method of service is the Acknowledgment of Service — the defendant signs the Acknowledgment before a notary, confirming voluntary receipt of all documents. Do NOT ask about service method. Do NOT offer personal service or certified mail as options. If the defendant won't sign the Acknowledgment, this is not a cooperative divorce and the user should consult an attorney.
 
 When all collected:
 \`\`\`json
@@ -431,9 +432,8 @@ export const nj: StateConfig = {
     { key: 'complaintDate', label: 'Filing Date', desc: 'Date complaint accepted' },
   ],
   phase3Fields: [
-    { key: 'serviceDate', label: 'Service Date', desc: 'Date spouse served' },
-    { key: 'serviceMethod', label: 'Service Method', desc: 'How served' },
-    { key: 'appearanceDate', label: 'Appearance/Default', desc: 'Spouse response' },
+    { key: 'serviceDate', label: 'Service Date', desc: 'Date Acknowledgment signed' },
+    { key: 'appearanceDate', label: 'Appearance/Default', desc: 'Spouse response or default' },
   ],
   pdfEndpoints: { phase1: '/generate/nj/phase1-package', phase2: '/generate/nj/phase2-package', phase3: '/generate/nj/phase3-package' },
   stripeProductName: 'DivorceGPT \u2014 New Jersey',
