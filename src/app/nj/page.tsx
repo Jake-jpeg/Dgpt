@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function NJGate() {
   const [key, setKey] = useState("");
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async () => {
     if (!key.trim()) return;
@@ -16,16 +14,33 @@ export default function NJGate() {
     setError(false);
 
     try {
-      const res = await fetch("/api/verify-access-key", {
+      // Verify the access key
+      const verifyRes = await fetch("/api/verify-access-key", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: key.trim(), state: "nj" }),
       });
-      const data = await res.json();
-      if (data.valid) {
-        // Store key in sessionStorage so qualify/agree/forms can check
-        sessionStorage.setItem("dgpt_nj_access", key.trim());
-        router.push("/nj/qualify");
+      const verifyData = await verifyRes.json();
+
+      if (!verifyData.valid) {
+        setError(true);
+        setChecking(false);
+        return;
+      }
+
+      // Auto-create a free session and go straight to forms
+      const checkoutRes = await fetch("/api/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          returnUrl: window.location.origin + "/nj",
+          freeKey: key.trim(),
+        }),
+      });
+      const checkoutData = await checkoutRes.json();
+
+      if (checkoutData.url) {
+        window.location.href = checkoutData.url;
       } else {
         setError(true);
       }
@@ -66,7 +81,7 @@ export default function NJGate() {
             disabled={checking || !key.trim()}
             className="w-full rounded-xl bg-gradient-to-br from-[#1a365d] to-[#2c5282] py-3 text-sm font-semibold text-white shadow-lg shadow-[#1a365d]/20 hover:shadow-xl disabled:opacity-50 transition-all"
           >
-            {checking ? "Verifying..." : "Enter"}
+            {checking ? "Loading..." : "Enter"}
           </button>
         </div>
 

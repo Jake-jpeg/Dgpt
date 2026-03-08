@@ -337,12 +337,22 @@ export async function POST(
           }
 
           // ═══════════════════════════════════════════════════════════════
-          // INDEX NUMBER VALIDATION
+          // ═══════════════════════════════════════════════════════════════
+          // INDEX NUMBER / DOCKET NUMBER VALIDATION
           // ═══════════════════════════════════════════════════════════════
           if (field === 'indexNumber') {
             const indexMatch = value.match(/^\d+\/\d{4}$/) || value.match(/^\d{4}\/\d+$/);
             if (!indexMatch) {
               validationWarning = `Index number format should be like "12345/2026". Please verify.`;
+            }
+            extractedData[field] = value;
+            continue;
+          }
+
+          if (field === 'docketNumber') {
+            const docketMatch = value.match(/^FM-/i);
+            if (!docketMatch) {
+              validationWarning = `NJ docket number should start with "FM-" (e.g., FM-07-012345-26). Please verify.`;
             }
             extractedData[field] = value;
             continue;
@@ -359,7 +369,7 @@ export async function POST(
     // ═══════════════════════════════════════════════════════════════
     // OUTSIDE COUNSEL CHECK
     // ═══════════════════════════════════════════════════════════════
-    if (currentPhase === 2 && !phase1Data?.plaintiffName && extractedData['indexNumber']) {
+    if (currentPhase === 2 && !phase1Data?.plaintiffName && (extractedData['indexNumber'] || extractedData['docketNumber'])) {
       isDisqualified = true;
       disqualifyReason = 'outside_counsel_case';
     }
