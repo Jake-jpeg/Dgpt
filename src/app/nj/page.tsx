@@ -226,35 +226,6 @@ export default function NJHome() {
         </div>
       </section>
 
-      {/* Beta Access Key */}
-      <section className="py-16 bg-zinc-50 border-t border-zinc-200">
-        <div className="mx-auto max-w-sm px-4 text-center">
-          <p className="text-sm text-zinc-500 mb-4">Have a beta access key?</p>
-          <div className="space-y-3">
-            <input
-              type="text"
-              value={accessKey}
-              onChange={(e) => { setAccessKey(e.target.value); setKeyError(false); }}
-              onKeyDown={(e) => e.key === "Enter" && handleKeySubmit()}
-              placeholder="Enter access key"
-              className={`w-full rounded-xl border px-4 py-3 text-center text-zinc-900 focus:outline-none focus:ring-2 ${
-                keyError
-                  ? "border-red-300 focus:ring-red-400 bg-red-50"
-                  : "border-zinc-200 focus:ring-[#c59d5f] bg-white"
-              }`}
-            />
-            {keyError && <p className="text-sm text-red-500">Invalid access key.</p>}
-            <button
-              onClick={handleKeySubmit}
-              disabled={checking || !accessKey.trim()}
-              className="w-full rounded-xl bg-gradient-to-br from-[#1a365d] to-[#2c5282] py-3 text-sm font-semibold text-white shadow-lg shadow-[#1a365d]/20 hover:shadow-xl disabled:opacity-50 transition-all"
-            >
-              {checking ? "Loading..." : "Enter with Key"}
-            </button>
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="border-t border-zinc-100 bg-zinc-50 py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
