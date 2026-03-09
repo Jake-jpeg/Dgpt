@@ -435,7 +435,7 @@ export const nj: StateConfig = {
       { label: 'Acknowledgment of Service', desc: 'Defendant signs before notary' },
       { label: 'CN 12620 (P)', desc: "Plaintiff's Cert for Divorce on Papers" },
       { label: 'CN 12620 (D)', desc: "Defendant's Cert for Divorce on Papers" },
-      { label: 'Final Judgment', desc: 'Proposed Final Judgment of Divorce' },
+      { label: 'Proposed Final Judgment', desc: 'Proposed Final Judgment of Divorce' },
     ],
     3: [],
   },
