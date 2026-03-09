@@ -113,7 +113,7 @@ export default function NJHome() {
               { step: 1, title: "Answer Questions", desc: "Tell us about your marriage, residency, and filing details. The AI collects what the court forms need — nothing more." },
               { step: 2, title: "Phase 1 — File", desc: "Download your Complaint, certifications, and Summons. File with the court ($300 fee) and get your docket number." },
               { step: 3, title: "Phase 2 — Serve + Finalize", desc: "Return with your docket number. We regenerate everything plus the Acknowledgment of Service, certifications, and Proposed Final Judgment." },
-              { step: 4, title: "Court Grants Divorce", desc: "Serve your spouse, both sign, file the package. The judge grants the divorce on the papers — no hearing needed." },
+              { step: 4, title: "File & Follow Up", desc: "Serve your spouse, both sign, file the complete package with the court. Your documents are properly prepared — follow up with the court on your case status." },
             ].map((item, index) => (
               <div key={index} className="relative">
                 {index < 3 && (
@@ -212,7 +212,6 @@ export default function NJHome() {
             {[
               { q: "How much does it cost?", a: "DivorceGPT is $29 one-time. The court filing fee ($300) and spouse's Appearance fee ($175) are paid directly to the court — not to us." },
               { q: "Is this legal advice?", a: "No. DivorceGPT explains what divorce forms ask for and how to file them. It does not provide legal advice. For legal advice, consult an attorney." },
-              { q: "Do I need a lawyer?", a: "Not for a simple uncontested divorce. DivorceGPT generates the same documents a lawyer would prepare. You file them yourself (pro se)." },
               { q: "How long does the process take?", a: "You can complete your forms in minutes, but the overall divorce process takes time — the court needs to process filings between each phase. Timeline varies by county. Your session remains valid for 12 months to cover even the slowest courts." },
               { q: "How do I access my session?", a: "After payment, you'll be redirected to your session page. Bookmark this page — the URL is your access link. There are no accounts or passwords." },
               { q: "What if my spouse won't cooperate?", a: "This service is for uncontested divorces where both spouses agree. If your spouse won't cooperate, you may need a contested divorce attorney." },
