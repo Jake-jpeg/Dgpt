@@ -30,7 +30,7 @@ function FormsContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   
-  const [currentPhase, setCurrentPhase] = useState<1 | 2 | 3>(1);
+  const [currentPhase, setCurrentPhase] = useState<1 | 2>(1);
   const [phase1Data, setPhase1Data] = useState<Record<string, string>>({});
   const [phase2Data, setPhase2Data] = useState<Record<string, string>>({});
   const [phase3Data, setPhase3Data] = useState<Record<string, string>>({});
@@ -74,10 +74,10 @@ function FormsContent() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (phase1Complete && phase2Complete && phase3Complete) {
+    if (phase1Complete && phase2Complete) {
       setAllComplete(true);
     }
-  }, [phase1Complete, phase2Complete, phase3Complete]);
+  }, [phase1Complete, phase2Complete]);
 
   useEffect(() => {
     const validateSession = async () => {
@@ -123,20 +123,8 @@ function FormsContent() {
             wasRepaired = true;
           }
           
-          // NJ Phase 3 field validation
-          const p3 = existingSession.phase3Data || {};
-          const p3Fields = ['serviceDate', 'appearanceDate'];
-          const p3Valid = p3Fields.every(f => (p3 as Record<string, string>)[f]);
-          if (existingSession.phase3Complete && !p3Valid) {
-            existingSession.phase3Complete = false;
-            wasRepaired = true;
-          }
-          
           if (!existingSession.phase1Complete && existingSession.currentPhase > 1) {
             existingSession.currentPhase = 1;
-          }
-          if (!existingSession.phase2Complete && existingSession.currentPhase > 2) {
-            existingSession.currentPhase = 2;
           }
           
           if (wasRepaired) {
@@ -149,7 +137,7 @@ function FormsContent() {
           saveSession(existingSession);
           
           setSession(existingSession);
-          setCurrentPhase(Math.min(existingSession.currentPhase, 3) as 1 | 2 | 3);
+          setCurrentPhase(Math.min(existingSession.currentPhase, 2) as 1 | 2);
           setPhase1Data((existingSession.phase1Data || {}) as Record<string, string>);
           setPhase2Data((existingSession.phase2Data || {}) as Record<string, string>);
           setPhase3Data((existingSession.phase3Data || {}) as Record<string, string>);
@@ -327,23 +315,17 @@ function FormsContent() {
   const advancePhase = () => {
     if (currentPhase === 1 && phase1Complete) {
       setCurrentPhase(2);
-      setMessages(prev => [...prev, { role: "assistant", content: "Welcome to Phase 2 — Service Package!\n\nYou've filed your documents. Now I need your docket number to regenerate everything with it.\n\nWhat is your docket number? (Format: FM-XX-XXXXXX-XX)\n\nIf you filed via JEDS, the docket number is usually available immediately." }]);
-    } else if (currentPhase === 2 && phase2Complete) {
-      setCurrentPhase(3);
-      setMessages(prev => [...prev, { role: "assistant", content: "Welcome to Phase 3 — Final Judgment!\n\nYou've served your spouse. Now I need a few details to generate the final judgment package.\n\nWhat date was the defendant served?" }]);
+      setMessages(prev => [...prev, { role: "assistant", content: "Welcome to Phase 2 — Service + Final Judgment Package!\n\nYou've filed your documents. Now I need your docket number to regenerate everything and generate your final package.\n\nWhat is your docket number? (Format: FM-XX-XXXXXX-XX)\n\nIf you filed via JEDS, the docket number is usually available immediately." }]);
     }
   };
 
-  const goToPhase = (phase: 1 | 2 | 3) => {
+  const goToPhase = (phase: 1 | 2) => {
     if (phase === 1) {
       setCurrentPhase(1);
       setMessages(prev => [...prev, { role: "assistant", content: "Returning to Phase 1. How can I help you with your filing information?" }]);
     } else if (phase === 2 && phase1Complete) {
       setCurrentPhase(2);
-      setMessages(prev => [...prev, { role: "assistant", content: "Returning to Phase 2. How can I help you with your service package?" }]);
-    } else if (phase === 3 && phase2Complete) {
-      setCurrentPhase(3);
-      setMessages(prev => [...prev, { role: "assistant", content: "Returning to Phase 3. How can I help you with the final judgment package?" }]);
+      setMessages(prev => [...prev, { role: "assistant", content: "Returning to Phase 2. How can I help you with your service + final judgment package?" }]);
     }
   };
 
@@ -368,10 +350,6 @@ function FormsContent() {
       }
       if (currentPhase === 2 && (session.phase2Generated || 0) >= MAX_PHASE_GENERATIONS) {
         alert('You have reached the maximum number of Phase 2 document generations (5). For technical support, email admin@divorcegpt.com.');
-        return;
-      }
-      if (currentPhase === 3 && (session.phase3Generated || 0) >= MAX_PHASE_GENERATIONS) {
-        alert('You have reached the maximum number of Phase 3 document generations (5). For technical support, email admin@divorcegpt.com.');
         return;
       }
     }
@@ -419,7 +397,7 @@ function FormsContent() {
           
           const used = (session?.phase1Generated || 0) + 1;
           const remaining = 5 - used;
-          const formList = `• Complaint for Divorce/Dissolution\n• Certification of Verification & Non-Collusion\n• Confidential Litigant Info Sheet (CN 10486)\n• CDR Certification — Plaintiff (CN 10889)\n• CDR Certification — Defendant (CN 10889)\n• Certification of Insurance Coverage\n• Summons (for service — does not need to be filed)`;
+          const formList = `• Complaint for Divorce/Dissolution\n• Certification of Verification & Non-Collusion\n• CDR Certification — Plaintiff (CN 10889)\n• CDR Certification — Defendant (CN 10889)\n• Certification of Insurance Coverage\n• Summons (for service — does not need to be filed)`;
           if (remaining > 0) {
             alert(`Downloaded NJ Filing Package:\n${formList}\n\nIMPORTANT: The Summons does not need to be filed with the court. It is for serving your spouse in Phase 2.\n\nYou have ${remaining} download${remaining === 1 ? '' : 's'} remaining for Phase 1.\nSave your files now.`);
           } else {
@@ -430,7 +408,7 @@ function FormsContent() {
           alert('Failed to generate filing package. Please try again.');
         }
       } else if (currentPhase === 2) {
-        // Phase 2: Regenerate all Phase 1 docs WITH docket number + Acknowledgment of Service
+        // Phase 2: Regenerate all Phase 1 docs WITH docket number + Acknowledgment + CN 12620s + JOD
         const formData = {
           plaintiffName: phase1Data.plaintiffName || '',
           defendantName: phase1Data.defendantName || '',
@@ -458,7 +436,7 @@ function FormsContent() {
           
           if (!res.ok) {
             const error = await res.json();
-            throw new Error(error.error || "Failed to generate service package");
+            throw new Error(error.error || "Failed to generate package");
           }
           
           const blob = await res.blob();
@@ -473,70 +451,15 @@ function FormsContent() {
           
           const used2 = (session?.phase2Generated || 0) + 1;
           const remaining2 = 5 - used2;
-          const formList2 = `• All Phase 1 documents (with docket number)\n• Acknowledgment of Service`;
+          const formList2 = `• All Phase 1 documents (with docket number)\n• Acknowledgment of Service\n• CN 12620 — Plaintiff's Certification\n• CN 12620 — Defendant's Certification\n• Proposed Final Judgment of Divorce`;
           if (remaining2 > 0) {
-            alert(`Downloaded NJ Service Package:\n${formList2}\n\nIMPORTANT: These documents do NOT need to be refiled. They are for serving your spouse.\nThe only document you must file back with the court is the signed Acknowledgment of Service.\n\nYou have ${remaining2} download${remaining2 === 1 ? '' : 's'} remaining for Phase 2.\nSave your files now.`);
+            alert(`Downloaded NJ Service + Final Judgment Package:\n${formList2}\n\nINSTRUCTIONS:\n1. Serve your spouse with the Summons, Complaint, and all certifications\n2. Spouse signs the Acknowledgment of Service before a notary\n3. BOTH of you sign your respective CN 12620 certifications\n4. File the signed Acknowledgment + both CN 12620s + Proposed Final Judgment with the court\n5. Court grants divorce on the papers\n\nYou have ${remaining2} download${remaining2 === 1 ? '' : 's'} remaining.\nSave your files now.`);
           } else {
-            alert(`Downloaded NJ Service Package:\n${formList2}\n\nThis was your final download for Phase 2.\nMake sure you have saved your files.`);
+            alert(`Downloaded NJ Service + Final Judgment Package:\n${formList2}\n\nThis was your final download.\nMake sure you have saved your files.`);
           }
         } catch (error) {
           console.error('NJ Phase 2 generation error:', error);
-          alert('Failed to generate service package. Please try again.');
-        }
-      } else if (currentPhase === 3) {
-        // Phase 3: Final Judgment package
-        const formData = {
-          plaintiffName: phase1Data.plaintiffName || '',
-          defendantName: phase1Data.defendantName || '',
-          plaintiffAddress: phase1Data.plaintiffAddress || '',
-          defendantAddress: phase1Data.defendantAddress || '',
-          plaintiffPhone: phase1Data.plaintiffPhone || '',
-          filingCounty: phase1Data.filingCounty || '',
-          docketNumber: phase2Data.docketNumber || '',
-          complaintDate: phase2Data.complaintDate || '',
-          serviceDate: phase3Data.serviceDate || '',
-          serviceMethod: 'acknowledgment',
-          appearanceDate: phase3Data.appearanceDate || '',
-          marriageDate: phase1Data.marriageDate || '',
-          marriageCity: phase1Data.marriageCity || '',
-          marriageState: phase1Data.marriageState || '',
-          ceremonyType: phase1Data.ceremonyType || 'civil',
-          breakdownDate: phase1Data.breakdownDate || '',
-        };
-        
-        try {
-          const res = await fetch(`${PDF_SERVICE_URL}/generate/nj/phase3-package`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(formData),
-          });
-          
-          if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.error || "Failed to generate judgment package");
-          }
-          
-          const blob = await res.blob();
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `NJ_Final_Judgment_Package_${(phase1Data.plaintiffName || "Document").replace(/\s+/g, "_")}.zip`;
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(a);
-          
-          const used3 = (session?.phase3Generated || 0) + 1;
-          const remaining3 = 5 - used3;
-          const formList3 = `• Plaintiff's Certification for Divorce on Papers (CN 12620)\n• Defendant's Certification for Divorce on Papers (CN 12620)\n• Certification of Non-Military Service (CN 11191)\n• Proposed Final Judgment of Divorce/Dissolution`;
-          if (remaining3 > 0) {
-            alert(`Downloaded NJ Final Judgment Package:\n${formList3}\n\nFile this package with the court. Judge reviews on the papers.\n\nYou have ${remaining3} download${remaining3 === 1 ? '' : 's'} remaining for Phase 3.\nSave your files now.`);
-          } else {
-            alert(`Downloaded NJ Final Judgment Package:\n${formList3}\n\nThis was your final download for Phase 3. Your session is now complete.\nMake sure you have saved your files.`);
-          }
-        } catch (error) {
-          console.error('NJ Phase 3 generation error:', error);
-          alert('Failed to generate judgment package. Please try again.');
+          alert('Failed to generate package. Please try again.');
         }
       }
     } catch (error) {
@@ -547,7 +470,6 @@ function FormsContent() {
         session.generationCount = (session.generationCount || 0) + 1;
         if (currentPhase === 1) session.phase1Generated = (session.phase1Generated || 0) + 1;
         if (currentPhase === 2) session.phase2Generated = (session.phase2Generated || 0) + 1;
-        if (currentPhase === 3) session.phase3Generated = (session.phase3Generated || 0) + 1;
         saveSession(session);
         setSession({ ...session });
       }
@@ -594,6 +516,9 @@ function FormsContent() {
   const phase2Forms = [
     { label: 'All Phase 1 docs', desc: 'Regenerated with docket number' },
     { label: 'Acknowledgment of Service', desc: 'Defendant signs before notary' },
+    { label: 'CN 12620 (Plaintiff)', desc: "Plaintiff's Cert for Divorce on Papers" },
+    { label: 'CN 12620 (Defendant)', desc: "Defendant's Cert for Divorce on Papers" },
+    { label: 'Final Judgment', desc: 'Proposed Final Judgment of Divorce' },
   ];
 
   const phase3Forms = [
@@ -819,11 +744,11 @@ function FormsContent() {
               <div className="mb-6">
                 <div className="text-xs font-medium text-zinc-500 mb-2">NJ DIVORCE WORKFLOW</div>
                 <div className="flex gap-1">
-                  {[1, 2, 3].map((p) => {
+                  {[1, 2].map((p) => {
                     const phaseComplete = p === 1 ? phase1Complete : p === 2 ? phase2Complete : phase3Complete;
-                    const canAccess = p === 1 || (p === 2 && phase1Complete) || (p === 3 && phase2Complete);
+                    const canAccess = p === 1 || (p === 2 && phase1Complete);
                     return (
-                      <button key={p} onClick={() => { if (canAccess) goToPhase(p as 1 | 2 | 3); }}
+                      <button key={p} onClick={() => { if (canAccess) goToPhase(p as 1 | 2); }}
                         className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${
                           currentPhase === p
                             ? phaseComplete ? 'bg-green-600 text-white' : 'bg-[#1a365d] text-white'
@@ -839,7 +764,7 @@ function FormsContent() {
               {/* Current Phase Forms */}
               <div className="mb-6">
                 <h3 className={`text-sm font-bold mb-2 ${allComplete ? 'text-green-800' : 'text-zinc-900'}`}>
-                  {currentPhase === 1 ? 'Phase 1 — Filing Package' : currentPhase === 2 ? 'Phase 2 — Service Package' : 'Phase 3 — Final Judgment'}
+                  {currentPhase === 1 ? 'Phase 1 — Filing Package' : 'Phase 2 — Service + Final Package'}
                 </h3>
                 <div className="space-y-1">
                   {getPhaseForms(currentPhase).map((form, i) => (
@@ -877,27 +802,9 @@ function FormsContent() {
               )}
               {(currentPhase === 2 && phase2Complete) && (
                 <div className="mt-6 space-y-3">
-                  <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-green-600 py-4 text-lg font-semibold text-white shadow-xl hover:bg-green-700 disabled:opacity-50">{isGenerating ? 'Generating...' : '✓ Download Service Package'}</button>
-                  <button onClick={advancePhase} className="w-full rounded-full border-2 border-[#1a365d] py-3 text-sm font-semibold text-[#1a365d] hover:bg-[#1a365d] hover:text-white">Spouse served → Phase 3</button>
-                  <button onClick={() => goToPhase(1)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 1</button>
-                </div>
-              )}
-
-              {/* Phase 3 Actions */}
-              {(currentPhase === 3 && !phase3Complete) && (
-                <div className="mt-6 space-y-2">
-                  <button onClick={() => goToPhase(2)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 2</button>
-                  <button onClick={() => goToPhase(1)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 1</button>
-                </div>
-              )}
-              {(currentPhase === 3 && phase3Complete) && (
-                <div className="mt-6 space-y-3">
-                  <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-green-600 py-4 text-lg font-semibold text-white shadow-xl hover:bg-green-700 disabled:opacity-50">{isGenerating ? 'Generating...' : '✓ Download Final Judgment Package'}</button>
+                  <button onClick={generateDocuments} disabled={isGenerating} className="w-full rounded-full bg-green-600 py-4 text-lg font-semibold text-white shadow-xl hover:bg-green-700 disabled:opacity-50">{isGenerating ? 'Generating...' : '✓ Download Service + Final Package'}</button>
                   <button onClick={() => setShowSidebar(false)} className="w-full rounded-full border-2 border-green-600 py-3 text-sm font-semibold text-green-700 hover:bg-green-600 hover:text-white">Hide Panel & Continue Chatting</button>
-                  <div className="flex gap-2">
-                    <button onClick={() => goToPhase(1)} className="flex-1 text-sm text-zinc-500 hover:text-zinc-700 underline">Phase 1</button>
-                    <button onClick={() => goToPhase(2)} className="flex-1 text-sm text-zinc-500 hover:text-zinc-700 underline">Phase 2</button>
-                  </div>
+                  <button onClick={() => goToPhase(1)} className="w-full text-sm text-zinc-500 hover:text-zinc-700 underline">← Go back to Phase 1</button>
                 </div>
               )}
 
