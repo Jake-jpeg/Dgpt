@@ -28,15 +28,8 @@ function AgreeContent() {
   const [confirmReadDocs, setConfirmReadDocs] = useState(false);
 
   useEffect(() => {
-    const key = sessionStorage.getItem("dgpt_nj_access");
-    if (!key) {
-      router.replace("/nj");
-      return;
-    }
-    // Pre-fill the free key from the access key (same key for both gates)
-    setFreeKey(key);
     setAuthorized(true);
-  }, [router]);
+  }, []);
 
   const handleTermsClick = () => setHasReadTerms(true);
   const handlePrivacyClick = () => setHasReadPrivacy(true);

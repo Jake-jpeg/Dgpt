@@ -28,14 +28,8 @@ export default function NJQualifyPage() {
 
   useEffect(() => {
     setMounted(true);
-    // Check access gate
-    const key = sessionStorage.getItem("dgpt_nj_access");
-    if (!key) {
-      router.replace("/nj");
-      return;
-    }
     setAuthorized(true);
-  }, [router]);
+  }, []);
 
   if (!mounted || !t || !authorized) {
     return (
