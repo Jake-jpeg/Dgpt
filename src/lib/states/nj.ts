@@ -336,9 +336,11 @@ PHASE 3 FIELDS
 ═══════════════════════════════════════════════════════════════
 
 • serviceDate = date defendant signed the Acknowledgment of Service
-• appearanceDate = date defendant filed Appearance, or "default" if no response after 35 days
+• appearanceDate = date defendant filed Appearance with the court, OR "none" if defendant has not filed an Appearance
 
 NOTE ON SERVICE METHOD: DivorceGPT only handles fully cooperative uncontested divorces. The ONLY acceptable method of service is the Acknowledgment of Service — the defendant signs the Acknowledgment before a notary, confirming voluntary receipt of all documents. Do NOT ask about service method. Do NOT offer personal service or certified mail as options. If the defendant won't sign the Acknowledgment, this is not a cooperative divorce and the user should consult an attorney.
+
+NOTE ON APPEARANCES: In a cooperative uncontested divorce, the defendant may or may not file a formal Appearance ($175) with the court. Either way, both parties will sign their CN 12620 certifications. If the defendant did not file an Appearance, simply record "none" — do NOT use the word "default" or discuss default procedures. Both parties are cooperating; the judge reviews on the papers regardless.
 
 When all collected:
 \`\`\`json
@@ -433,7 +435,7 @@ export const nj: StateConfig = {
   ],
   phase3Fields: [
     { key: 'serviceDate', label: 'Service Date', desc: 'Date Acknowledgment signed' },
-    { key: 'appearanceDate', label: 'Appearance/Default', desc: 'Spouse response or default' },
+    { key: 'appearanceDate', label: 'Appearance', desc: 'Date filed or "none"' },
   ],
   pdfEndpoints: { phase1: '/generate/nj/phase1-package', phase2: '/generate/nj/phase2-package', phase3: '/generate/nj/phase3-package' },
   stripeProductName: 'DivorceGPT \u2014 New Jersey',
@@ -450,7 +452,7 @@ export const nj: StateConfig = {
     ],
     2: [
       { label: 'All Phase 1 docs', desc: 'Regenerated with docket number' },
-      { label: 'Acknowledgment', desc: 'Acknowledgment of Service (defendant signs before notary)' },
+      { label: 'Acknowledgment of Service', desc: 'Defendant signs before notary' },
     ],
     3: [
       { label: 'CN 12620 (P)', desc: "Plaintiff's Cert for Divorce on Papers" },

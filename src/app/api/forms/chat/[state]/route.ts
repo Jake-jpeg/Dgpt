@@ -35,6 +35,7 @@ export async function POST(
 
     // Build context based on current phase
     let contextMessage = '\n\n[SYSTEM STATUS: ';
+    contextMessage += `Today's date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}. `;
     contextMessage += `Current Phase: ${currentPhase || 1}. `;
     contextMessage += `State: ${stateConfig.name}. `;
     

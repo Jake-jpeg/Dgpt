@@ -579,7 +579,7 @@ function FormsContent() {
 
   const phase3Fields = [
     { key: 'serviceDate', label: 'Service Date', desc: 'Date Acknowledgment signed' },
-    { key: 'appearanceDate', label: 'Appearance/Default', desc: 'Spouse response or default' },
+    { key: 'appearanceDate', label: 'Appearance', desc: 'Date filed or "none"' },
   ];
 
   const phase1Forms = [
@@ -593,7 +593,7 @@ function FormsContent() {
 
   const phase2Forms = [
     { label: 'All Phase 1 docs', desc: 'Regenerated with docket number' },
-    { label: 'Acknowledgment', desc: 'Acknowledgment of Service (defendant signs before notary)' },
+    { label: 'Acknowledgment of Service', desc: 'Defendant signs before notary' },
   ];
 
   const phase3Forms = [
