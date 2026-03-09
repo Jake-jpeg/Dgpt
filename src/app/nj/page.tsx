@@ -211,11 +211,12 @@ export default function NJHome() {
           <div className="mt-12 space-y-4">
             {[
               { q: "How much does it cost?", a: "DivorceGPT is $29 one-time. The court filing fee ($300) and spouse's Appearance fee ($175) are paid directly to the court — not to us." },
+              { q: "Is this legal advice?", a: "No. DivorceGPT explains what divorce forms ask for and how to file them. It does not provide legal advice. For legal advice, consult an attorney." },
               { q: "Do I need a lawyer?", a: "Not for a simple uncontested divorce. DivorceGPT generates the same documents a lawyer would prepare. You file them yourself (pro se)." },
-              { q: "How long does it take?", a: "Document generation takes minutes. Filing to docket number is instant on JEDS (NJ's electronic filing system). Total timeline from filing to final judgment is typically 2-4 months." },
-              { q: "What is JEDS?", a: "NJ's electronic filing portal at portal.njcourts.gov. Available 24/7, accepts credit cards. You can also file in person at your county's Superior Court." },
-              { q: "What about the CLIS?", a: "The Confidential Litigant Information Sheet (CN 10486) requires sensitive info like SSN and employer. DivorceGPT does not collect that data — you complete the CLIS yourself. It's available at njcourts.gov." },
-              { q: "What if my spouse won't cooperate?", a: "DivorceGPT only handles cooperative uncontested divorces. If your spouse won't sign, you should consult a family law attorney." },
+              { q: "How long does the process take?", a: "You can complete your forms in minutes, but the overall divorce process takes time — the court needs to process filings between each phase. Timeline varies by county. Your session remains valid for 12 months to cover even the slowest courts." },
+              { q: "How do I access my session?", a: "After payment, you'll be redirected to your session page. Bookmark this page — the URL is your access link. There are no accounts or passwords." },
+              { q: "What if my spouse won't cooperate?", a: "This service is for uncontested divorces where both spouses agree. If your spouse won't cooperate, you may need a contested divorce attorney." },
+              { q: "Can I get a refund?", a: "If you don't qualify after the eligibility check, you won't be charged. Once forms are generated, refunds are not available." },
             ].map((faq, index) => (
               <div key={index} className="rounded-2xl bg-zinc-50 p-6 transition-all duration-200 hover:bg-zinc-100">
                 <h4 className="text-lg font-semibold text-zinc-900">{faq.q}</h4>

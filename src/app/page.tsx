@@ -29,7 +29,7 @@ const states = [
     code: "nj",
     name: "New Jersey",
     abbr: "NJ",
-    live: false,
+    live: true,
     href: "/nj",
     tagline: "Uncontested divorce filing for New Jersey.",
     price: "$29",
