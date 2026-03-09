@@ -79,9 +79,9 @@ export default function NJHome() {
           <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
             New Jersey Uncontested Divorce
           </h2>
-          <p className="mt-2 text-2xl font-semibold text-[#c59d5f] sm:text-3xl">AI-Powered Document Preparation — $29</p>
+          <p className="mt-2 text-2xl font-semibold text-[#c59d5f] sm:text-3xl">Made Simple</p>
           <p className="mt-6 text-lg text-zinc-300 max-w-2xl mx-auto">
-            Answer questions. Get your complete filing package. File with the Superior Court — no lawyer needed.
+            Get your divorce forms prepared and explained in plain language. No lawyers needed for simple, uncontested cases.
           </p>
 
           <div className="mt-10">
@@ -89,14 +89,14 @@ export default function NJHome() {
               href="/nj/qualify"
               className="group inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-[#c59d5f]/30 transition-all duration-200 hover:bg-[#d4ac6e] hover:shadow-2xl hover:shadow-[#c59d5f]/40 hover:-translate-y-0.5"
             >
-              Check Eligibility — Start Now
+              Check If You Qualify
               <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
             </Link>
           </div>
           
-          <p className="mt-4 text-sm text-zinc-400">One-time fee of $29 · Court filing fee ($300) paid separately to the court</p>
+          <p className="mt-4 text-sm text-zinc-400">$29 one-time fee · No hidden costs</p>
         </div>
       </section>
 
@@ -192,7 +192,7 @@ export default function NJHome() {
               href="/nj/qualify"
               className="group inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-[#c59d5f]/30 transition-all duration-200 hover:bg-[#d4ac6e] hover:shadow-2xl hover:-translate-y-0.5"
             >
-              Check Eligibility
+              Check If You Qualify
               <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
