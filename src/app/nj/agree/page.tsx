@@ -45,9 +45,10 @@ function AgreeContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          returnUrl: window.location.origin + "/nj",
+          returnUrl: window.location.origin,
           agreedAt: new Date().toISOString(),
           freeKey: freeKey.trim() || undefined,
+          state: "nj",
         }),
       });
       const data = await res.json();

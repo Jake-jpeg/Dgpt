@@ -48,8 +48,9 @@ export default function NJHome() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          returnUrl: window.location.origin + "/nj",
+          returnUrl: window.location.origin,
           freeKey: accessKey.trim(),
+          state: "nj",
         }),
       });
       const checkoutData = await checkoutRes.json();
