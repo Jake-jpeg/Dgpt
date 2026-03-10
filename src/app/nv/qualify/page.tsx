@@ -20,8 +20,8 @@ const questions = [
   },
   {
     id: "children",
-    question: "Do you have any minor children (under 18)?",
-    description: "DivorceGPT only handles divorces with no minor children.",
+    question: "Do you have any minor children (under 18), or is either party currently pregnant?",
+    description: "DivorceGPT only handles divorces with no minor children and where neither spouse is currently pregnant.",
     invertLogic: true,
   },
   {

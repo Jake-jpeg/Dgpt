@@ -33,7 +33,7 @@ export const dictionary = {
       title: "Is This Right For You?",
       subtitle: "This service is for New York uncontested divorces with:",
       items: [
-        "No children of the marriage",
+        "No children of the marriage and neither party is pregnant",
         "No property or debts to divide",
         "No spousal support requests",
         "Both spouses agree to divorce",
@@ -70,7 +70,7 @@ export const dictionary = {
       back: "Back to Home",
       questions: {
         residency: { q: "Does at least one spouse meet New York's residency requirement?", d: "Either spouse lived in NY for 2+ years, OR 1+ year with a connection." },
-        children: { q: "Are there any unemancipated children of the marriage?", d: "Includes children under 21 who are not self-supporting." },
+        children: { q: "Are there any unemancipated children of the marriage, or is either party currently pregnant?", d: "Includes children under 21 who are not self-supporting. If either spouse is currently pregnant, this must be answered Yes." },
         property: { q: "Is there any property, debts, pensions, or retirement accounts to divide?", d: "Real estate, 401(k), large debts, etc." },
         support: { q: "Is either spouse asking for spousal maintenance (alimony)?", d: "Either now or in the future." },
         uncontested: { q: "Do both spouses agree to the divorce and will both cooperate with signing the required documents?", d: "Both parties want the divorce and the other spouse will sign acknowledgment or accept service." },
@@ -242,7 +242,7 @@ export const dictionary = {
       back: "Volver al Inicio",
       questions: {
         residency: { q: "¿Cumple al menos un cónyuge con el requisito de residencia de Nueva York?", d: "Uno de los cónyuges vivió en NY por más de 2 años, O más de 1 año con conexión." },
-        children: { q: "¿Hay hijos no emancipados del matrimonio?", d: "Incluye hijos menores de 21 años que no son económicamente independientes." },
+        children: { q: "¿Hay hijos no emancipados del matrimonio, o alguna de las partes está embarazada?", d: "Incluye hijos menores de 21 años que no son económicamente independientes. Si alguno de los cónyuges está embarazada, debe responder Sí." },
         property: { q: "¿Hay propiedades, deudas, pensiones o cuentas de jubilación para dividir?", d: "Bienes raíces, 401(k), deudas grandes, etc." },
         support: { q: "¿Alguno de los cónyuges está solicitando manutención (pensión alimenticia)?", d: "Ya sea ahora o en el futuro." },
         uncontested: { q: "¿Ambos cónyuges están de acuerdo con el divorcio y cooperarán con la firma de los documentos requeridos?", d: "Ambas partes quieren el divorcio y el otro cónyuge firmará el reconocimiento o aceptará la notificación." },
@@ -414,7 +414,7 @@ export const dictionary = {
       back: "返回首页",
       questions: {
         residency: { q: "至少有一方配偶符合纽约的居住要求吗？", d: "任何一方在纽约居住满2年以上，或满1年且有相关联系。" },
-        children: { q: "婚姻中有未成年（未独立）的子女吗？", d: "包括21岁以下且不能自立的子女。" },
+        children: { q: "婚姻中有未成年（未独立）的子女吗？或者任何一方目前怀孕了吗？", d: "包括21岁以下且不能自立的子女。如果任何一方目前怀孕，必须回答是。" },
         property: { q: "是否有财产、债务、养老金或退休账户需要分配？", d: "房产、401(k)、大额债务等。" },
         support: { q: "任一配偶是否在申请配偶赡养费？", d: "无论是现在还是将来。" },
         uncontested: { q: "双方是否都同意离婚，并且都愿意配合签署所需文件？", d: "双方都想要离婚，另一方配偶将签署确认书或接受法律送达。" },
@@ -586,7 +586,7 @@ export const dictionary = {
       back: "홈으로 돌아가기",
       questions: {
         residency: { q: "배우자 중 적어도 한 명이 뉴욕 거주 요건을 충족합니까?", d: "배우자 중 한 명이 2년 이상 뉴욕 거주, 또는 1년 이상 거주하며 연고가 있음." },
-        children: { q: "미성년 자녀가 있습니까?", d: "21세 미만이며 경제적으로 독립하지 않은 자녀를 포함합니다." },
+        children: { q: "미성년 자녀가 있습니까, 또는 현재 임신 중입니까?", d: "21세 미만이며 경제적으로 독립하지 않은 자녀를 포함합니다. 배우자 중 한 명이 현재 임신 중이면 예라고 답해야 합니다." },
         property: { q: "분할할 재산, 부채, 연금 또는 퇴직 계좌가 있습니까?", d: "부동산, 401(k), 다액의 채무 등." },
         support: { q: "배우자 중 한 명이 배우자 부양비(위자료)를 요청하고 있습니까?", d: "현재 또는 미래에." },
         uncontested: { q: "양측 모두 이혼에 동의하며, 필요한 서류 서명에 협조할 것입니까?", d: "양측 모두 이혼을 원하며, 상대방 배우자가 확인서에 서명하거나 법적 송달을 수락할 것입니다." },
@@ -758,7 +758,7 @@ export const dictionary = {
       back: "На главную",
       questions: {
         residency: { q: "Соблюдает ли хотя бы один супруг требования к проживанию в штате Нью-Йорк?", d: "Один из супругов прожил в NY 2+ года ИЛИ 1+ год при наличии связей." },
-        children: { q: "Есть ли у вас несовершеннолетние дети?", d: "Включая детей до 21 года, которые не обеспечивают себя самостоятельно." },
+        children: { q: "Есть ли у вас несовершеннолетние дети, или кто-либо из сторон в настоящее время беременен?", d: "Включая детей до 21 года, которые не обеспечивают себя самостоятельно. Если один из супругов беременен, необходимо ответить Да." },
         property: { q: "Есть ли имущество, долги или пенсии для раздела?", d: "Недвижимость, 401(k), крупные долги и т.д." },
         support: { q: "Требует ли кто-либо из супругов алименты на содержание супруга?", d: "Сейчас или в будущем." },
         uncontested: { q: "Согласны ли оба супруга на развод и будут ли оба сотрудничать при подписании необходимых документов?", d: "Обе стороны хотят развода, и другой супруг подпишет подтверждение или примет вручение документов." },
@@ -930,7 +930,7 @@ export const dictionary = {
       back: "Tounen Lakay",
       questions: {
         residency: { q: "Èske omwen youn nan mari oswa madanm yo satisfè kondisyon rezidans New York?", d: "Youn nan mari oswa madanm yo te viv nan NY pou 2+ ane, OSWA 1+ ane avèk koneksyon." },
-        children: { q: "Èske gen timoun nan maryaj la ki poko granmoun?", d: "Sa gen ladan timoun ki poko gen 21 an ki pa ka pran swen tèt yo." },
+        children: { q: "Èske gen timoun nan maryaj la ki poko granmoun, oswa èske youn nan pati yo ansent kounye a?", d: "Sa gen ladan timoun ki poko gen 21 an ki pa ka pran swen tèt yo. Si youn nan mari oswa madanm yo ansent, ou dwe reponn Wi." },
         property: { q: "Èske gen byen, dèt, pansyon, oswa kont retrèt pou pataje?", d: "Kay, tè, 401(k), gwo dèt, elatriye." },
         support: { q: "Èske youn nan mari oswa madanm yo ap mande sipò (alimony)?", d: "Swa kounye a oswa nan lavni." },
         uncontested: { q: "Èske tou de mari oswa madanm yo dakò ak divòs la epi èske tou de ap kowopere pou siyen dokiman ki nesesè yo?", d: "Tou de pati yo vle divòs la epi lòt mari oswa madanm nan pral siyen papye yo oswa aksepte sèvis la." },

@@ -33,7 +33,7 @@ export const njDictionary: Record<Locale, any> = {
       title: "Is This Right For You?",
       subtitle: "This service is for New Jersey uncontested divorces with:",
       items: [
-        "No children under 18",
+        "No children under 18 and neither party is pregnant",
         "No property or debts to divide",
         "No alimony / spousal support",
         "Both spouses agree to divorce",
@@ -69,7 +69,7 @@ export const njDictionary: Record<Locale, any> = {
       back: "Back to Home",
       questions: {
         residency: { q: "Has at least one spouse lived in New Jersey continuously for at least 12 months?", d: "NJ requires 12 consecutive months of residency by at least one party before filing." },
-        children: { q: "Are there any unemancipated children of the marriage?", d: "Includes children under 18 who are not self-supporting." },
+        children: { q: "Are there any unemancipated children of the marriage, or is either party currently pregnant?", d: "Includes children under 18 who are not self-supporting. If either spouse is currently pregnant, this must be answered Yes." },
         property: { q: "Is there any property, debts, pensions, or retirement accounts to divide?", d: "Real estate, 401(k), large debts, etc." },
         support: { q: "Is either spouse asking for spousal support (alimony)?", d: "Either now or in the future." },
         uncontested: { q: "Do both spouses agree to the divorce and will both cooperate with signing the required documents?", d: "Both parties want the divorce and the other spouse will sign Acknowledgment of Service before a notary." },
@@ -242,7 +242,7 @@ export const njDictionary: Record<Locale, any> = {
       back: "Volver al Inicio",
       questions: {
         residency: { q: "¿Ha vivido al menos uno de los cónyuges en Nueva Jersey continuamente durante al menos 12 meses?", d: "NJ requiere 12 meses consecutivos de residencia por al menos una de las partes antes de la presentación." },
-        children: { q: "¿Hay hijos menores de edad del matrimonio?", d: "Incluye hijos menores de 18 años que no se mantienen por sí mismos." },
+        children: { q: "¿Hay hijos menores de edad del matrimonio, o alguna de las partes está embarazada?", d: "Incluye hijos menores de 18 años que no se mantienen por sí mismos. Si alguno de los cónyuges está embarazada, debe responder Sí." },
         property: { q: "¿Hay propiedades, deudas, pensiones o cuentas de jubilación para dividir?", d: "Bienes raíces, 401(k), deudas grandes, etc." },
         support: { q: "¿Alguno de los cónyuges solicita manutención conyugal (pensión alimenticia)?", d: "Ya sea ahora o en el futuro." },
         uncontested: { q: "¿Ambos cónyuges están de acuerdo con el divorcio y cooperarán con la firma de los documentos requeridos?", d: "Ambas partes quieren el divorcio y el otro cónyuge firmará el Reconocimiento de Servicio ante un notario." },
@@ -415,7 +415,7 @@ export const njDictionary: Record<Locale, any> = {
       back: "返回首页",
       questions: {
         residency: { q: "至少有一位配偶在新泽西州连续居住至少12个月吗？", d: "新泽西州要求至少一方在申请前连续居住12个月。" },
-        children: { q: "婚姻中有未成年子女吗？", d: "包括18岁以下不能自立的子女。" },
+        children: { q: "婚姻中有未成年子女吗？或者任何一方目前怀孕了吗？", d: "包括18岁以下不能自立的子女。如果任何一方目前怀孕，必须回答是。" },
         property: { q: "有需要分割的财产、债务、养老金或退休账户吗？", d: "房地产、401(k)、大额债务等。" },
         support: { q: "任何一方是否要求配偶赡养费？", d: "现在或将来。" },
         uncontested: { q: "双方是否都同意离婚，并且都愿意配合签署所需文件？", d: "双方都想离婚，另一方配偶将在公证人面前签署送达确认书。" },
@@ -588,7 +588,7 @@ export const njDictionary: Record<Locale, any> = {
       back: "홈으로 돌아가기",
       questions: {
         residency: { q: "배우자 중 최소 한 명이 뉴저지에 최소 12개월 연속 거주했나요?", d: "NJ는 제출 전 최소 한 쪽이 12개월 연속 거주해야 합니다." },
-        children: { q: "결혼에서 미성년 자녀가 있나요?", d: "자립하지 못하는 18세 미만 자녀를 포함합니다." },
+        children: { q: "결혼에서 미성년 자녀가 있나요, 또는 현재 임신 중인가요?", d: "자립하지 못하는 18세 미만 자녀를 포함합니다. 배우자 중 한 명이 현재 임신 중이면 예라고 답해야 합니다." },
         property: { q: "분할할 재산, 채무, 연금 또는 퇴직 계좌가 있나요?", d: "부동산, 401(k), 큰 채무 등." },
         support: { q: "배우자 중 누가 배우자 부양료를 요청하고 있나요?", d: "현재 또는 미래에." },
         uncontested: { q: "양측 모두 이혼에 동의하며, 필요한 서류 서명에 협조할 것인가요?", d: "양측 모두 이혼을 원하며, 상대 배우자가 공증인 앞에서 송달 확인서에 서명할 것입니다." },
@@ -761,7 +761,7 @@ export const njDictionary: Record<Locale, any> = {
       back: "На главную",
       questions: {
         residency: { q: "Проживал ли хотя бы один из супругов в Нью-Джерси непрерывно не менее 12 месяцев?", d: "NJ требует 12 месяцев непрерывного проживания хотя бы одной стороны до подачи." },
-        children: { q: "Есть ли несовершеннолетние дети от брака?", d: "Включает детей до 18 лет, которые не являются самостоятельными." },
+        children: { q: "Есть ли несовершеннолетние дети от брака, или кто-либо из сторон в настоящее время беременен?", d: "Включает детей до 18 лет, которые не являются самостоятельными. Если один из супругов беременен, необходимо ответить Да." },
         property: { q: "Есть ли имущество, долги, пенсии или пенсионные счета для раздела?", d: "Недвижимость, 401(k), крупные долги и т.д." },
         support: { q: "Кто-либо из супругов просит алименты?", d: "Сейчас или в будущем." },
         uncontested: { q: "Согласны ли оба супруга на развод и будут ли оба сотрудничать при подписании необходимых документов?", d: "Обе стороны хотят развода, и другой супруг подпишет Подтверждение вручения перед нотариусом." },
@@ -934,7 +934,7 @@ export const njDictionary: Record<Locale, any> = {
       back: "Tounen Lakay",
       questions: {
         residency: { q: "Èske omwen youn nan konjwen yo te viv nan New Jersey san rete pou omwen 12 mwa?", d: "NJ mande 12 mwa rezidans san rete pa omwen youn nan pati yo anvan depo." },
-        children: { q: "Èske gen timoun nan maryaj la ki poko granmoun?", d: "Sa gen ladan timoun ki poko gen 18 an ki pa ka pran swen tèt yo." },
+        children: { q: "Èske gen timoun nan maryaj la ki poko granmoun, oswa èske youn nan pati yo ansent kounye a?", d: "Sa gen ladan timoun ki poko gen 18 an ki pa ka pran swen tèt yo. Si youn nan mari oswa madanm yo ansent, ou dwe reponn Wi." },
         property: { q: "Èske gen byen, dèt, pansyon, oswa kont retrèt pou pataje?", d: "Kay, tè, 401(k), gwo dèt, elatriye." },
         support: { q: "Èske youn nan konjwen yo ap mande sipò konjigal?", d: "Swa kounye a oswa nan lavni." },
         uncontested: { q: "Èske tou de konjwen yo dakò ak divòs la epi èske tou de ap kowopere pou siyen dokiman ki nesesè yo?", d: "Tou de pati yo vle divòs la epi lòt konjwen an pral siyen Rekonesans Sèvis devan yon notè." },
