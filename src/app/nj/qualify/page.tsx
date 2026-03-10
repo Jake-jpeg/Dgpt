@@ -38,19 +38,11 @@ export default function NJQualifyPage() {
     );
   }
 
-  // NJ-specific question overrides where text differs from NY
-  const njOverrides: Record<string, { q: string; d: string }> = {
-    residency: {
-      q: "Has at least one spouse lived in New Jersey continuously for at least 12 months?",
-      d: "NJ requires 12 consecutive months of residency by at least one party before filing.",
-    },
-  };
-
   const questions = [
     {
       id: "residency",
-      question: njOverrides.residency?.q || t.qualify.questions.residency.q,
-      description: njOverrides.residency?.d || t.qualify.questions.residency.d,
+      question: t.qualify.questions.residency.q,
+      description: t.qualify.questions.residency.d,
       invertLogic: false,
     },
     {
