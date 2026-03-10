@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { dictionary, Locale } from "../lib/ny-dictionary";
 import { njDictionary } from "../lib/nj-dictionary";
 
@@ -32,21 +33,24 @@ const stateDictionaries: Record<string, Record<Locale, any>> = {
 const LanguageContext = createContext<LanguageContextType>(defaultContext);
 
 export function LanguageProvider({ children, initialState }: { children: ReactNode; initialState?: string }) {
+  const pathname = usePathname();
   const [lang, setLangState] = useState<Locale>("en");
   const [state, setStateValue] = useState<string>(initialState || "ny");
   const [mounted, setMounted] = useState(false);
 
-  // Detect state from URL path on mount
+  // Detect state from URL path on every navigation
   useEffect(() => {
-    const path = window.location.pathname;
-    if (path.startsWith("/nj")) {
+    if (pathname.startsWith("/nj")) {
       setStateValue("nj");
-    } else if (path.startsWith("/nv")) {
+    } else if (pathname.startsWith("/nv")) {
       setStateValue("nv");
-    } else if (path.startsWith("/ny")) {
+    } else if (pathname.startsWith("/ny")) {
       setStateValue("ny");
     }
+  }, [pathname]);
 
+  // Load saved language on mount
+  useEffect(() => {
     const savedLang = localStorage.getItem("divorcegpt-lang") as Locale | null;
     if (savedLang && ["en", "es", "zh", "ko", "ru", "ht"].includes(savedLang)) {
       setLangState(savedLang);

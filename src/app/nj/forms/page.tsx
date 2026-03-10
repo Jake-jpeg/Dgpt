@@ -208,7 +208,7 @@ function FormsContent() {
       });
       const data = await res.json();
       setMessages([{ role: "assistant", content: data.reply }]);
-    } catch { setMessages([{ role: "assistant", content: "Welcome to DivorceGPT for New Jersey. I'll help you prepare your uncontested divorce forms.\n\n**Before we begin:**\n• DivorceGPT handles uncontested, no-fault NJ divorces — no children, no property to divide, no alimony.\n• At least one spouse must have lived in NJ for 12 consecutive months.\n• Court filing fee: $300. Spouse's Appearance fee: $175.\n\nSay **'Let's start'** or ask me questions first. Your session is valid for 12 months." }]); }
+    } catch { setMessages([{ role: "assistant", content: "Welcome to DivorceGPT for New Jersey. I'll help you prepare your uncontested divorce forms.\n\n**Before we begin:**\n• DivorceGPT handles uncontested, no-fault NJ divorces — no children, no property to divide, no alimony.\n• At least one spouse must have lived in NJ for 12 consecutive months.\n• Court filing fee: $300.\n\nSay **'Let's start'** or ask me questions first. Your session is valid for 12 months." }]); }
     finally { setIsLoading(false); }
   };
 

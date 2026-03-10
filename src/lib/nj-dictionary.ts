@@ -45,7 +45,6 @@ export const njDictionary: Record<Locale, any> = {
     faq: {
       title: "Frequently Asked Questions",
       items: [
-        { q: "How much does it cost?", a: "DivorceGPT is $29 one-time. The court filing fee ($300) and spouse's Appearance fee ($175) are paid directly to the court — not to us." },
         { q: "Is this legal advice?", a: "No. DivorceGPT explains what divorce forms ask for and how to file them. It does not provide legal advice. For legal advice, consult an attorney." },
         { q: "What technology powers DivorceGPT?", a: "DivorceGPT uses Claude AI combined with custom legal document guardrails for New Jersey filings. Your conversations are not stored." },
         { q: "How long does the process take?", a: "You can complete your forms in minutes, but the overall divorce process takes time — the court needs to process filings between each phase. Timeline varies by county. Your session remains valid for 12 months to cover even the slowest courts." },
@@ -219,7 +218,6 @@ export const njDictionary: Record<Locale, any> = {
     faq: {
       title: "Preguntas Frecuentes",
       items: [
-        { q: "¿Cuánto cuesta?", a: "DivorceGPT cuesta $29 una sola vez. La tarifa de presentación del tribunal ($300) y la tarifa de Comparecencia del cónyuge ($175) se pagan directamente al tribunal — no a nosotros." },
         { q: "¿Es esto asesoría legal?", a: "No. DivorceGPT explica lo que piden los formularios de divorcio y cómo presentarlos. No proporciona asesoría legal. Para asesoría legal, consulte a un abogado." },
         { q: "¿Qué tecnología usa DivorceGPT?", a: "DivorceGPT usa Claude AI combinado con protecciones personalizadas para documentos legales para presentaciones en Nueva Jersey. Sus conversaciones no se almacenan." },
         { q: "¿Cuánto tiempo toma el proceso?", a: "Puede completar sus formularios en minutos, pero el proceso general de divorcio toma tiempo — el tribunal necesita procesar las presentaciones entre cada fase. El tiempo varía por condado. Su sesión permanece válida por 12 meses." },
@@ -393,7 +391,6 @@ export const njDictionary: Record<Locale, any> = {
     faq: {
       title: "常见问题",
       items: [
-        { q: "费用是多少？", a: "DivorceGPT一次性收费$29。法院申请费（$300）和配偶出庭费（$175）直接支付给法院——不是支付给我们。" },
         { q: "这是法律建议吗？", a: "不是。DivorceGPT解释离婚表格的要求和如何提交。它不提供法律建议。如需法律建议，请咨询律师。" },
         { q: "DivorceGPT使用什么技术？", a: "DivorceGPT使用Claude AI结合针对新泽西州申请的自定义法律文件保障。您的对话不会被存储。" },
         { q: "流程需要多长时间？", a: "您可以在几分钟内完成表格，但整个离婚过程需要时间——法院需要在每个阶段之间处理申请。时间因县而异。您的会话在12个月内保持有效。" },
@@ -567,7 +564,6 @@ export const njDictionary: Record<Locale, any> = {
     faq: {
       title: "자주 묻는 질문",
       items: [
-        { q: "비용이 얼마인가요?", a: "DivorceGPT는 일회성 $29입니다. 법원 제출 수수료($300)와 배우자 출석 수수료($175)는 법원에 직접 지불합니다 — 저희에게가 아닙니다." },
         { q: "이것이 법률 자문인가요?", a: "아닙니다. DivorceGPT는 이혼 양식이 무엇을 요구하는지와 제출 방법을 설명합니다. 법률 자문을 제공하지 않습니다. 법률 자문은 변호사에게 문의하세요." },
         { q: "DivorceGPT는 어떤 기술을 사용하나요?", a: "DivorceGPT는 뉴저지 제출을 위한 맞춤형 법률 문서 보호 장치와 결합된 Claude AI를 사용합니다. 대화 내용은 저장되지 않습니다." },
         { q: "절차는 얼마나 걸리나요?", a: "양식은 몇 분 안에 완료할 수 있지만 전체 이혼 절차에는 시간이 걸립니다. 법원이 각 단계 사이에 제출물을 처리해야 합니다. 기간은 카운티에 따라 다릅니다. 세션은 12개월 동안 유효합니다." },
@@ -741,7 +737,6 @@ export const njDictionary: Record<Locale, any> = {
     faq: {
       title: "Часто задаваемые вопросы",
       items: [
-        { q: "Сколько это стоит?", a: "DivorceGPT стоит $29 единоразово. Судебный сбор ($300) и сбор за явку супруга ($175) оплачиваются непосредственно суду — не нам." },
         { q: "Это юридическая консультация?", a: "Нет. DivorceGPT объясняет, что требуют формы развода и как их подать. Он не предоставляет юридических консультаций. За юридической консультацией обращайтесь к адвокату." },
         { q: "Какая технология используется?", a: "DivorceGPT использует Claude AI с индивидуальными юридическими гарантиями для подачи документов в Нью-Джерси. Ваши разговоры не хранятся." },
         { q: "Сколько времени занимает процесс?", a: "Заполнить формы можно за минуты, но весь процесс развода требует времени. Суду нужно обработать подачи между фазами. Сроки зависят от округа. Ваша сессия действительна 12 месяцев." },
@@ -915,7 +910,6 @@ export const njDictionary: Record<Locale, any> = {
     faq: {
       title: "Kesyon Yo Poze Souvan",
       items: [
-        { q: "Konbyen sa koute?", a: "DivorceGPT se $29 yon sèl fwa. Frè depo tribinal ($300) ak frè Konparisyon konjwen ($175) peye dirèkteman nan tribinal — pa ban nou." },
         { q: "Èske sa se konsèy legal?", a: "Non. DivorceGPT esplike kisa fòm divòs yo mande ak kijan pou depoze yo. Li pa bay konsèy legal. Pou konsèy legal, konsilte yon avoka." },
         { q: "Ki teknoloji DivorceGPT itilize?", a: "DivorceGPT itilize Claude AI ak pwoteksyon dokiman legal pèsonalize pou depo nan New Jersey. Konvèsasyon ou yo pa estoke." },
         { q: "Konbyen tan pwosesis la pran?", a: "Ou ka ranpli fòm ou yo nan kèk minit, men pwosesis divòs la pran tan. Tribinal la bezwen trete depo yo ant chak faz. Tan an varye pa konte. Sesyon ou rete valab pou 12 mwa." },
