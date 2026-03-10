@@ -19,7 +19,6 @@ export default function NJQualifyPage() {
     property: null,
     support: null,
     uncontested: null,
-    cooperation: null,
     military: null,
     domesticViolence: null,
   });
@@ -76,12 +75,6 @@ export default function NJQualifyPage() {
       id: "uncontested",
       question: t.qualify.questions.uncontested.q,
       description: t.qualify.questions.uncontested.d,
-      invertLogic: false,
-    },
-    {
-      id: "cooperation",
-      question: t.qualify.questions.cooperation.q,
-      description: t.qualify.questions.cooperation.d,
       invertLogic: false,
     },
     {

@@ -73,8 +73,7 @@ export const dictionary = {
         children: { q: "Are there any unemancipated children of the marriage?", d: "Includes children under 21 who are not self-supporting." },
         property: { q: "Is there any property, debts, pensions, or retirement accounts to divide?", d: "Real estate, 401(k), large debts, etc." },
         support: { q: "Is either spouse asking for spousal maintenance (alimony)?", d: "Either now or in the future." },
-        uncontested: { q: "Is the divorce uncontested and do both spouses agree to end the marriage?", d: "Both parties want the divorce and agree on all terms." },
-        cooperation: { q: "Will the other spouse cooperate with signing or service of papers?", d: "Spouse will sign acknowledgment or accept service." },
+        uncontested: { q: "Do both spouses agree to the divorce and will both cooperate with signing the required documents?", d: "Both parties want the divorce and the other spouse will sign acknowledgment or accept service." },
         military: { q: "Is your spouse currently serving in the U.S. military?", d: "Active duty, reserves on active orders, or National Guard on federal activation." },
         domesticViolence: { q: "Has there been any domestic violence case, restraining order, or order of protection between you and your spouse?", d: "This includes any current or past TRO, final restraining order, order of protection, or DV complaint — even if it was dismissed or withdrawn." }
       },
@@ -246,8 +245,7 @@ export const dictionary = {
         children: { q: "¿Hay hijos no emancipados del matrimonio?", d: "Incluye hijos menores de 21 años que no son económicamente independientes." },
         property: { q: "¿Hay propiedades, deudas, pensiones o cuentas de jubilación para dividir?", d: "Bienes raíces, 401(k), deudas grandes, etc." },
         support: { q: "¿Alguno de los cónyuges está solicitando manutención (pensión alimenticia)?", d: "Ya sea ahora o en el futuro." },
-        uncontested: { q: "¿El divorcio es de mutuo acuerdo y ambos cónyuges aceptan terminar el matrimonio?", d: "Ambas partes quieren el divorcio y están de acuerdo en todos los términos." },
-        cooperation: { q: "¿Cooperará el otro cónyuge firmando o aceptando los documentos?", d: "El cónyuge firmará el reconocimiento o aceptará la notificación (Service of Process)." },
+        uncontested: { q: "¿Ambos cónyuges están de acuerdo con el divorcio y cooperarán con la firma de los documentos requeridos?", d: "Ambas partes quieren el divorcio y el otro cónyuge firmará el reconocimiento o aceptará la notificación." },
         military: { q: "¿Su cónyuge está actualmente sirviendo en el ejército de EE.UU.?", d: "Servicio activo, reservas en órdenes activas, o Guardia Nacional en activación federal." },
         domesticViolence: { q: "¿Ha habido algún caso de violencia doméstica, orden de restricción u orden de protección entre usted y su cónyuge?", d: "Esto incluye cualquier TRO actual o pasada, orden de restricción final, orden de protección o denuncia de violencia doméstica, incluso si fue desestimada o retirada." }
       },
@@ -419,8 +417,7 @@ export const dictionary = {
         children: { q: "婚姻中有未成年（未独立）的子女吗？", d: "包括21岁以下且不能自立的子女。" },
         property: { q: "是否有财产、债务、养老金或退休账户需要分配？", d: "房产、401(k)、大额债务等。" },
         support: { q: "任一配偶是否在申请配偶赡养费？", d: "无论是现在还是将来。" },
-        uncontested: { q: "离婚是否无争议，且双方都同意结束婚姻？", d: "双方都想要离婚并同意所有条款。" },
-        cooperation: { q: "另一方配偶是否会配合签署或接收文件？", d: "配偶将签署确认书或接受法律送达。" },
+        uncontested: { q: "双方是否都同意离婚，并且都愿意配合签署所需文件？", d: "双方都想要离婚，另一方配偶将签署确认书或接受法律送达。" },
         military: { q: "您的配偶目前是否在美国军队服役？", d: "现役、现役命令下的预备役、或联邦激活的国民警卫队。" },
         domesticViolence: { q: "您和配偶之间是否有过任何家庭暴力案件、限制令或保护令？", d: "这包括任何当前或过去的临时限制令、最终限制令、保护令或家庭暴力投诉——即使已被驳回或撤回。" }
       },
@@ -592,8 +589,7 @@ export const dictionary = {
         children: { q: "미성년 자녀가 있습니까?", d: "21세 미만이며 경제적으로 독립하지 않은 자녀를 포함합니다." },
         property: { q: "분할할 재산, 부채, 연금 또는 퇴직 계좌가 있습니까?", d: "부동산, 401(k), 다액의 채무 등." },
         support: { q: "배우자 중 한 명이 배우자 부양비(위자료)를 요청하고 있습니까?", d: "현재 또는 미래에." },
-        uncontested: { q: "합의 이혼이며 양측 모두 결혼 생활 종료에 동의합니까?", d: "양측 모두 이혼을 원하며 모든 조건에 동의합니다." },
-        cooperation: { q: "상대방 배우자가 서류 서명 또는 송달에 협조할 것입니까?", d: "배우자가 확인서에 서명하거나 법적 송달(Service)을 수락할 것입니다." },
+        uncontested: { q: "양측 모두 이혼에 동의하며, 필요한 서류 서명에 협조할 것입니까?", d: "양측 모두 이혼을 원하며, 상대방 배우자가 확인서에 서명하거나 법적 송달을 수락할 것입니다." },
         military: { q: "배우자가 현재 미국 군에서 복무 중입니까?", d: "현역, 현역 명령 하의 예비역, 또는 연방 활성화된 주방위군." },
         domesticViolence: { q: "귀하와 배우자 사이에 가정폭력 사건, 접근금지 명령, 또는 보호 명령이 있었습니까?", d: "현재 또는 과거의 임시 접근금지 명령, 최종 접근금지 명령, 보호 명령 또는 가정폭력 신고를 포함합니다 — 기각되었거나 철회된 경우도 포함됩니다." }
       },
@@ -765,8 +761,7 @@ export const dictionary = {
         children: { q: "Есть ли у вас несовершеннолетние дети?", d: "Включая детей до 21 года, которые не обеспечивают себя самостоятельно." },
         property: { q: "Есть ли имущество, долги или пенсии для раздела?", d: "Недвижимость, 401(k), крупные долги и т.д." },
         support: { q: "Требует ли кто-либо из супругов алименты на содержание супруга?", d: "Сейчас или в будущем." },
-        uncontested: { q: "Является ли развод бесспорным и согласны ли оба супруга?", d: "Обе стороны хотят развода и согласны со всеми условиями." },
-        cooperation: { q: "Будет ли другой супруг сотрудничать при подписании документов?", d: "Супруг подпишет подтверждение или примет вручение (Service) документов." },
+        uncontested: { q: "Согласны ли оба супруга на развод и будут ли оба сотрудничать при подписании необходимых документов?", d: "Обе стороны хотят развода, и другой супруг подпишет подтверждение или примет вручение документов." },
         military: { q: "Служит ли ваш супруг в настоящее время в вооружённых силах США?", d: "Действующая служба, резерв на активных приказах или Национальная гвардия на федеральной активации." },
         domesticViolence: { q: "Были ли между вами и вашим супругом случаи домашнего насилия, запретительные ордера или ордера защиты?", d: "Включает любые текущие или прошлые временные запретительные ордера, постоянные запретительные ордера, ордера защиты или жалобы на домашнее насилие — даже если они были отклонены или отозваны." }
       },
@@ -938,8 +933,7 @@ export const dictionary = {
         children: { q: "Èske gen timoun nan maryaj la ki poko granmoun?", d: "Sa gen ladan timoun ki poko gen 21 an ki pa ka pran swen tèt yo." },
         property: { q: "Èske gen byen, dèt, pansyon, oswa kont retrèt pou pataje?", d: "Kay, tè, 401(k), gwo dèt, elatriye." },
         support: { q: "Èske youn nan mari oswa madanm yo ap mande sipò (alimony)?", d: "Swa kounye a oswa nan lavni." },
-        uncontested: { q: "Èske divòs la san kontestasyon epi èske nou tou de dakò pou fini maryaj la?", d: "Tou de pati yo vle divòs la epi yo dakò sou tout kondisyon yo." },
-        cooperation: { q: "Èske lòt mari oswa madanm nan ap kowopere pou siyen oswa resevwa papye yo?", d: "Mari oswa madanm nan pral siyen papye yo oswa aksepte sèvis la (Service of Process)." },
+        uncontested: { q: "Èske tou de mari oswa madanm yo dakò ak divòs la epi èske tou de ap kowopere pou siyen dokiman ki nesesè yo?", d: "Tou de pati yo vle divòs la epi lòt mari oswa madanm nan pral siyen papye yo oswa aksepte sèvis la." },
         military: { q: "Èske mari oswa madanm ou ap sèvi nan lame Etazini kounye a?", d: "Sèvis aktif, rezèv sou lòd aktif, oswa Gad Nasyonal sou aktivasyon federal." },
         domesticViolence: { q: "Èske te gen nenpòt ka vyolans domestik, lòd restriksyon, oswa lòd pwoteksyon ant ou menm ak mari oswa madanm ou?", d: "Sa gen ladan nenpòt TRO aktyèl oswa pase, lòd restriksyon final, lòd pwoteksyon, oswa plent vyolans domestik — menm si li te rejte oswa retire." }
       },

@@ -219,6 +219,11 @@ export default function Home() {
                       <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
                       Live Now
                     </span>
+                  ) : state.code === "nv" ? (
+                    <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-semibold text-yellow-600">
+                      <span className="h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse" />
+                      Under Construction
+                    </span>
                   ) : (
                     <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-500">
                       Coming Soon

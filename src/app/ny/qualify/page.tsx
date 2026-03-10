@@ -18,7 +18,6 @@ export default function QualifyPage() {
     property: null,
     support: null,
     uncontested: null,
-    cooperation: null,
     military: null,
     domesticViolence: null,
   });
@@ -68,12 +67,6 @@ export default function QualifyPage() {
       id: "uncontested",
       question: t.qualify.questions.uncontested.q,
       description: t.qualify.questions.uncontested.d,
-      invertLogic: false, // Must answer YES to qualify
-    },
-    {
-      id: "cooperation",
-      question: t.qualify.questions.cooperation.q,
-      description: t.qualify.questions.cooperation.d,
       invertLogic: false, // Must answer YES to qualify
     },
     {

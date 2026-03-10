@@ -4,46 +4,23 @@ import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-// Multilingual courtesy note - same message in all 6 supported languages
-const courtesyNotes = {
-  en: "These documents are in English. If you need help understanding them, please consult a translator before continuing.",
-  es: "Estos documentos están en inglés. Si necesita ayuda para entenderlos, consulte a un traductor antes de continuar.",
-  zh: "这些文件是英文的。如果您需要帮助理解它们，请在继续之前咨询翻译人员。",
-  ko: "이 문서들은 영어로 작성되어 있습니다. 이해하는 데 도움이 필요하시면 계속하기 전에 번역사와 상담하십시오.",
-  ru: "Эти документы на английском языке. Если вам нужна помощь в их понимании, пожалуйста, обратитесь к переводчику, прежде чем продолжить.",
-  ht: "Dokiman sa yo nan lang Anglè. Si ou bezwen èd pou konprann yo, tanpri konsilte yon tradiktè anvan ou kontinye.",
-};
-
 function AgreeContent() {
   const searchParams = useSearchParams();
   const [hasReadTerms, setHasReadTerms] = useState(false);
   const [hasReadPrivacy, setHasReadPrivacy] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [freeKey, setFreeKey] = useState(searchParams.get("key") || "");
-  
-  // Four confirmation checkboxes
+
   const [confirmNotLawFirm, setConfirmNotLawFirm] = useState(false);
   const [confirmNoDataStored, setConfirmNoDataStored] = useState(false);
   const [confirmTermination, setConfirmTermination] = useState(false);
   const [confirmReadDocs, setConfirmReadDocs] = useState(false);
 
-  // Track when links are clicked
-  const handleTermsClick = () => {
-    setHasReadTerms(true);
-  };
-
-  const handlePrivacyClick = () => {
-    setHasReadPrivacy(true);
-  };
-
-  // All conditions for proceeding
   const allConfirmed = confirmNotLawFirm && confirmNoDataStored && confirmTermination && confirmReadDocs;
   const canProceed = hasReadTerms && hasReadPrivacy && allConfirmed;
 
-  // Proceed to payment
   const handleProceed = async () => {
     if (!canProceed) return;
-    
     setIsProcessing(true);
     try {
       const res = await fetch("/api/create-checkout", {
@@ -53,7 +30,7 @@ function AgreeContent() {
           returnUrl: window.location.origin,
           agreedAt: new Date().toISOString(),
           freeKey: freeKey.trim() || undefined,
-          state: "ny",
+          state: "nv",
         }),
       });
       const data = await res.json();
@@ -63,7 +40,7 @@ function AgreeContent() {
         alert("Failed to create checkout session. Please try again.");
         setIsProcessing(false);
       }
-    } catch (error) {
+    } catch {
       alert("Something went wrong. Please try again.");
       setIsProcessing(false);
     }
@@ -77,11 +54,11 @@ function AgreeContent() {
           <div className="flex h-16 items-center">
             <Link href="/" className="flex items-center gap-3 transition hover:opacity-80">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282] shadow-lg shadow-[#1a365d]/20">
-                <span className="text-lg">⚖️</span>
+                <span className="text-lg">&#9878;&#65039;</span>
               </div>
               <div>
                 <h1 className="text-lg font-semibold text-zinc-900">DivorceGPT</h1>
-                <p className="text-xs text-zinc-500">Review & Agree</p>
+                <p className="text-xs text-zinc-500">Review &amp; Agree</p>
               </div>
             </Link>
           </div>
@@ -101,17 +78,6 @@ function AgreeContent() {
           </p>
         </div>
 
-        {/* Multilingual Courtesy Note */}
-        <div className="mb-8 rounded-xl bg-blue-50 p-4 ring-1 ring-blue-200">
-          <div className="space-y-1 text-sm text-blue-800">
-            {Object.entries(courtesyNotes).map(([lang, note]) => (
-              <p key={lang} className={lang === 'en' ? 'font-medium' : 'text-blue-700'}>
-                {note}
-              </p>
-            ))}
-          </div>
-        </div>
-
         <div className="space-y-6">
           {/* Terms of Service Card */}
           <div className={`rounded-2xl bg-white p-6 shadow-sm ring-1 transition-all duration-200 ${hasReadTerms ? 'ring-green-300 bg-green-50/30' : 'ring-zinc-200'}`}>
@@ -121,22 +87,22 @@ function AgreeContent() {
                   <h3 className="font-semibold text-zinc-900">Terms of Service</h3>
                   {hasReadTerms && (
                     <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                      ✓ Opened
+                      &#10003; Opened
                     </span>
                   )}
                 </div>
                 <p className="mt-1 text-sm text-zinc-500">
-                  Understand what DivorceGPT is (and isn't), eligibility requirements, and important disclaimers.
+                  Understand what DivorceGPT is (and isn&apos;t), eligibility requirements, and important disclaimers.
                 </p>
               </div>
               <a
                 href="/terms?review=true"
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={handleTermsClick}
+                onClick={() => setHasReadTerms(true)}
                 className="flex-shrink-0 rounded-full bg-[#1a365d] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#2c5282]"
               >
-                Read →
+                Read &rarr;
               </a>
             </div>
           </div>
@@ -149,80 +115,60 @@ function AgreeContent() {
                   <h3 className="font-semibold text-zinc-900">Privacy Policy</h3>
                   {hasReadPrivacy && (
                     <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                      ✓ Opened
+                      &#10003; Opened
                     </span>
                   )}
                 </div>
                 <p className="mt-1 text-sm text-zinc-500">
-                  Learn how we handle (and don't store) your data.
+                  Learn how we handle (and don&apos;t store) your data.
                 </p>
               </div>
               <a
                 href="/privacy?review=true"
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={handlePrivacyClick}
+                onClick={() => setHasReadPrivacy(true)}
                 className="flex-shrink-0 rounded-full bg-[#1a365d] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#2c5282]"
               >
-                Read →
+                Read &rarr;
               </a>
             </div>
           </div>
 
-          {/* Four Confirmation Checkboxes */}
+          {/* Confirmation Checkboxes */}
           <div className={`rounded-2xl p-6 ring-1 transition-all duration-200 ${
             allConfirmed ? 'bg-green-50 ring-green-300' : 'bg-white ring-zinc-200'
           }`}>
             <h3 className="font-semibold text-zinc-900 mb-4">Please confirm each statement:</h3>
-            
+
             <div className="space-y-4">
-              {/* Checkbox 1: Not a law firm */}
               <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={confirmNotLawFirm}
-                  onChange={(e) => setConfirmNotLawFirm(e.target.checked)}
-                  className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]"
-                />
+                <input type="checkbox" checked={confirmNotLawFirm} onChange={(e) => setConfirmNotLawFirm(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]" />
                 <span className="text-sm text-zinc-700">
                   I understand DivorceGPT is <strong>not a law firm</strong> and does not provide legal advice
                 </span>
               </label>
 
-              {/* Checkbox 2: No data stored */}
               <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={confirmNoDataStored}
-                  onChange={(e) => setConfirmNoDataStored(e.target.checked)}
-                  className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]"
-                />
+                <input type="checkbox" checked={confirmNoDataStored} onChange={(e) => setConfirmNoDataStored(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]" />
                 <span className="text-sm text-zinc-700">
-                  I understand my data is <strong>not stored</strong> — I am responsible for saving my documents
+                  I understand my data is <strong>not stored</strong> &mdash; I am responsible for saving my documents
                 </span>
               </label>
 
-              {/* Checkbox 3: Termination policy */}
               <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={confirmTermination}
-                  onChange={(e) => setConfirmTermination(e.target.checked)}
-                  className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]"
-                />
+                <input type="checkbox" checked={confirmTermination} onChange={(e) => setConfirmTermination(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]" />
                 <span className="text-sm text-zinc-700">
                   I understand threats or fraud will result in <strong>immediate session termination</strong>
                 </span>
               </label>
 
-              {/* Checkbox 4: Read documents */}
               <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={confirmReadDocs}
-                  onChange={(e) => setConfirmReadDocs(e.target.checked)}
-                  className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]"
-                />
+                <input type="checkbox" checked={confirmReadDocs} onChange={(e) => setConfirmReadDocs(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]" />
                 <span className="text-sm text-zinc-700">
                   I have read the <strong>Terms of Service</strong> and <strong>Privacy Policy</strong>
                 </span>
@@ -234,21 +180,19 @@ function AgreeContent() {
           <div className="text-center pt-4">
             <div className="mb-4">
               <p className="text-4xl font-bold text-[#1a365d]">$29</p>
-              <p className="text-sm text-zinc-500">One-time fee • 12-month access • No subscription</p>
-              <p className="text-xs text-zinc-400 mt-2">After payment, you'll be redirected to your session. Bookmark the page — that URL is how you return. No accounts or passwords needed.</p>
+              <p className="text-sm text-zinc-500">One-time fee &middot; 12-month access &middot; No subscription</p>
+              <p className="text-xs text-zinc-400 mt-2">After payment, you&apos;ll be redirected to your session. Bookmark the page &mdash; that URL is how you return.</p>
             </div>
-            
+
             {/* Free Access Key Input */}
             <div className="mb-4">
               <input
-                type="text"
-                value={freeKey}
-                onChange={(e) => setFreeKey(e.target.value)}
+                type="text" value={freeKey} onChange={(e) => setFreeKey(e.target.value)}
                 placeholder="Have an access code? Enter it here"
                 className="w-full rounded-lg border border-zinc-200 px-4 py-2 text-sm text-center placeholder:text-zinc-400 focus:border-[#1a365d] focus:outline-none focus:ring-1 focus:ring-[#1a365d]"
               />
             </div>
-            
+
             <button
               onClick={handleProceed}
               disabled={!canProceed || isProcessing}
@@ -273,24 +217,19 @@ function AgreeContent() {
 
             {!canProceed && (
               <p className="mt-3 text-sm text-zinc-500">
-                {(!hasReadTerms || !hasReadPrivacy) 
+                {(!hasReadTerms || !hasReadPrivacy)
                   ? "Please open and read both documents above"
                   : "Please confirm all statements above"
                 }
               </p>
             )}
-            
-            <p className="mt-4 text-xs text-zinc-500">
-              Secure payment processed by Stripe
-            </p>
+
+            <p className="mt-4 text-xs text-zinc-500">Secure payment processed by Stripe</p>
           </div>
 
           {/* Back Link */}
           <div className="text-center pt-4">
-            <Link
-              href="/ny/qualify"
-              className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-700"
-            >
+            <Link href="/nv/qualify" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-700">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
               </svg>
@@ -310,7 +249,7 @@ function AgreeContent() {
   );
 }
 
-export default function AgreePage() {
+export default function NVAgreePage() {
   return (
     <Suspense fallback={
       <div className="flex min-h-screen items-center justify-center bg-zinc-50">

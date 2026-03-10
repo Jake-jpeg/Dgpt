@@ -538,7 +538,7 @@ export const ny: StateConfig = {
   qualificationQuestions: [
     { id: 'residency', invertLogic: false }, { id: 'children', invertLogic: true },
     { id: 'property', invertLogic: true }, { id: 'support', invertLogic: true },
-    { id: 'uncontested', invertLogic: false }, { id: 'cooperation', invertLogic: false },
+    { id: 'uncontested', invertLogic: false },
     { id: 'military', invertLogic: true },
   ],
   phase1Fields: [
