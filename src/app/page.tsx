@@ -43,7 +43,7 @@ const states = [
     href: "/nv",
     tagline: "Uncontested divorce filing for Nevada.",
     price: "$29",
-    counties: "All 17 counties",
+    counties: "Clark & Washoe counties",
   },
   {
     code: "ut",

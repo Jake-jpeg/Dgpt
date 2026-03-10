@@ -35,7 +35,7 @@ export default function NVHome() {
           </h2>
           <p className="mt-2 text-2xl font-semibold text-[#c59d5f] sm:text-3xl">Uncontested Joint Petition Divorce</p>
           <p className="mt-6 text-lg text-zinc-300 max-w-2xl mx-auto">
-            AI-powered document preparation for Nevada uncontested divorces. Generate your complete filing packet in one session.
+            AI-powered document preparation for Nevada uncontested divorces. Currently serving Clark County (Las Vegas) and Washoe County (Reno).
           </p>
 
           <div className="mt-10">
@@ -67,7 +67,7 @@ export default function NVHome() {
               { title: "Check Eligibility", desc: "Answer a few questions to confirm your divorce qualifies for our service." },
               { title: "Provide Your Info", desc: "Chat with our AI clerk to provide information about both spouses, the marriage, and your witness." },
               { title: "Download & Sign", desc: "Download your complete filing packet. Both spouses and witness sign before a notary." },
-              { title: "File with Court", desc: "File everything with your county's District Court Clerk. Judge signs the Decree within 1-3 weeks." },
+              { title: "File with Court", desc: "File with Clark County (eFileNV) or Washoe County (eFlex). Judge signs the Decree and your divorce is final." },
             ].map((step, index) => (
               <div key={index} className="relative">
                 {index < 3 && (
@@ -91,7 +91,7 @@ export default function NVHome() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">Your Filing Packet</h3>
-            <p className="mt-4 text-lg text-zinc-600">Four documents, generated in one session</p>
+            <p className="mt-4 text-lg text-zinc-600">Core documents generated in one session (Washoe County receives additional filing forms)</p>
           </div>
 
           <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -121,14 +121,14 @@ export default function NVHome() {
 
           <div className="mt-12 grid gap-4 sm:grid-cols-2 text-left max-w-2xl mx-auto">
             {[
+              "Filing in Clark County or Washoe County",
               "Both spouses agree to divorce",
-              "No minor children",
+              "No minor children and neither party pregnant",
               "No undivided property or debt",
               "No spousal support requested",
               "At least one spouse: 6 weeks in NV",
               "NV resident witness available",
               "Neither spouse is active military",
-              "No domestic violence history",
             ].map((item, index) => (
               <div key={index} className="flex items-center gap-3 rounded-xl bg-white/10 backdrop-blur-sm px-4 py-3 ring-1 ring-white/10">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#c59d5f] text-white">
@@ -168,7 +168,7 @@ export default function NVHome() {
               { q: "Do I need a lawyer?", a: "DivorceGPT prepares documents for pro se (self-represented) filers. If your situation is complex, we recommend consulting an attorney." },
               { q: "What is the Affidavit of Resident Witness?", a: "Nevada requires a third-party witness (not a spouse) who is a NV resident and can attest to the filing spouse's 6-week NV residency. This is typically a friend, neighbor, or coworker." },
               { q: "Do the forms need to be notarized?", a: "Yes. The Joint Petition, Decree, and Affidavit all require notarization. Both spouses sign the Petition and Decree before a notary. The witness signs the Affidavit before a notary." },
-              { q: "How much does filing cost?", a: "DivorceGPT charges $29 for document preparation. The court filing fee is approximately $326 (varies by county). Notary fees are separate." },
+              { q: "How much does filing cost?", a: "DivorceGPT charges $29 for document preparation. The court filing fee is approximately $299 plus a small e-filing convenience fee. Notary fees are separate." },
               { q: "What if we have property but already divided it?", a: "If you and your spouse have already divided all community property and debt by mutual agreement, DivorceGPT can handle your case. If anything still needs to be divided, you'll need an attorney." },
             ].map((faq, index) => (
               <div key={index} className="rounded-2xl bg-zinc-50 p-6 transition-all duration-200 hover:bg-zinc-100">

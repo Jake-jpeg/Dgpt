@@ -7,6 +7,12 @@ type Answers = Record<string, boolean | null>;
 
 const questions = [
   {
+    id: "county",
+    question: "Are you filing in Clark County (Las Vegas) or Washoe County (Reno)?",
+    description: "DivorceGPT currently serves Clark and Washoe counties only. We're expanding to additional Nevada counties soon.",
+    invertLogic: false,
+  },
+  {
     id: "residency",
     question: "Has at least one spouse lived in Nevada for at least 6 weeks?",
     description: "Nevada requires at least one spouse to have been a bona fide resident for 6 weeks before filing (NRS 125.020).",
