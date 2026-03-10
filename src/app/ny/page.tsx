@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "../../components/LanguageProvider";
-import { Locale } from "../../lib/dictionary";
+import { Locale } from "../../lib/ny-dictionary";
 
 const languages = [
   { code: "en", label: "English" },

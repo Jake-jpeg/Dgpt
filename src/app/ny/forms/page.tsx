@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useLanguage } from "../../../components/LanguageProvider";
-import { Locale } from "../../../lib/dictionary";
+import { Locale } from "../../../lib/ny-dictionary";
 import { 
   loadSession, 
   createSession, 
