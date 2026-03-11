@@ -193,7 +193,7 @@ export async function POST(
               continue;
             }
             
-            const hasStreetNumber = /^\d+\s/.test(value.trim()) || /\s\d+[,\s]/.test(value);
+            const hasStreetNumber = /^\d+[\s\-]/.test(value.trim()) || /\s\d+[,\s]/.test(value) || /^(one|two|three|four|five|six|seven|eight|nine|ten)\s/i.test(value.trim()) || /^p\.?o\.?\s*box/i.test(value.trim());
             if (!hasStreetNumber) {
               validationWarning = `Address should include a street number. Please verify and re-enter.`;
             }

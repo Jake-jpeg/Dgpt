@@ -666,8 +666,8 @@ export async function POST(req: Request) {
               continue;
             }
             
-            // Additional check: must have street number
-            const hasStreetNumber = /^\d+\s/.test(value.trim()) || /\s\d+[,\s]/.test(value);
+            // Additional check: must have street number (supports hyphenated Queens-style like "45-10", PO Box, and word-numbers like "One")
+            const hasStreetNumber = /^\d+[\s\-]/.test(value.trim()) || /\s\d+[,\s]/.test(value) || /^(one|two|three|four|five|six|seven|eight|nine|ten)\s/i.test(value.trim()) || /^p\.?o\.?\s*box/i.test(value.trim());
             if (!hasStreetNumber) {
               validationWarning = `Address should include a street number. Please verify and re-enter.`;
               // Still save it, but warn
