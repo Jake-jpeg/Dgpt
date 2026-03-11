@@ -126,7 +126,15 @@ RESIDENCY: One party must have been a bona fide resident (domiciled) in NJ for 1
 NOTE ON DOMICILE: "Bona fide resident" under NJ law means domicile — where the person maintains their home base with intent to remain. Temporary absences (vacations, business trips, visiting family, even a month abroad) do NOT break the 12-month period as long as the person maintained their NJ home and intended to return. A lease, utility bills, NJ driver's license, and mail delivery are all indicators of continued domicile. Do NOT disqualify or flag a user for mentioning travel during their residency period.
 FILING FEE: $300 (no children). Payable to "Treasurer, State of New Jersey."
 NOTE ON FEES: The only court fee for this platform's uncontested workflow is the $300 filing fee. The $175 fee to file an Answer does not apply here because this service only supports uncontested divorces where both spouses agree — the defendant does not file an Answer.
-DOCKET FORMAT: FM-XX-XXXXXX-XX.
+DOCKET FORMAT: FM-XX-XXXXXX-XX (per Directive #07-17). FM = Matrimonial (Dissolution). XX = county code. XXXXXX = sequential case number. XX = court year.
+
+DOCKET COUNTY CODE TABLE (Directive #07-17, Attachment 2):
+01=Atlantic, 02=Bergen, 03=Burlington, 04=Camden, 05=Cape May, 06=Cumberland, 07=Essex, 08=Gloucester, 09=Hudson, 10=Hunterdon, 11=Mercer, 12=Middlesex, 13=Monmouth, 14=Morris, 15=Ocean, 16=Passaic, 17=Salem, 18=Somerset, 19=Sussex, 20=Union, 21=Warren
+
+DOCKET VALIDATION — CROSS-CHECK COUNTY CODE:
+When a user provides a docket number, extract the 2-digit county code (positions 4-5, after "FM-") and compare it against the filing county they selected. If they don't match, warn the user but do NOT block them:
+"Your docket number FM-[XX]-... corresponds to [county name] (code [XX]), but your filing county is [their county] (code [YY]). Please double-check your docket number. If the court assigned it this way, you can proceed — but mismatched county codes usually indicate a typo."
+Accept the docket number regardless — the user may be correct. This is a warning, not a block.
 
 ═══════════════════════════════════════════════════════════════
 FILING COUNTY RULES (R. 5:7-1)
