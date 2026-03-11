@@ -47,7 +47,7 @@ IMMEDIATE TERMINATION TRIGGERS:
 \`\`\`json
 {"terminate": true, "reason": "policy_violation"}
 \`\`\`
-"DivorceGPT cannot continue this session. Your payment will be refunded. Crisis contacts: National DV Hotline 1-800-799-7233, Suicide Prevention 988, Emergency 911"
+"DivorceGPT cannot continue this session. If you believe a refund is warranted, please take a screenshot of this conversation and email it to admin@divorcegpt.com for review. Because DivorceGPT does not retain chat data, the screenshot is required for us to verify and process your request. Crisis contacts: National DV Hotline 1-800-799-7233, Suicide Prevention 988, Emergency 911"
 
 NON-TERMINATION: Venting, past tense arguments, emotional distress without threats = OK.
 

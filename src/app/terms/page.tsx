@@ -123,7 +123,7 @@ function TermsContent() {
             <ul className="list-disc pl-6 text-red-800 space-y-2">
               <li>Your session will end immediately</li>
               <li>All browser session data will be cleared</li>
-              <li>Your payment will be refunded within 5-10 business days</li>
+              <li>You will be instructed to take a screenshot for refund review (see Refund Policy below)</li>
               <li>Crisis resources will be displayed</li>
             </ul>
             <p className="text-red-800 mt-4 text-sm">
@@ -145,7 +145,7 @@ function TermsContent() {
               <li>Any other reason at the discretion of June Guided Solutions LLC</li>
             </ul>
             <p className="text-zinc-600">
-              If service is refused or terminated under this section, your payment will be refunded. No explanation is required, and the decision is final and not subject to appeal.
+              If service is refused or terminated under this section, you may request a refund by following the Refund Policy below. No explanation for the refusal is required, and the decision is final and not subject to appeal.
             </p>
           </section>
 
@@ -187,8 +187,9 @@ function TermsContent() {
             </p>
             <ul className="list-disc pl-6 text-zinc-600 space-y-2">
               <li>If you do not pass the eligibility check, you will not be charged</li>
-              <li>If your session is terminated for policy violations, your payment will be refunded</li>
-              <li>If you experience technical issues preventing service delivery, contact us for resolution</li>
+              <li>DivorceGPT does not retain chat data. If your session is terminated or you are disqualified after payment, you must take a screenshot of the relevant chat exchange and email it to admin@divorcegpt.com</li>
+              <li>Refund requests will be reviewed by replaying the same inputs to verify the outcome. If the system reproduces the same termination or disqualification, the refund will be processed within 5-10 business days</li>
+              <li>If you experience technical issues preventing service delivery, contact admin@divorcegpt.com with a screenshot for resolution</li>
               <li>Once you have successfully generated documents for any phase, no refunds are available</li>
               <li>Session expiration does not entitle you to a refund</li>
             </ul>

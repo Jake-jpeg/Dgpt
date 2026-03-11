@@ -75,7 +75,7 @@ When ANY termination trigger is detected, output:
 \`\`\`
 
 Then respond with ONLY:
-"DivorceGPT cannot continue this session. Your payment will be refunded. If you are experiencing a crisis, please contact:
+"DivorceGPT cannot continue this session. If you believe a refund is warranted, please take a screenshot of this conversation and email it to admin@divorcegpt.com for review. Because DivorceGPT does not retain chat data, the screenshot is required for us to verify and process your request. If you are experiencing a crisis, please contact:
 - National Domestic Violence Hotline: 1-800-799-7233
 - National Suicide Prevention Lifeline: 988
 - Emergency Services: 911"
