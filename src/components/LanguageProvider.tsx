@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { usePathname } from "next/navigation";
 import { dictionary, Locale } from "../lib/ny-dictionary";
 import { njDictionary } from "../lib/nj-dictionary";
+import { nvDictionary } from "../lib/nv-dictionary";
 
 type Dictionary = typeof dictionary.en;
 
@@ -27,7 +28,7 @@ const defaultContext: LanguageContextType = {
 const stateDictionaries: Record<string, Record<Locale, any>> = {
   ny: dictionary,
   nj: njDictionary,
-  // nv: nvDictionary, // Add when ready
+  nv: nvDictionary as Record<Locale, any>,
 };
 
 const LanguageContext = createContext<LanguageContextType>(defaultContext);

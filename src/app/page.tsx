@@ -2,17 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useLanguage } from "../components/LanguageProvider";
-import { Locale } from "../lib/ny-dictionary";
-
-const languages = [
-  { code: "en", label: "English" },
-  { code: "es", label: "Español" },
-  { code: "zh", label: "中文" },
-  { code: "ko", label: "한국어" },
-  { code: "ru", label: "Русский" },
-  { code: "ht", label: "Kreyòl Ayisyen" },
-];
 
 const states = [
   {
@@ -87,14 +76,13 @@ const states = [
 const YOUTUBE_VIDEO_ID = "nA9bf64rrA8";
 
 export default function Home() {
-  const { lang, setLang, t } = useLanguage();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted || !t) {
+  if (!mounted) {
     return (
       <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#1a365d] border-t-transparent" />
@@ -117,16 +105,6 @@ export default function Home() {
                 <p className="text-xs text-zinc-500">AI-Powered Document Preparation</p>
               </div>
             </div>
-            
-            <select 
-              value={lang} 
-              onChange={(e) => setLang(e.target.value as Locale)}
-              className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 focus:border-[#c59d5f] focus:outline-none"
-            >
-              {languages.map((l) => (
-                <option key={l.code} value={l.code}>{l.label}</option>
-              ))}
-            </select>
           </div>
         </div>
       </header>
@@ -145,25 +123,8 @@ export default function Home() {
             </h2>
             <p className="mt-2 text-2xl font-semibold text-[#c59d5f] sm:text-3xl">Made Simple</p>
             <p className="mt-6 text-lg text-zinc-300 max-w-2xl mx-auto">
-              {t.hero.description}
+              Get your divorce forms prepared and explained in plain language. No lawyers needed for simple, uncontested cases.
             </p>
-            
-            {/* Language Buttons */}
-            <div className="mt-8 flex flex-wrap justify-center gap-2">
-              {languages.map((l) => (
-                <button
-                  key={l.code}
-                  onClick={() => setLang(l.code as Locale)}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                    lang === l.code
-                      ? "bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30"
-                      : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white backdrop-blur-sm"
-                  }`}
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* YouTube Video Embed */}
@@ -269,14 +230,19 @@ export default function Home() {
       <section className="py-24 bg-zinc-50">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">{t.howItWorks.title}</h3>
-            <p className="mt-4 text-lg text-zinc-600">{t.howItWorks.subtitle}</p>
+            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">How It Works</h3>
+            <p className="mt-4 text-lg text-zinc-600">Four simple steps to complete your divorce</p>
           </div>
           
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-            {t.howItWorks.steps.map((step, index) => (
+            {[
+              { title: "Select Your State", desc: "Choose your state and answer a few questions to confirm eligibility." },
+              { title: "Pay $29", desc: "One-time payment. No hidden fees. No subscriptions." },
+              { title: "Get Your Forms", desc: "Receive your prepared divorce forms ready for filing." },
+              { title: "Ask Questions", desc: "Use DivorceGPT to understand any part of the process." },
+            ].map((step, index) => (
               <div key={index} className="relative">
-                {index < t.howItWorks.steps.length - 1 && (
+                {index < 3 && (
                   <div className="hidden lg:block absolute top-8 left-[60%] w-full h-0.5 bg-gradient-to-r from-[#c59d5f] to-transparent" />
                 )}
                 <div className="relative rounded-2xl bg-white p-8 transition-all duration-200 hover:shadow-lg">
@@ -306,11 +272,11 @@ export default function Home() {
               </div>
             </div>
             <p className="text-center text-sm text-zinc-500 max-w-md">
-               {t.chat.disclaimer}
+               DivorceGPT is a document preparation service. This is not legal advice.
             </p>
             <div className="flex gap-6 text-sm">
-              <Link href="/privacy" className="text-zinc-600 transition hover:text-[#1a365d]">{t.legal.privacyTitle}</Link>
-              <Link href="/terms" className="text-zinc-600 transition hover:text-[#1a365d]">{t.legal.termsTitle}</Link>
+              <Link href="/privacy" className="text-zinc-600 transition hover:text-[#1a365d]">Privacy</Link>
+              <Link href="/terms" className="text-zinc-600 transition hover:text-[#1a365d]">Terms</Link>
             </div>
           </div>
         </div>
