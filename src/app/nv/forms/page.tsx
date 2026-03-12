@@ -368,6 +368,13 @@ function NVFormsContent() {
     finally { setIsGenerating(false); }
   };
 
+  const resetSession = () => {
+    setPhase1Data({});
+    setPhase1Complete(false);
+    setIsDisqualified(false);
+    setMessages([{ role: "assistant", content: "Let's start fresh.\n\nYou can give me all your information at once, or we can go one question at a time. Just say **\"Let's start\"**." }]);
+  };
+
   // Loading state
   if (isValidating) {
     return (
@@ -603,27 +610,35 @@ function NVFormsContent() {
 
               {/* Generate button */}
               {phase1Complete && (
-                <button
-                  onClick={generateDocuments}
-                  disabled={isGenerating}
-                  className={`w-full rounded-xl py-3 text-sm font-semibold transition-all duration-200 mb-4 ${
-                    isGenerating
-                      ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-                      : 'bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] hover:shadow-xl'
-                  }`}
-                >
-                  {isGenerating ? (
-                    <span className="inline-flex items-center gap-2">
-                      <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Generating...
-                    </span>
-                  ) : (
-                    'Download Filing Packet'
-                  )}
-                </button>
+                <div className="space-y-2 mb-4">
+                  <button
+                    onClick={generateDocuments}
+                    disabled={isGenerating}
+                    className={`w-full rounded-xl py-3 text-sm font-semibold transition-all duration-200 ${
+                      isGenerating
+                        ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+                        : 'bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] hover:shadow-xl'
+                    }`}
+                  >
+                    {isGenerating ? (
+                      <span className="inline-flex items-center gap-2">
+                        <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Generating...
+                      </span>
+                    ) : (
+                      'Download Filing Packet'
+                    )}
+                  </button>
+                  <button
+                    onClick={resetSession}
+                    className="w-full rounded-lg border border-red-200 bg-red-50 py-2 text-sm font-medium text-red-600 hover:bg-red-100 hover:border-red-300 transition-colors"
+                  >
+                    Start Over
+                  </button>
+                </div>
               )}
 
               {/* Field values */}
@@ -637,6 +652,13 @@ function NVFormsContent() {
                   </div>
                 ))}
               </div>
+
+              {/* Start over link (when not yet complete) */}
+              {!phase1Complete && Object.keys(phase1Data).length > 0 && (
+                <button onClick={resetSession} className="mt-4 w-full text-sm text-zinc-500 hover:text-zinc-700 underline">
+                  Start over
+                </button>
+              )}
 
               {/* Email confirmation */}
               {emailSent && customerEmail && (
