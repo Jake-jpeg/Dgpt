@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="24" fill="#1a365d" />
+  <!-- Center post -->
+  <rect x="60" y="28" width="8" height="62" rx="4" fill="#c59d5f" />
+  <!-- Top crossbar -->
+  <rect x="24" y="28" width="80" height="6" rx="3" fill="#c59d5f" />
+  <!-- Left pan -->
+  <path d="M24 34 L16 62 Q16 72 32 72 Q48 72 48 62 L40 34" fill="none" stroke="#c59d5f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Right pan -->
+  <path d="M88 34 L80 62 Q80 72 96 72 Q112 72 112 62 L104 34" fill="none" stroke="#c59d5f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Base -->
+  <rect x="38" y="90" width="52" height="6" rx="3" fill="#c59d5f" />
+  <!-- Base triangle -->
+  <path d="M54 90 L64 78 L74 90" fill="none" stroke="#c59d5f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
