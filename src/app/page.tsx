@@ -25,6 +25,16 @@ const states = [
     counties: "All 21 counties",
   },
   {
+    code: "nv",
+    name: "Nevada",
+    abbr: "NV",
+    live: false,
+    href: "/nv",
+    tagline: "Uncontested divorce filing for Nevada.",
+    price: "$29",
+    counties: "Clark & Washoe counties",
+  },
+  {
     code: "tx",
     name: "Texas",
     abbr: "TX",
@@ -33,36 +43,6 @@ const states = [
     tagline: "Uncontested divorce filing for Texas.",
     price: "$29",
     counties: "All 254 counties",
-  },
-  {
-    code: "or",
-    name: "Oregon",
-    abbr: "OR",
-    live: false,
-    href: "#",
-    tagline: "Uncontested divorce filing for Oregon.",
-    price: "$29",
-    counties: "All 36 counties",
-  },
-  {
-    code: "ct",
-    name: "Connecticut",
-    abbr: "CT",
-    live: false,
-    href: "#",
-    tagline: "Uncontested divorce filing for Connecticut.",
-    price: "$29",
-    counties: "All 8 judicial districts",
-  },
-  {
-    code: "id",
-    name: "Idaho",
-    abbr: "ID",
-    live: false,
-    href: "#",
-    tagline: "Uncontested divorce filing for Idaho.",
-    price: "$29",
-    counties: "All 44 counties",
   },
 ];
 
@@ -150,7 +130,7 @@ export default function Home() {
             <p className="mt-4 text-lg text-zinc-600">Choose your state to begin preparing your uncontested divorce documents.</p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2">
             {states.map((state) => (
               <Link
                 key={state.code}
@@ -179,6 +159,11 @@ export default function Home() {
                     <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-green-500/20 px-3 py-1 text-xs font-semibold text-green-300">
                       <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
                       Live Now
+                    </span>
+                  ) : state.code === "nv" ? (
+                    <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-semibold text-blue-600">
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+                      Testing
                     </span>
                   ) : state.code === "tx" ? (
                     <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-semibold text-yellow-600">
