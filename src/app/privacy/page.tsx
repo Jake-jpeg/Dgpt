@@ -37,7 +37,7 @@ function PrivacyContent() {
 
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-8">Privacy Policy</h1>
-        <p className="text-sm text-zinc-500 mb-8">Last updated: March 1, 2026</p>
+        <p className="text-sm text-zinc-500 mb-8">Last updated: March 13, 2026</p>
 
         <div className="prose prose-zinc max-w-none">
           
@@ -110,7 +110,8 @@ function PrivacyContent() {
                 <strong>Your browser stores your progress.</strong> Form data is saved in your browser's localStorage and never transmitted to our servers for storage. You can clear this at any time by clearing your browser data.
               </p>
               <p>
-                <strong>AI processes but doesn't remember.</strong> Your conversations are processed by Anthropic's Claude AI to generate responses. Per Anthropic's commercial API terms, these conversations are not used for AI training and are not retained after your session.
+                <strong>AI processes but doesn't remember.</strong> Your conversations are processed by Anthropic's Claude AI via their commercial API. Under Anthropic's API terms, your inputs and outputs are <strong>not used for AI model training</strong> and are automatically deleted within days. Anthropic may retain data flagged by trust-and-safety classifiers for policy enforcement.{' '}
+                <a href="https://privacy.claude.com" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#c59d5f]">Read Anthropic's privacy policy →</a>
               </p>
               <p>
                 <strong>PDFs are generated and discarded.</strong> When you download your forms, the PDF is generated server-side, sent to your browser, and immediately discarded. We do not keep copies.
@@ -120,19 +121,34 @@ function PrivacyContent() {
 
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Third-Party Services</h2>
-            <p className="text-zinc-600 mb-4">DivorceGPT uses the following services. Their privacy practices are governed by their own policies:</p>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between py-2 border-b border-zinc-100">
-                <span className="font-medium text-zinc-900">Stripe</span>
-                <span className="text-sm text-zinc-500">Payment processing</span>
+            <p className="text-zinc-600 mb-4">DivorceGPT uses the following services. None of these providers use your data for AI training or sell it to third parties.</p>
+            <div className="space-y-4">
+              <div className="rounded-xl bg-white p-4 ring-1 ring-zinc-200">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-medium text-zinc-900">Anthropic</span>
+                  <span className="text-sm text-zinc-500">AI processing (Claude API)</span>
+                </div>
+                <p className="text-sm text-zinc-600">Your inputs and outputs are not used for model training. API data is automatically deleted within days under Anthropic's commercial terms.{' '}
+                  <a href="https://privacy.claude.com" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#c59d5f]">Read more →</a>
+                </p>
               </div>
-              <div className="flex items-center justify-between py-2 border-b border-zinc-100">
-                <span className="font-medium text-zinc-900">Anthropic</span>
-                <span className="text-sm text-zinc-500">AI processing (Claude)</span>
+              <div className="rounded-xl bg-white p-4 ring-1 ring-zinc-200">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-medium text-zinc-900">Stripe</span>
+                  <span className="text-sm text-zinc-500">Payment processing</span>
+                </div>
+                <p className="text-sm text-zinc-600">Stripe processes your payment. They do not sell your personal data. DivorceGPT receives only a transaction ID — not your card number, CVV, or billing details.{' '}
+                  <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#c59d5f]">Read more →</a>
+                </p>
               </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="font-medium text-zinc-900">DigitalOcean</span>
-                <span className="text-sm text-zinc-500">Hosting infrastructure</span>
+              <div className="rounded-xl bg-white p-4 ring-1 ring-zinc-200">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-medium text-zinc-900">DigitalOcean</span>
+                  <span className="text-sm text-zinc-500">Hosting infrastructure</span>
+                </div>
+                <p className="text-sm text-zinc-600">DigitalOcean hosts our application. As an infrastructure provider, they do not access, use, or train on your application data. Standard server logs (IP addresses, timestamps) are retained for security purposes.{' '}
+                  <a href="https://www.digitalocean.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#c59d5f]">Read more →</a>
+                </p>
               </div>
             </div>
           </section>

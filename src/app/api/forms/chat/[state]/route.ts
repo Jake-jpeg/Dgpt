@@ -155,7 +155,7 @@ export async function POST(
           // ═══════════════════════════════════════════════════════════════
           // SERVER-SIDE NAME VALIDATION
           // ═══════════════════════════════════════════════════════════════
-          if (['plaintiffName', 'defendantName'].includes(field)) {
+          if (['plaintiffName', 'defendantName', 'firstSpouseName', 'secondSpouseName', 'witnessName'].includes(field)) {
             if (value.trim().length < 3) {
               validationWarning = `Please provide a full legal name (first and last name).`;
               continue;

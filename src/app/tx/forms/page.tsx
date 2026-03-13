@@ -14,9 +14,9 @@ import {
 const PDF_SERVICE_URL = process.env.NEXT_PUBLIC_PDF_SERVICE_URL || "http://localhost:8080";
 
 // NV phase1 field keys — used for data routing
-const NV_FIELDS = [
-  'firstSpouseName', 'firstSpouseAddress', 'firstSpouseCityStateZip', 'firstSpousePhone', 'firstSpouseEmail', 'firstSpouseDOB',
-  'secondSpouseName', 'secondSpouseAddress', 'secondSpouseCityStateZip', 'secondSpousePhone', 'secondSpouseEmail', 'secondSpouseDOB',
+const TX_FIELDS = [
+  'plaintiffName', 'firstSpouseAddress', 'firstSpouseCityStateZip', 'firstSpousePhone', 'firstSpouseEmail', 'firstSpouseDOB',
+  'defendantName', 'secondSpouseAddress', 'secondSpouseCityStateZip', 'secondSpousePhone', 'secondSpouseEmail', 'secondSpouseDOB',
   'county', 'marriageDate', 'marriageCity', 'marriageState',
   'residentSpouseName', 'communityPropertyOption', 'communityDebtOption',
   'nameChange1', 'nameChange1MarriedName', 'nameChange1MaidenName',
@@ -27,8 +27,8 @@ const NV_FIELDS = [
 
 // Sidebar display fields (subset shown in the panel)
 const SIDEBAR_FIELDS: { key: string; label: string }[] = [
-  { key: 'firstSpouseName', label: 'First Petitioner' },
-  { key: 'secondSpouseName', label: 'Second Petitioner' },
+  { key: 'plaintiffName', label: 'Petitioner' },
+  { key: 'defendantName', label: 'Respondent' },
   { key: 'county', label: 'County' },
   { key: 'marriageDate', label: 'Marriage Date' },
   { key: 'marriageCity', label: 'Marriage City' },
@@ -190,14 +190,14 @@ function NVFormsContent() {
   const sendInitialGreeting = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/forms/chat/nv", {
+      const res = await fetch("/api/forms/chat/tx", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: [{ role: "user", content: "Hi, I'm ready to start." }], currentPhase: 1, phase1Data: {}, phase2Data: {}, phase3Data: {} }),
       });
       const data = await res.json();
       setMessages([{ role: "assistant", content: data.reply }]);
     } catch {
-      setMessages([{ role: "assistant", content: "Welcome to DivorceGPT. I'll help you prepare your uncontested divorce forms for Nevada.\n\n**Quick note:** Bookmark this page now. This URL is your login \u2014 no accounts or passwords.\n\nSay **'Let's start'** or ask questions first. Session valid for 12 months." }]);
+      setMessages([{ role: "assistant", content: "Welcome to DivorceGPT. I'll help you prepare your uncontested divorce forms for Texas.\n\n**Quick note:** Bookmark this page now. This URL is your login \u2014 no accounts or passwords.\n\nSay **'Let's start'** or ask questions first. Session valid for 12 months." }]);
     }
     finally { setIsLoading(false); }
   };
@@ -250,7 +250,7 @@ function NVFormsContent() {
     setMessageCount(newCount);
 
     try {
-      const res = await fetch("/api/forms/chat/nv", {
+      const res = await fetch("/api/forms/chat/tx", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: newMessages, currentPhase: 1, phase1Data, phase2Data: {}, phase3Data: {} }),
       });
@@ -259,7 +259,7 @@ function NVFormsContent() {
       if (data.extractedData) {
         const newData: Record<string, string> = {};
         for (const [key, value] of Object.entries(data.extractedData)) {
-          if (NV_FIELDS.includes(key)) {
+          if (TX_FIELDS.includes(key)) {
             newData[key] = value as string;
           }
         }
@@ -282,8 +282,8 @@ function NVFormsContent() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               to: 'admin@divorcegpt.com',
-              subject: `[DivorceGPT] SESSION TERMINATED \u2014 NV \u2014 ${phase1Data.firstSpouseName || 'Unknown'}`,
-              body: `SESSION TERMINATED\n\nState: Nevada\nSession ID: ${sessionId}\nPayment Intent: ${paymentIntentId}\nCustomer Email: ${customerEmail || 'Not available'}\nFirst Petitioner: ${phase1Data.firstSpouseName || 'Not collected'}\nSecond Petitioner: ${phase1Data.secondSpouseName || 'Not collected'}\nTermination Reason: ${data.terminateReason || 'policy_violation'}\nTimestamp: ${new Date().toISOString()}\n\nNote: Chat content is not included. DivorceGPT does not retain or transmit conversation data.`,
+              subject: `[DivorceGPT] SESSION TERMINATED \u2014 NV \u2014 ${phase1Data.plaintiffName || 'Unknown'}`,
+              body: `SESSION TERMINATED\n\nState: Texas\nSession ID: ${sessionId}\nPayment Intent: ${paymentIntentId}\nCustomer Email: ${customerEmail || 'Not available'}\nPetitioner: ${phase1Data.plaintiffName || 'Not collected'}\nRespondent: ${phase1Data.defendantName || 'Not collected'}\nTermination Reason: ${data.terminateReason || 'policy_violation'}\nTimestamp: ${new Date().toISOString()}\n\nNote: Chat content is not included. DivorceGPT does not retain or transmit conversation data.`,
             }),
           }).catch(err => console.error('Termination email failed:', err));
         } catch {}
@@ -310,19 +310,19 @@ function NVFormsContent() {
     try {
       // Build the form data for NV phase1-package
       const formData: Record<string, string> = {};
-      for (const key of NV_FIELDS) {
+      for (const key of TX_FIELDS) {
         formData[key] = phase1Data[key] || '';
       }
       // Derive witnessStreetCityState and residentSpouseAddress for the affidavit
       formData.witnessStreetCityState = `${phase1Data.witnessAddress || ''}, ${(phase1Data.witnessCityStateZip || '').replace(/\s+\d{5}(-\d{4})?$/, '')}`;
       // residentSpouseAddress: find which spouse is the resident and use their full address
-      if (phase1Data.residentSpouseName === phase1Data.firstSpouseName) {
+      if (phase1Data.residentSpouseName === phase1Data.plaintiffName) {
         formData.residentSpouseAddress = `${phase1Data.firstSpouseAddress || ''}, ${phase1Data.firstSpouseCityStateZip || ''}`;
       } else {
         formData.residentSpouseAddress = `${phase1Data.secondSpouseAddress || ''}, ${phase1Data.secondSpouseCityStateZip || ''}`;
       }
 
-      const res = await fetch(`${PDF_SERVICE_URL}/generate/nv/phase1-package`, {
+      const res = await fetch(`${PDF_SERVICE_URL}/generate/tx/phase1-package`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -337,7 +337,7 @@ function NVFormsContent() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `NV_Filing_Packet_${(phase1Data.firstSpouseName || "Document").replace(/\s+/g, "_")}.zip`;
+      a.download = `TX_Filing_Packet_${(phase1Data.plaintiffName || "Document").replace(/\s+/g, "_")}.zip`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -358,7 +358,7 @@ function NVFormsContent() {
         alert(`Filing packet downloaded. This was your final download.\nMake sure you have saved your files.`);
       }
     } catch (error) {
-      console.error('NV packet generation error:', error);
+      console.error('TX packet generation error:', error);
       alert('Failed to generate filing packet. Please try again.');
     }
     finally { setIsGenerating(false); }
@@ -392,11 +392,11 @@ function NVFormsContent() {
           </div>
           <h2 className="text-2xl font-bold text-zinc-900">Invalid Session</h2>
           <p className="mt-2 text-zinc-600">This session link is invalid or has expired. Please start a new session.</p>
-          <Link href="/nv" className="mt-6 inline-flex items-center gap-2 text-[#1a365d] font-medium">
+          <Link href="/tx" className="mt-6 inline-flex items-center gap-2 text-[#1a365d] font-medium">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
             </svg>
-            Back to Nevada
+            Back to Texas
           </Link>
         </div>
       </div>
@@ -410,7 +410,7 @@ function NVFormsContent() {
         <div className="max-w-md text-center px-4">
           <h2 className="text-2xl font-bold text-zinc-900">Session Expired</h2>
           <p className="mt-2 text-zinc-600">Your 12-month session has expired.</p>
-          <Link href="/nv" className="mt-6 inline-flex items-center gap-2 text-[#1a365d] font-medium">Back to Nevada</Link>
+          <Link href="/tx" className="mt-6 inline-flex items-center gap-2 text-[#1a365d] font-medium">Back to Texas</Link>
         </div>
       </div>
     );
@@ -434,8 +434,8 @@ function NVFormsContent() {
       <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
         <div className="max-w-md text-center px-4">
           <h2 className="text-2xl font-bold text-zinc-900">Outside Our Scope</h2>
-          <p className="mt-2 text-zinc-600">Your situation falls outside what DivorceGPT can handle. We recommend consulting with a Nevada family law attorney.</p>
-          <Link href="/nv" className="mt-6 inline-flex items-center gap-2 text-[#1a365d] font-medium">Back to Nevada</Link>
+          <p className="mt-2 text-zinc-600">Your situation falls outside what DivorceGPT can handle. We recommend consulting with a Texas family law attorney.</p>
+          <Link href="/tx" className="mt-6 inline-flex items-center gap-2 text-[#1a365d] font-medium">Back to Texas</Link>
         </div>
       </div>
     );
@@ -452,13 +452,13 @@ function NVFormsContent() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link href="/nv" className="flex items-center gap-3 transition hover:opacity-80">
+              <Link href="/tx" className="flex items-center gap-3 transition hover:opacity-80">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282]">
                   <span className="text-sm">&#9878;&#65039;</span>
                 </div>
                 <div>
                   <h1 className="text-base font-semibold text-zinc-900">DivorceGPT</h1>
-                  <p className="text-[10px] text-zinc-500">Nevada Filing Packet</p>
+                  <p className="text-[10px] text-zinc-500">Texas Filing Packet</p>
                 </div>
               </Link>
             </div>
@@ -576,7 +576,7 @@ function NVFormsContent() {
             <div className="p-4">
               {/* Filing Packet header */}
               <div className="mb-4">
-                <h3 className="text-sm font-semibold text-zinc-900">Nevada Filing Packet</h3>
+                <h3 className="text-sm font-semibold text-zinc-900">Texas Filing Packet</h3>
                 <p className="text-xs text-zinc-500 mt-1">
                   {filledFields}/{SIDEBAR_FIELDS.length} fields collected
                 </p>

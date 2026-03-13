@@ -46,7 +46,7 @@ export const njDictionary: Record<Locale, any> = {
       title: "Frequently Asked Questions",
       items: [
         { q: "Is this legal advice?", a: "No. DivorceGPT explains what divorce forms ask for and how to file them. It does not provide legal advice. For legal advice, consult an attorney." },
-        { q: "What technology powers DivorceGPT?", a: "DivorceGPT uses Claude AI combined with custom legal document guardrails for New Jersey filings. Your conversations are not stored." },
+        { q: "What technology powers DivorceGPT?", a: "DivorceGPT uses Anthropic's Claude AI via their commercial API. Under Anthropic's API terms, your inputs are not used for AI model training and are automatically deleted within days. June Guided Solutions, LLC (the company behind DivorceGPT) does not retain any chat history or conversation data. If you need support, you must provide your own screenshot of the conversation — we have no way to retrieve it." },
         { q: "How long does the process take?", a: "You can complete your forms in minutes, but the overall divorce process takes time — the court needs to process filings between each phase. Timeline varies by county. Your session remains valid for 12 months to cover even the slowest courts." },
         { q: "How do I access my session?", a: "After payment, you'll be redirected to your session page. Bookmark this page — the URL is your access link. There are no accounts or passwords." },
         { q: "What if my spouse won't cooperate?", a: "This service is for uncontested divorces where both spouses agree. If your spouse won't cooperate, you may need a contested divorce attorney." },
@@ -219,7 +219,7 @@ export const njDictionary: Record<Locale, any> = {
       title: "Preguntas Frecuentes",
       items: [
         { q: "¿Es esto asesoría legal?", a: "No. DivorceGPT explica lo que piden los formularios de divorcio y cómo presentarlos. No proporciona asesoría legal. Para asesoría legal, consulte a un abogado." },
-        { q: "¿Qué tecnología usa DivorceGPT?", a: "DivorceGPT usa Claude AI combinado con protecciones personalizadas para documentos legales para presentaciones en Nueva Jersey. Sus conversaciones no se almacenan." },
+        { q: "¿Qué tecnología usa DivorceGPT?", a: "DivorceGPT usa la inteligencia artificial Claude de Anthropic a través de su API comercial. Según los términos de la API de Anthropic, sus datos no se usan para entrenar modelos de IA y se eliminan automáticamente en días. June Guided Solutions, LLC (la empresa detrás de DivorceGPT) no retiene ningún historial de chat ni datos de conversación. Si necesita soporte, debe proporcionar su propia captura de pantalla de la conversación — no tenemos forma de recuperarla." },
         { q: "¿Cuánto tiempo toma el proceso?", a: "Puede completar sus formularios en minutos, pero el proceso general de divorcio toma tiempo — el tribunal necesita procesar las presentaciones entre cada fase. El tiempo varía por condado. Su sesión permanece válida por 12 meses." },
         { q: "¿Cómo accedo a mi sesión?", a: "Después del pago, será redirigido a su página de sesión. Marque esta página como favorita — la URL es su enlace de acceso. No hay cuentas ni contraseñas." },
         { q: "¿Qué pasa si mi cónyuge no coopera?", a: "Este servicio es para divorcios no contestados donde ambos cónyuges están de acuerdo. Si su cónyuge no coopera, puede necesitar un abogado de divorcio contencioso." },
@@ -392,7 +392,7 @@ export const njDictionary: Record<Locale, any> = {
       title: "常见问题",
       items: [
         { q: "这是法律建议吗？", a: "不是。DivorceGPT解释离婚表格的要求和如何提交。它不提供法律建议。如需法律建议，请咨询律师。" },
-        { q: "DivorceGPT使用什么技术？", a: "DivorceGPT使用Claude AI结合针对新泽西州申请的自定义法律文件保障。您的对话不会被存储。" },
+        { q: "DivorceGPT使用什么技术？", a: "DivorceGPT 通过商业 API 使用 Anthropic 的 Claude AI。根据 Anthropic 的 API 条款，您的输入不会用于 AI 模型训练，并会在数天内自动删除。June Guided Solutions, LLC（DivorceGPT 的运营公司）不会保留任何聊天记录或对话数据。如需支持，您必须提供自己的对话截图——我们无法检索对话内容。" },
         { q: "流程需要多长时间？", a: "您可以在几分钟内完成表格，但整个离婚过程需要时间——法院需要在每个阶段之间处理申请。时间因县而异。您的会话在12个月内保持有效。" },
         { q: "如何访问我的会话？", a: "付款后，您将被重定向到您的会话页面。收藏此页面——URL就是您的访问链接。没有账户或密码。" },
         { q: "如果配偶不合作怎么办？", a: "此服务适用于双方同意的无争议离婚。如果您的配偶不合作，您可能需要一位争议离婚律师。" },
@@ -565,7 +565,7 @@ export const njDictionary: Record<Locale, any> = {
       title: "자주 묻는 질문",
       items: [
         { q: "이것이 법률 자문인가요?", a: "아닙니다. DivorceGPT는 이혼 양식이 무엇을 요구하는지와 제출 방법을 설명합니다. 법률 자문을 제공하지 않습니다. 법률 자문은 변호사에게 문의하세요." },
-        { q: "DivorceGPT는 어떤 기술을 사용하나요?", a: "DivorceGPT는 뉴저지 제출을 위한 맞춤형 법률 문서 보호 장치와 결합된 Claude AI를 사용합니다. 대화 내용은 저장되지 않습니다." },
+        { q: "DivorceGPT는 어떤 기술을 사용하나요?", a: "DivorceGPT는 Anthropic의 Claude AI를 상용 API를 통해 사용합니다. Anthropic의 API 약관에 따라 귀하의 입력은 AI 모델 학습에 사용되지 않으며 며칠 내에 자동 삭제됩니다. June Guided Solutions, LLC(DivorceGPT 운영 회사)는 채팅 기록이나 대화 데이터를 일절 보관하지 않습니다. 지원이 필요한 경우 대화 스크린샷을 직접 제공해야 합니다 — 저희는 대화를 복구할 수 없습니다." },
         { q: "절차는 얼마나 걸리나요?", a: "양식은 몇 분 안에 완료할 수 있지만 전체 이혼 절차에는 시간이 걸립니다. 법원이 각 단계 사이에 제출물을 처리해야 합니다. 기간은 카운티에 따라 다릅니다. 세션은 12개월 동안 유효합니다." },
         { q: "세션에 어떻게 접근하나요?", a: "결제 후 세션 페이지로 리디렉션됩니다. 이 페이지를 북마크하세요 — URL이 접근 링크입니다. 계정이나 비밀번호가 없습니다." },
         { q: "배우자가 협조하지 않으면 어떻게 하나요?", a: "이 서비스는 양측이 동의하는 무분쟁 이혼을 위한 것입니다. 배우자가 협조하지 않으면 분쟁 이혼 변호사가 필요할 수 있습니다." },
@@ -738,7 +738,7 @@ export const njDictionary: Record<Locale, any> = {
       title: "Часто задаваемые вопросы",
       items: [
         { q: "Это юридическая консультация?", a: "Нет. DivorceGPT объясняет, что требуют формы развода и как их подать. Он не предоставляет юридических консультаций. За юридической консультацией обращайтесь к адвокату." },
-        { q: "Какая технология используется?", a: "DivorceGPT использует Claude AI с индивидуальными юридическими гарантиями для подачи документов в Нью-Джерси. Ваши разговоры не хранятся." },
+        { q: "Какая технология используется?", a: "DivorceGPT использует Claude AI от Anthropic через коммерческий API. Согласно условиям API Anthropic, ваши данные не используются для обучения моделей ИИ и автоматически удаляются в течение нескольких дней. June Guided Solutions, LLC (компания, стоящая за DivorceGPT) не хранит историю чатов или данные разговоров. Если вам нужна поддержка, вы должны предоставить собственный снимок экрана — у нас нет возможности восстановить разговор." },
         { q: "Сколько времени занимает процесс?", a: "Заполнить формы можно за минуты, но весь процесс развода требует времени. Суду нужно обработать подачи между фазами. Сроки зависят от округа. Ваша сессия действительна 12 месяцев." },
         { q: "Как получить доступ к сессии?", a: "После оплаты вы будете перенаправлены на страницу сессии. Добавьте её в закладки — URL является ссылкой доступа. Нет аккаунтов или паролей." },
         { q: "Что если супруг(а) не сотрудничает?", a: "Этот сервис для бесспорных разводов, где оба супруга согласны. Если супруг(а) не сотрудничает, вам может понадобиться адвокат по спорным разводам." },
@@ -911,7 +911,7 @@ export const njDictionary: Record<Locale, any> = {
       title: "Kesyon Yo Poze Souvan",
       items: [
         { q: "Èske sa se konsèy legal?", a: "Non. DivorceGPT esplike kisa fòm divòs yo mande ak kijan pou depoze yo. Li pa bay konsèy legal. Pou konsèy legal, konsilte yon avoka." },
-        { q: "Ki teknoloji DivorceGPT itilize?", a: "DivorceGPT itilize Claude AI ak pwoteksyon dokiman legal pèsonalize pou depo nan New Jersey. Konvèsasyon ou yo pa estoke." },
+        { q: "Ki teknoloji DivorceGPT itilize?", a: "DivorceGPT itilize Claude AI Anthropic atravè API komèsyal yo. Dapre kondisyon API Anthropic, done ou yo pa itilize pou fòme modèl AI epi yo otomatikman efase nan kèk jou. June Guided Solutions, LLC (konpayi dèyè DivorceGPT) pa kenbe okenn istwa chat oswa done konvèsasyon. Si ou bezwen sipò, ou dwe bay pwòp ekran ou — nou pa gen okenn fason pou rekipere konvèsasyon an." },
         { q: "Konbyen tan pwosesis la pran?", a: "Ou ka ranpli fòm ou yo nan kèk minit, men pwosesis divòs la pran tan. Tribinal la bezwen trete depo yo ant chak faz. Tan an varye pa konte. Sesyon ou rete valab pou 12 mwa." },
         { q: "Kijan mwen aksede sesyon mwen?", a: "Apre peman, ou pral redirije nan paj sesyon ou. Make paj sa a kòm favori — URL la se lyen aksè ou. Pa gen kont oswa modpas." },
         { q: "E si konjwen mwen pa vle kolabore?", a: "Sèvis sa a se pou divòs san kontestasyon kote tou de konjwen dakò. Si konjwen ou pa kolabore, ou ka bezwen yon avoka divòs konteste." },

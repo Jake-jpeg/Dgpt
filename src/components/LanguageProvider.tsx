@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { dictionary, Locale } from "../lib/ny-dictionary";
 import { njDictionary } from "../lib/nj-dictionary";
 import { nvDictionary } from "../lib/nv-dictionary";
+import { txDictionary } from "../lib/tx-dictionary";
 
 type Dictionary = typeof dictionary.en;
 
@@ -29,6 +30,7 @@ const stateDictionaries: Record<string, Record<Locale, any>> = {
   ny: dictionary,
   nj: njDictionary,
   nv: nvDictionary as Record<Locale, any>,
+  tx: txDictionary as Record<Locale, any>,
 };
 
 const LanguageContext = createContext<LanguageContextType>(defaultContext);
@@ -45,6 +47,8 @@ export function LanguageProvider({ children, initialState }: { children: ReactNo
       setStateValue("nj");
     } else if (pathname.startsWith("/nv")) {
       setStateValue("nv");
+    } else if (pathname.startsWith("/tx")) {
+      setStateValue("tx");
     } else if (pathname.startsWith("/ny")) {
       setStateValue("ny");
     }

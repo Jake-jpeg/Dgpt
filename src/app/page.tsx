@@ -25,34 +25,34 @@ const states = [
     counties: "All 21 counties",
   },
   {
-    code: "nv",
-    name: "Nevada",
-    abbr: "NV",
+    code: "tx",
+    name: "Texas",
+    abbr: "TX",
     live: false,
-    href: "/nv",
-    tagline: "Uncontested divorce filing for Nevada.",
+    href: "/tx",
+    tagline: "Uncontested divorce filing for Texas.",
     price: "$29",
-    counties: "Clark & Washoe counties",
+    counties: "All 254 counties",
   },
   {
-    code: "ut",
-    name: "Utah",
-    abbr: "UT",
+    code: "or",
+    name: "Oregon",
+    abbr: "OR",
     live: false,
     href: "#",
-    tagline: "Uncontested divorce filing for Utah.",
+    tagline: "Uncontested divorce filing for Oregon.",
     price: "$29",
-    counties: "All 29 counties",
+    counties: "All 36 counties",
   },
   {
-    code: "wy",
-    name: "Wyoming",
-    abbr: "WY",
+    code: "ct",
+    name: "Connecticut",
+    abbr: "CT",
     live: false,
     href: "#",
-    tagline: "Uncontested divorce filing for Wyoming.",
+    tagline: "Uncontested divorce filing for Connecticut.",
     price: "$29",
-    counties: "All 23 counties",
+    counties: "All 8 judicial districts",
   },
   {
     code: "id",
@@ -180,7 +180,7 @@ export default function Home() {
                       <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
                       Live Now
                     </span>
-                  ) : state.code === "nv" ? (
+                  ) : state.code === "tx" ? (
                     <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-semibold text-yellow-600">
                       <span className="h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse" />
                       Under Construction
@@ -221,7 +221,7 @@ export default function Home() {
           </div>
 
           <p className="mt-12 text-center text-sm text-zinc-400">
-            DivorceGPT is expanding nationwide — all 50 states.
+            More states coming. Each state is carefully built to match local court requirements.
           </p>
         </div>
       </section>

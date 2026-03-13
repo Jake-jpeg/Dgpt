@@ -37,7 +37,7 @@ function TermsContent() {
 
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-8">Terms of Service</h1>
-        <p className="text-sm text-zinc-500 mb-8">Last updated: March 1, 2026</p>
+        <p className="text-sm text-zinc-500 mb-8">Last updated: March 13, 2026</p>
 
         <div className="prose prose-zinc max-w-none">
           <section className="mb-8">
@@ -54,7 +54,7 @@ function TermsContent() {
               <strong>DivorceGPT is NOT a law firm and does NOT provide legal advice.</strong>
             </p>
             <p className="text-amber-800 mb-4">
-              This service provides information about New York divorce forms and filing procedures. It explains what forms ask for, what legal terms mean, and how the filing process works. This is educational and informational content only.
+              This service provides information about divorce forms and filing procedures for the states we serve. It explains what forms ask for, what legal terms mean, and how the filing process works. This is educational and informational content only.
             </p>
             <p className="text-amber-800 mb-4">
               DivorceGPT does NOT:
@@ -77,31 +77,57 @@ function TermsContent() {
               DivorceGPT is an automated document preparation service that:
             </p>
             <ul className="list-disc pl-6 text-zinc-600 space-y-2">
-              <li>Transfers your answers onto official New York State court forms</li>
+              <li>Transfers your answers onto court divorce forms for your state</li>
               <li>Displays plain-language labels identifying what information each form field requests</li>
               <li>Generates PDF packets for your review before filing</li>
               <li>Explains what forms are, what fields mean, and filing procedures</li>
-              <li>Responds in multiple languages (English, Spanish, Chinese, Korean, Russian, Haitian Creole)</li>
+              <li>Responds in multiple languages (English, Spanish, Chinese, Korean, Russian, Haitian Creole, Tagalog — availability varies by state)</li>
             </ul>
           </section>
 
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Eligibility</h2>
             <p className="text-zinc-600 mb-4">
-              This service is designed for New York uncontested divorces that meet ALL of the following criteria:
+              DivorceGPT is designed for simple, uncontested divorces. While specific requirements vary by state, the following general criteria apply across all states we serve:
             </p>
             <ul className="list-disc pl-6 text-zinc-600 space-y-2">
-              <li>At least one spouse meets New York residency requirements</li>
-              <li>No unemancipated children of the marriage</li>
-              <li>No property, debts, pensions, or retirement accounts to divide</li>
-              <li>Neither spouse is requesting spousal maintenance</li>
-              <li>Both spouses agree to the divorce</li>
-              <li>The other spouse will cooperate with paperwork</li>
+              <li>At least one spouse meets the state's residency requirements</li>
+              <li>No minor children of the marriage (and neither party is pregnant, where applicable)</li>
+              <li>No property, debts, or financial assets requiring division (or already divided by agreement)</li>
+              <li>Neither spouse is requesting spousal support or maintenance</li>
+              <li>Both spouses agree to the divorce and will cooperate with the process</li>
               <li>Neither spouse is an active duty military service member</li>
             </ul>
             <p className="text-zinc-600 mt-4">
-              If your situation does not meet these criteria, this service is not appropriate for you.
+              Each state has an eligibility screening before payment. If your situation does not meet the criteria for your state, you will not be charged.
             </p>
+          </section>
+
+          {/* State-Specific Terms */}
+          <section className="mb-8">
+            <h2 className="text-xl font-semibold text-zinc-900 mb-4">State-Specific Terms</h2>
+            
+            <div className="space-y-4">
+              <div className="rounded-xl bg-zinc-50 p-5 ring-1 ring-zinc-200">
+                <h3 className="font-semibold text-zinc-900 mb-2">New York</h3>
+                <p className="text-zinc-600 text-sm mb-2">
+                  DivorceGPT for New York uses official Unified Court System forms (UD series). The divorce process has three phases: Summons &amp; Complaint (Phase 1), Sworn Statements (Phase 2), and Judgment (Phase 3). Each phase allows up to 5 document generation attempts.
+                </p>
+                <p className="text-zinc-600 text-sm">
+                  Ground: Irretrievable breakdown of the relationship for at least 6 months. Residency: At least one spouse meets NY residency requirements under DRL §230.
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-zinc-50 p-5 ring-1 ring-zinc-200">
+                <h3 className="font-semibold text-zinc-900 mb-2">New Jersey</h3>
+                <p className="text-zinc-600 text-sm mb-2">
+                  DivorceGPT for New Jersey generates forms based on Superior Court Family Part requirements. The process has two phases: Filing Packet (Phase 1) and Final Judgment (Phase 2). Each phase allows up to 5 document generation attempts.
+                </p>
+                <p className="text-zinc-600 text-sm">
+                  Ground: Irreconcilable differences for at least 6 months. Residency: At least one spouse has been a bona fide resident of New Jersey for at least 12 months.
+                </p>
+              </div>
+            </div>
           </section>
 
           {/* Prohibited Conduct & Termination - NEW SECTION */}
@@ -171,10 +197,10 @@ function TermsContent() {
               <strong>Access Window:</strong> Your session is valid for 12 months from the date of purchase. This covers all three phases of the divorce filing process. DivorceGPT does not track court timelines or provide ongoing assistance during this period — the access window is solely for document generation.
             </p>
             <p className="text-zinc-600 mb-4">
-              <strong>Document Generation:</strong> Each phase (Phase 1, Phase 2, Phase 3) allows up to 5 document generation attempts. You will be notified of your remaining attempts after each download. Once all 5 attempts for a phase are used, no further regeneration is available for that phase. You are responsible for saving your downloaded files. DivorceGPT does not store copies of generated documents.
+              <strong>Document Generation:</strong> Each phase of the filing process allows up to 5 document generation attempts. The number of phases varies by state (see State-Specific Terms above). You will be notified of your remaining attempts after each download. Once all 5 attempts for a phase are used, no further regeneration is available for that phase. You are responsible for saving your downloaded files. DivorceGPT does not store copies of generated documents.
             </p>
             <p className="text-zinc-600 mb-4">
-              <strong>Session Completion:</strong> Once Phase 3 documents have been generated, your session is complete and access to the AI assistant ends. Previously downloaded documents remain valid.
+              <strong>Session Completion:</strong> Once all documents for your state have been generated, your session is complete and access to the AI assistant ends. Previously downloaded documents remain valid.
             </p>
             <p className="text-zinc-600 mb-4">
               <strong>Usage Limits:</strong> Each session is limited to 200 AI messages. If you reach this limit before completing all phases, your session ends. This limit exists to ensure fair usage across all users. A new session requires a new purchase.

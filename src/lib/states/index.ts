@@ -41,12 +41,14 @@ export interface StateConfig {
 import { ny } from './ny';
 import { nj } from './nj';
 import { nv } from './nv';
+import { tx } from './tx';
 
 // Registry — add new states here
 const STATES: Record<string, StateConfig> = {
   ny,
   nj,
   nv,
+  tx,
 };
 
 export function getStateConfig(stateCode: string): StateConfig | null {
