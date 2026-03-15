@@ -395,9 +395,9 @@ function FormsContent() {
           const remaining = 5 - used;
           const formList = `• Complaint for Divorce/Dissolution\n• Certification of Verification & Non-Collusion\n• CDR Certification — Plaintiff (CN 10889)\n• CDR Certification — Defendant (CN 10889)\n• Certification of Insurance Coverage\n• Summons (for service — does not need to be filed)`;
           if (remaining > 0) {
-            alert(`Downloaded NJ Filing Package:\n${formList}\n\nIMPORTANT: The Summons does not need to be filed with the court. It is for serving your spouse in Phase 2.\n\nYou have ${remaining} download${remaining === 1 ? '' : 's'} remaining for Phase 1.\nSave your files now.`);
+            alert(`Downloaded NJ Filing Package:\n${formList}\n\nIMPORTANT: The Summons does not need to be filed with the court. It is for serving your spouse in Phase 2.\n\nYou'll also need the CLIS (Confidential Litigant Information Sheet) — download it from the side panel. Both parties must complete and file this form. Fill out BOTH sides (your info and your spouse's).\n\nYou have ${remaining} download${remaining === 1 ? '' : 's'} remaining for Phase 1.\nSave your files now.`);
           } else {
-            alert(`Downloaded NJ Filing Package:\n${formList}\n\nThis was your final download for Phase 1.\nMake sure you have saved your files.`);
+            alert(`Downloaded NJ Filing Package:\n${formList}\n\nDon't forget the CLIS — download it from the side panel. Both parties must complete and file.\n\nThis was your final download for Phase 1.\nMake sure you have saved your files.`);
           }
         } catch (error) {
           console.error('NJ Phase 1 generation error:', error);
@@ -766,6 +766,19 @@ function FormsContent() {
                   {getPhaseForms(currentPhase).map((form, i) => (
                     <FormItem key={i} label={form.label} desc={form.desc} done={isPhaseComplete} complete={allComplete} />
                   ))}
+                  {currentPhase === 1 && (
+                    <div className="border-t border-zinc-200 mt-2 pt-2">
+                      <p className="text-xs text-zinc-400 mb-1.5">You&apos;ll also need (blank form — both parties fill out):</p>
+                      <a href="/forms/CLIS-blank.pdf" download="CLIS_Confidential_Litigant_Information_Sheet.pdf" className="flex items-center justify-between py-1 hover:bg-zinc-100 rounded px-1 -mx-1 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                          <span className="font-medium">CLIS</span>
+                        </div>
+                        <span className="text-xs text-blue-500">Confidential Litigant Info (blank)</span>
+                      </a>
+                      <p className="text-xs text-zinc-400 mt-1">Both parties must complete and file this form. Fill out both sides — your info and your spouse&apos;s. A fillable version is also available at <a href="https://www.njcourts.gov/sites/default/files/forms/10486_conf_lit_info_sheet.pdf" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">njcourts.gov</a>.</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
