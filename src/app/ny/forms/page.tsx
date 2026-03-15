@@ -500,7 +500,7 @@ function FormsContent() {
           const formCount = phase1Data.ceremonyType === 'religious' ? 8 : 7;
           const used2 = (session?.phase2Generated || 0) + 1;
           const remaining2 = 5 - used2;
-          const formList = `• UD-5 Affirmation of Regularity\n• UD-6 Affirmation of Plaintiff\n• UD-7 Affirmation of Defendant\n• UD-9 Note of Issue\n• UD-10 Findings of Fact\n• UD-11 Judgment of Divorce\n• UD-12 Part 130 Certification${phase1Data.ceremonyType === 'religious' ? '\n• UD-4 Barriers to Remarriage' : ''}`;
+          const formList = `• UD-5 Affirmation of Regularity\n• UD-6 Affirmation of Plaintiff\n• UD-7 Affirmation of Defendant\n• UD-9 Note of Issue\n• UD-10 Findings of Fact\n• UD-11 Judgment of Divorce\n• UD-12 Part 130 Certification${phase1Data.ceremonyType === 'religious' ? '\n• UD-4 Barriers to Remarriage' : ''}\n\nYou'll also need these (download from the side panel):\n• UD-13 Request for Judicial Intervention (blank — fill out yourself, or NYSCEF will generate one)\n• DOH-2168 Certificate of Dissolution (blank — fill out and file with your package)`;
           if (remaining2 > 0) {
             alert(`Downloaded ${formCount} forms in ZIP package:\n${formList}\n\nYou have ${remaining2} download${remaining2 === 1 ? '' : 's'} remaining for Phase 2.\nSave your files now.`);
           } else {
@@ -960,6 +960,23 @@ function FormsContent() {
                     <FormItem label="UD-10" desc="Findings of Fact" done={phase2Complete} complete={allComplete} />
                     <FormItem label="UD-11" desc="Judgment of Divorce" done={phase2Complete} complete={allComplete} />
                     <FormItem label="UD-12" desc="Part 130 Certification" done={phase2Complete} complete={allComplete} />
+                    <div className="border-t border-zinc-200 mt-2 pt-2">
+                      <p className="text-xs text-zinc-400 mb-1.5">You&apos;ll also need (blank forms — fill out yourself):</p>
+                      <a href="/forms/UD-13-blank.pdf" download="UD-13_Request_for_Judicial_Intervention.pdf" className="flex items-center justify-between py-1 hover:bg-zinc-100 rounded px-1 -mx-1 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                          <span className="font-medium">UD-13</span>
+                        </div>
+                        <span className="text-xs text-blue-500">RJI (blank)</span>
+                      </a>
+                      <a href="/forms/DOH-2168-blank.pdf" download="DOH-2168_Certificate_of_Dissolution.pdf" className="flex items-center justify-between py-1 hover:bg-zinc-100 rounded px-1 -mx-1 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                          <span className="font-medium">DOH-2168</span>
+                        </div>
+                        <span className="text-xs text-blue-500">Dissolution Cert (blank)</span>
+                      </a>
+                    </div>
                   </>)}
                   {currentPhase === 3 && (<>
                     <FormItem label="UD-14" desc="Notice of Entry" done={phase3Complete} complete={allComplete} />
