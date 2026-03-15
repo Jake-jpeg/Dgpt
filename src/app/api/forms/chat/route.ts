@@ -292,6 +292,7 @@ You MUST output ALL of these JSON blocks:
 
 RULES:
 - If a user says "I live at X" and "this is my mailing address", output BOTH qualifyingAddress AND plaintiffAddress with the same value.
+- If the user says the defendant lives at the same address, or "same address", or "yes same address", output defendantAddress with the SAME value as plaintiffAddress. You MUST emit the JSON block — the sidebar cannot infer this.
 - If a user says "I am the qualifying party" or "I qualify", output qualifyingParty as "plaintiff".
 - If the user says they live in a county and are filing there, they are the qualifying party — output qualifyingParty as "plaintiff".
 - NEVER skip a JSON block because you mentioned the data conversationally. The sidebar is blind to your text.
@@ -867,6 +868,12 @@ export async function POST(req: Request) {
     // If qualifyingAddress is set but plaintiffAddress is not, and qualifying party is plaintiff, copy it
     if (mergedP1.qualifyingAddress && !mergedP1.plaintiffAddress && mergedP1.qualifyingParty === 'plaintiff') {
       extractedData['plaintiffAddress'] = mergedP1.qualifyingAddress as string;
+    }
+    // If defendant address missing but user confirmed same address, copy from plaintiff
+    const lastMsg = messages[messages.length - 1]?.content?.toLowerCase() || '';
+    if (mergedP1.plaintiffAddress && !mergedP1.defendantAddress && 
+        /same address|same one|yes same|same place|lives with me|live together|we both live|living together/.test(lastMsg)) {
+      extractedData['defendantAddress'] = mergedP1.plaintiffAddress as string;
     }
     
     if (currentPhase === 1 && !phase1Complete) {

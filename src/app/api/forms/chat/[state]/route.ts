@@ -405,6 +405,12 @@ export async function POST(
     if (mergedP1.qualifyingAddress && !mergedP1.plaintiffAddress && mergedP1.qualifyingParty === 'plaintiff') {
       extractedData['plaintiffAddress'] = mergedP1.qualifyingAddress as string;
     }
+    // If defendant address missing but user confirmed same address, copy from plaintiff
+    const lastMsg = messages[messages.length - 1]?.content?.toLowerCase() || '';
+    if (mergedP1.plaintiffAddress && !mergedP1.defendantAddress && 
+        /same address|same one|yes same|same place|lives with me|live together|we both live|living together/.test(lastMsg)) {
+      extractedData['defendantAddress'] = mergedP1.plaintiffAddress as string;
+    }
     
     if (currentPhase === 1 && !phase1Complete) {
       const merged = { ...phase1Data, ...extractedData };
