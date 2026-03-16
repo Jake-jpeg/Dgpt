@@ -399,7 +399,7 @@ Packet revision: 3/8/26 — v4
 ` + NJ_FORM_LANGUAGE;
 
 export const nj: StateConfig = {
-  code: 'nj', name: 'New Jersey', live: false, price: 2900, priceDisplay: '$29',
+  code: 'nj', name: 'New Jersey', live: false, price: 9900, priceDisplay: '$99',
   qualificationQuestions: [
     { id: 'residency', invertLogic: false },
     { id: 'children', invertLogic: true },

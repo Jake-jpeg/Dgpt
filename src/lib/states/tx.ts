@@ -29,7 +29,7 @@ Packet revision: 3/13/26
 `;
 
 export const tx: StateConfig = {
-  code: 'tx', name: 'Texas', live: false, price: 2900, priceDisplay: '$29',
+  code: 'tx', name: 'Texas', live: false, price: 9900, priceDisplay: '$99',
   qualificationQuestions: [
     { id: 'residency', invertLogic: false },
     { id: 'countyResidency', invertLogic: false },

@@ -489,7 +489,7 @@ Packet revision: 3/9/26
 ` + NV_FORM_LANGUAGE;
 
 export const nv: StateConfig = {
-  code: 'nv', name: 'Nevada', live: false, price: 2900, priceDisplay: '$29',
+  code: 'nv', name: 'Nevada', live: false, price: 9900, priceDisplay: '$99',
   qualificationQuestions: [
     { id: 'residency', invertLogic: false },
     { id: 'witness', invertLogic: false },

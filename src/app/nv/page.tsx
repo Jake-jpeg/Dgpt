@@ -106,7 +106,7 @@ export default function NVHome() {
             </Link>
           </div>
 
-          <p className="mt-4 text-sm text-zinc-400">{t.hero?.fee || "One-time fee of $29 · No hidden costs"}</p>
+          <p className="mt-4 text-sm text-zinc-400">{t.hero?.fee || "One-time fee of $99 · No hidden costs"}</p>
         </div>
       </section>
 
@@ -121,7 +121,7 @@ export default function NVHome() {
           <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {(t.howItWorks?.steps || [
               { title: "Check Eligibility", desc: "Answer a few questions to confirm this service is right for you." },
-              { title: "Pay $29", desc: "One-time payment. No hidden fees. No subscriptions." },
+              { title: "Pay $99", desc: "One-time payment. No hidden fees. No subscriptions." },
               { title: "Get Your Forms", desc: "Receive your complete filing packet ready for notarization and filing." },
               { title: "Ask Questions", desc: "Use DivorceGPT to understand any part of the process." },
             ]).map((step: any, index: number) => (

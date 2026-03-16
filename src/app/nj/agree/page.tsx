@@ -142,19 +142,19 @@ function AgreeContent() {
             <h3 className="font-semibold text-zinc-900 mb-4">Please confirm each statement:</h3>
             <div className="space-y-4">
               <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" checked={confirmNotLawFirm} onChange={(e) => setConfirmNotLawFirm(e.target.checked)} className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]" />
-                <span className="text-sm text-zinc-700">I understand DivorceGPT is <strong>not a law firm</strong> and does not provide legal advice</span>
+                <input type="checkbox" checked={confirmNotLawFirm} onChange={(e) => setConfirmNotLawFirm(e.target.checked)} className="mt-1 h-4 w-4 flex-shrink-0 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]" />
+                <span className="text-sm text-zinc-700">I understand and agree that DivorceGPT is <strong>not a law firm</strong>, does not provide legal advice, and that my use of this service <strong>does not create an attorney-client relationship</strong></span>
               </label>
               <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" checked={confirmNoDataStored} onChange={(e) => setConfirmNoDataStored(e.target.checked)} className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]" />
+                <input type="checkbox" checked={confirmNoDataStored} onChange={(e) => setConfirmNoDataStored(e.target.checked)} className="mt-1 h-4 w-4 flex-shrink-0 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]" />
                 <span className="text-sm text-zinc-700">I understand my data is <strong>not stored</strong> — I am responsible for saving my documents</span>
               </label>
               <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" checked={confirmTermination} onChange={(e) => setConfirmTermination(e.target.checked)} className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]" />
+                <input type="checkbox" checked={confirmTermination} onChange={(e) => setConfirmTermination(e.target.checked)} className="mt-1 h-4 w-4 flex-shrink-0 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]" />
                 <span className="text-sm text-zinc-700">I understand threats or fraud will result in <strong>immediate session termination</strong></span>
               </label>
               <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" checked={confirmReadDocs} onChange={(e) => setConfirmReadDocs(e.target.checked)} className="mt-1 h-5 w-5 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]" />
+                <input type="checkbox" checked={confirmReadDocs} onChange={(e) => setConfirmReadDocs(e.target.checked)} className="mt-1 h-4 w-4 flex-shrink-0 rounded border-zinc-300 text-[#1a365d] focus:ring-[#1a365d]" />
                 <span className="text-sm text-zinc-700">I have read the <strong>Terms of Service</strong> and <strong>Privacy Policy</strong></span>
               </label>
             </div>
@@ -162,7 +162,7 @@ function AgreeContent() {
 
           <div className="text-center pt-4">
             <div className="mb-4">
-              <p className="text-4xl font-bold text-[#1a365d]">$29</p>
+              <p className="text-4xl font-bold text-[#1a365d]">$99</p>
               <p className="text-sm text-zinc-500">One-time fee • 12-month access • No subscription</p>
               <p className="text-xs text-zinc-400 mt-2">After payment, you'll be redirected to your session. Bookmark the page — that URL is how you return.</p>
             </div>

@@ -666,7 +666,7 @@ function FormsContent() {
           </ul>
         </div>
         <Link href="/ny/qualify" className="inline-block rounded-full bg-[#c59d5f] px-6 py-3 text-white hover:bg-[#d4ac6e]">
-          Start New Session ($29)
+          Start New Session ($99)
         </Link>
       </div>
     </div>
@@ -694,7 +694,7 @@ function FormsContent() {
           </ul>
         </div>
         <Link href="/ny/qualify" className="inline-block rounded-full bg-[#c59d5f] px-6 py-3 text-white hover:bg-[#d4ac6e]">
-          Start New Session ($29)
+          Start New Session ($99)
         </Link>
       </div>
     </div>

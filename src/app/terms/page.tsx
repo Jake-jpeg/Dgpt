@@ -191,7 +191,7 @@ function TermsContent() {
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Payment, Access, and Document Generation</h2>
             <p className="text-zinc-600 mb-4">
-              <strong>Payment:</strong> The service fee is $29 USD, payable via Stripe. Payment is required before accessing form preparation features.
+              <strong>Payment:</strong> The service fee is $99 USD, payable via Stripe. Payment is required before accessing form preparation features.
             </p>
             <p className="text-zinc-600 mb-4">
               <strong>Access Window:</strong> Your session is valid for 12 months from the date of purchase. This covers all three phases of the divorce filing process. DivorceGPT does not track court timelines or provide ongoing assistance during this period — the access window is solely for document generation.
@@ -206,7 +206,7 @@ function TermsContent() {
               <strong>Usage Limits:</strong> Each session is limited to 200 AI messages. If you reach this limit before completing all phases, your session ends. This limit exists to ensure fair usage across all users. A new session requires a new purchase.
             </p>
             <p className="text-zinc-600 mb-4">
-              <strong>Session Expiration:</strong> If your session expires after 12 months, you must purchase a new session at the standard rate of $29 USD. A new session requires re-entry of all information. Court processing delays are outside the scope of this service and do not extend your access window.
+              <strong>Session Expiration:</strong> If your session expires after 12 months, you must purchase a new session at the standard rate of $99 USD. A new session requires re-entry of all information. Court processing delays are outside the scope of this service and do not extend your access window.
             </p>
             <p className="text-zinc-600 mb-4">
               <strong>Refund Policy:</strong>
@@ -244,7 +244,7 @@ function TermsContent() {
               <li>DivorceGPT and June Guided Solutions LLC are not liable for any damages arising from your use of this service</li>
               <li>We are not responsible for the outcome of your divorce case</li>
               <li>We are not responsible for errors in court filings or rejections by the court</li>
-              <li>Our total liability is limited to the amount you paid for the service ($29)</li>
+              <li>Our total liability is limited to the amount you paid for the service ($99)</li>
             </ul>
           </section>
 
