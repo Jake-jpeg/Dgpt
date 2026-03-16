@@ -20,6 +20,7 @@ function AgreeContent() {
   const [hasReadPrivacy, setHasReadPrivacy] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [freeKey, setFreeKey] = useState(searchParams.get("key") || "");
+  const tier = searchParams.get("tier") || "pro_se";
   const [authorized, setAuthorized] = useState(false);
   
   const [confirmNotLawFirm, setConfirmNotLawFirm] = useState(false);
@@ -49,6 +50,7 @@ function AgreeContent() {
           agreedAt: new Date().toISOString(),
           freeKey: freeKey.trim() || undefined,
           state: "nj",
+          tier,
         }),
       });
       const data = await res.json();

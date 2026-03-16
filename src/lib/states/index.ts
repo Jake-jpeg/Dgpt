@@ -18,6 +18,20 @@ export interface FormDef {
   conditionalOn?: string;
 }
 
+// ---------------------------------------------------------------------------
+// Pricing tiers — supports pro-se, lawyer review, and consultation
+// ---------------------------------------------------------------------------
+export interface PricingTier {
+  id: 'pro_se' | 'lawyer_review' | 'consultation';
+  label: string;
+  price: number;          // cents
+  priceDisplay: string;   // e.g. "$100"
+  description: string;    // one-liner shown on card
+  features: string[];     // bullet points
+  badge?: string;         // optional badge text e.g. "Most Popular"
+  enabled: boolean;       // toggle tiers per state
+}
+
 export interface StateConfig {
   code: string;
   name: string;
@@ -35,7 +49,65 @@ export interface StateConfig {
   phaseLabels: { 1: string; 2: string; 3: string };
   phaseForms: { 1: FormDef[]; 2: FormDef[]; 3: FormDef[] };
   breakdownMonths?: number;
+  // New: multi-tier pricing
+  tiers?: PricingTier[];
 }
+
+// ---------------------------------------------------------------------------
+// Default tiers — states can override in their own config
+// ---------------------------------------------------------------------------
+export const DEFAULT_TIERS: PricingTier[] = [
+  {
+    id: 'pro_se',
+    label: 'DIY Divorce Packet',
+    price: 9900,
+    priceDisplay: '$99',
+    description: 'AI-prepared court forms for simple, uncontested cases. You file it yourself.',
+    features: [
+      'Complete court-ready document packet',
+      'AI-guided form filling in plain language',
+      'State & county-specific filing instructions',
+      '12-month session access',
+      'Email support',
+    ],
+    enabled: true,
+  },
+  {
+    id: 'lawyer_review',
+    label: 'Attorney Consultation',
+    price: 49900,
+    priceDisplay: '$499',
+    description: 'Consult with Jake Kim, Esq. — licensed in NY & NJ. Any case type.',
+    features: [
+      '60-minute virtual consultation',
+      'Jake Kim, Esq. — NY & NJ licensed',
+      'Contested & uncontested cases',
+      'Children, custody, alimony, property',
+      'Strategic guidance for your situation',
+      'Flat fee — no hourly billing',
+    ],
+    badge: 'Most Popular',
+    enabled: true,
+  },
+  {
+    id: 'consultation',
+    label: 'Full Representation',
+    price: 0,
+    priceDisplay: 'Contact Us',
+    description: 'Attorney drafts your settlement, handles alimony, ED & child support. Free consultation to scope your case.',
+    features: [
+      'Everything in Attorney Consultation',
+      'Attorney drafts settlement agreement',
+      'Alimony & spousal support calculations',
+      'Equitable distribution of assets',
+      'Child support worksheets & parenting plans',
+      'Limited scope representation through filing',
+      'Pricing based on case complexity',
+    ],
+    badge: 'Full Service',
+    enabled: true,
+  },
+];
 
 // Import all state configs
 import { ny } from './ny';
@@ -61,4 +133,15 @@ export function getSupportedStates(): StateConfig[] {
 
 export function getLiveStates(): StateConfig[] {
   return Object.values(STATES).filter(s => s.live);
+}
+
+/**
+ * Get the active tiers for a state.
+ * Falls back to DEFAULT_TIERS if the state doesn't define its own.
+ * Filters to enabled-only.
+ */
+export function getStateTiers(stateCode: string): PricingTier[] {
+  const config = getStateConfig(stateCode);
+  const tiers = config?.tiers ?? DEFAULT_TIERS;
+  return tiers.filter(t => t.enabled);
 }

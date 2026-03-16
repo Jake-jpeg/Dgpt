@@ -215,15 +215,16 @@ export default function NJQualifyPage() {
             </div>
             
             <div className="mt-6 rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-100">
-              <p className="text-4xl font-bold text-[#1a365d]">$29</p>
-              <p className="mt-1 text-sm text-zinc-500">{t.hero.fee}</p>
+              <p className="text-sm text-zinc-500">DIY Divorce Packet</p>
+              <p className="text-4xl font-bold text-[#1a365d]">$99</p>
+              <p className="mt-1 text-sm text-zinc-500">One-time payment · 12-month access</p>
             </div>
             
             <button
-              onClick={() => { window.location.href = "/nj/agree"; }}
+              onClick={() => { window.location.href = "/nj/agree?tier=pro_se"; }}
               className="mt-8 group inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-[#c59d5f]/30 transition-all duration-200 hover:bg-[#d4ac6e] hover:shadow-2xl hover:-translate-y-0.5"
             >
-              Continue with DivorceGPT ($29)
+              Continue with DIY ($99)
               <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
@@ -241,6 +242,17 @@ export default function NJQualifyPage() {
               {t.qualify.militaryDisqualification.split('\n\n').map((paragraph: string, i: number) => (
                 <p key={i} className={`text-sm text-zinc-600 ${i > 0 ? 'mt-4' : ''}`}>{paragraph}</p>
               ))}
+            </div>
+            {/* Lawyer Referral CTA */}
+            <div className="mt-8 rounded-2xl bg-gradient-to-b from-[#1a365d] to-[#234876] p-6 text-left">
+              <h3 className="font-semibold text-white mb-2">Need an Attorney?</h3>
+              <p className="text-sm text-zinc-300 mb-4">
+                Military divorces involve special protections under the SCRA. Contact Jake Kim Law Firm, LLC directly.
+              </p>
+              <Link href="https://jakekimlaw.com/contact" className="inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">
+                Contact Jake Kim Law Firm
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+              </Link>
             </div>
             <Link href="/nj" className="mt-8 inline-flex items-center gap-2 text-[#1a365d] font-medium transition hover:text-[#c59d5f]">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
@@ -270,6 +282,17 @@ export default function NJQualifyPage() {
               </ul>
             </div>
             <p className="mt-6 text-sm text-zinc-500">{t.qualify.consult}</p>
+            {/* Lawyer Referral CTA */}
+            <div className="mt-8 rounded-2xl bg-gradient-to-b from-[#1a365d] to-[#234876] p-6 text-left">
+              <h3 className="font-semibold text-white mb-2">Need an Attorney?</h3>
+              <p className="text-sm text-zinc-300 mb-4">
+                Your situation may require legal representation. Contact Jake Kim Law Firm, LLC directly.
+              </p>
+              <Link href="https://jakekimlaw.com/contact" className="inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">
+                Contact Jake Kim Law Firm
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+              </Link>
+            </div>
             <Link href="/nj" className="mt-6 inline-flex items-center gap-2 text-[#1a365d] font-medium transition hover:text-[#c59d5f]">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
               {t.qualify.back}
