@@ -51,7 +51,7 @@ export default function Home() {
 
               {/* Trust Signals */}
               <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
-                {["Built by a NY & NJ Licensed Attorney", "Court-ready documents", "For uncontested cases"].map((item, i) => (
+                {["Designed by an Experienced Matrimonial Attorney", "Court-ready documents", "For uncontested cases"].map((item, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm text-zinc-300">
                     <svg className="h-4 w-4 text-[#c59d5f] flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
                     {item}
@@ -151,22 +151,24 @@ export default function Home() {
               <div className="mt-8"><Link href="#states" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">Check Eligibility & Start →</Link></div>
             </div>
 
-            {/* Card 3: Attorney Consultation $499 + Full Rep */}
+            {/* Card 3: Professional Attorney Review $499 */}
             <div className="rounded-2xl bg-white p-8 ring-1 ring-zinc-200 hover:shadow-lg transition-all duration-300 flex flex-col min-h-[620px]">
-              <div className="mb-2"><span className="inline-flex items-center rounded-full bg-zinc-700 px-3 py-1 text-xs font-bold text-white">Full Service</span></div>
-              <h4 className="text-xl font-bold text-zinc-900">Attorney Consultation</h4>
+              <div className="mb-2"><span className="inline-flex items-center rounded-full bg-zinc-700 px-3 py-1 text-xs font-bold text-white">Add-On Service</span></div>
+              <h4 className="text-xl font-bold text-zinc-900">Professional Attorney Review</h4>
               <div className="mt-3"><span className="text-4xl font-bold text-[#1a365d]">$499</span></div>
-              <p className="mt-3 text-sm text-zinc-500">Consult with Jake Kim, Esq. on any topic. Includes review of your DIY packet. Complex cases quoted separately.</p>
+              <p className="mt-3 text-sm text-zinc-500">Have a licensed attorney independently review your completed DIY packet. This is a separate legal service — not part of DivorceGPT.</p>
+              <p className="mt-2 text-xs font-medium text-amber-600">Currently available in New York & New Jersey only.</p>
+              <p className="mt-1 text-xs text-zinc-400">Review provided by an independent, licensed attorney in your state via our partner network.</p>
               <ul className="mt-6 space-y-3 flex-1">
-                {["60-minute virtual consultation", "Jake Kim, Esq. — NY & NJ licensed", "Review of your DIY packet included", "Contested & uncontested cases", "Children, custody, alimony, property, ED"].map((f, i) => (
+                {["Independent attorney review of your documents", "Licensed in NY & NJ", "Feedback memo with corrections & recommendations", "Covers contested & uncontested matters", "Children, custody, alimony, property, ED"].map((f, i) => (
                   <li key={i} className="flex items-start gap-2.5 text-sm text-zinc-600"><svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#c59d5f]" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>{f}</li>
                 ))}
               </ul>
-              <div className="mt-8"><a href="https://jakekimlaw.com/contact" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-[#1a365d] text-white hover:bg-[#2c5282] transition">Consult with Jake Kim, Esq. →</a></div>
+              <div className="mt-8"><a href="mailto:admin@divorcegpt.com?subject=Attorney%20Review%20Inquiry" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-[#1a365d] text-white hover:bg-[#2c5282] transition">Request Attorney Review →</a></div>
             </div>
 
           </div>
-          <p className="mt-8 text-center text-sm text-zinc-400">Attorney services offered in New York and New Jersey only at this time.</p>
+          <p className="mt-8 text-center text-sm text-zinc-400">Attorney review is a separate legal service available in New York and New Jersey only. Not provided by DivorceGPT.</p>
         </div>
       </section>
 
@@ -206,7 +208,7 @@ export default function Home() {
             {[
               { icon: "📋", title: "Free DIY", steps: ["Visit your state court website", "Download official divorce forms", "Fill them out yourself", "File at the courthouse or e-file"] },
               { icon: "🤖", title: "AI-Assisted ($99)", steps: ["Select your state & qualify", "AI guides you through every field", "Forms prepared in plain language", "Download & file with the court"] },
-              { icon: "👨‍⚖️", title: "Attorney ($499)", steps: ["Consult with Jake Kim, Esq.", "Discuss your case & get a quote", "Attorney handles the complex parts", "Settlement, alimony, ED, child support"] },
+              { icon: "👨‍⚖️", title: "Attorney Review ($499)", steps: ["Complete your DIY packet first", "Request an independent attorney review", "Receive a feedback memo with corrections", "Covers custody, alimony, ED & more"] },
             ].map((p, i) => (
               <div key={i} className="rounded-2xl bg-zinc-50 p-8 ring-1 ring-zinc-100">
                 <span className="text-3xl">{p.icon}</span>
@@ -225,19 +227,19 @@ export default function Home() {
             <div>
               <div className="flex items-center gap-3 mb-4"><div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282]"><span className="text-sm">⚖️</span></div><span className="font-semibold text-white">DivorceGPT</span></div>
               <p className="text-sm text-zinc-400">AI-powered divorce document preparation.</p>
+              <p className="mt-1 text-xs text-zinc-500">Designed by an Experienced Matrimonial Attorney</p>
               <p className="mt-2 text-xs text-zinc-500">© 2025 June Guided Solutions, LLC</p>
             </div>
             <div>
               <h4 className="font-semibold text-white mb-3">Services</h4>
               <div className="space-y-2 text-sm">
                 <Link href="#states" className="block text-zinc-400 hover:text-[#c59d5f] transition">AI-Assisted Divorce ($99)</Link>
-                <a href="https://jakekimlaw.com/contact" className="block text-zinc-400 hover:text-[#c59d5f] transition">Attorney Services</a>
+                <a href="mailto:admin@divorcegpt.com?subject=Attorney%20Review%20Inquiry" className="block text-zinc-400 hover:text-[#c59d5f] transition">Attorney Review ($499)</a>
               </div>
             </div>
             <div>
-              <h4 className="font-semibold text-white mb-3">Our Companies</h4>
+              <h4 className="font-semibold text-white mb-3">Company</h4>
               <div className="space-y-2 text-sm">
-                <a href="https://jakekimlaw.com" className="block text-zinc-400 hover:text-[#c59d5f] transition">Jake Kim Law Firm, LLC</a>
                 <a href="https://juneguidedsolutions.com" className="block text-zinc-400 hover:text-[#c59d5f] transition">June Guided Solutions, LLC</a>
               </div>
             </div>
@@ -247,7 +249,7 @@ export default function Home() {
                 <Link href="/privacy" className="block text-zinc-400 hover:text-[#c59d5f] transition">Privacy Policy</Link>
                 <Link href="/terms" className="block text-zinc-400 hover:text-[#c59d5f] transition">Terms of Service</Link>
               </div>
-              <p className="mt-4 text-xs text-zinc-500">Document preparation by June Guided Solutions, LLC. Attorney services by Jake Kim Law Firm, LLC. Not legal advice unless retained.</p>
+              <p className="mt-4 text-xs text-zinc-500">Document preparation by June Guided Solutions, LLC. This is not legal advice.</p>
             </div>
           </div>
         </div>
