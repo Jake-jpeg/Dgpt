@@ -53,7 +53,7 @@ export default function TierSelect({ stateCode, stateName, tiers }: TierSelectPr
             <div className="mt-3"><span className="text-4xl font-bold text-[#1a365d]">{full.priceDisplay}</span></div>
             <p className="mt-3 text-sm text-zinc-500">{full.description}</p>
             <ul className="mt-6 space-y-3 flex-1">{full.features.map((f,i) => <li key={i} className="flex items-start gap-2.5 text-sm text-zinc-600"><svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#c59d5f]" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>{f}</li>)}</ul>
-            <div className="mt-6"><a href="https://jakekimlaw.com/contact" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-[#1a365d] text-white hover:bg-[#2c5282] transition">Free Consultation →</Link></div>
+            <div className="mt-6"><a href="https://jakekimlaw.com/contact" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-[#1a365d] text-white hover:bg-[#2c5282] transition">Contact Jake Kim Law Firm →</a></div>
           </div>}
         </div>
         <div className="mt-10 text-center"><p className="text-sm text-zinc-400">Attorney services offered in New York and New Jersey only. Document preparation by June Guided Solutions, LLC. Attorney services by <a href="https://jakekimlaw.com" className="underline hover:text-[#1a365d]">Jake Kim Law Firm, LLC</a>.</p></div>
