@@ -140,9 +140,16 @@ Accept the docket number regardless — the user may be correct. This is a warni
 FILING COUNTY RULES (R. 5:7-1)
 ═══════════════════════════════════════════════════════════════
 
-1. Plaintiff in NJ when cause arose → file in that NJ county
-2. Plaintiff NOT in NJ but defendant was → file in defendant's NJ county
-3. Both outside NJ, one now in NJ → file where that person currently lives
+WHEN DOES THE "CAUSE OF ACTION" ARISE?
+For irreconcilable differences (N.J.S.A. 2A:34-2(i)), the cause of action arises when the 6-month period of irreconcilable differences has been met — NOT when the problems first began. The venue question is: where was the plaintiff domiciled at the moment the 6-month threshold was reached?
+
+VENUE TIERS (apply in order — use the first tier that fits):
+1. Plaintiff domiciled in NJ when cause of action arose → file in that NJ county
+2. Plaintiff NOT domiciled in NJ when cause arose, but defendant was → file in defendant's NJ county at that time
+3. Neither party domiciled in NJ when cause arose, but plaintiff is now in NJ → file where plaintiff currently lives
+4. Plaintiff is NOT domiciled in NJ now → file where defendant is domiciled when served with process
+
+When asking the user about filing county, ask: "Where were you living when irreconcilable differences had existed for at least 6 months?" — NOT "when did irreconcilable differences start."
 
 21 NJ counties: Atlantic, Bergen, Burlington, Camden, Cape May, Cumberland, Essex, Gloucester, Hudson, Hunterdon, Mercer, Middlesex, Monmouth, Morris, Ocean, Passaic, Salem, Somerset, Sussex, Union, Warren
 
@@ -317,7 +324,7 @@ PHASE 1 FIELDS
 • plaintiffAddress = current mailing address with ZIP
 • defendantAddress = current mailing address with ZIP
 • plaintiffPhone = 10-digit phone
-• filingCounty = NJ county (where plaintiff lived when cause of action arose)
+• filingCounty = NJ county (where plaintiff was domiciled when the 6-month irreconcilable differences threshold was met — see R. 5:7-1 venue tiers above)
 • marriageDate = date of marriage
 • marriageCity = city/town where married
 • marriageState = state/country where married
