@@ -6,7 +6,6 @@ const states = [
   { code: "ny", name: "New York", abbr: "NY", live: true, href: "/ny", tagline: "Uncontested divorce — AI-assisted document preparation.", counties: "All 62 counties" },
   { code: "nj", name: "New Jersey", abbr: "NJ", live: true, href: "/nj", tagline: "Uncontested divorce for New Jersey residents.", counties: "All 21 counties" },
   { code: "nv", name: "Nevada", abbr: "NV", live: false, href: "/nv", tagline: "Joint petition divorce for Clark & Washoe counties.", counties: "Clark & Washoe counties" },
-  { code: "tx", name: "Texas", abbr: "TX", live: false, href: "/tx", tagline: "Agreed divorce for Texas residents.", counties: "All 254 counties" },
 ];
 
 const YOUTUBE_VIDEO_ID = "nA9bf64rrA8";
@@ -46,7 +45,7 @@ export default function Home() {
                 Fast &amp; Affordable Uncontested Divorce Online
               </h1>
               <p className="mt-5 text-lg text-zinc-300 leading-relaxed max-w-xl">
-                Generate court-ready divorce papers with our $99 AI, or hire an experienced attorney. Choose the path that fits your budget.
+                Generate court-ready divorce papers with AI — $99, no attorney needed. Designed for simple, uncontested cases.
               </p>
 
               {/* Trust Signals */}
@@ -120,9 +119,9 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">Choose Your Path</h3>
-            <p className="mt-4 text-lg text-zinc-600">Simple case? Handle it yourself. Need a lawyer? We are the lawyer.</p>
+            <p className="mt-4 text-lg text-zinc-600">Simple case? Do it yourself for free, or let AI handle the paperwork for $99.</p>
           </div>
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
 
             {/* Card 1: Free DIY — white */}
             <div className="rounded-2xl bg-white p-8 ring-1 ring-zinc-200 hover:shadow-lg transition-all duration-300 flex flex-col min-h-[620px]">
@@ -151,24 +150,7 @@ export default function Home() {
               <div className="mt-8"><Link href="#states" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">Check Eligibility & Start →</Link></div>
             </div>
 
-            {/* Card 3: Professional Attorney Review $499 */}
-            <div className="rounded-2xl bg-white p-8 ring-1 ring-zinc-200 hover:shadow-lg transition-all duration-300 flex flex-col min-h-[620px]">
-              <div className="mb-2"><span className="inline-flex items-center rounded-full bg-zinc-700 px-3 py-1 text-xs font-bold text-white">Add-On Service</span></div>
-              <h4 className="text-xl font-bold text-zinc-900">Professional Attorney Review</h4>
-              <div className="mt-3"><span className="text-4xl font-bold text-[#1a365d]">$499</span></div>
-              <p className="mt-3 text-sm text-zinc-500">Have a licensed attorney independently review your completed DIY packet. This is a separate legal service — not part of DivorceGPT.</p>
-              <p className="mt-2 text-xs font-medium text-amber-600">Currently available in New York & New Jersey only.</p>
-              <p className="mt-1 text-xs text-zinc-400">Review provided by an independent, licensed attorney in your state via our partner network.</p>
-              <ul className="mt-6 space-y-3 flex-1">
-                {["Independent attorney review of your documents", "Licensed in NY & NJ", "Feedback memo with corrections & recommendations", "Covers contested & uncontested matters", "Children, custody, alimony, property, ED"].map((f, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-sm text-zinc-600"><svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#c59d5f]" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>{f}</li>
-                ))}
-              </ul>
-              <div className="mt-8"><a href="mailto:admin@divorcegpt.com?subject=Attorney%20Review%20Inquiry" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-[#1a365d] text-white hover:bg-[#2c5282] transition">Request Attorney Review →</a></div>
-            </div>
-
           </div>
-          <p className="mt-8 text-center text-sm text-zinc-400">Attorney review is a separate legal service available in New York and New Jersey only. Not provided by DivorceGPT.</p>
         </div>
       </section>
 
@@ -204,11 +186,10 @@ export default function Home() {
       <section className="py-24 bg-white">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16"><h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">How It Works</h3></div>
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
             {[
               { icon: "📋", title: "Free DIY", steps: ["Visit your state court website", "Download official divorce forms", "Fill them out yourself", "File at the courthouse or e-file"] },
               { icon: "🤖", title: "AI-Assisted ($99)", steps: ["Select your state & qualify", "AI guides you through every field", "Forms prepared in plain language", "Download & file with the court"] },
-              { icon: "👨‍⚖️", title: "Attorney Review ($499)", steps: ["Complete your DIY packet first", "Request an independent attorney review", "Receive a feedback memo with corrections", "Covers custody, alimony, ED & more"] },
             ].map((p, i) => (
               <div key={i} className="rounded-2xl bg-zinc-50 p-8 ring-1 ring-zinc-100">
                 <span className="text-3xl">{p.icon}</span>
@@ -234,7 +215,6 @@ export default function Home() {
               <h4 className="font-semibold text-white mb-3">Services</h4>
               <div className="space-y-2 text-sm">
                 <Link href="#states" className="block text-zinc-400 hover:text-[#c59d5f] transition">AI-Assisted Divorce ($99)</Link>
-                <a href="mailto:admin@divorcegpt.com?subject=Attorney%20Review%20Inquiry" className="block text-zinc-400 hover:text-[#c59d5f] transition">Attorney Review ($499)</a>
               </div>
             </div>
             <div>

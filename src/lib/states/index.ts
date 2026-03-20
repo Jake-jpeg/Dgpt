@@ -72,41 +72,6 @@ export const DEFAULT_TIERS: PricingTier[] = [
     ],
     enabled: true,
   },
-  {
-    id: 'lawyer_review',
-    label: 'Professional Attorney Review',
-    price: 49900,
-    priceDisplay: '$499',
-    description: 'Independent attorney review of your completed DIY packet. Separate legal service — not provided by DivorceGPT.',
-    features: [
-      'Independent review of your document packet',
-      'Licensed attorney — NY & NJ',
-      'Feedback memo with corrections & recommendations',
-      'Contested & uncontested cases',
-      'Children, custody, alimony, property',
-      'Flat fee — no hourly billing',
-    ],
-    badge: 'Most Popular',
-    enabled: true,
-  },
-  {
-    id: 'consultation',
-    label: 'Full Representation',
-    price: 0,
-    priceDisplay: 'Contact Us',
-    description: 'Separate legal service: attorney drafts your settlement, handles alimony, ED & child support. Free consultation to scope your case.',
-    features: [
-      'Everything in Attorney Review',
-      'Attorney drafts settlement agreement',
-      'Alimony & spousal support calculations',
-      'Equitable distribution of assets',
-      'Child support worksheets & parenting plans',
-      'Limited scope representation through filing',
-      'Pricing based on case complexity',
-    ],
-    badge: 'Full Service',
-    enabled: true,
-  },
 ];
 
 // Import all state configs

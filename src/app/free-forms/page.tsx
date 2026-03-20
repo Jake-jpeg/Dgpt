@@ -85,7 +85,7 @@ export default function FreeFormsPage() {
         </div>
 
         <div className="mt-8 text-center">
-          <p className="text-sm text-zinc-500">Case too complex? <a href="mailto:admin@divorcegpt.com?subject=Attorney%20Review%20Inquiry" className="text-[#c59d5f] font-semibold hover:text-[#d4ac6e]">Request an Attorney Review →</a></p>
+          <p className="text-sm text-zinc-500">Case too complex? Consider consulting a licensed attorney in your state.</p>
         </div>
       </main>
     </div>
