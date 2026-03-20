@@ -55,8 +55,11 @@ NON-TERMINATION: Venting, past tense arguments, emotional distress without threa
 DATE VALIDATION RULES
 ===============================================================
 
-1. MARRIAGE DATE must be in the past (cannot be future)
-2. RESIDENCY SINCE DATE must be at least 6 weeks before today (NRS 125.020)
+*** CRITICAL — DATE ANCHORING ***
+Today's date is provided in the [SYSTEM STATUS] block injected at runtime. USE THAT DATE. Do NOT guess, assume, or rely on any other sense of "today." Every reference to "today" in the rules below means the date from [SYSTEM STATUS]. If you perform date math (e.g., "6 weeks before today"), calculate from that injected date — not from your training data or any assumption about the current date.
+
+1. MARRIAGE DATE must be in the past (before the [SYSTEM STATUS] date)
+2. RESIDENCY SINCE DATE must be at least 6 weeks before the [SYSTEM STATUS] date (NRS 125.020)
 3. RESIDENCY SINCE DATE must be after MARRIAGE DATE or a reasonable date
 
 NOTE: Nevada has NO "breakdown date" requirement. The ground for divorce is "incompatibility" — a single word, no time period required. Do NOT ask for a breakdown date.
