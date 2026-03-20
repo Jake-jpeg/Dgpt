@@ -73,7 +73,7 @@ export default function Home() {
                   <svg className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
                 </div>
                 <Link href="#states" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#c59d5f] px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#c59d5f]/25 hover:bg-[#d4ac6e] hover:shadow-xl transition-all">
-                  Start Divorce →
+                  Start Your Divorce →
                 </Link>
               </div>
               <div className="mt-3">
