@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import TypewriterMessage from "../../../components/TypewriterMessage";
 import {
   loadSession,
   createSession,
@@ -66,6 +67,19 @@ function NVFormsContent() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [streamingIndex, setStreamingIndex] = useState<number | null>(null);
+
+  const addAssistantMessage = (content: string) => {
+    setMessages(prev => {
+      const next = [...prev, { role: "assistant" as const, content }];
+      setStreamingIndex(next.length - 1);
+      return next;
+    });
+  };
+  const setAssistantMessages = (content: string) => {
+    setMessages([{ role: "assistant", content }]);
+    setStreamingIndex(0);
+  };
 
   const [phase1Data, setPhase1Data] = useState<Record<string, string>>({});
   const [phase1Complete, setPhase1Complete] = useState(false);
@@ -195,9 +209,9 @@ function NVFormsContent() {
         body: JSON.stringify({ messages: [{ role: "user", content: "Hi, I'm ready to start." }], currentPhase: 1, phase1Data: {}, phase2Data: {}, phase3Data: {} }),
       });
       const data = await res.json();
-      setMessages([{ role: "assistant", content: data.reply }]);
+      setAssistantMessages(data.reply);
     } catch {
-      setMessages([{ role: "assistant", content: "Welcome to DivorceGPT. I'll help you prepare your uncontested divorce forms for Nevada.\n\n**Quick note:** Bookmark this page now. This URL is your login \u2014 no accounts or passwords.\n\nSay **'Let's start'** or ask questions first. Session valid for 12 months." }]);
+      setAssistantMessages("Welcome to DivorceGPT. I'll help you prepare your uncontested divorce forms for Nevada.\n\n**Quick note:** Bookmark this page now. This URL is your login \u2014 no accounts or passwords.\n\nSay **'Let's start'** or ask questions first. Session valid for 12 months.");
     }
     finally { setIsLoading(false); }
   };
@@ -237,7 +251,7 @@ function NVFormsContent() {
       setInput("");
       setPhase1Data({});
       setPhase1Complete(false);
-      setMessages([{ role: "assistant", content: "Let's start fresh.\n\nYou can give me all your information at once, or we can go one question at a time. Just say **\"Let's start\"**." }]);
+      setAssistantMessages("Let's start fresh.\n\nYou can give me all your information at once, or we can go one question at a time. Just say **\"Let's start\"**.");
       return;
     }
 
@@ -274,7 +288,7 @@ function NVFormsContent() {
       // Handle termination
       if (data.isTerminated) {
         setIsTerminated(true);
-        setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+        addAssistantMessage(data.reply);
 
         try {
           fetch('/api/send-monitor-alert', {
@@ -292,8 +306,8 @@ function NVFormsContent() {
         return;
       }
 
-      setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
-    } catch { setMessages(prev => [...prev, { role: "assistant", content: "Sorry, something went wrong." }]); }
+      addAssistantMessage(data.reply);
+    } catch { addAssistantMessage("Sorry, something went wrong."); }
     finally { setIsLoading(false); if (!isMobile) inputRef.current?.focus(); }
   };
 
@@ -368,7 +382,7 @@ function NVFormsContent() {
     setPhase1Data({});
     setPhase1Complete(false);
     setIsDisqualified(false);
-    setMessages([{ role: "assistant", content: "Let's start fresh.\n\nYou can give me all your information at once, or we can go one question at a time. Just say **\"Let's start\"**." }]);
+    setAssistantMessages("Let's start fresh.\n\nYou can give me all your information at once, or we can go one question at a time. Just say **\"Let's start\"**.");
   };
 
   // Loading state
@@ -507,17 +521,24 @@ function NVFormsContent() {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-6">
             <div className="mx-auto max-w-3xl space-y-4">
-              {messages.map((msg, i) => (
+              {messages.map((msg, i) => {
+                const isLastAssistant = msg.role === "assistant" && i === messages.length - 1 && streamingIndex === i;
+                return (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
                     msg.role === 'user'
                       ? 'bg-[#1a365d] text-white'
                       : 'bg-white text-zinc-800 shadow-sm ring-1 ring-zinc-100'
                   }`}>
-                    <div className="whitespace-pre-wrap">{msg.content}</div>
+                    {isLastAssistant ? (
+                      <TypewriterMessage content={msg.content} onComplete={() => setStreamingIndex(null)} />
+                    ) : (
+                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                    )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-zinc-100">

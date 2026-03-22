@@ -147,7 +147,7 @@ export default function Home() {
                   <li key={i} className="flex items-start gap-2.5 text-sm text-zinc-200"><svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#c59d5f]" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>{f}</li>
                 ))}
               </ul>
-              <div className="mt-8"><Link href="#states" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">Check Eligibility & Start →</Link></div>
+              <div className="mt-8"><Link href="#states" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition" onClick={(e) => { e.preventDefault(); document.getElementById('states')?.scrollIntoView({ behavior: 'smooth' }); }}>Select Your State ↓</Link></div>
             </div>
 
           </div>

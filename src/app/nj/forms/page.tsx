@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useLanguage } from "../../../components/LanguageProvider";
+import TypewriterMessage from "../../../components/TypewriterMessage";
 import { Locale } from "../../../lib/ny-dictionary";
 import { 
   loadSession, 
@@ -29,6 +30,20 @@ function FormsContent() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [streamingIndex, setStreamingIndex] = useState<number | null>(null);
+
+  // Helper: append an assistant message and trigger typewriter on it
+  const addAssistantMessage = (content: string) => {
+    setMessages(prev => {
+      const next = [...prev, { role: "assistant" as const, content }];
+      setStreamingIndex(next.length - 1);
+      return next;
+    });
+  };
+  const setAssistantMessages = (content: string) => {
+    setMessages([{ role: "assistant", content }]);
+    setStreamingIndex(0);
+  };
   
   const [currentPhase, setCurrentPhase] = useState<1 | 2>(1);
   const [phase1Data, setPhase1Data] = useState<Record<string, string>>({});
@@ -207,8 +222,8 @@ function FormsContent() {
         body: JSON.stringify({ messages: [{ role: "user", content: "Hi, I'm ready to start." }], currentPhase: 1, phase1Data: {}, phase2Data: {}, phase3Data: {} }),
       });
       const data = await res.json();
-      setMessages([{ role: "assistant", content: data.reply }]);
-    } catch { setMessages([{ role: "assistant", content: "Welcome to DivorceGPT for New Jersey. I'll help you prepare your uncontested divorce forms.\n\n**Before we begin:**\n• DivorceGPT handles uncontested, no-fault NJ divorces — no children, no property to divide, no alimony.\n• At least one spouse must have lived in NJ for 12 consecutive months.\n• Court filing fee: $300.\n\nSay **'Let's start'** or ask me questions first. Your session is valid for 12 months." }]); }
+      setAssistantMessages(data.reply);
+    } catch { setAssistantMessages("Welcome to DivorceGPT for New Jersey. I'll help you prepare your uncontested divorce forms.\n\n**Before we begin:**\n• DivorceGPT handles uncontested, no-fault NJ divorces — no children, no property to divide, no alimony.\n• At least one spouse must have lived in NJ for 12 consecutive months.\n• Court filing fee: $300.\n\nSay **'Let's start'** or ask me questions first. Your session is valid for 12 months."); }
     finally { setIsLoading(false); }
   };
 
@@ -284,7 +299,7 @@ function FormsContent() {
       
       if (data.isTerminated) {
         setIsTerminated(true);
-        setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+        addAssistantMessage(data.reply);
         
         // Send termination alert to admin
         try {
@@ -303,25 +318,25 @@ function FormsContent() {
         return;
       }
       
-      setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
-    } catch { setMessages(prev => [...prev, { role: "assistant", content: "Sorry, something went wrong." }]); }
+      addAssistantMessage(data.reply);
+    } catch { addAssistantMessage("Sorry, something went wrong."); }
     finally { setIsLoading(false); if (!isMobile) inputRef.current?.focus(); }
   };
 
   const advancePhase = () => {
     if (currentPhase === 1 && phase1Complete) {
       setCurrentPhase(2);
-      setMessages(prev => [...prev, { role: "assistant", content: "Welcome to Phase 2 — Service + Final Judgment Package!\n\nYou've filed your documents. Now I need your docket number to regenerate everything and generate your final package.\n\nWhat is your docket number? (Format: FM-XX-XXXXXX-XX)\n\nIf you filed via JEDS, the docket number is usually available immediately." }]);
+      addAssistantMessage("Welcome to Phase 2 — Service + Final Judgment Package!\n\nYou've filed your documents. Now I need your docket number to regenerate everything and generate your final package.\n\nWhat is your docket number? (Format: FM-XX-XXXXXX-XX)\n\nIf you filed via JEDS, the docket number is usually available immediately.");
     }
   };
 
   const goToPhase = (phase: 1 | 2) => {
     if (phase === 1) {
       setCurrentPhase(1);
-      setMessages(prev => [...prev, { role: "assistant", content: "Returning to Phase 1. How can I help you with your filing information?" }]);
+      addAssistantMessage("Returning to Phase 1. How can I help you with your filing information?");
     } else if (phase === 2 && phase1Complete) {
       setCurrentPhase(2);
-      setMessages(prev => [...prev, { role: "assistant", content: "Returning to Phase 2. How can I help you with your service + final judgment package?" }]);
+      addAssistantMessage("Returning to Phase 2. How can I help you with your service + final judgment package?");
     }
   };
 
@@ -335,6 +350,7 @@ function FormsContent() {
     setPhase3Complete(false);
     setAllComplete(false);
     setMessages([{ role: "assistant", content: "Let's start fresh with Phase 1.\n\nI'll need the following information to prepare your NJ divorce filing package:\n• Your full legal name and your spouse's full legal name\n• Your address and your spouse's address\n• Your phone number\n• Which NJ county you're filing in\n• Date and location of your marriage\n• When irreconcilable differences began (6+ months ago)\n• When NJ residency began (12+ months ago)\n• Who meets the residency requirement (you or your spouse)\n\nYou can give me everything at once or we can go step by step." }]);
+    setStreamingIndex(0);
   };
 
   const generateDocuments = async () => {
@@ -708,15 +724,22 @@ function FormsContent() {
           <div className={`flex flex-1 flex-col ${!isMobile ? (showSidebar ? 'w-2/3 border-r border-zinc-200' : 'w-full') : ''} overflow-hidden`}>
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="mx-auto max-w-2xl space-y-4">
-              {messages.map((msg, i) => (
+              {messages.map((msg, i) => {
+                const isLastAssistant = msg.role === "assistant" && i === messages.length - 1 && streamingIndex === i;
+                return (
                 <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${msg.role === "user" 
                     ? allComplete ? "bg-gradient-to-br from-green-600 to-green-500 text-white" : "bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-white" 
                     : "bg-white text-zinc-800 ring-1 ring-zinc-100"}`}>
-                    <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+                    {isLastAssistant ? (
+                      <TypewriterMessage content={msg.content} onComplete={() => setStreamingIndex(null)} />
+                    ) : (
+                      <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+                    )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
               {isLoading && <div className="flex justify-start"><div className="rounded-2xl bg-white px-4 py-3 ring-1 ring-zinc-100"><div className="flex gap-1"><div className="h-2 w-2 animate-bounce rounded-full bg-[#c59d5f]" /><div className="h-2 w-2 animate-bounce rounded-full bg-[#c59d5f] [animation-delay:0.15s]" /><div className="h-2 w-2 animate-bounce rounded-full bg-[#c59d5f] [animation-delay:0.3s]" /></div></div></div>}
               <div ref={messagesEndRef} />
             </div>
@@ -840,16 +863,25 @@ function FormsContent() {
       </main>
 
       <footer className={`border-t py-3 ${allComplete ? 'border-green-200 bg-green-50' : 'border-zinc-100 bg-white'}`}>
-        <div className="flex items-center justify-center gap-4">
-          <p className="text-center text-xs text-zinc-500">DivorceGPT is a document preparation service. This is not legal advice.</p>
-          <select value={lang} onChange={(e) => setLang(e.target.value as Locale)} className="text-xs bg-transparent border border-zinc-200 rounded px-1.5 py-0.5 text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#c59d5f]">
-            <option value="en">English</option>
-            <option value="es">Español</option>
-            <option value="zh">中文</option>
-            <option value="ko">한국어</option>
-            <option value="ru">Русский</option>
-            <option value="ht">Kreyòl</option>
-          </select>
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="flex items-center justify-center gap-4">
+            <p className="text-center text-xs text-zinc-500">DivorceGPT is a document preparation service. This is not legal advice.</p>
+            <select value={lang} onChange={(e) => setLang(e.target.value as Locale)} className="text-xs bg-transparent border border-zinc-200 rounded px-1.5 py-0.5 text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#c59d5f]">
+              <option value="en">English</option>
+              <option value="es">Español</option>
+              <option value="zh">中文</option>
+              <option value="ko">한국어</option>
+              <option value="ru">Русский</option>
+              <option value="ht">Kreyòl</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-3 text-[10px] text-zinc-400">
+            <span>Powered by Claude AI</span>
+            <span>·</span>
+            <Link href="/privacy" target="_blank" className="hover:text-[#1a365d] transition">Privacy</Link>
+            <span>·</span>
+            <Link href="/terms" target="_blank" className="hover:text-[#1a365d] transition">Terms</Link>
+          </div>
         </div>
       </footer>
     </div>
