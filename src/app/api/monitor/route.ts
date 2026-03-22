@@ -3,7 +3,7 @@
 // GET /api/monitor — returns last check results (no new check)
 // 
 // Callable via cron job (monthly recommended)
-// Uses Claude Sonnet with web_search tool to check official court websites
+// Uses AI with web_search tool to check official court websites
 // Sends email alert to admin@divorcegpt.com on detected changes
 //
 // Cost: ~$0.02/month for 2 states, ~$0.50/month for 50 states

@@ -46,7 +46,7 @@ export const dictionary = {
       title: "Frequently Asked Questions",
       items: [
         { q: "Is this legal advice?", a: "No. DivorceGPT explains what divorce forms ask for and how to file them. It does not provide legal advice. For legal advice, consult an attorney." },
-        { q: "What technology powers DivorceGPT?", a: "DivorceGPT uses Anthropic's Claude AI via their commercial API. Under Anthropic's API terms, your inputs are not used for AI model training and are automatically deleted within days. June Guided Solutions, LLC (the company behind DivorceGPT) does not retain any chat history or conversation data. If you need support, you must provide your own screenshot of the conversation — we have no way to retrieve it." },
+        { q: "What technology powers DivorceGPT?", a: "DivorceGPT uses advanced AI technology via a secure commercial API. Under our API provider's terms, your inputs are not used for AI model training and are automatically deleted within days. June Guided Solutions, LLC (the company behind DivorceGPT) does not retain any chat history or conversation data. If you need support, you must provide your own screenshot of the conversation — we have no way to retrieve it." },
         { q: "How long does the process take?", a: "You can complete your forms in minutes, but the overall divorce process takes time — the court needs to process filings between each phase. Timeline varies by county. Your session remains valid for 12 months to cover even the slowest courts." },
         { q: "How do I access my session?", a: "After payment, you'll be redirected to your session page. Bookmark this page — the URL is your access link. There are no accounts or passwords." },
         { q: "What if my spouse won't cooperate?", a: "This service is for uncontested divorces where both spouses agree. If your spouse won't cooperate, you may need a contested divorce attorney." },
@@ -220,7 +220,7 @@ export const dictionary = {
       title: "Preguntas Frecuentes",
       items: [
         { q: "¿Es esto asesoramiento legal?", a: "No. DivorceGPT explica qué piden los formularios y cómo presentarlos. No proporciona asesoramiento legal. Para ello, consulte a un abogado." },
-        { q: "¿Qué tecnología usa DivorceGPT?", a: "DivorceGPT usa la inteligencia artificial Claude de Anthropic a través de su API comercial. Según los términos de la API de Anthropic, sus datos no se usan para entrenar modelos de IA y se eliminan automáticamente en días. June Guided Solutions, LLC (la empresa detrás de DivorceGPT) no retiene ningún historial de chat ni datos de conversación. Si necesita soporte, debe proporcionar su propia captura de pantalla de la conversación — no tenemos forma de recuperarla." },
+        { q: "¿Qué tecnología usa DivorceGPT?", a: "DivorceGPT usa tecnología avanzada de IA a través de una API comercial segura. Según los términos de nuestro proveedor de API, sus datos no se usan para entrenar modelos de IA y se eliminan automáticamente en días. June Guided Solutions, LLC (la empresa detrás de DivorceGPT) no retiene ningún historial de chat ni datos de conversación. Si necesita soporte, debe proporcionar su propia captura de pantalla de la conversación — no tenemos forma de recuperarla." },
         { q: "¿Cuánto tiempo toma el proceso?", a: "Puede completar sus formularios en minutos, pero el proceso general de divorcio toma tiempo — el tribunal necesita procesar las presentaciones entre cada fase. El tiempo varía según el condado. Su sesión es válida por 12 meses." },
         { q: "¿Qué pasa si mi cónyuge no coopera?", a: "Este servicio es para divorcios donde ambos están de acuerdo. Si su cónyuge no coopera, puede necesitar un abogado para divorcio contencioso." },
         { q: "¿Puedo obtener un reembolso?", a: "Si no califica después de la verificación, no se le cobrará. Una vez generados los formularios, no hay reembolsos." }
@@ -392,7 +392,7 @@ export const dictionary = {
       title: "常见问题",
       items: [
         { q: "这是法律建议吗？", a: "不是。DivorceGPT 解释离婚表格的要求和提交方式。它不提供法律建议。如需法律建议，请咨询律师。" },
-        { q: "DivorceGPT 使用什么技术？", a: "DivorceGPT 通过商业 API 使用 Anthropic 的 Claude AI。根据 Anthropic 的 API 条款，您的输入不会用于 AI 模型训练，并会在数天内自动删除。June Guided Solutions, LLC（DivorceGPT 的运营公司）不会保留任何聊天记录或对话数据。如需支持，您必须提供自己的对话截图——我们无法检索对话内容。" },
+        { q: "DivorceGPT 使用什么技术？", a: "DivorceGPT 通过安全商业 API 使用先进的 AI 技术。根据我们 API 提供商的条款，您的输入不会用于 AI 模型训练，并会在数天内自动删除。June Guided Solutions, LLC（DivorceGPT 的运营公司）不会保留任何聊天记录或对话数据。如需支持，您必须提供自己的对话截图——我们无法检索对话内容。" },
         { q: "这个过程需要多长时间？", a: "您可以在几分钟内完成表格，但整个离婚过程需要时间——法院需要在每个阶段之间处理文件。时间因县而异。您的会话有效期为12个月。" },
         { q: "如果我的配偶不配合怎么办？", a: "此服务适用于双方同意的无争议离婚。如果您的配偶不配合，您可能需要聘请争议离婚律师。" },
         { q: "我可以退款吗？", a: "如果您在资格检查后不符合条件，我们将不会收费。一旦生成表格，则不予退款。" }
@@ -564,7 +564,7 @@ export const dictionary = {
       title: "자주 묻는 질문",
       items: [
         { q: "이것은 법률 자문인가요?", a: "아니요. DivorceGPT는 이혼 서류의 내용과 제출 방법을 설명합니다. 법률 자문이 아닙니다. 법률 자문은 변호사와 상담하세요." },
-        { q: "DivorceGPT는 어떤 기술을 사용하나요?", a: "DivorceGPT는 Anthropic의 Claude AI를 상용 API를 통해 사용합니다. Anthropic의 API 약관에 따라 귀하의 입력은 AI 모델 학습에 사용되지 않으며 며칠 내에 자동 삭제됩니다. June Guided Solutions, LLC(DivorceGPT 운영 회사)는 채팅 기록이나 대화 데이터를 일절 보관하지 않습니다. 지원이 필요한 경우 대화 스크린샷을 직접 제공해야 합니다 — 저희는 대화를 복구할 수 없습니다." },
+        { q: "DivorceGPT는 어떤 기술을 사용하나요?", a: "DivorceGPT는 안전한 상용 API를 통해 고급 AI 기술을 사용합니다. API 제공업체의 약관에 따라 귀하의 입력은 AI 모델 학습에 사용되지 않으며 며칠 내에 자동 삭제됩니다. June Guided Solutions, LLC(DivorceGPT 운영 회사)는 채팅 기록이나 대화 데이터를 일절 보관하지 않습니다. 지원이 필요한 경우 대화 스크린샷을 직접 제공해야 합니다 — 저희는 대화를 복구할 수 없습니다." },
         { q: "절차는 얼마나 걸리나요?", a: "서류는 몇 분 안에 완료할 수 있지만, 전체 이혼 절차는 시간이 걸립니다 — 법원이 각 단계 사이에 서류를 처리해야 합니다. 소요 시간은 카운티마다 다릅니다. 세션은 12개월 동안 유효합니다." },
         { q: "배우자가 협조하지 않으면 어떻게 하나요?", a: "이 서비스는 양측이 동의하는 합의 이혼을 위한 것입니다. 협조하지 않을 경우, 소송 이혼 전문 변호사가 필요할 수 있습니다." },
         { q: "환불받을 수 있나요?", a: "자격 확인 후 이용 대상이 아니면 비용이 청구되지 않습니다. 서류가 생성된 후에는 환불되지 않습니다." }
@@ -736,7 +736,7 @@ export const dictionary = {
       title: "Частые вопросы",
       items: [
         { q: "Это юридическая консультация?", a: "Нет. DivorceGPT объясняет формы и процедуру подачи. Это не юридическая консультация. За советом обратитесь к адвокату." },
-        { q: "Какая технология используется?", a: "DivorceGPT использует Claude AI от Anthropic через коммерческий API. Согласно условиям API Anthropic, ваши данные не используются для обучения моделей ИИ и автоматически удаляются в течение нескольких дней. June Guided Solutions, LLC (компания, стоящая за DivorceGPT) не хранит историю чатов или данные разговоров. Если вам нужна поддержка, вы должны предоставить собственный снимок экрана — у нас нет возможности восстановить разговор." },
+        { q: "Какая технология используется?", a: "DivorceGPT использует передовую технологию ИИ через безопасный коммерческий API. Согласно условиям нашего поставщика API, ваши данные не используются для обучения моделей ИИ и автоматически удаляются в течение нескольких дней. June Guided Solutions, LLC (компания, стоящая за DivorceGPT) не хранит историю чатов или данные разговоров. Если вам нужна поддержка, вы должны предоставить собственный снимок экрана — у нас нет возможности восстановить разговор." },
         { q: "Сколько времени занимает процесс?", a: "Заполнение форм занимает считанные минуты, но весь процесс развода требует времени — суд обрабатывает документы между каждым этапом. Сроки зависят от округа. Ваша сессия действительна 12 месяцев." },
         { q: "Что если супруг не сотрудничает?", a: "Этот сервис для случаев, когда оба согласны. Если супруг против, вам может понадобиться адвокат для спорного развода." },
         { q: "Можно ли вернуть деньги?", a: "Если вы не пройдете проверку права, деньги не спишутся. После создания форм возврат невозможен." }
@@ -908,7 +908,7 @@ export const dictionary = {
       title: "Kesyon Yo Souvan Poze",
       items: [
         { q: "Èske sa se konsèy legal?", a: "Non. DivorceGPT esplike kisa fòm divòs yo mande ak kijan pou depoze yo. Li pa bay konsèy legal. Pou konsèy legal, konsilte yon avoka." },
-        { q: "Ki teknoloji DivorceGPT itilize?", a: "DivorceGPT itilize Claude AI Anthropic atravè API komèsyal yo. Dapre kondisyon API Anthropic, done ou yo pa itilize pou fòme modèl AI epi yo otomatikman efase nan kèk jou. June Guided Solutions, LLC (konpayi dèyè DivorceGPT) pa kenbe okenn istwa chat oswa done konvèsasyon. Si ou bezwen sipò, ou dwe bay pwòp ekran ou — nou pa gen okenn fason pou rekipere konvèsasyon an." },
+        { q: "Ki teknoloji DivorceGPT itilize?", a: "DivorceGPT itilize teknoloji AI avanse atravè yon API komèsyal sekirize. Dapre kondisyon founisè API nou an, done ou yo pa itilize pou fòme modèl AI epi yo otomatikman efase nan kèk jou. June Guided Solutions, LLC (konpayi dèyè DivorceGPT) pa kenbe okenn istwa chat oswa done konvèsasyon. Si ou bezwen sipò, ou dwe bay pwòp ekran ou — nou pa gen okenn fason pou rekipere konvèsasyon an." },
         { q: "Konbyen tan pwosesis la pran?", a: "Ou ka fini fòm yo nan kèk minit, men pwosesis divòs la pran tan — tribinal la bezwen trete dokiman ant chak faz. Tan an varye selon konte a. Sesyon ou an valab pou 12 mwa." },
         { q: "Kisa si mari/madanm mwen pa kowopere?", a: "Sèvis sa a se pou lè nou tou de dakò. Si mari/madanm ou pa kowopere, ou ka bezwen yon avoka pou divòs ki gen kontestasyon." },
         { q: "Èske mwen ka jwenn ranbousman?", a: "Si ou pa kalifye apre tcheke a, nou pap chaje ou. Yon fwa fòm yo fin fèt, pa gen ranbousman." }

@@ -247,10 +247,10 @@ export default function NJQualifyPage() {
             <div className="mt-8 rounded-2xl bg-gradient-to-b from-[#1a365d] to-[#234876] p-6 text-left">
               <h3 className="font-semibold text-white mb-2">Need an Attorney?</h3>
               <p className="text-sm text-zinc-300 mb-4">
-                Military divorces involve special protections under the SCRA. Contact Jake Kim Law Firm, LLC directly.
+                Military divorces involve special protections under the SCRA. We recommend consulting with a family law attorney in your area.
               </p>
-              <Link href="https://jakekimlaw.com/contact" className="inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">
-                Contact Jake Kim Law Firm
+              <Link href="mailto:admin@divorcegpt.com" className="inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">
+                Find an Attorney
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
               </Link>
             </div>
@@ -286,10 +286,10 @@ export default function NJQualifyPage() {
             <div className="mt-8 rounded-2xl bg-gradient-to-b from-[#1a365d] to-[#234876] p-6 text-left">
               <h3 className="font-semibold text-white mb-2">Need an Attorney?</h3>
               <p className="text-sm text-zinc-300 mb-4">
-                Your situation may require legal representation. Contact Jake Kim Law Firm, LLC directly.
+                Your situation may require legal representation. We recommend consulting with a family law attorney in your area.
               </p>
-              <Link href="https://jakekimlaw.com/contact" className="inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">
-                Contact Jake Kim Law Firm
+              <Link href="mailto:admin@divorcegpt.com" className="inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">
+                Find an Attorney
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
               </Link>
             </div>

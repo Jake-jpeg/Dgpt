@@ -53,7 +53,7 @@ export const nvDictionary: Record<string, any> = {
       title: "Frequently Asked Questions",
       items: [
         { q: "Is this legal advice?", a: "No. DivorceGPT explains what divorce forms ask for and how to file them. It does not provide legal advice. For legal advice, consult an attorney." },
-        { q: "What technology powers DivorceGPT?", a: "DivorceGPT uses Anthropic's Claude AI via their commercial API. Under Anthropic's API terms, your inputs are not used for AI model training and are automatically deleted within days. June Guided Solutions, LLC (the company behind DivorceGPT) does not retain any chat history or conversation data. If you need support, you must provide your own screenshot of the conversation — we have no way to retrieve it." },
+        { q: "What technology powers DivorceGPT?", a: "DivorceGPT uses advanced AI technology via a secure commercial API. Under our API provider's terms, your inputs are not used for AI model training and are automatically deleted within days. June Guided Solutions, LLC (the company behind DivorceGPT) does not retain any chat history or conversation data. If you need support, you must provide your own screenshot of the conversation — we have no way to retrieve it." },
         { q: "How long does the process take?", a: "Clark County: typically 1-4 weeks. Washoe County: the judge has up to 60 days. There is no mandatory waiting period in Nevada." },
         { q: "How do I access my session?", a: "After payment, you'll be redirected to your session page. Bookmark this page — the URL is your access link. There are no accounts or passwords." },
         { q: "What if my spouse won't cooperate?", a: "This service is for uncontested divorces where both spouses agree. If your spouse won't cooperate, you may need a contested divorce attorney." },
@@ -206,7 +206,7 @@ export const nvDictionary: Record<string, any> = {
       title: "Preguntas Frecuentes",
       items: [
         { q: "¿Es esto asesoramiento legal?", a: "No. DivorceGPT explica qué piden los formularios de divorcio y cómo presentarlos. No proporciona asesoramiento legal." },
-        { q: "¿Qué tecnología utiliza DivorceGPT?", a: "DivorceGPT usa la inteligencia artificial Claude de Anthropic a través de su API comercial. Según los términos de la API de Anthropic, sus datos no se usan para entrenar modelos de IA y se eliminan automáticamente en días. June Guided Solutions, LLC (la empresa detrás de DivorceGPT) no retiene ningún historial de chat ni datos de conversación. Si necesita soporte, debe proporcionar su propia captura de pantalla de la conversación — no tenemos forma de recuperarla." },
+        { q: "¿Qué tecnología utiliza DivorceGPT?", a: "DivorceGPT usa tecnología avanzada de IA a través de una API comercial segura. Según los términos de nuestro proveedor de API, sus datos no se usan para entrenar modelos de IA y se eliminan automáticamente en días. June Guided Solutions, LLC (la empresa detrás de DivorceGPT) no retiene ningún historial de chat ni datos de conversación. Si necesita soporte, debe proporcionar su propia captura de pantalla de la conversación — no tenemos forma de recuperarla." },
         { q: "¿Cuánto tarda el proceso?", a: "Condado de Clark: típicamente 1-4 semanas. Condado de Washoe: el juez tiene hasta 60 días. No hay período de espera obligatorio en Nevada." },
         { q: "¿Cómo accedo a mi sesión?", a: "Después del pago, será redirigido a su página de sesión. Guarde esta página como favorito — la URL es su enlace de acceso." },
         { q: "¿Qué pasa si mi cónyuge no coopera?", a: "Este servicio es para divorcios no disputados donde ambos cónyuges están de acuerdo. Si su cónyuge no coopera, puede necesitar un abogado." },
@@ -359,7 +359,7 @@ export const nvDictionary: Record<string, any> = {
       title: "常见问题",
       items: [
         { q: "这是法律建议吗？", a: "不是。DivorceGPT 解释离婚表格的要求和提交方式。不提供法律建议。" },
-        { q: "DivorceGPT 使用什么技术？", a: "DivorceGPT 通过商业 API 使用 Anthropic 的 Claude AI。根据 Anthropic 的 API 条款，您的输入不会用于 AI 模型训练，并会在数天内自动删除。June Guided Solutions, LLC（DivorceGPT 的运营公司）不会保留任何聊天记录或对话数据。如需支持，您必须提供自己的对话截图——我们无法检索对话内容。" },
+        { q: "DivorceGPT 使用什么技术？", a: "DivorceGPT 通过安全商业 API 使用先进的 AI 技术。根据我们 API 提供商的条款，您的输入不会用于 AI 模型训练，并会在数天内自动删除。June Guided Solutions, LLC（DivorceGPT 的运营公司）不会保留任何聊天记录或对话数据。如需支持，您必须提供自己的对话截图——我们无法检索对话内容。" },
         { q: "整个过程需要多长时间？", a: "克拉克县：通常1-4周。沃肖县：法官有60天审查。内华达州没有强制等待期。" },
         { q: "如何访问我的会话？", a: "付款后，您将被重定向到会话页面。收藏此页面——URL就是您的访问链接。" },
         { q: "如果配偶不合作怎么办？", a: "此服务适用于双方同意的无争议离婚。如果配偶不合作，您可能需要律师。" },
@@ -512,7 +512,7 @@ export const nvDictionary: Record<string, any> = {
       title: "자주 묻는 질문",
       items: [
         { q: "법률 자문인가요?", a: "아닙니다. DivorceGPT는 이혼 서류가 요구하는 내용과 제출 방법을 설명합니다. 법률 자문을 제공하지 않습니다." },
-        { q: "DivorceGPT는 어떤 기술을 사용하나요?", a: "DivorceGPT는 Anthropic의 Claude AI를 상용 API를 통해 사용합니다. Anthropic의 API 약관에 따라 귀하의 입력은 AI 모델 학습에 사용되지 않으며 며칠 내에 자동 삭제됩니다. June Guided Solutions, LLC(DivorceGPT 운영 회사)는 채팅 기록이나 대화 데이터를 일절 보관하지 않습니다. 지원이 필요한 경우 대화 스크린샷을 직접 제공해야 합니다 — 저희는 대화를 복구할 수 없습니다." },
+        { q: "DivorceGPT는 어떤 기술을 사용하나요?", a: "DivorceGPT는 안전한 상용 API를 통해 고급 AI 기술을 사용합니다. API 제공업체의 약관에 따라 귀하의 입력은 AI 모델 학습에 사용되지 않으며 며칠 내에 자동 삭제됩니다. June Guided Solutions, LLC(DivorceGPT 운영 회사)는 채팅 기록이나 대화 데이터를 일절 보관하지 않습니다. 지원이 필요한 경우 대화 스크린샷을 직접 제공해야 합니다 — 저희는 대화를 복구할 수 없습니다." },
         { q: "과정은 얼마나 걸리나요?", a: "클라크 카운티: 보통 1-4주. 와쇼 카운티: 판사가 최대 60일. 네바다주에는 의무 대기 기간이 없습니다." },
         { q: "세션에 어떻게 접속하나요?", a: "결제 후 세션 페이지로 리디렉션됩니다. 이 페이지를 북마크하세요 — URL이 접속 링크입니다." },
         { q: "배우자가 협조하지 않으면?", a: "이 서비스는 양 배우자가 동의하는 무쟁의 이혼을 위한 것입니다. 배우자가 협조하지 않으면 변호사가 필요할 수 있습니다." },
@@ -666,7 +666,7 @@ export const nvDictionary: Record<string, any> = {
       title: "Mga Madalas Itanong",
       items: [
         { q: "Legal advice ba ito?", a: "Hindi. Ipinapaliwanag ng DivorceGPT kung ano ang hinihingi ng divorce forms at paano i-file. Hindi nagbibigay ng legal advice." },
-        { q: "Anong teknolohiya ang ginagamit ng DivorceGPT?", a: "Gumagamit ang DivorceGPT ng Claude AI ng Anthropic sa pamamagitan ng kanilang commercial API. Ayon sa mga tuntunin ng API ng Anthropic, ang iyong mga input ay hindi ginagamit para sa AI model training at awtomatikong dine-delete sa loob ng ilang araw. Ang June Guided Solutions, LLC (ang kumpanya sa likod ng DivorceGPT) ay hindi nagtatago ng anumang chat history o data ng usapan. Kung kailangan mo ng suporta, kailangan mong magbigay ng sarili mong screenshot ng usapan — wala kaming paraan para makuha ito." },
+        { q: "Anong teknolohiya ang ginagamit ng DivorceGPT?", a: "Gumagamit ang DivorceGPT ng advanced na AI technology sa pamamagitan ng isang secure commercial API. Ayon sa mga tuntunin ng aming API provider, ang iyong mga input ay hindi ginagamit para sa AI model training at awtomatikong dine-delete sa loob ng ilang araw. Ang June Guided Solutions, LLC (ang kumpanya sa likod ng DivorceGPT) ay hindi nagtatago ng anumang chat history o data ng usapan. Kung kailangan mo ng suporta, kailangan mong magbigay ng sarili mong screenshot ng usapan — wala kaming paraan para makuha ito." },
         { q: "Gaano katagal ang proseso?", a: "Clark County: karaniwang 1-4 na linggo. Washoe County: ang hukom ay may hanggang 60 araw. Walang mandatory waiting period sa Nevada." },
         { q: "Paano ko ma-access ang aking session?", a: "Pagkatapos magbayad, ma-redirect ka sa iyong session page. I-bookmark ang page — ang URL ang iyong access link." },
         { q: "Paano kung ayaw makipagtulungan ng asawa ko?", a: "Ang serbisyong ito ay para sa uncontested divorces kung saan parehong sumasang-ayon ang mag-asawa. Kung ayaw makipagtulungan ng asawa mo, maaaring kailangan mo ng abogado." },

@@ -858,7 +858,7 @@ export async function POST(req: Request) {
 
     // ═══════════════════════════════════════════════════════════════
     // SERVER-SIDE PHASE COMPLETION SAFETY NET
-    // Don't rely solely on Claude outputting {phaseXComplete: true}.
+    // Don't rely solely on AI outputting {phaseXComplete: true}.
     // Merge extracted data with existing data and check if all fields present.
     // ═══════════════════════════════════════════════════════════════
     

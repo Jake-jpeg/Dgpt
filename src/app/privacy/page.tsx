@@ -110,8 +110,8 @@ function PrivacyContent() {
                 <strong>Your browser stores your progress.</strong> Form data is saved in your browser's localStorage and never transmitted to our servers for storage. You can clear this at any time by clearing your browser data.
               </p>
               <p>
-                <strong>AI processes but doesn't remember.</strong> Your conversations are processed by Anthropic's Claude AI via their commercial API. Under Anthropic's API terms, your inputs and outputs are <strong>not used for AI model training</strong> and are automatically deleted within days. Anthropic may retain data flagged by trust-and-safety classifiers for policy enforcement.{' '}
-                <a href="https://privacy.claude.com" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#c59d5f]">Read Anthropic's privacy policy →</a>
+                <strong>AI processes but doesn't remember.</strong> Your conversations are processed by a commercial AI API. Under our AI provider's terms, your inputs and outputs are <strong>not used for AI model training</strong> and are automatically deleted within days. Our AI provider may retain data flagged by trust-and-safety classifiers for policy enforcement.{' '}
+                <a href="https://privacy.claude.com/en/" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#c59d5f]">Learn more about our privacy practices →</a>
               </p>
               <p>
                 <strong>PDFs are generated and discarded.</strong> When you download your forms, the PDF is generated server-side, sent to your browser, and immediately discarded. We do not keep copies.
@@ -125,11 +125,11 @@ function PrivacyContent() {
             <div className="space-y-4">
               <div className="rounded-xl bg-white p-4 ring-1 ring-zinc-200">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-medium text-zinc-900">Anthropic</span>
-                  <span className="text-sm text-zinc-500">AI processing (Claude API)</span>
+                  <span className="font-medium text-zinc-900">AI Provider</span>
+                  <span className="text-sm text-zinc-500">AI processing (commercial API)</span>
                 </div>
-                <p className="text-sm text-zinc-600">Your inputs and outputs are not used for model training. API data is automatically deleted within days under Anthropic's commercial terms.{' '}
-                  <a href="https://privacy.claude.com" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#c59d5f]">Read more →</a>
+                <p className="text-sm text-zinc-600">Your inputs and outputs are not used for model training. API data is automatically deleted within days under our AI provider's commercial terms.{' '}
+                  <a href="https://privacy.claude.com/en/" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#c59d5f]">Learn more →</a>
                 </p>
               </div>
               <div className="rounded-xl bg-white p-4 ring-1 ring-zinc-200">
@@ -138,7 +138,7 @@ function PrivacyContent() {
                   <span className="text-sm text-zinc-500">Payment processing</span>
                 </div>
                 <p className="text-sm text-zinc-600">Stripe processes your payment. They do not sell your personal data. DivorceGPT receives only a transaction ID — not your card number, CVV, or billing details.{' '}
-                  <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#c59d5f]">Read more →</a>
+                  <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#c59d5f]">Learn more →</a>
                 </p>
               </div>
               <div className="rounded-xl bg-white p-4 ring-1 ring-zinc-200">
@@ -147,7 +147,7 @@ function PrivacyContent() {
                   <span className="text-sm text-zinc-500">Hosting infrastructure</span>
                 </div>
                 <p className="text-sm text-zinc-600">DigitalOcean hosts our application. As an infrastructure provider, they do not access, use, or train on your application data. Standard server logs (IP addresses, timestamps) are retained for security purposes.{' '}
-                  <a href="https://www.digitalocean.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#c59d5f]">Read more →</a>
+                  <a href="https://www.digitalocean.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#c59d5f]">Learn more →</a>
                 </p>
               </div>
             </div>

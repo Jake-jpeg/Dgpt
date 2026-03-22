@@ -18,14 +18,14 @@ export default function TierSelect({ stateCode, stateName, tiers }: TierSelectPr
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282] shadow-lg shadow-[#1a365d]/20"><span className="text-lg">⚖️</span></div>
               <div><h1 className="text-lg font-semibold text-zinc-900">DivorceGPT</h1><p className="text-xs text-zinc-500">{stateName}</p></div>
             </Link>
-            <a href="https://jakekimlaw.com" className="text-sm text-zinc-500 hover:text-[#1a365d] transition">Jake Kim Law Firm</a>
+            
           </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">How Do You Want to Handle Your Divorce?</h2>
-          <p className="mt-4 text-lg text-zinc-600">Simple case? $99 DIY. Need a lawyer? We are the lawyer.</p>
+          <p className="mt-4 text-lg text-zinc-600">Simple case? $99 DIY. Start your uncontested divorce today.</p>
         </div>
         <div className="grid gap-8 md:grid-cols-3 items-start">
           {/* DIY */}
@@ -45,7 +45,7 @@ export default function TierSelect({ stateCode, stateName, tiers }: TierSelectPr
             <p className="mt-3 text-sm text-zinc-300">{consult.description}</p>
             <ul className="mt-6 space-y-3 flex-1">{consult.features.map((f,i) => <li key={i} className="flex items-start gap-2.5 text-sm text-zinc-200"><svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#c59d5f]" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>{f}</li>)}</ul>
             <div className="mt-6 rounded-lg bg-white/10 p-3 ring-1 ring-white/20"><p className="text-xs text-zinc-300"><strong>No qualification needed.</strong> Any case type. NY & NJ only.</p></div>
-            <div className="mt-6"><a href="https://jakekimlaw.com/contact" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">Book Consultation →</a></div>
+            <div className="mt-6"><a href="mailto:admin@divorcegpt.com" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">Book Consultation →</a></div>
           </div>}
           {/* Full Rep — Contact Us */}
           {full && <div className="rounded-2xl bg-white p-8 ring-1 ring-zinc-200 hover:shadow-lg transition flex flex-col">
@@ -53,10 +53,10 @@ export default function TierSelect({ stateCode, stateName, tiers }: TierSelectPr
             <div className="mt-3"><span className="text-4xl font-bold text-[#1a365d]">{full.priceDisplay}</span></div>
             <p className="mt-3 text-sm text-zinc-500">{full.description}</p>
             <ul className="mt-6 space-y-3 flex-1">{full.features.map((f,i) => <li key={i} className="flex items-start gap-2.5 text-sm text-zinc-600"><svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#c59d5f]" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>{f}</li>)}</ul>
-            <div className="mt-6"><a href="https://jakekimlaw.com/contact" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-[#1a365d] text-white hover:bg-[#2c5282] transition">Contact Jake Kim Law Firm →</a></div>
+            <div className="mt-6"><a href="mailto:admin@divorcegpt.com" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-[#1a365d] text-white hover:bg-[#2c5282] transition">Contact Us →</a></div>
           </div>}
         </div>
-        <div className="mt-10 text-center"><p className="text-sm text-zinc-400">Attorney services offered in New York and New Jersey only. Document preparation by June Guided Solutions, LLC. Attorney services by <a href="https://jakekimlaw.com" className="underline hover:text-[#1a365d]">Jake Kim Law Firm, LLC</a>.</p></div>
+        <div className="mt-10 text-center"><p className="text-sm text-zinc-400">Document preparation by June Guided Solutions, LLC. Attorney services offered in New York and New Jersey only.</p></div>
       </main>
     </div>
   );

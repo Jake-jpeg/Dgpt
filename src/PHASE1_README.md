@@ -24,7 +24,7 @@ DivorceGPT now includes AI-powered form filling for New York uncontested divorce
 
 - `/app/api/create-checkout/route.ts` - Creates Stripe checkout session
 - `/app/api/validate-session/route.ts` - Validates Stripe payment status
-- `/app/api/forms/chat/route.ts` - AI chat for form filling (Claude Sonnet)
+- `/app/api/forms/chat/route.ts` - AI chat for form filling
 - `/app/api/forms/ud1/route.ts` - Generates UD-1 DOCX document
 
 ### Frontend
@@ -38,7 +38,7 @@ DivorceGPT now includes AI-powered form filling for New York uncontested divorce
 ## Environment Variables
 
 ```env
-ANTHROPIC_API_KEY=sk-ant-xxxxx
+AI_PROVIDER_API_KEY=your-api-key-here
 STRIPE_SECRET_KEY=sk_test_xxxxx
 ```
 
@@ -53,7 +53,7 @@ User completes Stripe checkout → redirected to `/forms?session_id=cs_xxx`
 - Creates/loads localStorage session keyed by payment_intent
 
 ### 3. Form Filling Chat
-- Claude asks questions one at a time
+- AI asks questions one at a time
 - Extracts structured data via JSON blocks in responses
 - Right panel shows real-time progress
 - All data saved to localStorage automatically
