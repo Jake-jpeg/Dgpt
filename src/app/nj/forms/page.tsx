@@ -568,7 +568,7 @@ function FormsContent() {
         <p className="text-zinc-600 mb-6">This session has been terminated. Your payment will be refunded within 5-10 business days.</p>
         <div className="bg-blue-50 rounded-xl p-4 text-left text-sm text-blue-800 mb-6">
           <p className="font-semibold mb-2">If you need support:</p>
-          <ul className="space-y-1"><li>• National Domestic Violence Hotline: 1-800-799-7233</li><li>• Crisis Text Line: Text HOME to 741741</li><li>• Emergency Services: 911</li></ul>
+          <ul className="space-y-1"><li>• National Domestic Violence Hotline: 1-800-799-7233</li><li>• Suicide &amp; Crisis Lifeline: 988</li><li>• Crisis Text Line: Text HOME to 741741</li><li>• Emergency Services: 911</li></ul>
         </div>
         <Link href="/nj" className="inline-block rounded-full bg-zinc-200 px-6 py-3 text-zinc-700 hover:bg-zinc-300">Return Home</Link>
       </div>
