@@ -205,7 +205,7 @@ export default function TransparencyPage() {
             I have infinitely more to lose than a Silicon Valley legal-tech startup. I don&apos;t have a legal department. I don&apos;t have a lobbying firm. I have a law license in two states that I&apos;ve spent a decade building, and a product that serves people who can&apos;t afford $3,000 for paperwork. If DivorceGPT crosses a line, I don&apos;t get a fine. I get disbarred.
           </p>
           <p className="text-zinc-700 leading-relaxed mb-5">
-            That&apos;s exactly why I&apos;m the one describing my compliance architecture publicly today. Not because a bill forced my hand — every guardrail described below existed before S7263 hit the Senate floor. But because while the debate in Albany centers on what AI companies <em>should</em> do, I&apos;d rather show what I&apos;ve <em>already done</em>.
+            That&apos;s exactly why I&apos;m the one describing my compliance architecture publicly today. Not because a bill forced my hand — every guardrail described below existed before S7263 hit the Senate floor. The debate in Albany centers on what AI companies <em>should</em> do. I&apos;d rather show what I&apos;ve <em>already done</em>.
           </p>
           <p className="text-lg font-semibold text-[#1a365d] mb-5">
             Legislators are drafting the compliance framework. I already hard-coded it.
@@ -285,7 +285,7 @@ export default function TransparencyPage() {
               DivorceGPT has a defined scope: uncontested divorce in New York State, no minor children, no property division, no spousal maintenance, both parties cooperating, neither party represented by counsel, neither party on active military duty, and no domestic violence history between the parties.
             </p>
             <p className="text-sm text-zinc-700 leading-relaxed mb-3">
-              If any of those conditions fails, the system disqualifies the user and stops document preparation. This isn&apos;t a soft suggestion. It&apos;s a hard gate. Disqualification triggers include: children under 21, contested assets, spousal support requests, attorney involvement, an uncooperative defendant, active military service (SCRA protection), and any domestic violence history — including expired orders of protection, dismissed complaints, and prior DV-related proceedings.
+              If any of those conditions fail, the system disqualifies the user. This isn&apos;t a soft suggestion. It&apos;s a hard gate. Disqualification triggers include: children under 21, contested assets, spousal support requests, attorney involvement, an uncooperative defendant, active military service (SCRA protection), and any domestic violence history — including expired orders of protection, dismissed complaints, and prior DV-related proceedings.
             </p>
             <p className="text-sm text-zinc-700 leading-relaxed mb-3">
               On domestic violence specifically: the system applies a permanent, irreversible disqualification. If a user mentions any DV history and then retracts it — says they made it up, were exaggerating, or changed their mind — the disqualification stands. A real DV victim may retract under coercion. The system is designed to account for that possibility and err on the side of safety, every time.
@@ -367,7 +367,7 @@ export default function TransparencyPage() {
             . I&apos;ll fix it. I&apos;ll thank you. And I&apos;ll probably ask you how you did it so I can learn.
           </p>
           <p className="text-zinc-700 leading-relaxed mb-10">
-            But this post is not a security challenge. It&apos;s a regulatory and legal disclosure. The invitation here is to regulators, bar associations, and legislators: look at what I built. Look at how seriously I took the compliance. Then decide whether this is the product you want to target.
+            This post is not a security challenge. It&apos;s a regulatory and legal disclosure. The invitation here is to regulators, bar associations, and legislators: look at what I built. Look at how seriously I took the compliance. Then decide whether this is the product you want to target.
           </p>
 
           {/* — BOTTOM LINE — */}
