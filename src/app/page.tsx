@@ -5,7 +5,6 @@ import Link from "next/link";
 const states = [
   { code: "ny", name: "New York", abbr: "NY", live: true, href: "/ny", tagline: "Uncontested divorce — AI-assisted document preparation.", counties: "All 62 counties" },
   { code: "nj", name: "New Jersey", abbr: "NJ", live: true, href: "/nj", tagline: "Uncontested divorce for New Jersey residents.", counties: "All 21 counties" },
-  { code: "nv", name: "Nevada", abbr: "NV", live: false, href: "/nv", tagline: "Joint petition divorce for Clark & Washoe counties.", counties: "Clark & Washoe counties" },
 ];
 
 const YOUTUBE_VIDEO_ID = "nA9bf64rrA8";
@@ -167,7 +166,7 @@ export default function Home() {
                 <div className={`inline-flex h-14 w-14 items-center justify-center rounded-xl text-xl font-bold ${s.live ? "bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30" : "bg-zinc-200 text-zinc-400"}`}>{s.abbr}</div>
                 <div className="mt-6">
                   <h4 className={`text-2xl font-bold ${s.live ? "text-white" : "text-zinc-900"}`}>{s.name}</h4>
-                  {s.live ? (<span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-green-500/20 px-3 py-1 text-xs font-semibold text-green-300"><span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />Live Now</span>) : s.code === "nv" ? (<span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-semibold text-blue-600"><span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />Testing</span>) : (<span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-semibold text-yellow-600"><span className="h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse" />Under Construction</span>)}
+                  {s.live ? (<span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-green-500/20 px-3 py-1 text-xs font-semibold text-green-300"><span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />Live Now</span>) : (<span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-semibold text-yellow-600"><span className="h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse" />Under Construction</span>)}
                 </div>
                 <p className={`mt-4 text-sm ${s.live ? "text-zinc-300" : "text-zinc-500"}`}>{s.tagline}</p>
                 <div className={`mt-6 flex items-center justify-between border-t pt-4 ${s.live ? "border-white/10" : "border-zinc-200"}`}>
