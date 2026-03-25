@@ -120,7 +120,7 @@ export default function Home() {
             <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">Choose Your Path</h3>
             <p className="mt-4 text-lg text-zinc-600">Simple case? Do it yourself for free, or let AI handle the paperwork for $99.</p>
           </div>
-          <div className="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
+          <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto">
 
             {/* Card 1: Free DIY — white */}
             <div className="rounded-2xl bg-white p-8 ring-1 ring-zinc-200 hover:shadow-lg transition-all duration-300 flex flex-col min-h-[620px]">
@@ -147,6 +147,19 @@ export default function Home() {
                 ))}
               </ul>
               <div className="mt-8"><Link href="#states" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition" onClick={(e) => { e.preventDefault(); document.getElementById('states')?.scrollIntoView({ behavior: 'smooth' }); }}>Select Your State ↓</Link></div>
+            </div>
+
+            {/* Card 3: Resource Guides — white */}
+            <div className="rounded-2xl bg-white p-8 ring-1 ring-zinc-200 hover:shadow-lg transition-all duration-300 flex flex-col min-h-[620px]">
+              <h4 className="text-xl font-bold text-zinc-900">Resource Guides</h4>
+              <div className="mt-3"><span className="text-4xl font-bold text-[#1a365d]">Free</span></div>
+              <p className="mt-3 text-sm text-zinc-500">Plain-language guides to every divorce form — what it means, why the court needs it, and how to fill it out.</p>
+              <ul className="mt-6 space-y-3 flex-1">
+                {["Line-by-line form explanations", "Written by a licensed attorney", "NY & NJ forms covered", "Educational purposes only", "New guides added regularly"].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-zinc-600"><svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#c59d5f]" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>{f}</li>
+                ))}
+              </ul>
+              <div className="mt-8"><Link href="/guides" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition">Browse Resource Guides →</Link></div>
             </div>
 
           </div>
