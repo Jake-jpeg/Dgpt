@@ -11,14 +11,14 @@ export const txDictionary: Record<string, any> = {
       subtitle: "Made Simple",
       description: "Get your divorce forms prepared and explained in plain language. No lawyers needed for simple, uncontested cases.",
       cta: "Check If You Qualify",
-      fee: "$29 one-time fee • No hidden costs"
+      fee: "$99 one-time fee • No hidden costs"
     },
     howItWorks: {
       title: "How It Works",
       subtitle: "Answer questions, get your forms, file with the court.",
       steps: [
         { title: "Check Eligibility", desc: "Answer a few questions to confirm this service is right for you." },
-        { title: "Pay $29", desc: "One-time payment. No hidden fees. No subscriptions." },
+        { title: "Pay $99", desc: "One-time payment. No hidden fees. No subscriptions." },
         { title: "Get Your Forms", desc: "Receive your complete filing packet ready for filing." },
         { title: "Ask Questions", desc: "Use DivorceGPT to understand any part of the process." }
       ]
@@ -82,14 +82,14 @@ export const txDictionary: Record<string, any> = {
       subtitle: "Simplificado",
       description: "Prepare sus formularios de divorcio explicados en lenguaje sencillo. No se necesitan abogados para casos simples y no contenciosos.",
       cta: "Verifique Si Califica",
-      fee: "Tarifa única de $29 • Sin costos ocultos"
+      fee: "Tarifa única de $99 • Sin costos ocultos"
     },
     howItWorks: {
       title: "Cómo Funciona",
       subtitle: "Responda preguntas, obtenga sus formularios, presente ante el tribunal.",
       steps: [
         { title: "Verifique Elegibilidad", desc: "Responda algunas preguntas para confirmar que este servicio es adecuado para usted." },
-        { title: "Pague $29", desc: "Pago único. Sin tarifas ocultas. Sin suscripciones." },
+        { title: "Pague $99", desc: "Pago único. Sin tarifas ocultas. Sin suscripciones." },
         { title: "Obtenga Sus Formularios", desc: "Reciba su paquete completo listo para presentar." },
         { title: "Haga Preguntas", desc: "Use DivorceGPT para entender cualquier parte del proceso." }
       ]
@@ -151,14 +151,14 @@ export const txDictionary: Record<string, any> = {
       subtitle: "简单办理",
       description: "用通俗语言准备和解释您的离婚表格。简单、无争议的案件无需律师。",
       cta: "查看是否符合条件",
-      fee: "一次性费用 $29 · 无隐藏费用"
+      fee: "一次性费用 $99 · 无隐藏费用"
     },
     howItWorks: {
       title: "如何使用",
       subtitle: "回答问题，获取表格，向法院提交。",
       steps: [
         { title: "检查资格", desc: "回答几个问题以确认此服务适合您。" },
-        { title: "支付 $29", desc: "一次性付款。无隐藏费用。无订阅。" },
+        { title: "支付 $99", desc: "一次性付款。无隐藏费用。无订阅。" },
         { title: "获取表格", desc: "收到您的完整申请包，准备提交。" },
         { title: "提问", desc: "使用 DivorceGPT 了解流程的任何部分。" }
       ]
@@ -220,14 +220,14 @@ export const txDictionary: Record<string, any> = {
       subtitle: "간편하게",
       description: "이혼 서류를 쉬운 언어로 준비하고 설명합니다. 간단한 합의 이혼에는 변호사가 필요 없습니다.",
       cta: "자격 확인하기",
-      fee: "일회성 수수료 $29 · 숨겨진 비용 없음"
+      fee: "일회성 수수료 $99 · 숨겨진 비용 없음"
     },
     howItWorks: {
       title: "이용 방법",
       subtitle: "질문에 답하고, 서류를 받고, 법원에 제출하세요.",
       steps: [
         { title: "자격 확인", desc: "몇 가지 질문에 답하여 이 서비스가 적합한지 확인하세요." },
-        { title: "$29 결제", desc: "일회성 결제. 숨겨진 수수료 없음. 구독 없음." },
+        { title: "$99 결제", desc: "일회성 결제. 숨겨진 수수료 없음. 구독 없음." },
         { title: "서류 받기", desc: "제출 준비가 된 완전한 서류 패키지를 받으세요." },
         { title: "질문하기", desc: "DivorceGPT를 사용하여 절차의 어떤 부분이든 이해하세요." }
       ]
@@ -290,14 +290,14 @@ export const txDictionary: Record<string, any> = {
       subtitle: "Đơn Giản Hóa",
       description: "Chuẩn bị và giải thích các biểu mẫu ly hôn bằng ngôn ngữ dễ hiểu. Không cần luật sư cho các trường hợp đơn giản.",
       cta: "Kiểm Tra Điều Kiện",
-      fee: "Phí một lần $29 • Không có chi phí ẩn"
+      fee: "Phí một lần $99 • Không có chi phí ẩn"
     },
     howItWorks: {
       title: "Cách Thức Hoạt Động",
       subtitle: "Trả lời câu hỏi, nhận biểu mẫu, nộp hồ sơ cho tòa án.",
       steps: [
         { title: "Kiểm Tra Điều Kiện", desc: "Trả lời một vài câu hỏi để xác nhận dịch vụ này phù hợp với bạn." },
-        { title: "Thanh Toán $29", desc: "Thanh toán một lần. Không phí ẩn. Không đăng ký." },
+        { title: "Thanh Toán $99", desc: "Thanh toán một lần. Không phí ẩn. Không đăng ký." },
         { title: "Nhận Biểu Mẫu", desc: "Nhận bộ hồ sơ hoàn chỉnh sẵn sàng nộp." },
         { title: "Đặt Câu Hỏi", desc: "Sử dụng DivorceGPT để hiểu bất kỳ phần nào của quy trình." }
       ]

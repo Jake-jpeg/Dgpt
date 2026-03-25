@@ -7,7 +7,7 @@ export const njDictionary: Record<Locale, any> = {
       subtitle: "Made Simple",
       description: "Get your divorce forms prepared and explained in plain language. No lawyers needed for simple, uncontested cases.",
       cta: "Check If You Qualify",
-      fee: "$29 one-time fee • No hidden costs"
+      fee: "$99 one-time fee • No hidden costs"
     },
     howToUse: {
       title: "How to Use",
@@ -24,7 +24,7 @@ export const njDictionary: Record<Locale, any> = {
       subtitle: "Two phases. Answer questions, file your documents, done.",
       steps: [
         { title: "Check Eligibility", desc: "Answer a few questions to confirm this service is right for you." },
-        { title: "Pay $29", desc: "One-time payment. No hidden fees. No subscriptions." },
+        { title: "Pay $99", desc: "One-time payment. No hidden fees. No subscriptions." },
         { title: "Get Your Forms", desc: "Receive your prepared divorce forms ready for filing." },
         { title: "Ask Questions", desc: "Use DivorceGPT to understand any part of the process." }
       ]
@@ -90,7 +90,7 @@ export const njDictionary: Record<Locale, any> = {
         disclaimer: "DivorceGPT does not review your answers for legal sufficiency, provide legal advice, or represent you in court.",
         freeFormsTitle: "Free Forms Available",
         freeFormsDesc: "Official divorce forms are available from the New Jersey Courts website (njcourts.gov). DivorceGPT automates filling them in — you can always file them yourself for free.",
-        continueButton: "Continue with DivorceGPT ($29)"
+        continueButton: "Continue with DivorceGPT ($99)"
       },
       fields: {
         plaintiffName: { label: "Plaintiff Name", desc: "Person filing" },
@@ -180,7 +180,7 @@ export const njDictionary: Record<Locale, any> = {
       subtitle: "Hecho Simple",
       description: "Obtenga sus formularios de divorcio preparados y explicados en lenguaje sencillo. No necesita abogado para casos simples y no contestados.",
       cta: "Verifique Si Califica",
-      fee: "$29 pago único • Sin costos ocultos"
+      fee: "$99 pago único • Sin costos ocultos"
     },
     howToUse: {
       title: "Cómo Usar",
@@ -197,7 +197,7 @@ export const njDictionary: Record<Locale, any> = {
       subtitle: "Dos fases. Responda preguntas, presente sus documentos, listo.",
       steps: [
         { title: "Verificar Elegibilidad", desc: "Responda algunas preguntas para confirmar que este servicio es adecuado para usted." },
-        { title: "Pague $29", desc: "Pago único. Sin tarifas ocultas. Sin suscripciones." },
+        { title: "Pague $99", desc: "Pago único. Sin tarifas ocultas. Sin suscripciones." },
         { title: "Obtenga Sus Formularios", desc: "Reciba sus formularios de divorcio preparados listos para presentar." },
         { title: "Haga Preguntas", desc: "Use DivorceGPT para entender cualquier parte del proceso." }
       ]
@@ -263,7 +263,7 @@ export const njDictionary: Record<Locale, any> = {
         disclaimer: "DivorceGPT no revisa sus respuestas por suficiencia legal, no proporciona asesoría legal, ni lo representa en el tribunal.",
         freeFormsTitle: "Formularios Gratuitos Disponibles",
         freeFormsDesc: "Los formularios oficiales de divorcio están disponibles en el sitio web de los Tribunales de Nueva Jersey (njcourts.gov). DivorceGPT automatiza el llenado — siempre puede presentarlos usted mismo de forma gratuita.",
-        continueButton: "Continuar con DivorceGPT ($29)"
+        continueButton: "Continuar con DivorceGPT ($99)"
       },
       fields: {
         plaintiffName: { label: "Nombre del Demandante", desc: "Persona que presenta" },
@@ -353,7 +353,7 @@ export const njDictionary: Record<Locale, any> = {
       subtitle: "简单办理",
       description: "以通俗语言为您准备和解释离婚表格。简单的无争议案件不需要律师。",
       cta: "检查您是否符合条件",
-      fee: "$29 一次性费用 • 无隐藏费用"
+      fee: "$99 一次性费用 • 无隐藏费用"
     },
     howToUse: {
       title: "如何使用",
@@ -370,7 +370,7 @@ export const njDictionary: Record<Locale, any> = {
       subtitle: "两个阶段。回答问题，提交文件，完成。",
       steps: [
         { title: "检查资格", desc: "回答几个问题以确认此服务适合您。" },
-        { title: "支付$29", desc: "一次性付款。无隐藏费用。无订阅。" },
+        { title: "支付$99", desc: "一次性付款。无隐藏费用。无订阅。" },
         { title: "获取您的表格", desc: "收到准备好的离婚表格，可以立即提交。" },
         { title: "提出问题", desc: "使用DivorceGPT了解流程的任何部分。" }
       ]
@@ -436,7 +436,7 @@ export const njDictionary: Record<Locale, any> = {
         disclaimer: "DivorceGPT不审查您答案的法律充分性，不提供法律建议，也不在法庭上代表您。",
         freeFormsTitle: "免费表格可用",
         freeFormsDesc: "官方离婚表格可在新泽西州法院网站(njcourts.gov)获取。DivorceGPT自动填写——您始终可以自己免费提交。",
-        continueButton: "继续使用DivorceGPT（$29）"
+        continueButton: "继续使用DivorceGPT（$99）"
       },
       fields: {
         plaintiffName: { label: "原告姓名", desc: "申请人" },
@@ -526,7 +526,7 @@ export const njDictionary: Record<Locale, any> = {
       subtitle: "간편하게",
       description: "이혼 양식을 쉬운 언어로 준비하고 설명해 드립니다. 간단한 무분쟁 사건에는 변호사가 필요하지 않습니다.",
       cta: "자격 확인하기",
-      fee: "$29 일회성 비용 • 숨겨진 비용 없음"
+      fee: "$99 일회성 비용 • 숨겨진 비용 없음"
     },
     howToUse: {
       title: "사용 방법",
@@ -543,7 +543,7 @@ export const njDictionary: Record<Locale, any> = {
       subtitle: "두 단계. 질문에 답하고, 문서를 제출하면 끝.",
       steps: [
         { title: "자격 확인", desc: "몇 가지 질문에 답하여 이 서비스가 적합한지 확인하세요." },
-        { title: "$29 결제", desc: "일회성 결제. 숨겨진 수수료 없음. 구독 없음." },
+        { title: "$99 결제", desc: "일회성 결제. 숨겨진 수수료 없음. 구독 없음." },
         { title: "양식 받기", desc: "제출 준비가 완료된 이혼 양식을 받으세요." },
         { title: "질문하기", desc: "DivorceGPT를 사용하여 과정의 모든 부분을 이해하세요." }
       ]
@@ -609,7 +609,7 @@ export const njDictionary: Record<Locale, any> = {
         disclaimer: "DivorceGPT는 귀하의 답변의 법적 충분성을 검토하지 않으며, 법률 자문을 제공하지 않으며, 법정에서 귀하를 대리하지 않습니다.",
         freeFormsTitle: "무료 양식 이용 가능",
         freeFormsDesc: "공식 이혼 양식은 뉴저지 법원 웹사이트(njcourts.gov)에서 이용할 수 있습니다. DivorceGPT는 작성을 자동화합니다 — 항상 직접 무료로 제출할 수 있습니다.",
-        continueButton: "DivorceGPT 계속 사용($29)"
+        continueButton: "DivorceGPT 계속 사용($99)"
       },
       fields: {
         plaintiffName: { label: "원고 이름", desc: "제출자" },
@@ -699,7 +699,7 @@ export const njDictionary: Record<Locale, any> = {
       subtitle: "Просто и понятно",
       description: "Получите подготовленные формы развода с объяснениями на понятном языке. Адвокат не нужен для простых бесспорных дел.",
       cta: "Проверьте соответствие",
-      fee: "$29 единоразовый платёж • Без скрытых расходов"
+      fee: "$99 единоразовый платёж • Без скрытых расходов"
     },
     howToUse: {
       title: "Как использовать",
@@ -716,7 +716,7 @@ export const njDictionary: Record<Locale, any> = {
       subtitle: "Две фазы. Ответьте на вопросы, подайте документы, готово.",
       steps: [
         { title: "Проверка соответствия", desc: "Ответьте на несколько вопросов, чтобы подтвердить, что этот сервис вам подходит." },
-        { title: "Оплатите $29", desc: "Единоразовый платёж. Без скрытых сборов. Без подписок." },
+        { title: "Оплатите $99", desc: "Единоразовый платёж. Без скрытых сборов. Без подписок." },
         { title: "Получите формы", desc: "Получите подготовленные формы развода, готовые к подаче." },
         { title: "Задавайте вопросы", desc: "Используйте DivorceGPT для понимания любой части процесса." }
       ]
@@ -782,7 +782,7 @@ export const njDictionary: Record<Locale, any> = {
         disclaimer: "DivorceGPT не проверяет юридическую достаточность ваших ответов, не даёт юридических консультаций и не представляет вас в суде.",
         freeFormsTitle: "Бесплатные формы доступны",
         freeFormsDesc: "Официальные формы развода доступны на сайте судов Нью-Джерси (njcourts.gov). DivorceGPT автоматизирует заполнение — вы всегда можете подать их сами бесплатно.",
-        continueButton: "Продолжить с DivorceGPT ($29)"
+        continueButton: "Продолжить с DivorceGPT ($99)"
       },
       fields: {
         plaintiffName: { label: "Имя истца", desc: "Лицо, подающее иск" },
@@ -872,7 +872,7 @@ export const njDictionary: Record<Locale, any> = {
       subtitle: "Fè Senp",
       description: "Jwenn fòm divòs ou yo prepare ak esplike nan lang senp. Pa bezwen avoka pou ka senp san kontestasyon.",
       cta: "Tcheke Si Ou Kalifye",
-      fee: "$29 peman yon sèl fwa • Pa gen frè kache"
+      fee: "$99 peman yon sèl fwa • Pa gen frè kache"
     },
     howToUse: {
       title: "Kijan Pou Itilize",
@@ -889,7 +889,7 @@ export const njDictionary: Record<Locale, any> = {
       subtitle: "De faz. Reponn kesyon, depoze dokiman ou yo, fini.",
       steps: [
         { title: "Tcheke Elijiblite", desc: "Reponn kèk kesyon pou konfime sèvis sa a bon pou ou." },
-        { title: "Peye $29", desc: "Peman yon sèl fwa. Pa gen frè kache. Pa gen abònman." },
+        { title: "Peye $99", desc: "Peman yon sèl fwa. Pa gen frè kache. Pa gen abònman." },
         { title: "Jwenn Fòm Ou Yo", desc: "Resevwa fòm divòs ou yo prepare pare pou depoze." },
         { title: "Poze Kesyon", desc: "Itilize DivorceGPT pou konprann nenpòt pati nan pwosesis la." }
       ]
@@ -955,7 +955,7 @@ export const njDictionary: Record<Locale, any> = {
         disclaimer: "DivorceGPT pa revize repons ou yo pou wè si yo sifi legalman, pa bay konsèy legal, oswa pa reprezante ou nan tribinal.",
         freeFormsTitle: "Fòm Gratis Disponib",
         freeFormsDesc: "Fòm ofisyèl divòs disponib nan sit entènèt Tribinal New Jersey (njcourts.gov). DivorceGPT otomatize ranplisaj — ou ka toujou depoze yo gratis poukont ou.",
-        continueButton: "Kontinye ak DivorceGPT ($29)"
+        continueButton: "Kontinye ak DivorceGPT ($99)"
       },
       fields: {
         plaintiffName: { label: "Non Pleyan", desc: "Moun ki depoze" },

@@ -12,7 +12,7 @@ export const nvDictionary: Record<string, any> = {
       subtitle: "Made Simple",
       description: "Get your divorce forms prepared and explained in plain language. No lawyers needed for simple, uncontested cases.",
       cta: "Check If You Qualify",
-      fee: "$29 one-time fee • No hidden costs"
+      fee: "$99 one-time fee • No hidden costs"
     },
     howToUse: {
       title: "How to Use",
@@ -29,7 +29,7 @@ export const nvDictionary: Record<string, any> = {
       subtitle: "One phase. Answer questions, file your documents, done.",
       steps: [
         { title: "Check Eligibility", desc: "Answer a few questions to confirm this service is right for you." },
-        { title: "Pay $29", desc: "One-time payment. No hidden fees. No subscriptions." },
+        { title: "Pay $99", desc: "One-time payment. No hidden fees. No subscriptions." },
         { title: "Get Your Forms", desc: "Receive your complete filing packet ready for notarization and filing." },
         { title: "Ask Questions", desc: "Use DivorceGPT to understand any part of the process." }
       ]
@@ -99,7 +99,7 @@ export const nvDictionary: Record<string, any> = {
         disclaimer: "DivorceGPT does not review your answers for legal sufficiency, provide legal advice, or represent you in court.",
         freeFormsTitle: "Free Forms Available",
         freeFormsDesc: "Official divorce forms are available from the Nevada Self-Help Center (selfhelp.nvcourts.gov) and the Clark County Family Law Self-Help Center.",
-        continueButton: "Continue with DivorceGPT ($29)"
+        continueButton: "Continue with DivorceGPT ($99)"
       }
     },
     chat: {
@@ -165,7 +165,7 @@ export const nvDictionary: Record<string, any> = {
       subtitle: "Simplificado",
       description: "Prepare sus formularios de divorcio con explicaciones en lenguaje sencillo. No se necesitan abogados para casos simples y no disputados.",
       cta: "Verifique Si Califica",
-      fee: "Tarifa única de $29 • Sin costos ocultos"
+      fee: "Tarifa única de $99 • Sin costos ocultos"
     },
     howToUse: {
       title: "Cómo Usar",
@@ -182,7 +182,7 @@ export const nvDictionary: Record<string, any> = {
       subtitle: "Una fase. Responda preguntas, presente sus documentos, listo.",
       steps: [
         { title: "Verifique Elegibilidad", desc: "Responda algunas preguntas para confirmar que este servicio es adecuado para usted." },
-        { title: "Pague $29", desc: "Pago único. Sin tarifas ocultas. Sin suscripciones." },
+        { title: "Pague $99", desc: "Pago único. Sin tarifas ocultas. Sin suscripciones." },
         { title: "Obtenga Sus Formularios", desc: "Reciba su paquete completo listo para notarización y presentación." },
         { title: "Haga Preguntas", desc: "Use DivorceGPT para entender cualquier parte del proceso." }
       ]
@@ -252,7 +252,7 @@ export const nvDictionary: Record<string, any> = {
         disclaimer: "DivorceGPT no revisa sus respuestas para suficiencia legal, no proporciona asesoramiento legal ni lo representa en el tribunal.",
         freeFormsTitle: "Formularios Gratuitos Disponibles",
         freeFormsDesc: "Los formularios oficiales de divorcio están disponibles en el Centro de Autoayuda de Nevada (selfhelp.nvcourts.gov).",
-        continueButton: "Continuar con DivorceGPT ($29)"
+        continueButton: "Continuar con DivorceGPT ($99)"
       }
     },
     chat: {
@@ -318,7 +318,7 @@ export const nvDictionary: Record<string, any> = {
       subtitle: "简单办理",
       description: "用简单的语言准备和解释您的离婚表格。简单、无争议的案件不需要律师。",
       cta: "检查您是否符合资格",
-      fee: "一次性费用 $29 • 无隐藏费用"
+      fee: "一次性费用 $99 • 无隐藏费用"
     },
     howToUse: {
       title: "如何使用",
@@ -335,7 +335,7 @@ export const nvDictionary: Record<string, any> = {
       subtitle: "一个阶段。回答问题，提交文件，完成。",
       steps: [
         { title: "检查资格", desc: "回答几个问题以确认此服务适合您。" },
-        { title: "支付 $29", desc: "一次性付款。无隐藏费用。无订阅。" },
+        { title: "支付 $99", desc: "一次性付款。无隐藏费用。无订阅。" },
         { title: "获取表格", desc: "收到完整的申请包，准备好公证和提交。" },
         { title: "提问", desc: "使用 DivorceGPT 了解流程的任何部分。" }
       ]
@@ -405,7 +405,7 @@ export const nvDictionary: Record<string, any> = {
         disclaimer: "DivorceGPT 不审查您的回答是否符合法律要求，不提供法律建议，也不在法庭上代表您。",
         freeFormsTitle: "免费表格可用",
         freeFormsDesc: "官方离婚表格可从内华达州自助中心（selfhelp.nvcourts.gov）获取。",
-        continueButton: "继续使用 DivorceGPT ($29)"
+        continueButton: "继续使用 DivorceGPT ($99)"
       }
     },
     chat: {
@@ -471,7 +471,7 @@ export const nvDictionary: Record<string, any> = {
       subtitle: "간편하게",
       description: "이혼 서류를 쉬운 언어로 준비하고 설명해 드립니다. 간단한 무쟁의 사건에는 변호사가 필요하지 않습니다.",
       cta: "자격 확인하기",
-      fee: "일회성 수수료 $29 • 숨겨진 비용 없음"
+      fee: "일회성 수수료 $99 • 숨겨진 비용 없음"
     },
     howToUse: {
       title: "사용 방법",
@@ -488,7 +488,7 @@ export const nvDictionary: Record<string, any> = {
       subtitle: "한 단계. 질문에 답하고, 서류를 제출하면 완료.",
       steps: [
         { title: "자격 확인", desc: "몇 가지 질문에 답하여 이 서비스가 적합한지 확인하세요." },
-        { title: "$29 결제", desc: "일회성 결제. 숨겨진 수수료 없음. 구독 없음." },
+        { title: "$99 결제", desc: "일회성 결제. 숨겨진 수수료 없음. 구독 없음." },
         { title: "서류 받기", desc: "공증 및 제출 준비가 완료된 서류 패키지를 받으세요." },
         { title: "질문하기", desc: "DivorceGPT를 사용하여 과정의 어떤 부분이든 이해하세요." }
       ]
@@ -558,7 +558,7 @@ export const nvDictionary: Record<string, any> = {
         disclaimer: "DivorceGPT는 귀하의 답변이 법적으로 충분한지 검토하지 않으며, 법률 자문을 제공하지 않으며, 법정에서 대리하지 않습니다.",
         freeFormsTitle: "무료 양식 이용 가능",
         freeFormsDesc: "공식 이혼 양식은 네바다주 자조 센터(selfhelp.nvcourts.gov)에서 받을 수 있습니다.",
-        continueButton: "DivorceGPT로 계속 ($29)"
+        continueButton: "DivorceGPT로 계속 ($99)"
       }
     },
     chat: {
@@ -625,7 +625,7 @@ export const nvDictionary: Record<string, any> = {
       subtitle: "Pinasimple",
       description: "Ihanda ang iyong mga form ng diborsyo na ipinaliwanag sa simpleng wika. Hindi kailangan ng abogado para sa simple, uncontested na mga kaso.",
       cta: "Tingnan Kung Kwalipikado Ka",
-      fee: "Isang beses na bayad na $29 • Walang nakatagong gastos"
+      fee: "Isang beses na bayad na $99 • Walang nakatagong gastos"
     },
     howToUse: {
       title: "Paano Gamitin",
@@ -642,7 +642,7 @@ export const nvDictionary: Record<string, any> = {
       subtitle: "Isang phase. Sagutin ang mga tanong, i-file ang mga dokumento, tapos na.",
       steps: [
         { title: "Suriin ang Kwalipikasyon", desc: "Sagutin ang ilang tanong para kumpirmahin na tama ang serbisyong ito para sa iyo." },
-        { title: "Magbayad ng $29", desc: "Isang beses na bayad. Walang nakatagong bayarin. Walang subscription." },
+        { title: "Magbayad ng $99", desc: "Isang beses na bayad. Walang nakatagong bayarin. Walang subscription." },
         { title: "Kunin ang Iyong Forms", desc: "Matanggap ang iyong kumpletong filing packet na handa para sa notarization at pag-file." },
         { title: "Magtanong", desc: "Gamitin ang DivorceGPT para maunawaan ang anumang bahagi ng proseso." }
       ]
@@ -712,7 +712,7 @@ export const nvDictionary: Record<string, any> = {
         disclaimer: "Hindi sinusuri ng DivorceGPT ang iyong mga sagot para sa legal sufficiency, hindi nagbibigay ng legal advice, o kumakatawan sa iyo sa korte.",
         freeFormsTitle: "Libreng Forms Available",
         freeFormsDesc: "Ang mga opisyal na divorce forms ay available mula sa Nevada Self-Help Center (selfhelp.nvcourts.gov).",
-        continueButton: "Magpatuloy sa DivorceGPT ($29)"
+        continueButton: "Magpatuloy sa DivorceGPT ($99)"
       }
     },
     chat: {
