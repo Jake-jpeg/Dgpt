@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useLanguage } from "../../../components/LanguageProvider";
 import TypewriterMessage from "../../../components/TypewriterMessage";
-import { Locale } from "../../../lib/ny-dictionary";
 import { 
   loadSession, 
   createSession, 
@@ -1078,21 +1077,11 @@ function FormsContent() {
         <div className="flex flex-col items-center gap-1.5">
           <div className="flex items-center justify-center gap-4">
             <p className="text-center text-xs text-zinc-500">DivorceGPT is a document preparation service. This is not legal advice.</p>
-            <select 
-              value={lang} 
-              onChange={(e) => setLang(e.target.value as Locale)}
-              className="text-xs bg-transparent border border-zinc-200 rounded px-1.5 py-0.5 text-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#c59d5f]"
-            >
-              <option value="en">English</option>
-              <option value="es">Español</option>
-              <option value="zh">中文</option>
-              <option value="ko">한국어</option>
-              <option value="ru">Русский</option>
-              <option value="ht">Kreyòl</option>
-            </select>
           </div>
           <div className="flex items-center gap-3 text-[10px] text-zinc-400">
             <span>Powered by Claude AI</span>
+            <span>·</span>
+            <Link href="/guides/language-support" target="_blank" className="hover:text-[#1a365d] transition">12 Languages Supported</Link>
             <span>·</span>
             <Link href="/privacy" target="_blank" className="hover:text-[#1a365d] transition">Privacy</Link>
             <span>·</span>

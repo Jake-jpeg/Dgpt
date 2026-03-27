@@ -5,6 +5,14 @@ import type { Metadata } from "next";
 
 const guides = [
   {
+    state: "ALL",
+    title: "Supported Languages — Multilingual AI Assistance",
+    description: "DivorceGPT supports 12 languages. See the full list, accuracy benchmarks from Anthropic, and important disclaimers for non-English speakers.",
+    href: "/guides/language-support",
+    tags: ["Languages", "Multilingual", "AI Accuracy"],
+    pinned: true,
+  },
+  {
     state: "NY",
     title: "Form UD-4 & UD-4A: Removal of Barriers to Remarriage",
     description: "What these forms are, why they exist under DRL § 253, and what changed in the December 2025 revision.",
@@ -17,6 +25,13 @@ const guides = [
     description: "A complete breakdown of court filing fees, service costs, and what you actually pay — updated March 2026.",
     href: "/guides/ny/filing-fees",
     tags: ["Filing Fees", "Index Number", "RJI"],
+  },
+  {
+    state: "NJ",
+    title: "Do I Need an Affidavit of Insurance for My NJ Divorce?",
+    description: "If you are only seeking dissolution with no financial claims, R. 5:4-2(f) says no. Here is why — and what to file instead.",
+    href: "/guides/nj/affidavit-of-insurance",
+    tags: ["R. 5:4-2(f)", "Insurance Affidavit", "Uncontested"],
   },
 ];
 

@@ -4,15 +4,7 @@ import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-// Multilingual courtesy note - same message in all 6 supported languages
-const courtesyNotes = {
-  en: "These documents are in English. If you need help understanding them, please consult a translator before continuing.",
-  es: "Estos documentos están en inglés. Si necesita ayuda para entenderlos, consulte a un traductor antes de continuar.",
-  zh: "这些文件是英文的。如果您需要帮助理解它们，请在继续之前咨询翻译人员。",
-  ko: "이 문서들은 영어로 작성되어 있습니다. 이해하는 데 도움이 필요하시면 계속하기 전에 번역사와 상담하십시오.",
-  ru: "Эти документы на английском языке. Если вам нужна помощь в их понимании, пожалуйста, обратитесь к переводчику, прежде чем продолжить.",
-  ht: "Dokiman sa yo nan lang Anglè. Si ou bezwen èd pou konprann yo, tanpri konsilte yon tradiktè anvan ou kontinye.",
-};
+const courtesyNote = "These documents are in English. If you need help understanding them, please consult a translator or an attorney who speaks your language before continuing.";
 
 function AgreeContent() {
   const searchParams = useSearchParams();
@@ -103,15 +95,9 @@ function AgreeContent() {
           </p>
         </div>
 
-        {/* Multilingual Courtesy Note */}
+        {/* Courtesy Note */}
         <div className="mb-8 rounded-xl bg-blue-50 p-4 ring-1 ring-blue-200">
-          <div className="space-y-1 text-sm text-blue-800">
-            {Object.entries(courtesyNotes).map(([lang, note]) => (
-              <p key={lang} className={lang === 'en' ? 'font-medium' : 'text-blue-700'}>
-                {note}
-              </p>
-            ))}
-          </div>
+          <p className="text-sm font-medium text-blue-800">{courtesyNote}</p>
         </div>
 
         <div className="space-y-6">

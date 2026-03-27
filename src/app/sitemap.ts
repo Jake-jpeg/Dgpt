@@ -41,6 +41,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/guides/language-support`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/guides/ny/ud-4`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
@@ -48,6 +54,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${baseUrl}/guides/ny/filing-fees`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/guides/nj/affidavit-of-insurance`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.7,

@@ -22,23 +22,6 @@ const states = [
     ],
     note: "Filing fee: ~$300. Some forms available free; full kit $25 from LSNJ.",
   },
-  {
-    code: "nv", name: "Nevada", available: true,
-    description: "Nevada's Self-Help Center provides divorce forms for Clark, Washoe, and other counties.",
-    links: [
-      { label: "Nevada Self-Help — Divorce Forms", url: "https://selfhelp.nvcourts.gov/forms/divorce-forms" },
-    ],
-    note: "Filing fee: ~$299 (Clark County). Forms are free.",
-  },
-  {
-    code: "tx", name: "Texas", available: true,
-    description: "Texas provides approved forms for agreed divorces without children through the Texas Courts website and TexasLawHelp.",
-    links: [
-      { label: "Texas Courts — Self-Help", url: "https://www.txcourts.gov/programs-services/self-help/" },
-      { label: "TexasLawHelp — Divorce", url: "https://texaslawhelp.org/legal-topic/divorce" },
-    ],
-    note: "Filing fee varies by county (~$300+). Forms are free.",
-  },
 ];
 
 export default function FreeFormsPage() {

@@ -18,8 +18,6 @@ const ISSUE_TYPES = [
 const STATES_SERVED = [
   { value: "ny", label: "New York" },
   { value: "nj", label: "New Jersey" },
-  { value: "nv", label: "Nevada" },
-  { value: "tx", label: "Texas" },
   { value: "other", label: "Other state" },
 ];
 

@@ -2,72 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useLanguage } from "../../components/LanguageProvider";
-import { Locale } from "../../lib/ny-dictionary";
-
-const languages = [
-  { code: "en", label: "English" },
-  { code: "es", label: "Español" },
-  { code: "zh", label: "中文" },
-  { code: "ko", label: "한국어" },
-  { code: "ru", label: "Русский" },
-  { code: "ht", label: "Kreyòl Ayisyen" },
-];
 
 export default function NJHome() {
-  const { lang, setLang, t } = useLanguage();
   const [mounted, setMounted] = useState(false);
-  const [accessKey, setAccessKey] = useState("");
-  const [checking, setChecking] = useState(false);
-  const [keyError, setKeyError] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleKeySubmit = async () => {
-    if (!accessKey.trim()) return;
-    setChecking(true);
-    setKeyError(false);
-
-    try {
-      const verifyRes = await fetch("/api/verify-access-key", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: accessKey.trim(), state: "nj" }),
-      });
-      const verifyData = await verifyRes.json();
-
-      if (!verifyData.valid) {
-        setKeyError(true);
-        setChecking(false);
-        return;
-      }
-
-      const checkoutRes = await fetch("/api/create-checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          returnUrl: window.location.origin,
-          freeKey: accessKey.trim(),
-          state: "nj",
-        }),
-      });
-      const checkoutData = await checkoutRes.json();
-
-      if (checkoutData.url) {
-        window.location.href = checkoutData.url;
-      } else {
-        setKeyError(true);
-      }
-    } catch {
-      setKeyError(true);
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  if (!mounted || !t) {
+  if (!mounted) {
     return (
       <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#1a365d] border-t-transparent" />
@@ -81,26 +24,15 @@ export default function NJHome() {
       <header className="sticky top-0 z-50 backdrop-blur-sm bg-white/80 border-b border-zinc-100">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282] shadow-lg shadow-[#1a365d]/20">
                 <span className="text-lg">⚖️</span>
               </div>
               <div>
                 <h1 className="text-lg font-semibold text-zinc-900">DivorceGPT</h1>
-                <p className="text-xs text-zinc-500">{t.hero.title}</p>
+                <p className="text-xs text-zinc-500">New Jersey Uncontested Divorce</p>
               </div>
-            </div>
-            
-            {/* Mobile-friendly Language Select */}
-            <select 
-              value={lang} 
-              onChange={(e) => setLang(e.target.value as Locale)}
-              className="ml-auto rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 focus:border-[#c59d5f] focus:outline-none"
-            >
-              {languages.map((l) => (
-                <option key={l.code} value={l.code}>{l.label}</option>
-              ))}
-            </select>
+            </Link>
           </div>
         </div>
       </header>
@@ -114,43 +46,30 @@ export default function NJHome() {
         
         <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            {t.hero.title}
+            New Jersey Uncontested Divorce
           </h2>
-          <p className="mt-2 text-2xl font-semibold text-[#c59d5f] sm:text-3xl">{t.hero.subtitle}</p>
+          <p className="mt-2 text-2xl font-semibold text-[#c59d5f] sm:text-3xl">Made Simple</p>
           <p className="mt-6 text-lg text-zinc-300 max-w-2xl mx-auto">
-            {t.hero.description}
+            Get your divorce forms prepared and explained in plain language. No lawyers needed for simple, uncontested cases.
           </p>
 
-          {/* Language Buttons (Desktop) */}
-          <div className="mt-10 flex flex-wrap justify-center gap-2">
-            {languages.map((l) => (
-              <button
-                key={l.code}
-                onClick={() => setLang(l.code as Locale)}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                  lang === l.code
-                    ? "bg-[#c59d5f] text-white shadow-lg shadow-[#c59d5f]/30"
-                    : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white backdrop-blur-sm"
-                }`}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
+          <p className="mt-4 text-sm text-zinc-400">
+            Multilingual support available — <Link href="/guides/language-support" className="underline hover:text-white transition">see supported languages</Link>
+          </p>
 
           <div className="mt-10">
             <Link
               href="/nj/qualify"
               className="group inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-[#c59d5f]/30 transition-all duration-200 hover:bg-[#d4ac6e] hover:shadow-2xl hover:shadow-[#c59d5f]/40 hover:-translate-y-0.5"
             >
-              {t.hero.cta}
+              Check If You Qualify
               <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
             </Link>
           </div>
           
-          <p className="mt-4 text-sm text-zinc-400">{t.hero.fee}</p>
+          <p className="mt-4 text-sm text-zinc-400">$99 one-time fee · No hidden costs</p>
         </div>
       </section>
 
@@ -158,14 +77,19 @@ export default function NJHome() {
       <section className="py-24 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">{t.howItWorks.title}</h3>
-            <p className="mt-4 text-lg text-zinc-600">{t.howItWorks.subtitle}</p>
+            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">How It Works</h3>
+            <p className="mt-4 text-lg text-zinc-600">Four simple steps to complete your divorce</p>
           </div>
           
           <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-            {t.howItWorks.steps.map((step: any, index: number) => (
+            {[
+              { title: "Check Eligibility", desc: "Answer a few questions to confirm this service is right for you." },
+              { title: "Pay $99", desc: "One-time payment. No hidden fees. No subscriptions." },
+              { title: "Get Your Forms", desc: "Receive your prepared divorce forms ready for filing." },
+              { title: "Ask Questions", desc: "Use DivorceGPT to understand any part of the process." },
+            ].map((step, index) => (
               <div key={index} className="relative">
-                {index < t.howItWorks.steps.length - 1 && (
+                {index < 3 && (
                   <div className="hidden lg:block absolute top-8 left-[60%] w-full h-0.5 bg-gradient-to-r from-[#c59d5f] to-transparent" />
                 )}
                 <div className="relative rounded-2xl bg-zinc-50 p-8 transition-all duration-200 hover:bg-zinc-100 hover:shadow-lg">
@@ -185,18 +109,23 @@ export default function NJHome() {
       <section className="py-24 bg-zinc-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">{t.howToUse.title}</h3>
-            <p className="mt-4 text-lg text-zinc-600">{t.howToUse.subtitle}</p>
+            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">How to Use</h3>
+            <p className="mt-4 text-lg text-zinc-600">Quick tips to get the most out of DivorceGPT</p>
           </div>
           
           <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {t.howToUse.cards.map((card: any, index: number) => (
+            {[
+              { icon: "📝", title: "Create Your Forms", desc: "Answer the questions. DivorceGPT prepares your documents step by step." },
+              { icon: "💡", title: "Reference Your Forms", desc: "Tell DivorceGPT which form you're asking about by name (e.g., Complaint, Certification)." },
+              { icon: "🌐", title: "Ask in Your Language", desc: "DivorceGPT supports multiple languages. Just type in your preferred language and the AI will respond accordingly." },
+              { icon: "💡", title: "Ask About Filing", desc: "Not sure what to do with your forms? Ask about the filing process, court locations, fees, or what happens next." },
+            ].map((card, index) => (
               <div key={index} className="group rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-100 transition-all duration-200 hover:shadow-xl hover:ring-[#c59d5f]/20 hover:-translate-y-1">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-white shadow-lg shadow-[#1a365d]/20 transition-transform duration-200 group-hover:scale-110">
-                  <span className="text-xl">{index === 0 ? '📝' : '💡'}</span>
-                </div>
-                <h4 className="mt-6 text-lg font-semibold text-zinc-900">{card.title}</h4>
-                <p className="mt-2 text-sm text-zinc-600">{card.desc}</p>
+                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#1a365d] to-[#2c5282] text-white shadow-lg shadow-[#1a365d]/20 transition-transform duration-200 group-hover:scale-110">
+                   <span className="text-xl">{card.icon}</span>
+                 </div>
+                 <h4 className="mt-6 text-lg font-semibold text-zinc-900">{card.title}</h4>
+                 <p className="mt-2 text-sm text-zinc-600">{card.desc}</p>
               </div>
             ))}
           </div>
@@ -206,11 +135,18 @@ export default function NJHome() {
       {/* Eligibility */}
       <section className="py-24 bg-gradient-to-b from-[#1a365d] via-[#1e3a5f] to-[#234876]">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-          <h3 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{t.eligibilitySection.title}</h3>
-          <p className="mt-4 text-lg text-zinc-300">{t.eligibilitySection.subtitle}</p>
+          <h3 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">Is This Right For You?</h3>
+          <p className="mt-4 text-lg text-zinc-300">This service is for New Jersey uncontested divorces with:</p>
           
           <div className="mt-12 grid gap-4 sm:grid-cols-2 text-left max-w-2xl mx-auto">
-            {t.eligibilitySection.items.map((item: string, index: number) => (
+            {[
+              "No children of the marriage and neither party is pregnant",
+              "No property or debts to divide",
+              "No spousal support (alimony) requests",
+              "Both spouses agree to divorce",
+              "Spouse will cooperate with paperwork",
+              "At least one spouse meets NJ residency (12+ months)",
+            ].map((item, index) => (
               <div key={index} className="flex items-center gap-3 rounded-xl bg-white/10 backdrop-blur-sm px-4 py-3 ring-1 ring-white/10">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#c59d5f] text-white">
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
@@ -227,7 +163,7 @@ export default function NJHome() {
               href="/nj/qualify"
               className="group inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-[#c59d5f]/30 transition-all duration-200 hover:bg-[#d4ac6e] hover:shadow-2xl hover:-translate-y-0.5"
             >
-              {t.eligibilitySection.cta}
+              Check Your Eligibility
               <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
@@ -240,11 +176,19 @@ export default function NJHome() {
       <section className="py-24 bg-white">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">{t.faq.title}</h3>
+            <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">Frequently Asked Questions</h3>
           </div>
           
           <div className="mt-12 space-y-4">
-            {t.faq.items.map((faq: any, index: number) => (
+            {[
+              { q: "Is this legal advice?", a: "No. DivorceGPT explains what divorce forms ask for and how to file them. It does not provide legal advice. For legal advice, consult an attorney." },
+              { q: "What technology powers DivorceGPT?", a: "DivorceGPT uses advanced AI technology via a secure commercial API. Under our API provider's terms, your inputs are not used for AI model training and are automatically deleted within days. June Guided Solutions, LLC does not retain any chat history or conversation data." },
+              { q: "Does DivorceGPT support other languages?", a: "Yes. DivorceGPT can communicate in 12 supported languages including Spanish, Chinese, Korean, Hindi, Arabic, and more. All court filings are generated in English as required by New Jersey courts. See our Language Support page for the full list and important disclaimers." },
+              { q: "How long does the process take?", a: "You can complete your forms in minutes, but the overall divorce process takes time. Timeline varies by county. Your session remains valid for 12 months." },
+              { q: "How do I access my session?", a: "After payment, you'll be redirected to your session page. Bookmark this page — the URL is your access link. There are no accounts or passwords." },
+              { q: "What if my spouse won't cooperate?", a: "This service is for uncontested divorces where both spouses agree. If your spouse won't cooperate, you may need a contested divorce attorney." },
+              { q: "Can I get a refund?", a: "If you don't qualify after the eligibility check, you won't be charged. Once forms are generated, refunds are not available." },
+            ].map((faq, index) => (
               <div key={index} className="rounded-2xl bg-zinc-50 p-6 transition-all duration-200 hover:bg-zinc-100">
                 <h4 className="text-lg font-semibold text-zinc-900">{faq.q}</h4>
                 <p className="mt-2 text-zinc-600">{faq.a}</p>
@@ -268,11 +212,12 @@ export default function NJHome() {
               </div>
             </div>
             <p className="text-center text-sm text-zinc-500 max-w-md">
-              {t.chat.disclaimer}
+              DivorceGPT is a document preparation service. This is not legal advice. For legal advice, consult an attorney.
             </p>
             <div className="flex gap-6 text-sm">
-              <Link href="/privacy" className="text-zinc-600 transition hover:text-[#1a365d]">{t.legal.privacyTitle}</Link>
-              <Link href="/terms" className="text-zinc-600 transition hover:text-[#1a365d]">{t.legal.termsTitle}</Link>
+              <Link href="/guides/language-support" className="text-zinc-600 transition hover:text-[#1a365d]">Language Support</Link>
+              <Link href="/privacy" className="text-zinc-600 transition hover:text-[#1a365d]">Privacy Policy</Link>
+              <Link href="/terms" className="text-zinc-600 transition hover:text-[#1a365d]">Terms of Service</Link>
             </div>
           </div>
         </div>
