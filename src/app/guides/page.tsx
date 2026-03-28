@@ -5,6 +5,14 @@ import type { Metadata } from "next";
 
 const guides = [
   {
+    state: "OSS",
+    title: "DivorceGPT is Open Source — Download the Full Source Code",
+    description: "The entire codebase — frontend, PDF server, qualification flow, everything — is free and MIT licensed. Clone it, deploy it, add your state.",
+    href: "/open-source",
+    tags: ["GitHub", "MIT License", "Free"],
+    pinned: true,
+  },
+  {
     state: "ALL",
     title: "Supported Languages — Multilingual AI Assistance",
     description: "DivorceGPT supports 12 languages. See the full list, accuracy benchmarks from Anthropic, and important disclaimers for non-English speakers.",

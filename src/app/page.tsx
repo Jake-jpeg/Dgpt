@@ -227,6 +227,7 @@ export default function Home() {
               <h4 className="font-semibold text-white mb-3">Services</h4>
               <div className="space-y-2 text-sm">
                 <Link href="#states" className="block text-zinc-400 hover:text-[#c59d5f] transition">AI-Assisted Divorce ($99)</Link>
+                <Link href="/open-source" className="block text-zinc-400 hover:text-[#c59d5f] transition">Open Source</Link>
               </div>
             </div>
             <div>
