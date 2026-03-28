@@ -50,7 +50,7 @@ export default function NJHome() {
           </h2>
           <p className="mt-2 text-2xl font-semibold text-[#c59d5f] sm:text-3xl">Made Simple</p>
           <p className="mt-6 text-lg text-zinc-300 max-w-2xl mx-auto">
-            Get your divorce forms prepared and explained in plain language. No lawyers needed for simple, uncontested cases.
+            Automate your uncontested divorce forms with an AI clerk. An attorney-designed tool for simple cases that do not require legal advice.
           </p>
 
           <p className="mt-4 text-sm text-zinc-400">
