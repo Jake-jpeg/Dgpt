@@ -44,7 +44,7 @@ export default function Home() {
                 Fast &amp; Affordable Uncontested Divorce Online
               </h1>
               <p className="mt-5 text-lg text-zinc-300 leading-relaxed max-w-xl">
-                Generate court-ready divorce papers with AI — $99, no attorney needed. Designed for simple, uncontested cases.
+                Prepare your divorce forms with an automated AI clerk — $99. A self-guided tool for individuals in simple, uncontested cases.
               </p>
 
               {/* Trust Signals */}
