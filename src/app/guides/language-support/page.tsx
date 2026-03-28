@@ -45,9 +45,9 @@ export default function LanguageSupportGuide() {
                 <h1 className="text-lg font-semibold text-zinc-900">DivorceGPT</h1>
                 <p className="text-xs text-zinc-500">
                   by{" "}
-                  <a href="https://juneguidedsolutions.com" className="underline hover:text-[#1a365d]">
+                  <span className="underline">
                     June Guided Solutions, LLC
-                  </a>
+                  </span>
                 </p>
               </div>
             </Link>

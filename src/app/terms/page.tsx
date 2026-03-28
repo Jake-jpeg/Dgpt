@@ -37,7 +37,7 @@ function TermsContent() {
 
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-8">Terms of Service</h1>
-        <p className="text-sm text-zinc-500 mb-8">Last updated: March 13, 2026</p>
+        <p className="text-sm text-zinc-500 mb-8">Last updated: March 27, 2026</p>
 
         <div className="prose prose-zinc max-w-none">
           <section className="mb-8">
@@ -81,8 +81,27 @@ function TermsContent() {
               <li>Displays plain-language labels identifying what information each form field requests</li>
               <li>Generates PDF packets for your review before filing</li>
               <li>Explains what forms are, what fields mean, and filing procedures</li>
-              <li>Responds in multiple languages (English, Spanish, Chinese, Korean, Russian, Haitian Creole, Tagalog — availability varies by state)</li>
+              <li>Responds in 12 supported languages: English, Spanish, French, Portuguese (Brazilian), Italian, German, Indonesian, Arabic, Chinese (Simplified), Japanese, Hindi, and Korean</li>
             </ul>
+          </section>
+
+          <section className="mb-8">
+            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Multilingual Support & Limitations</h2>
+            <p className="text-zinc-600 mb-4">
+              DivorceGPT can communicate with you in the 12 languages listed above during the intake and form explanation process. These languages were selected based on Anthropic&apos;s published multilingual benchmark data showing at least 96% accuracy relative to English performance.
+            </p>
+            <p className="text-zinc-600 mb-4">
+              <strong>All court filings are generated in English.</strong> New York and New Jersey courts require documents to be filed in English. Regardless of which language you communicate in during the intake process, your final court-ready documents will always be in English.
+            </p>
+            <p className="text-zinc-600 mb-4">
+              <strong>AI-generated explanations in non-English languages may contain errors.</strong> While accuracy is high, it is not equivalent to English and has not been independently verified for legal accuracy. If you interact with DivorceGPT in any language other than English, you do so with the understanding that translation nuances may affect your comprehension of legal concepts and form requirements.
+            </p>
+            <p className="text-zinc-600 mb-4">
+              <strong>If your language is not on the supported list,</strong> DivorceGPT will not attempt to respond in that language. You will be directed to proceed in English or consult an attorney who speaks your language.
+            </p>
+            <p className="text-zinc-600">
+              For all non-English users, we recommend confirming your understanding of the court documents with a licensed attorney who speaks your language before filing. Attorney referral services are available through the <a href="https://www.nysba.org/lawyerreferral/" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#2c5282]">New York State Bar Association</a> and the <a href="https://njsba.com/resources/county-bar-associations/" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#2c5282]">New Jersey State Bar Association</a>. See our <a href="/guides/language-support" className="text-[#1a365d] underline hover:text-[#2c5282]">Language Support</a> page for the full list, accuracy benchmarks, and disclaimers.
+            </p>
           </section>
 
           <section className="mb-8">

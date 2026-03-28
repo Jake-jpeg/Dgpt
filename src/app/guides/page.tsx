@@ -43,7 +43,7 @@ export default function GuidesHub() {
           <div className="flex h-16 items-center justify-between">
             <Link href="/" className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282] shadow-lg shadow-[#1a365d]/20"><span className="text-lg">⚖️</span></div>
-              <div><h1 className="text-lg font-semibold text-zinc-900">DivorceGPT</h1><p className="text-xs text-zinc-500">by <a href="https://juneguidedsolutions.com" className="underline hover:text-[#1a365d]">June Guided Solutions, LLC</a></p></div>
+              <div><h1 className="text-lg font-semibold text-zinc-900">DivorceGPT</h1><p className="text-xs text-zinc-500">by <span className="underline">June Guided Solutions, LLC</span></p></div>
             </Link>
             <Link href="/" className="text-sm font-medium text-zinc-600 hover:text-[#1a365d] transition">← Home</Link>
           </div>

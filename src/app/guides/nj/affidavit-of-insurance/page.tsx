@@ -32,12 +32,9 @@ export default function NJInsuranceAffidavitGuide() {
                 <h1 className="text-lg font-semibold text-zinc-900">DivorceGPT</h1>
                 <p className="text-xs text-zinc-500">
                   by{" "}
-                  <a
-                    href="https://juneguidedsolutions.com"
-                    className="underline hover:text-[#1a365d]"
-                  >
+                  <span className="underline">
                     June Guided Solutions, LLC
-                  </a>
+                  </span>
                 </p>
               </div>
             </Link>
@@ -126,7 +123,7 @@ export default function NJInsuranceAffidavitGuide() {
             DivorceGPT handles uncontested divorces in New Jersey where neither party is seeking alimony, equitable distribution, child support, or any other financial relief — only the legal dissolution of the marriage. These cases fall squarely within the R. 5:4-2(f) exception.
           </p>
           <p className="mt-4 text-zinc-600 leading-relaxed">
-            That means you do <strong>not</strong> need to gather all of your insurance policy numbers, coverage details, and beneficiary information to file. You need only certify that dissolution is the sole relief sought. DivorceGPT&apos;s Complaint for Divorce and accompanying certifications are drafted to reflect this.
+            That means you do <strong>not</strong>{" "}need to gather all of your insurance policy numbers, coverage details, and beneficiary information to file. You need only certify that dissolution is the sole relief sought. DivorceGPT&apos;s Complaint for Divorce and accompanying certifications are drafted to reflect this.
           </p>
         </section>
 
