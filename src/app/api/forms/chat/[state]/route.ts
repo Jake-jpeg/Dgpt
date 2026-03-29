@@ -1,6 +1,7 @@
-// DivorceGPT Unified Form Filler API — Multi-State Dynamic Route
+// DivorceGPT Multi-State Dynamic Form Filler API
 // Route: /api/forms/chat/[state]
-// Each state's AI instructions live in /lib/states/{code}.ts
+// State-specific AI instructions live in /lib/states/{code}.ts
+// This route mirrors /api/forms/chat/route.ts but accepts a state parameter.
 
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
@@ -10,14 +11,61 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+// ═══════════════════════════════════════════════════════════════
+// GUARDRAIL 02: THE BLACKHOLE — Server-side sensitive data redaction
+// Strips SSNs, bank accounts, credit cards, and other PII from
+// user messages BEFORE they are sent to the AI provider.
+// Reference: divorcegpt.com/transparency — "Sensitive Data Gets Destroyed in Transit"
+// ═══════════════════════════════════════════════════════════════
+const SENSITIVE_PATTERNS = [
+  /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g,
+  /\b(?:\d[-\s]?){13,19}\b/g,
+  /(?:account|acct|routing|aba)[\s#:]*\d{8,17}/gi,
+  /\b(?:DL|driver'?s?\s*(?:license|lic))[\s#:]*[A-Z0-9-]{6,15}/gi,
+];
+
+function redactSensitiveData(text: string): { redacted: string; wasRedacted: boolean } {
+  let redacted = text;
+  let wasRedacted = false;
+
+  for (const pattern of SENSITIVE_PATTERNS) {
+    const newText = redacted.replace(pattern, '[REDACTED]');
+    if (newText !== redacted) {
+      wasRedacted = true;
+      redacted = newText;
+    }
+  }
+
+  return { redacted, wasRedacted };
+}
+
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  const parsed = new Date(dateStr);
+  if (!isNaN(parsed.getTime())) return parsed;
+  const match = dateStr.match(/(\w+)\s+(\d{1,2}),?\s*(\d{4})/);
+  if (match) {
+    const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+    const monthIndex = monthNames.indexOf(match[1].toLowerCase());
+    if (monthIndex !== -1) {
+      return new Date(parseInt(match[3]), monthIndex, parseInt(match[2]));
+    }
+  }
+  return null;
+}
+
+function isAtLeastMonthsAgo(date: Date, months: number, canonicalNow: Date): boolean {
+  const threshold = new Date(canonicalNow.getFullYear(), canonicalNow.getMonth() - months, canonicalNow.getDate());
+  return date <= threshold;
+}
+
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ state: string }> }
 ) {
   try {
     const { state } = await params;
-    
-    // Load state-specific configuration
+
     const stateConfig = getStateConfig(state);
     if (!stateConfig) {
       return NextResponse.json(
@@ -26,16 +74,32 @@ export async function POST(
       );
     }
 
-    // Extract field keys from FieldDef arrays
     const p1Keys = stateConfig.phase1Fields.map(f => f.key);
     const p2Keys = stateConfig.phase2Fields.map(f => f.key);
     const p3Keys = stateConfig.phase3Fields.map(f => f.key);
 
     const { messages, currentPhase, phase1Data, phase2Data, phase3Data } = await req.json();
 
+    // FIX #1: Server-side redaction BEFORE sending to Anthropic
+    let sensitiveDataDetected = false;
+    const sanitizedMessages = messages.map((msg: { role: string; content: string }) => {
+      if (msg.role === 'user') {
+        const { redacted, wasRedacted } = redactSensitiveData(msg.content);
+        if (wasRedacted) sensitiveDataDetected = true;
+        return { ...msg, content: redacted };
+      }
+      return msg;
+    });
+
+    // FIX #2 & #3: Single canonical date
+    const canonicalNow = new Date();
+    const canonicalDateStr = canonicalNow.toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+
     // Build context based on current phase
     let contextMessage = '\n\n[SYSTEM STATUS: ';
-    contextMessage += `Today's date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}. `;
+    contextMessage += `Today's date: ${canonicalDateStr}. `;
     contextMessage += `Current Phase: ${currentPhase || 1}. `;
     contextMessage += `State: ${stateConfig.name}. `;
     
@@ -44,9 +108,7 @@ export async function POST(
     }
     
     if (currentPhase === 1) {
-      const collected = p1Keys.filter(f => phase1Data?.[f]);
       const missing = p1Keys.filter(f => !phase1Data?.[f]);
-      
       if (missing.length > 0) {
         contextMessage += `Phase 1 missing: ${missing.join(', ')}. `;
       } else {
@@ -57,25 +119,20 @@ export async function POST(
     if (currentPhase === 2) {
       contextMessage += `Phase 2 Data: ${JSON.stringify(phase2Data || {})}. `;
       const isReligious = phase1Data?.ceremonyType === 'religious';
-      
-      const collected = p2Keys.filter(f => phase2Data?.[f]);
       const missing = p2Keys.filter(f => !phase2Data?.[f]);
-      
       if (missing.length > 0) {
         contextMessage += `Phase 2 missing: ${missing.join(', ')}. `;
       } else {
         contextMessage += 'Phase 2 COMPLETE - output {"phase2Complete": true}. ';
       }
-      
       if (isReligious) {
-        contextMessage += 'RELIGIOUS CEREMONY - UD-7 contains DRL §253 waiver. Defendant must sign UD-7. Do not ask about separate waiver. ';
+        contextMessage += 'RELIGIOUS CEREMONY - waiver requirements apply per state law. ';
       }
     }
     
     if (currentPhase === 3) {
       contextMessage += `Phase 3 Data: ${JSON.stringify(phase3Data || {})}. `;
       const missing = p3Keys.filter(f => !phase3Data?.[f]);
-      
       if (missing.length > 0) {
         contextMessage += `Phase 3 missing: ${missing.join(', ')}. `;
       } else {
@@ -89,11 +146,20 @@ export async function POST(
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1500,
       system: stateConfig.systemPrompt + contextMessage,
-      messages: messages,
+      messages: sanitizedMessages,
     });
 
-    const textContent = response.content[0];
-    const reply = textContent.type === 'text' ? textContent.text : '';
+    // FIX #5: Join ALL content blocks
+    const reply = response.content
+      .filter(block => block.type === 'text')
+      .map(block => block.type === 'text' ? block.text : '')
+      .join('\n');
+
+    let finalReply = reply;
+    if (sensitiveDataDetected) {
+      const notice = 'I noticed you included sensitive information like a Social Security number. DivorceGPT does not need, store, or process this data. Please do not enter SSNs, bank accounts, or other sensitive identifiers. If you need to include an SSN on a court form, you will do that yourself on the printed document.\n\n';
+      finalReply = notice + reply;
+    }
 
     // Parse JSON blocks
     const jsonMatches = [...reply.matchAll(/```json\s*([\s\S]*?)\s*```/g)];
@@ -105,30 +171,9 @@ export async function POST(
     let disqualifyReason = '';
     let isTerminated = false;
     let terminateReason = '';
-    let validationWarning = '';
 
-    // Helper: Parse date string to Date object
-    const parseDate = (dateStr: string): Date | null => {
-      if (!dateStr) return null;
-      const parsed = new Date(dateStr);
-      if (!isNaN(parsed.getTime())) return parsed;
-      const match = dateStr.match(/(\w+)\s+(\d{1,2}),?\s*(\d{4})/);
-      if (match) {
-        const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
-        const monthIndex = monthNames.indexOf(match[1].toLowerCase());
-        if (monthIndex !== -1) {
-          return new Date(parseInt(match[3]), monthIndex, parseInt(match[2]));
-        }
-      }
-      return null;
-    };
-
-    // Helper: Check if date is at least N months ago
-    const isAtLeastMonthsAgo = (date: Date, months: number): boolean => {
-      const now = new Date();
-      const threshold = new Date(now.getFullYear(), now.getMonth() - months, now.getDate());
-      return date <= threshold;
-    };
+    // FIX #4: Collect ALL validation warnings
+    const validationWarnings: string[] = [];
 
     for (const match of jsonMatches) {
       try {
@@ -152,168 +197,95 @@ export async function POST(
           const field = parsed.field;
           const value = parsed.value;
 
-          // ═══════════════════════════════════════════════════════════════
-          // SERVER-SIDE NAME VALIDATION
-          // ═══════════════════════════════════════════════════════════════
+          // NAME VALIDATION
           if (['plaintiffName', 'defendantName', 'firstSpouseName', 'secondSpouseName', 'witnessName'].includes(field)) {
             if (value.trim().length < 3) {
-              validationWarning = `Please provide a full legal name (first and last name).`;
+              validationWarnings.push(`Please provide a full legal name (first and last name).`);
               continue;
             }
             if (!/\s/.test(value.trim())) {
-              validationWarning = `Please provide both first and last name.`;
+              validationWarnings.push(`Please provide both first and last name.`);
               continue;
             }
             if (/\d/.test(value)) {
-              validationWarning = `Name should not contain numbers. Please re-enter your legal name.`;
+              validationWarnings.push(`Name should not contain numbers. Please re-enter your legal name.`);
               continue;
             }
             extractedData[field] = value;
             continue;
           }
 
-          // ═══════════════════════════════════════════════════════════════
-          // SERVER-SIDE ADDRESS VALIDATION
-          // ═══════════════════════════════════════════════════════════════
+          // ADDRESS VALIDATION
           if (['qualifyingAddress', 'plaintiffAddress', 'defendantAddress', 'defendantCurrentAddress'].includes(field)) {
             const hasZip = /\d{5}(-\d{4})?/.test(value);
             if (!hasZip) {
-              validationWarning = `Address must include a ZIP code. Please re-enter the complete address.`;
+              validationWarnings.push(`Address must include a ZIP code. Please re-enter the complete address.`);
               continue;
             }
             
             const statePattern = /\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC|Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New\s+Hampshire|New\s+Jersey|New\s+Mexico|New\s+York|North\s+Carolina|North\s+Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode\s+Island|South\s+Carolina|South\s+Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West\s+Virginia|Wisconsin|Wyoming)\b/i;
             if (!statePattern.test(value)) {
-              validationWarning = `Address must include a state (e.g., "${stateConfig.code.toUpperCase()}"). Please re-enter the complete address.`;
+              validationWarnings.push(`Address must include a state. Please provide the full address (street, city, state, ZIP).`);
               continue;
             }
-            
             if (value.trim().length < 15) {
-              validationWarning = `Address appears incomplete. Please provide a full street address including city, state, and ZIP code.`;
+              validationWarnings.push(`Address appears incomplete. Please provide the full street address, city, state, and ZIP code.`);
               continue;
             }
-            
-            const hasStreetNumber = /^\d+[\s\-]/.test(value.trim()) || /\s\d+[,\s]/.test(value) || /^(one|two|three|four|five|six|seven|eight|nine|ten)\s/i.test(value.trim()) || /^p\.?o\.?\s*box/i.test(value.trim());
-            if (!hasStreetNumber) {
-              validationWarning = `Address should include a street number. Please verify and re-enter.`;
+            if (!/\d/.test(value.split(',')[0] || value)) {
+              validationWarnings.push(`Address should include a street number. Please verify.`);
+              continue;
             }
-            
-            extractedData[field] = value;
-            continue;
-          }
 
-          // ═══════════════════════════════════════════════════════════════
-          // SERVER-SIDE DATE VALIDATION
-          // ═══════════════════════════════════════════════════════════════
-          
-          if (field === 'marriageDate') {
-            const marriageDate = parseDate(value);
-            if (!marriageDate) {
-              validationWarning = `Could not parse marriage date. Please use format like "June 15, 2015".`;
-              continue;
-            }
-            const today = new Date();
-            if (marriageDate > today) {
-              validationWarning = `Marriage date cannot be in the future. Please verify and re-enter.`;
-              continue;
-            }
-            extractedData[field] = value;
-            continue;
-          }
-
-          if (field === 'summonsDate') {
-            const summonsDate = parseDate(value);
-            if (!summonsDate) {
-              validationWarning = `Could not parse filing date. Please use format like "January 10, 2027".`;
-              continue;
-            }
-            const today = new Date();
-            if (summonsDate > today) {
-              validationWarning = `The filing date cannot be in the future. Please verify.`;
-              continue;
-            }
-            if (phase2Data?.marriageDate) {
-              const marriageDate = parseDate(phase2Data.marriageDate);
-              if (marriageDate && summonsDate < marriageDate) {
-                validationWarning = `Filing date (${value}) cannot be before marriage date (${phase2Data.marriageDate}). Please verify your dates.`;
-                continue;
-              }
-            }
-            extractedData[field] = value;
-            continue;
-          }
-
-          if (field === 'breakdownDate') {
-            const breakdownDate = parseDate(value);
-            const requiredMonths = stateConfig.breakdownMonths || 6;
-            
-            if (!breakdownDate) {
-              const approxMatch = value.toLowerCase().match(/(\d+)\s*(year|month|week)/);
-              if (approxMatch) {
-                const amount = parseInt(approxMatch[1]);
-                const unit = approxMatch[2];
-                let monthsAgo = 0;
-                if (unit === 'year') monthsAgo = amount * 12;
-                else if (unit === 'month') monthsAgo = amount;
-                else if (unit === 'week') monthsAgo = Math.floor(amount / 4);
-                
-                if (monthsAgo >= requiredMonths) {
-                  extractedData[field] = value;
-                  continue;
-                } else {
-                  validationWarning = `The relationship must have been irretrievably broken for at least ${requiredMonths} months. "${value}" appears to be less than ${requiredMonths} months. Please verify.`;
-                  continue;
+            // FIX #6: Server-side address/county mismatch enforcement (NY-specific)
+            if ((field === 'qualifyingAddress' || field === 'plaintiffAddress') && state === 'ny') {
+              const currentCounty = phase1Data?.qualifyingCounty || extractedData['qualifyingCounty'];
+              if (currentCounty) {
+                const boroughMap: Record<string, string[]> = {
+                  'bronx': ['bronx'],
+                  'kings': ['brooklyn', 'kings'],
+                  'new york': ['manhattan', 'new york'],
+                  'queens': ['queens'],
+                  'richmond': ['staten island', 'richmond'],
+                };
+                const countyLower = (currentCounty as string).toLowerCase();
+                const addressLower = value.toLowerCase();
+                const countyAliases = boroughMap[countyLower] || [countyLower];
+                const addressHasCounty = countyAliases.some(alias => addressLower.includes(alias));
+                const allKnownAreas = Object.values(boroughMap).flat();
+                const addressMentionsOtherArea = allKnownAreas.some(area =>
+                  addressLower.includes(area) && !countyAliases.includes(area)
+                );
+                if (addressMentionsOtherArea && !addressHasCounty) {
+                  validationWarnings.push(`The address you provided does not appear to match your selected filing county (${currentCounty}). Your qualifying address must be in the county where you're filing. Please confirm your address or update your filing county.`);
                 }
               }
-              if (value.length > 3) {
-                extractedData[field] = value;
-                continue;
-              }
-              validationWarning = `Could not understand breakdown date. Please provide a date or approximate time like "January 2024" or "about a year ago".`;
-              continue;
             }
-            
-            if (!isAtLeastMonthsAgo(breakdownDate, requiredMonths)) {
-              validationWarning = `The relationship must have been irretrievably broken for at least ${requiredMonths} months. The date you provided (${value}) is less than ${requiredMonths} months ago. Please verify.`;
-              continue;
-            }
-            
-            if (phase2Data?.marriageDate) {
-              const marriageDate = parseDate(phase2Data.marriageDate);
-              if (marriageDate && breakdownDate < marriageDate) {
-                validationWarning = `Breakdown date cannot be before marriage date. Please verify your dates.`;
-                continue;
-              }
-            }
-            
+
             extractedData[field] = value;
             continue;
           }
 
+          // PHONE VALIDATION
           if (field === 'plaintiffPhone') {
             const digits = value.replace(/\D/g, '');
-            // Accept 10-digit US numbers as-is
             if (digits.length === 10) {
               extractedData[field] = value;
               continue;
             }
-            // Accept 11-digit with leading 1 (US country code)
             if (digits.length === 11 && digits[0] === '1') {
               extractedData[field] = value;
               continue;
             }
-            // Accept 9 digits — likely missing leading digit, still save it
-            // (court needs a contact number, imperfect is better than empty)
             if (digits.length === 9) {
-              validationWarning = `That appears to be 9 digits. If this is a US number, it should be 10 digits (area code + 7 digits). Please verify. If it's an international number, include your country code.`;
-              extractedData[field] = value; // Save it anyway — user can correct
+              validationWarnings.push(`That appears to be 9 digits. If this is a US number, it should be 10 digits (area code + 7 digits). Please verify.`);
+              extractedData[field] = value;
               continue;
             }
             if (digits.length < 9) {
-              validationWarning = `Please provide a complete phone number (10 digits for US, or include country code for international).`;
+              validationWarnings.push(`Please provide a complete phone number (10 digits for US, or include country code for international).`);
               continue;
             }
-            // International numbers (12+ digits) — accept them
             if (digits.length > 11) {
               extractedData[field] = value;
               continue;
@@ -322,32 +294,90 @@ export async function POST(
             continue;
           }
 
-          // ═══════════════════════════════════════════════════════════════
+          // MARRIAGE DATE VALIDATION
+          if (field === 'marriageDate') {
+            const mDate = parseDate(value);
+            if (!mDate) {
+              validationWarnings.push(`Could not parse marriage date. Please use format like "June 15, 2020".`);
+              continue;
+            }
+            if (mDate > canonicalNow) {
+              validationWarnings.push(`Marriage date cannot be in the future. Please verify.`);
+              continue;
+            }
+            extractedData[field] = value;
+            continue;
+          }
+
+          // FILING/SUMMONS DATE VALIDATION
+          if (field === 'summonsDate') {
+            const sDate = parseDate(value);
+            if (!sDate) {
+              validationWarnings.push(`Could not parse filing date. Please use format like "January 10, 2026".`);
+              continue;
+            }
+            if (sDate > canonicalNow) {
+              validationWarnings.push(`Filing date cannot be in the future. This is the date the clerk accepted your filing. Please verify.`);
+              continue;
+            }
+            if (phase2Data?.marriageDate || extractedData['marriageDate']) {
+              const marriageDate = parseDate((phase2Data?.marriageDate || extractedData['marriageDate']) as string);
+              if (marriageDate && sDate < marriageDate) {
+                validationWarnings.push(`Filing date cannot be before the marriage date. Please verify your dates.`);
+                continue;
+              }
+            }
+            extractedData[field] = value;
+            continue;
+          }
+
+          // BREAKDOWN DATE VALIDATION — uses state-specific months
+          if (field === 'breakdownDate') {
+            const bDate = parseDate(value);
+            if (!bDate) {
+              validationWarnings.push(`Could not parse breakdown date. Please use format like "March 1, 2025".`);
+              continue;
+            }
+            const breakdownMonths = stateConfig.breakdownMonths ?? 6;
+            if (!isAtLeastMonthsAgo(bDate, breakdownMonths, canonicalNow)) {
+              validationWarnings.push(`The breakdown date must be at least ${breakdownMonths} months before today (${canonicalDateStr}). Please verify.`);
+              continue;
+            }
+            if (phase2Data?.marriageDate || extractedData['marriageDate']) {
+              const marriageDate = parseDate((phase2Data?.marriageDate || extractedData['marriageDate']) as string);
+              if (marriageDate && bDate < marriageDate) {
+                validationWarnings.push(`Breakdown date cannot be before marriage date. Please verify your dates.`);
+                continue;
+              }
+            }
+            extractedData[field] = value;
+            continue;
+          }
+
           // JUDGMENT ENTRY DATE VALIDATION
-          // ═══════════════════════════════════════════════════════════════
           if (field === 'judgmentEntryDate') {
             const entryDate = parseDate(value);
             if (!entryDate) {
-              validationWarning = `Could not parse judgment entry date. Please use format like "February 28, 2027".`;
+              validationWarnings.push(`Could not parse judgment entry date. Please use format like "February 28, 2027".`);
               continue;
             }
-            const today = new Date();
-            today.setHours(23, 59, 59, 999);
-            if (entryDate > today) {
-              validationWarning = `The Judgment entry date cannot be in the future. The Judgment must already be entered before proceeding. Please verify.`;
+            const endOfToday = new Date(canonicalNow);
+            endOfToday.setHours(23, 59, 59, 999);
+            if (entryDate > endOfToday) {
+              validationWarnings.push(`The Judgment entry date cannot be in the future. The Judgment must already be entered before proceeding. Please verify.`);
               continue;
             }
             if (phase2Data?.summonsDate) {
               const summonsDate = parseDate(phase2Data.summonsDate);
               if (summonsDate && entryDate < summonsDate) {
-                validationWarning = `Judgment entry date (${value}) cannot be before the filing date (${phase2Data.summonsDate}). Please verify.`;
+                validationWarnings.push(`Judgment entry date (${value}) cannot be before the filing date (${phase2Data.summonsDate}). Please verify.`);
                 continue;
               }
             }
             if (phase2Data?.marriageDate) {
               const marriageDate = parseDate(phase2Data.marriageDate);
               if (marriageDate && entryDate < marriageDate) {
-                validationWarning = `Judgment entry date cannot be before the marriage date. Please verify.`;
+                validationWarnings.push(`Judgment entry date cannot be before the marriage date. Please verify.`);
                 continue;
               }
             }
@@ -355,23 +385,21 @@ export async function POST(
             continue;
           }
 
-          // ═══════════════════════════════════════════════════════════════
-          // ═══════════════════════════════════════════════════════════════
-          // INDEX NUMBER / DOCKET NUMBER VALIDATION
-          // ═══════════════════════════════════════════════════════════════
+          // INDEX NUMBER VALIDATION (NY)
           if (field === 'indexNumber') {
             const indexMatch = value.match(/^\d+\/\d{4}$/) || value.match(/^\d{4}\/\d+$/);
             if (!indexMatch) {
-              validationWarning = `Index number format should be like "12345/2026". Please verify.`;
+              validationWarnings.push(`Index number format should be like "12345/2026". Please verify.`);
             }
             extractedData[field] = value;
             continue;
           }
 
+          // DOCKET NUMBER VALIDATION (NJ)
           if (field === 'docketNumber') {
             const docketMatch = value.match(/^FM-/i);
             if (!docketMatch) {
-              validationWarning = `NJ docket number should start with "FM-" (e.g., FM-07-012345-26). Please verify.`;
+              validationWarnings.push(`NJ docket number should start with "FM-" (e.g., FM-07-012345-26). Please verify.`);
             }
             extractedData[field] = value;
             continue;
@@ -385,19 +413,17 @@ export async function POST(
       }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // OUTSIDE COUNSEL CHECK
-    // ═══════════════════════════════════════════════════════════════
-    if (currentPhase === 2 && !phase1Data?.plaintiffName && (extractedData['indexNumber'] || extractedData['docketNumber'])) {
-      isDisqualified = true;
-      disqualifyReason = 'outside_counsel_case';
+    // FIX #7: More resilient outside-counsel check
+    if (currentPhase === 2) {
+      const hasAnyCaseNumber = extractedData['indexNumber'] || extractedData['docketNumber'];
+      const phase1HasAnyData = phase1Data && Object.keys(phase1Data).length > 0;
+      if (hasAnyCaseNumber && !phase1HasAnyData) {
+        isDisqualified = true;
+        disqualifyReason = 'outside_counsel_case';
+      }
     }
 
-    // ═══════════════════════════════════════════════════════════════
     // SERVER-SIDE PHASE COMPLETION SAFETY NET
-    // ═══════════════════════════════════════════════════════════════
-    
-    // Smart field inference: auto-fill address fields
     const mergedP1 = { ...phase1Data, ...extractedData };
     if (mergedP1.plaintiffAddress && !mergedP1.qualifyingAddress && mergedP1.qualifyingParty === 'plaintiff') {
       extractedData['qualifyingAddress'] = mergedP1.plaintiffAddress as string;
@@ -405,7 +431,6 @@ export async function POST(
     if (mergedP1.qualifyingAddress && !mergedP1.plaintiffAddress && mergedP1.qualifyingParty === 'plaintiff') {
       extractedData['plaintiffAddress'] = mergedP1.qualifyingAddress as string;
     }
-    // If defendant address missing but user confirmed same address, copy from plaintiff
     const lastMsg = messages[messages.length - 1]?.content?.toLowerCase() || '';
     if (mergedP1.plaintiffAddress && !mergedP1.defendantAddress && 
         /same address|same one|yes same|same place|lives with me|live together|we both live|living together/.test(lastMsg)) {
@@ -415,31 +440,25 @@ export async function POST(
     if (currentPhase === 1 && !phase1Complete) {
       const merged = { ...phase1Data, ...extractedData };
       const allPresent = p1Keys.every(f => merged[f]);
-      if (allPresent) {
-        phase1Complete = true;
-      }
+      if (allPresent) phase1Complete = true;
     }
     
     if (currentPhase === 2 && !phase2Complete) {
       const merged = { ...phase2Data, ...extractedData };
       const allPresent = p2Keys.every(f => merged[f]);
-      if (allPresent) {
-        phase2Complete = true;
-      }
+      if (allPresent) phase2Complete = true;
     }
     
     if (currentPhase === 3 && !phase3Complete) {
       const merged = { ...phase3Data, ...extractedData };
       const allPresent = p3Keys.every(f => merged[f]);
-      if (allPresent) {
-        phase3Complete = true;
-      }
+      if (allPresent) phase3Complete = true;
     }
 
-    // Clean reply and append validation warning if present
-    let cleanReply = reply.replace(/```json\s*[\s\S]*?\s*```/g, '').trim();
-    if (validationWarning && !isTerminated && !isDisqualified) {
-      cleanReply = validationWarning + '\n\n' + cleanReply;
+    // Clean reply: strip JSON, append ALL validation warnings
+    let cleanReply = finalReply.replace(/```json\s*[\s\S]*?\s*```/g, '').trim();
+    if (validationWarnings.length > 0 && !isTerminated && !isDisqualified) {
+      cleanReply = validationWarnings.join('\n\n') + '\n\n' + cleanReply;
     }
 
     return NextResponse.json({
