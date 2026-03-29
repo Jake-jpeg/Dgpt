@@ -19,13 +19,16 @@ const anthropic = new Anthropic({
 // Reference: divorcegpt.com/transparency — "Sensitive Data Gets Destroyed in Transit"
 // ═══════════════════════════════════════════════════════════════
 const SENSITIVE_PATTERNS = [
-  // SSN formats: XXX-XX-XXXX, XXX XX XXXX, XXXXXXXXX
+  // SSN: formatted XXX-XX-XXXX or XXX XX XXXX (3-2-4 grouping distinguishes from phone 3-3-4)
+  /\b\d{3}[-\s]\d{2}[-\s]\d{4}\b/g,
+  // SSN: unformatted 9-digit string (with or without keyword context)
+  // Broad catch — better to over-redact than leak an SSN to the API
   /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g,
-  // Credit card: 13-19 digit sequences with optional separators
+  // Credit card: 13-19 digit sequences with optional separators (broad catch)
   /\b(?:\d[-\s]?){13,19}\b/g,
   // Bank account: 8-17 digit sequences preceded by account-related keywords
   /(?:account|acct|routing|aba)[\s#:]*\d{8,17}/gi,
-  // Driver's license: state abbreviation + number patterns
+  // Driver's license: preceded by DL-related keywords
   /\b(?:DL|driver'?s?\s*(?:license|lic))[\s#:]*[A-Z0-9-]{6,15}/gi,
 ];
 

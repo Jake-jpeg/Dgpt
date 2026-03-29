@@ -13,14 +13,6 @@ const guides = [
     pinned: true,
   },
   {
-    state: "ALL",
-    title: "Supported Languages — Multilingual AI Assistance",
-    description: "DivorceGPT supports 12 languages. See the full list, accuracy benchmarks from Anthropic, and important disclaimers for non-English speakers.",
-    href: "/guides/language-support",
-    tags: ["Languages", "Multilingual", "AI Accuracy"],
-    pinned: true,
-  },
-  {
     state: "NY",
     title: "Form UD-4 & UD-4A: Removal of Barriers to Remarriage",
     description: "What these forms are, why they exist under DRL § 253, and what changed in the December 2025 revision.",

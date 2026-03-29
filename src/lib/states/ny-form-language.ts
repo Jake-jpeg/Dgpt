@@ -129,6 +129,17 @@ SEVENTH: "The Notice of Automatic Orders was duly served upon Defendant and no v
 
 EIGHTH: "Neither Plaintiff nor Defendant is in the military service of the United States of America, the State of New York, or any other state..."
 
+NINTH: "There are no children of the marriage under the age of 21."
+
+TENTH: "The relationship between Plaintiff and Defendant has broken down irretrievably for a period of at least six (6) months. The grounds for divorce as set forth in DRL §170 subd. (7) have been proven."
+
+ELEVENTH: "No equitable distribution of marital property is required, there being no marital property to distribute. No award of maintenance is made to either party, neither party having requested maintenance."
+
+TWELFTH (religious): "Plaintiff has filed a Sworn Statement pursuant to DRL §253 affirming that Plaintiff has taken all steps solely within his or her power to remove any barriers to the Defendant's remarriage."
+TWELFTH (civil): "Compliance with DRL §253 regarding removal of barriers to remarriage is not required as the parties were married in a civil ceremony."
+
+CONCLUSIONS OF LAW: "Based upon the foregoing Findings of Fact, the Court concludes that the Plaintiff is entitled to a Judgment of Divorce dissolving the marriage between the parties."
+
 ────────────────────────────────────────────────────────────
 UD-11: JUDGMENT OF DIVORCE
 ────────────────────────────────────────────────────────────
