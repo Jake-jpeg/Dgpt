@@ -18,16 +18,9 @@ const anthropic = new Anthropic({
 // Reference: divorcegpt.com/transparency — "Sensitive Data Gets Destroyed in Transit"
 // ═══════════════════════════════════════════════════════════════
 const SENSITIVE_PATTERNS = [
-  // SSN: formatted XXX-XX-XXXX or XXX XX XXXX (3-2-4 grouping distinguishes from phone 3-3-4)
-  /\b\d{3}[-\s]\d{2}[-\s]\d{4}\b/g,
-  // SSN: unformatted 9-digit string (with or without keyword context)
-  // Broad catch — better to over-redact than leak an SSN to the API
   /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g,
-  // Credit card: 13-19 digit sequences with optional separators (broad catch)
   /\b(?:\d[-\s]?){13,19}\b/g,
-  // Bank account: 8-17 digit sequences preceded by account-related keywords
   /(?:account|acct|routing|aba)[\s#:]*\d{8,17}/gi,
-  // Driver's license: preceded by DL-related keywords
   /\b(?:DL|driver'?s?\s*(?:license|lic))[\s#:]*[A-Z0-9-]{6,15}/gi,
 ];
 
@@ -150,40 +143,19 @@ export async function POST(
     contextMessage += ']';
 
     // ═══════════════════════════════════════════════════════════════
-    // PROMPT CACHING: Split system into two blocks.
-    // Block 1 (static): The full state system prompt — identical across
-    //   all calls for a given state. Cached for 5 min, refreshed on hit.
-    //   ~14K tokens for NY → 90% cost reduction on cache reads.
-    // Block 2 (dynamic): Phase status, collected data, date — changes
-    //   every call, never cached.
+    // PROMPT CACHING:
     //
-    // Anthropic caches the prefix up to the cache_control breakpoint.
-    // On cache hit: Block 1 costs 0.1x. Block 2 + messages = full price.
-    // On cache miss (first call or 5min expiry): Block 1 costs 1.25x (write).
-    // Net savings after first call: ~$0.03-0.04 per API call.
-    // ═══════════════════════════════════════════════════════════════
-    // ═══════════════════════════════════════════════════════════════
-    // PROMPT CACHING STRATEGY (two layers):
-    //
-    // 1. EXPLICIT breakpoint on systemPrompt (~14K tokens for NY):
-    //    Cached across ALL calls for this state. Written once on the
-    //    first call, then read at 10% cost ($0.30/MTok vs $3/MTok)
-    //    for every subsequent call within the 5-min TTL window.
-    //
-    // 2. AUTOMATIC top-level cache_control:
-    //    Places a moving breakpoint on the last message in the
-    //    conversation. On turn N, turns 1 through N-1 are read
-    //    from cache — only the new user message is processed fresh.
-    //    This is the big win for multi-turn conversations.
+    // EXPLICIT breakpoint on systemPrompt:
+    //   Cached across ALL calls for this state. Written once on the
+    //   first call, then read at 10% cost ($0.30/MTok vs $3/MTok)
+    //   for every subsequent call within the 5-min TTL window.
     //
     // contextMessage changes every call (phase data, missing fields),
-    // so it sits AFTER the explicit breakpoint and gets included in
-    // the automatic cache window along with the conversation history.
+    // so it sits AFTER the cache breakpoint and is always fresh.
     // ═══════════════════════════════════════════════════════════════
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1500,
-      cache_control: { type: 'ephemeral' },
       system: [
         {
           type: 'text',
@@ -213,7 +185,7 @@ export async function POST(
     const totalInput = cacheRead + cacheWrite + uncached;
     const savingsPercent = totalInput > 0 ? Math.round((cacheRead / totalInput) * 100) : 0;
     console.log(
-      `[Cache ${resolvedState.toUpperCase()}] read=${cacheRead} write=${cacheWrite} uncached=${uncached} output=${usage.output_tokens} | ${savingsPercent}% cached`
+      `[Cache ${state.toUpperCase()}] read=${cacheRead} write=${cacheWrite} uncached=${uncached} output=${usage.output_tokens} | ${savingsPercent}% cached`
     );
 
     // FIX #5: Join ALL content blocks

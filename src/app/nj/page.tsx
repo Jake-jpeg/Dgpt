@@ -53,6 +53,10 @@ export default function NJHome() {
             Automate your uncontested divorce forms with an AI clerk. An attorney-designed tool for simple cases that do not require legal advice.
           </p>
 
+          <p className="mt-4 text-sm text-zinc-400">
+            Multilingual support available — <Link href="/guides/language-support" className="underline hover:text-white transition">see supported languages</Link>
+          </p>
+
           <div className="mt-10">
             <Link
               href="/nj/qualify"
@@ -113,6 +117,7 @@ export default function NJHome() {
             {[
               { icon: "📝", title: "Create Your Forms", desc: "Answer the questions. DivorceGPT prepares your documents step by step." },
               { icon: "💡", title: "Reference Your Forms", desc: "Tell DivorceGPT which form you're asking about by name (e.g., Complaint, Certification)." },
+              { icon: "🌐", title: "Ask in Your Language", desc: "DivorceGPT supports multiple languages. Just type in your preferred language and the AI will respond accordingly." },
               { icon: "💡", title: "Ask About Filing", desc: "Not sure what to do with your forms? Ask about the filing process, court locations, fees, or what happens next." },
             ].map((card, index) => (
               <div key={index} className="group rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-100 transition-all duration-200 hover:shadow-xl hover:ring-[#c59d5f]/20 hover:-translate-y-1">
@@ -178,6 +183,7 @@ export default function NJHome() {
             {[
               { q: "Is this legal advice?", a: "No. DivorceGPT explains what divorce forms ask for and how to file them. It does not provide legal advice. For legal advice, consult an attorney." },
               { q: "What technology powers DivorceGPT?", a: "DivorceGPT uses advanced AI technology via a secure commercial API. Under our API provider's terms, your inputs are not used for AI model training and are automatically deleted within days. June Guided Solutions, LLC does not retain any chat history or conversation data." },
+              { q: "Does DivorceGPT support other languages?", a: "Yes. DivorceGPT can communicate in 12 supported languages including Spanish, Chinese, Korean, Hindi, Arabic, and more. All court filings are generated in English as required by New Jersey courts. See our Language Support page for the full list and important disclaimers." },
               { q: "How long does the process take?", a: "You can complete your forms in minutes, but the overall divorce process takes time. Timeline varies by county. Your session remains valid for 12 months." },
               { q: "How do I access my session?", a: "After payment, you'll be redirected to your session page. Bookmark this page — the URL is your access link. There are no accounts or passwords." },
               { q: "What if my spouse won't cooperate?", a: "This service is for uncontested divorces where both spouses agree. If your spouse won't cooperate, you may need a contested divorce attorney." },
@@ -209,6 +215,7 @@ export default function NJHome() {
               DivorceGPT is a document preparation service. This is not legal advice. For legal advice, consult an attorney.
             </p>
             <div className="flex gap-6 text-sm">
+              <Link href="/guides/language-support" className="text-zinc-600 transition hover:text-[#1a365d]">Language Support</Link>
               <Link href="/privacy" className="text-zinc-600 transition hover:text-[#1a365d]">Privacy Policy</Link>
               <Link href="/terms" className="text-zinc-600 transition hover:text-[#1a365d]">Terms of Service</Link>
             </div>

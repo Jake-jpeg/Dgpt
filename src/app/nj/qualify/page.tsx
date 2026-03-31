@@ -249,7 +249,7 @@ export default function NJQualifyPage() {
               <p className="text-sm text-zinc-300 mb-4">
                 Military divorces involve special protections under the SCRA. We recommend consulting with a family law attorney in your area.
               </p>
-              <Link href="mailto:admin@divorcegpt.com" className="inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">
+              <Link href="https://tcms.njsba.com/personifyebusiness/Resources/CountyBarAssociations.aspx" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">
                 Find an Attorney
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
               </Link>
@@ -288,7 +288,7 @@ export default function NJQualifyPage() {
               <p className="text-sm text-zinc-300 mb-4">
                 Your situation may require legal representation. We recommend consulting with a family law attorney in your area.
               </p>
-              <Link href="mailto:admin@divorcegpt.com" className="inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">
+              <Link href="https://tcms.njsba.com/personifyebusiness/Resources/CountyBarAssociations.aspx" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">
                 Find an Attorney
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
               </Link>

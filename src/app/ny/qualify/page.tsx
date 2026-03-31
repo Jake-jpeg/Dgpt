@@ -273,7 +273,7 @@ export default function QualifyPage() {
                 Military divorces involve special protections under the SCRA. We recommend consulting with a family law attorney in your area.
               </p>
               <Link
-                href="mailto:admin@divorcegpt.com"
+                href="https://www.nysba.org/lawyerreferral/" target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition"
               >
                 Find an Attorney
@@ -318,7 +318,7 @@ export default function QualifyPage() {
                 Cases involving domestic violence require experienced legal representation. We recommend consulting with a family law attorney in your area.
               </p>
               <Link
-                href="mailto:admin@divorcegpt.com"
+                href="https://www.nysba.org/lawyerreferral/" target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition"
               >
                 Find an Attorney
@@ -375,7 +375,7 @@ export default function QualifyPage() {
                 Your situation may require legal representation. We recommend consulting with a family law attorney in your area.
               </p>
               <Link
-                href="mailto:admin@divorcegpt.com"
+                href="https://www.nysba.org/lawyerreferral/" target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition"
               >
                 Find an Attorney

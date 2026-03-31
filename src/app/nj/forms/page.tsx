@@ -869,6 +869,8 @@ function FormsContent() {
           <div className="flex items-center gap-3 text-[10px] text-zinc-400">
             <span>Powered by Claude AI</span>
             <span>·</span>
+            <Link href="/guides/language-support" target="_blank" className="hover:text-[#1a365d] transition">12 Languages Supported</Link>
+            <span>·</span>
             <Link href="/privacy" target="_blank" className="hover:text-[#1a365d] transition">Privacy</Link>
             <span>·</span>
             <Link href="/terms" target="_blank" className="hover:text-[#1a365d] transition">Terms</Link>
