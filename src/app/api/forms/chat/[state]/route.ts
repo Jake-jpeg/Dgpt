@@ -149,12 +149,72 @@ export async function POST(
     
     contextMessage += ']';
 
+    // ═══════════════════════════════════════════════════════════════
+    // PROMPT CACHING: Split system into two blocks.
+    // Block 1 (static): The full state system prompt — identical across
+    //   all calls for a given state. Cached for 5 min, refreshed on hit.
+    //   ~14K tokens for NY → 90% cost reduction on cache reads.
+    // Block 2 (dynamic): Phase status, collected data, date — changes
+    //   every call, never cached.
+    //
+    // Anthropic caches the prefix up to the cache_control breakpoint.
+    // On cache hit: Block 1 costs 0.1x. Block 2 + messages = full price.
+    // On cache miss (first call or 5min expiry): Block 1 costs 1.25x (write).
+    // Net savings after first call: ~$0.03-0.04 per API call.
+    // ═══════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
+    // PROMPT CACHING STRATEGY (two layers):
+    //
+    // 1. EXPLICIT breakpoint on systemPrompt (~14K tokens for NY):
+    //    Cached across ALL calls for this state. Written once on the
+    //    first call, then read at 10% cost ($0.30/MTok vs $3/MTok)
+    //    for every subsequent call within the 5-min TTL window.
+    //
+    // 2. AUTOMATIC top-level cache_control:
+    //    Places a moving breakpoint on the last message in the
+    //    conversation. On turn N, turns 1 through N-1 are read
+    //    from cache — only the new user message is processed fresh.
+    //    This is the big win for multi-turn conversations.
+    //
+    // contextMessage changes every call (phase data, missing fields),
+    // so it sits AFTER the explicit breakpoint and gets included in
+    // the automatic cache window along with the conversation history.
+    // ═══════════════════════════════════════════════════════════════
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1500,
-      system: stateConfig.systemPrompt + contextMessage,
+      cache_control: { type: 'ephemeral' },
+      system: [
+        {
+          type: 'text',
+          text: stateConfig.systemPrompt,
+          cache_control: { type: 'ephemeral' },
+        },
+        {
+          type: 'text',
+          text: contextMessage,
+        },
+      ],
       messages: sanitizedMessages,
     });
+
+    // ═══════════════════════════════════════════════════════════════
+    // CACHE PERFORMANCE LOGGING
+    // ═══════════════════════════════════════════════════════════════
+    const usage = response.usage as {
+      input_tokens: number;
+      output_tokens: number;
+      cache_creation_input_tokens?: number;
+      cache_read_input_tokens?: number;
+    };
+    const cacheRead = usage.cache_read_input_tokens ?? 0;
+    const cacheWrite = usage.cache_creation_input_tokens ?? 0;
+    const uncached = usage.input_tokens;
+    const totalInput = cacheRead + cacheWrite + uncached;
+    const savingsPercent = totalInput > 0 ? Math.round((cacheRead / totalInput) * 100) : 0;
+    console.log(
+      `[Cache ${resolvedState.toUpperCase()}] read=${cacheRead} write=${cacheWrite} uncached=${uncached} output=${usage.output_tokens} | ${savingsPercent}% cached`
+    );
 
     // FIX #5: Join ALL content blocks
     const reply = response.content
