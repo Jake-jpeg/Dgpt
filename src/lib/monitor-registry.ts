@@ -105,7 +105,7 @@ export const STATE_REGISTRY: StateRegistryEntry[] = [
       residencyRequirement: 'DRL §230: One party resident of NY for continuous period of at least one year before filing, OR two years if cause arose outside NY, OR marriage/residency combo under DRL §230(a)-(e)',
       groundsForDivorce: 'DRL §170(7): Irretrievable breakdown for at least 6 months',
       waitingPeriod: 'No mandatory waiting period after filing; 6-month breakdown period must precede filing',
-      filingFee: '$210 (index number purchase)',
+      filingFee: '$335 total ($210 Index Number per CPLR §8018 + $95 RJI per CPLR §8020(a) + $30 Note of Issue per CPLR §8020(a))',
       defendantFee: 'No separate defendant fee',
       serviceDeadlineDays: 120,
       responseDeadlineDays: 20, // 20 days personal service in NY, 30 days if outside NY
