@@ -254,7 +254,13 @@ export default function NJQualifyPage() {
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
               </Link>
             </div>
-            <Link href="/nj" className="mt-8 inline-flex items-center gap-2 text-[#1a365d] font-medium transition hover:text-[#c59d5f]">
+            <button
+              onClick={() => setSubmitted(false)}
+              className="mt-6 inline-flex items-center gap-2 rounded-full border-2 border-[#1a365d] px-6 py-2.5 text-sm font-semibold text-[#1a365d] hover:bg-[#1a365d] hover:text-white transition"
+            >
+              ← Change My Answers
+            </button>
+            <Link href="/nj" className="mt-4 inline-flex items-center gap-2 text-[#1a365d] font-medium transition hover:text-[#c59d5f]">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
               {t.qualify.back}
             </Link>
@@ -293,7 +299,13 @@ export default function NJQualifyPage() {
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
               </Link>
             </div>
-            <Link href="/nj" className="mt-6 inline-flex items-center gap-2 text-[#1a365d] font-medium transition hover:text-[#c59d5f]">
+            <button
+              onClick={() => setSubmitted(false)}
+              className="mt-6 inline-flex items-center gap-2 rounded-full border-2 border-[#1a365d] px-6 py-2.5 text-sm font-semibold text-[#1a365d] hover:bg-[#1a365d] hover:text-white transition"
+            >
+              ← Change My Answers
+            </button>
+            <Link href="/nj" className="mt-4 inline-flex items-center gap-2 text-[#1a365d] font-medium transition hover:text-[#c59d5f]">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
               {t.qualify.back}
             </Link>

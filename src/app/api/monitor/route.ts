@@ -64,13 +64,20 @@ CURRENT BASELINE (what DivorceGPT implements):
 - Required Forms: ${entry.knownRules.requiredForms.join(', ')}
 - Special Rules: ${entry.knownRules.specialRules.join('; ')}
 
+FORM REVISION DATES (what DivorceGPT was last built against):
+${Object.entries(entry.formRevisionDates).map(([form, rev]) => `- ${form}: ${rev}`).join('\n')}
+
+PRIORITY SOURCES TO CHECK:
+${entry.monitorUrls.map((m, i) => `${i + 1}. [${m.fetchMethod.toUpperCase()}] ${m.label}\n   ${m.url}`).join('\n')}
+
 INSTRUCTIONS:
-1. Search the official court website for the most current uncontested divorce filing requirements
-2. Search for any recent changes to the state's domestic relations statutes
-3. Check if filing fees have changed
-4. Check if any new forms have been mandated or old forms retired
-5. Check if e-filing rules have changed
-6. Check if any new directives have been issued affecting uncontested divorce procedure
+1. Check EACH of the priority sources listed above. For sources marked [SEARCH], use web_search with the URL as your query. For sources marked [FETCH], fetch the URL directly.
+2. Compare the form revision dates above against what the court website shows. If ANY form has a newer revision date than what we have, flag it as a CRITICAL change — it means the form content has changed and our PDF generators may be producing outdated forms.
+3. Check if filing fees have changed.
+4. Check if any new forms have been mandated or old forms retired.
+5. Check if e-filing rules have changed.
+6. Check if any new directives have been issued affecting uncontested divorce procedure.
+7. Search for any recent changes to the state's domestic relations statutes.
 
 RESPOND IN EXACTLY THIS JSON FORMAT (no other text):
 {
@@ -78,7 +85,7 @@ RESPOND IN EXACTLY THIS JSON FORMAT (no other text):
   "summary": "Brief summary of findings",
   "changes": [
     {
-      "category": "filing_fee | residency | grounds | forms | efiling | procedure | statute | directive | other",
+      "category": "filing_fee | residency | grounds | forms | form_revision | efiling | procedure | statute | directive | other",
       "current": "What DivorceGPT currently has",
       "detected": "What the search found",
       "sourceUrl": "URL of the source",
@@ -91,7 +98,8 @@ If everything matches the baseline, return status "NO_CHANGES" with an empty cha
 If you find potential changes but aren't certain, return "REVIEW_RECOMMENDED".
 If you find confirmed changes, return "CHANGES_DETECTED".
 
-CRITICAL: Only flag actual RULE or STATUTE changes. Ignore cosmetic website changes, wording differences that don't change legal requirements, or differences between how the court describes a form vs our internal label.`;
+CRITICAL: Only flag actual RULE or STATUTE changes. Ignore cosmetic website changes, wording differences that don't change legal requirements, or differences between how the court describes a form vs our internal label.
+CRITICAL: Form revision date changes are ALWAYS at least HIGH urgency — they mean the court has updated the form and our generated PDFs may be non-compliant.`;
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -99,7 +107,7 @@ CRITICAL: Only flag actual RULE or STATUTE changes. Ignore cosmetic website chan
       tools: [{
         type: 'web_search_20250305',
         name: 'web_search',
-        max_uses: 5,
+        max_uses: 10,
       }],
       messages: [{ role: 'user', content: prompt }],
     });
