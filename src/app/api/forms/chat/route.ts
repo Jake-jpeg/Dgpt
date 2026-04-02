@@ -214,11 +214,48 @@ export async function POST(req: Request) {
       .map(block => block.type === 'text' ? block.text : '')
       .join('\n');
 
-    // If sensitive data was detected and redacted, prepend the standard notice
+    // ═══════════════════════════════════════════════════════════════
+    // GUARDRAIL 02b: Language-aware sensitive data notice
+    // The AI responds in the user's language, so server-side notices
+    // must also match. Detects language from recent user messages.
+    // ═══════════════════════════════════════════════════════════════
     let finalReply = reply;
     if (sensitiveDataDetected) {
-      const notice = 'I noticed you included sensitive information like a Social Security number. DivorceGPT does not need, store, or process this data. Please do not enter SSNs, bank accounts, or other sensitive identifiers. If you need to include an SSN on a court form, you will do that yourself on the printed document.\n\n';
-      finalReply = notice + reply;
+      // Detect conversation language from the last user message
+      const lastUserMsg = [...messages].reverse().find((m: { role: string; content: string }) => m.role === 'user')?.content || '';
+      const SENSITIVE_NOTICES: Record<string, string> = {
+        zh: '我注意到您输入了敏感信息（如社会安全号码）。DivorceGPT 不需要、不存储、也不处理此类数据。请不要输入社会安全号码、银行账号或其他敏感标识符。如果您需要在法庭表格中填写社会安全号码，请在打印文件后自行填写。',
+        ko: '민감한 정보(예: 사회보장번호)가 포함된 것을 발견했습니다. DivorceGPT는 이러한 데이터를 필요로 하지 않으며, 저장하거나 처리하지 않습니다. SSN, 은행 계좌 또는 기타 민감한 식별 정보를 입력하지 마세요. 법원 양식에 SSN을 기재해야 하는 경우, 출력된 문서에 직접 작성하세요.',
+        es: 'He notado que incluyó información sensible como un número de Seguro Social. DivorceGPT no necesita, almacena ni procesa estos datos. Por favor no ingrese números de Seguro Social, cuentas bancarias u otros identificadores sensibles. Si necesita incluir un SSN en un formulario judicial, lo hará usted mismo en el documento impreso.',
+        fr: 'J\'ai remarqué que vous avez inclus des informations sensibles comme un numéro de sécurité sociale. DivorceGPT n\'a pas besoin de ces données, ne les stocke pas et ne les traite pas. Veuillez ne pas saisir de numéros de sécurité sociale, de comptes bancaires ou d\'autres identifiants sensibles. Si vous devez inclure un SSN sur un formulaire judiciaire, vous le ferez vous-même sur le document imprimé.',
+        pt: 'Percebi que você incluiu informações sensíveis como um número de Seguro Social. O DivorceGPT não precisa, não armazena e não processa esses dados. Por favor, não insira números de Seguro Social, contas bancárias ou outros identificadores sensíveis. Se precisar incluir um SSN em um formulário judicial, você fará isso no documento impresso.',
+        ja: '社会保障番号などの機密情報が含まれていることに気づきました。DivorceGPTはこのようなデータを必要とせず、保存も処理もしません。SSN、銀行口座、その他の機密識別情報を入力しないでください。裁判所の書式にSSNを記入する必要がある場合は、印刷した書類にご自身で記入してください。',
+        hi: 'मैंने देखा कि आपने सामाजिक सुरक्षा नंबर जैसी संवेदनशील जानकारी शामिल की है। DivorceGPT को इस डेटा की आवश्यकता नहीं है, न ही यह इसे संग्रहीत या संसाधित करता है। कृपया SSN, बैंक खाते या अन्य संवेदनशील पहचानकर्ता दर्ज न करें। यदि आपको अदालती फॉर्म पर SSN शामिल करने की आवश्यकता है, तो आप इसे मुद्रित दस्तावेज़ पर स्वयं करेंगे।',
+        ar: 'لاحظت أنك قمت بتضمين معلومات حساسة مثل رقم الضمان الاجتماعي. DivorceGPT لا يحتاج هذه البيانات ولا يخزنها ولا يعالجها. يرجى عدم إدخال أرقام الضمان الاجتماعي أو الحسابات المصرفية أو المعرفات الحساسة الأخرى. إذا كنت بحاجة إلى تضمين رقم الضمان الاجتماعي في نموذج المحكمة، فستقوم بذلك بنفسك على المستند المطبوع.',
+        it: 'Ho notato che hai incluso informazioni sensibili come un numero di previdenza sociale. DivorceGPT non ha bisogno, non memorizza e non elabora questi dati. Si prega di non inserire numeri di previdenza sociale, conti bancari o altri identificativi sensibili. Se devi includere un SSN in un modulo giudiziario, lo farai tu stesso sul documento stampato.',
+        de: 'Mir ist aufgefallen, dass Sie sensible Informationen wie eine Sozialversicherungsnummer eingegeben haben. DivorceGPT benötigt diese Daten nicht, speichert sie nicht und verarbeitet sie nicht. Bitte geben Sie keine Sozialversicherungsnummern, Bankkontonummern oder andere sensible Kennungen ein. Wenn Sie eine SSN auf einem Gerichtsformular angeben müssen, tun Sie dies selbst auf dem ausgedruckten Dokument.',
+        id: 'Saya melihat Anda memasukkan informasi sensitif seperti nomor Jaminan Sosial. DivorceGPT tidak memerlukan, menyimpan, atau memproses data ini. Mohon jangan masukkan SSN, rekening bank, atau pengenal sensitif lainnya. Jika Anda perlu mencantumkan SSN pada formulir pengadilan, Anda akan melakukannya sendiri pada dokumen yang dicetak.',
+      };
+      // Simple language detection: check for CJK, Korean, Arabic, Hindi, etc.
+      const langDetect = (text: string): string => {
+        if (/[\u4e00-\u9fff]/.test(text)) return 'zh';
+        if (/[\uac00-\ud7af]/.test(text)) return 'ko';
+        if (/[\u0600-\u06ff]/.test(text)) return 'ar';
+        if (/[\u0900-\u097f]/.test(text)) return 'hi';
+        if (/[\u3040-\u30ff\u31f0-\u31ff]/.test(text)) return 'ja';
+        // Latin-script languages: check for common markers
+        if (/(?:^|\s)(?:el|la|los|las|una|por|como|que|está|tiene|puede)\b/i.test(text)) return 'es';
+        if (/(?:^|\s)(?:le|la|les|des|une|est|pour|avec|dans|qui|que|pas|vous|nous|je)\b/i.test(text)) return 'fr';
+        if (/(?:^|\s)(?:o|os|uma|para|como|está|tem|pode|você|não|eu|meu)\b/i.test(text)) return 'pt';
+        if (/(?:^|\s)(?:il|lo|gli|una|per|che|con|sono|della|questo)\b/i.test(text)) return 'it';
+        if (/(?:^|\s)(?:der|die|das|ein|eine|und|ist|für|mit|ich|nicht)\b/i.test(text)) return 'de';
+        if (/(?:^|\s)(?:saya|anda|yang|dan|untuk|dengan|ini|itu|akan|dari)\b/i.test(text)) return 'id';
+        return 'en';
+      };
+      const detectedLang = langDetect(lastUserMsg);
+      const notice = SENSITIVE_NOTICES[detectedLang] ||
+        'I noticed you included sensitive information like a Social Security number. DivorceGPT does not need, store, or process this data. Please do not enter SSNs, bank accounts, or other sensitive identifiers. If you need to include an SSN on a court form, you will do that yourself on the printed document.';
+      finalReply = notice + '\n\n' + reply;
     }
 
     // Parse JSON blocks
