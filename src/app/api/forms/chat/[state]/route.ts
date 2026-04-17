@@ -442,23 +442,32 @@ export async function POST(
 
     contextMessage += ']';
 
-    // ── Call Anthropic (with prompt caching) ────────────────
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1500,
-      system: [
-        {
-          type: 'text',
-          text: stateConfig.systemPrompt,
-          cache_control: { type: 'ephemeral' },
+    // ── Call Anthropic (with prompt caching, 1-hour TTL) ────
+    // 1h TTL chosen to survive user think-time across a full intake session.
+    // Requires extended-cache-ttl beta header.
+    const response = await anthropic.messages.create(
+      {
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        system: [
+          {
+            type: 'text',
+            text: stateConfig.systemPrompt,
+            cache_control: { type: 'ephemeral', ttl: '1h' },
+          },
+          {
+            type: 'text',
+            text: contextMessage,
+          },
+        ],
+        messages: sanitizedMessages,
+      },
+      {
+        headers: {
+          'anthropic-beta': 'extended-cache-ttl-2025-04-11',
         },
-        {
-          type: 'text',
-          text: contextMessage,
-        },
-      ],
-      messages: sanitizedMessages,
-    });
+      }
+    );
 
     // ── Cache performance logging ──────────────────────────
     const usage = response.usage as {

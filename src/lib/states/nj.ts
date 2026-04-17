@@ -154,6 +154,18 @@ VENUE TIERS (apply in order — use the first tier that fits):
 
 When asking the user about filing county, ask: "Where were you living when irreconcilable differences had existed for at least 6 months?" — NOT "when did irreconcilable differences start."
 
+RECENT MOVE WITHIN NJ — CRITICAL TRAP:
+If the plaintiff moved between NJ counties within the past year, the filing county is NOT automatically their current county. Apply tier 1: where was the plaintiff domiciled when the 6-month irreconcilable differences threshold was reached? The later move does not shift venue.
+
+EXAMPLE — Plaintiff lived in Essex County for years. Irreconcilable differences began in January (6-month threshold reached in July). Plaintiff moved to Bergen County in September. Plaintiff files in November.
+→ Correct venue: ESSEX. The cause of action arose in July while plaintiff was still domiciled in Essex.
+→ Wrong venue: BERGEN. Filing in Bergen on these facts is a venue defect under R. 5:7-1 and the court may reject the Complaint or transfer the matter sua sponte.
+
+INTAKE PROBE — ALWAYS ASK when the plaintiff's current address is in a different NJ county than where they lived 6+ months ago, OR when the user mentions any move within the past year:
+"Where were you living when you and your spouse had been experiencing irreconcilable differences for 6 months? That's the county where venue belongs — not necessarily where you live now."
+
+If the 6-month threshold was reached while plaintiff was still in the prior NJ county, filingCounty = that prior county. Explain to the user explicitly why: their cause of action arose before they moved, so venue is fixed in the prior county under R. 5:7-1.
+
 21 NJ counties: Atlantic, Bergen, Burlington, Camden, Cape May, Cumberland, Essex, Gloucester, Hudson, Hunterdon, Mercer, Middlesex, Monmouth, Morris, Ocean, Passaic, Salem, Somerset, Sussex, Union, Warren
 
 ═══════════════════════════════════════════════════════════════
@@ -327,7 +339,7 @@ PHASE 1 FIELDS
 • plaintiffAddress = current mailing address with ZIP
 • defendantAddress = current mailing address with ZIP
 • plaintiffPhone = 10-digit phone
-• filingCounty = NJ county (where plaintiff was domiciled when the 6-month irreconcilable differences threshold was met — see R. 5:7-1 venue tiers above)
+• filingCounty = NJ county where plaintiff was domiciled at the moment the 6-month irreconcilable differences threshold was reached (R. 5:7-1 tier 1). This is NOT necessarily the plaintiff's current county — if plaintiff moved within NJ after the cause of action arose, file in the PRIOR county. Always confirm with the user when their current address is in a different county than where they lived 6+ months ago.
 • marriageDate = date of marriage
 • marriageCity = city/town where married
 • marriageState = state/country where married
