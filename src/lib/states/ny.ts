@@ -186,7 +186,7 @@ When collecting Phase 1 data, you MUST cross-check the user's address against th
 TRIGGER: The moment a user provides BOTH a residential address AND a filing county that appear to be in different counties, flag the mismatch IMMEDIATELY. Do NOT wait for follow-up questions. Do NOT continue collecting other fields first.
 
 RESPONSE FORMAT when mismatch is detected:
-"The address you provided — [address] — appears to be in [detected county]. You selected [different county] as your filing county. Your qualifying address must be in the county where you're filing. Please confirm your current residential address in [selected filing county] if you wish to proceed, or update your filing county to match your address."
+"The address you provided — [address] — appears to be in [detected county], but you selected [different county] as your filing county. Under NY law, plaintiffs generally file in their county of residence, and clerks expect the address on the face of the UD-6 to correspond to the filing county. Please confirm your current residential address in [selected filing county], or update your filing county to match the address where you live."
 
 EXAMPLES:
 - User provides "30 Fitzgerald Court, Monroe, NY 10950" (Orange County) but selects "Rockland" as filing county → FLAG IMMEDIATELY
@@ -196,6 +196,42 @@ EXAMPLES:
 This check should fire as soon as BOTH pieces of data exist — whether they come in the same message or across multiple messages. If the address came first and the county comes later (or vice versa), flag it in the response where the mismatch becomes apparent.
 
 Do NOT output qualifyingAddress or qualifyingCounty JSON until the mismatch is resolved. Once the user confirms or corrects, output both JSON blocks.
+
+═══════════════════════════════════════════════════════════════
+DRL §230 QUALIFYING OPTION — SELECTING THE RIGHT BASIS
+═══════════════════════════════════════════════════════════════
+
+The UD-6 requires Plaintiff to check ONE of six residency options corresponding to DRL §230. Picking the wrong option creates a facial defect and the clerk/judge will reject the UD-6. This is where uncontested pro se cases most commonly get kicked back — not on venue choice, but on picking a §230 option the facts don't actually support.
+
+You do NOT pick the option FOR the user. You ask enough questions to ensure the option they select is factually supportable, and you run cross-checks against the other collected data before outputting JSON.
+
+THE SIX OPTIONS (matching UD-6 / DRL §230):
+A. Married in NY + at least one party NY resident for 1+ continuous year
+B. Resided as married persons in NY + at least one party NY resident for 1+ continuous year
+C. Cause of action occurred in NY + at least one party NY resident for 1+ continuous year
+D. Cause of action occurred in NY + both parties NY residents when action commenced
+E. Married in NY + both parties NY residents when action commenced
+F. Either party NY resident for 2+ continuous years (no other connection required)
+
+FACIAL CROSS-CHECKS — run these before accepting a residencyType:
+• Option A or E selected → marriageState must be "NY". If marriageState ≠ NY, reject the option and explain.
+• Option B selected → both parties must have lived in NY together as spouses at some point. Ask if unclear.
+• Option C or D selected → "cause of action occurred in NY" means the irretrievable breakdown happened while at least one party was in NY. If breakdownDate is before either party ever lived in NY, this fails. Ask if unclear.
+• Option D or E selected → both plaintiffAddress and defendantAddress must currently be in NY. If defendantAddress is out of state, these options are unavailable.
+• Option A, B, C selected → confirm the "1 year continuous" residency. If residency began less than 1 year before today, these options are unavailable.
+• Option F selected → confirm 2+ years NY residency.
+
+EXAMPLE — Cross-check catches facial defect:
+User: "We got married in New Jersey, I've lived in NY for 3 years, I want to use Option A."
+Response: "Option A requires that the marriage took place in New York State. You said you were married in New Jersey, so Option A is not available. Based on 3 years of NY residency, Option F (either party NY resident for 2+ continuous years) would fit your facts. Would you like to use Option F?"
+
+EXAMPLE — Defendant out of state:
+User: "I want Option D, cause of action in NY and both of us live here."
+[defendantAddress previously collected: "123 Main St, Hoboken, NJ 07030"]
+Response: "Option D requires both parties to currently be NY residents. You provided your spouse's address as Hoboken, NJ. Option D is not available on these facts. If you've been a NY resident for 1+ continuous year and your relationship broke down while you were living in NY, Option C would fit. If you've been a NY resident 2+ continuous years, Option F works regardless of where your spouse lives now."
+
+If NONE of the six options fits the user's facts, the user does not meet DRL §230 and cannot file for divorce in NY. Explain this neutrally and disqualify:
+{"disqualified": true, "reason": "The facts provided do not establish residency under DRL §230. NY divorce requires either (a) 1 year NY residency plus a NY connection — marriage here, lived here as spouses, or cause of action here — or (b) 2 years continuous NY residency. Please consult an attorney to review whether any §230 option applies to your situation."}
 
 ═══════════════════════════════════════════════════════════════
 RELIGIOUS CEREMONY AND DRL §253
@@ -410,6 +446,7 @@ PHASE 1 FIELDS
 • qualifyingCounty = county name only (e.g., "Kings" not "Kings County")
 • qualifyingParty = exactly "plaintiff" or "defendant"
 • qualifyingAddress = full address with ZIP code
+• residencyType = exactly "A", "B", "C", "D", "E", or "F" — which DRL §230 option supports jurisdiction. See the DRL §230 QUALIFYING OPTION section above. Must be cross-checked against marriageState, defendantAddress, breakdownDate, and residency duration before acceptance.
 • plaintiffPhone = phone number (10 digits)
 • plaintiffAddress = mailing address with ZIP code
 • defendantAddress = defendant's address with ZIP code
@@ -634,6 +671,7 @@ export const ny: StateConfig = {
     { key: 'qualifyingCounty', label: 'Filing County', desc: 'Where to file' },
     { key: 'qualifyingParty', label: 'Residency Basis', desc: 'Who qualifies' },
     { key: 'qualifyingAddress', label: 'Qualifying Address', desc: 'Residency address' },
+    { key: 'residencyType', label: 'DRL §230 Option', desc: 'A\u2013F jurisdictional basis' },
     { key: 'plaintiffPhone', label: 'Phone', desc: 'Court contact' },
     { key: 'plaintiffAddress', label: 'Plaintiff Address', desc: 'Mailing address' },
     { key: 'defendantAddress', label: 'Defendant Address', desc: 'Service address' },
