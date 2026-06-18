@@ -7,6 +7,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
 import { getStateConfig } from '@/lib/states';
+import { ANTHROPIC_MODEL } from '@/lib/ai-config';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -171,29 +172,22 @@ export async function POST(req: Request) {
     // contextMessage changes every call (phase data, missing fields),
     // so it sits AFTER the cache breakpoint and is always fresh.
     // ═══════════════════════════════════════════════════════════════
-    const response = await anthropic.messages.create(
-      {
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        system: [
-          {
-            type: 'text',
-            text: stateConfig.systemPrompt,
-            cache_control: { type: 'ephemeral', ttl: '1h' },
-          },
-          {
-            type: 'text',
-            text: contextMessage,
-          },
-        ],
-        messages: sanitizedMessages,
-      },
-      {
-        headers: {
-          'anthropic-beta': 'extended-cache-ttl-2025-04-11',
+    const response = await anthropic.messages.create({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 1500,
+      system: [
+        {
+          type: 'text',
+          text: stateConfig.systemPrompt,
+          cache_control: { type: 'ephemeral' },
         },
-      }
-    );
+        {
+          type: 'text',
+          text: contextMessage,
+        },
+      ],
+      messages: sanitizedMessages,
+    });
 
     // ═══════════════════════════════════════════════════════════════
     // CACHE PERFORMANCE LOGGING

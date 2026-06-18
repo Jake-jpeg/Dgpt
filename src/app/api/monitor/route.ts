@@ -1,7 +1,7 @@
 // DivorceGPT State Law & Rule Monitor
 // POST /api/monitor — checks all registered states against current court rules
 // GET /api/monitor — returns last check results (no new check)
-// 
+//
 // Callable via cron job (monthly recommended)
 // Uses AI with web_search tool to check official court websites
 // Sends email alert to admin@divorcegpt.com on detected changes
@@ -11,6 +11,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
 import { getAllRegistryEntries, type StateRegistryEntry } from '@/lib/monitor-registry';
+import { ANTHROPIC_MODEL } from '@/lib/ai-config';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -36,7 +37,7 @@ interface MonitorResult {
 
 async function checkState(entry: StateRegistryEntry): Promise<MonitorResult> {
   const checkedAt = new Date().toISOString();
-  
+
   try {
     const prompt = `You are a legal research assistant monitoring state divorce laws and court rules for changes.
 
@@ -102,7 +103,7 @@ CRITICAL: Only flag actual RULE or STATUTE changes. Ignore cosmetic website chan
 CRITICAL: Form revision date changes are ALWAYS at least HIGH urgency — they mean the court has updated the form and our generated PDFs may be non-compliant.`;
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: ANTHROPIC_MODEL,
       max_tokens: 2000,
       tools: [{
         type: 'web_search_20250305',
@@ -132,7 +133,7 @@ CRITICAL: Form revision date changes are ALWAYS at least HIGH urgency — they m
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
-    
+
     return {
       stateCode: entry.stateCode,
       stateName: entry.stateName,
@@ -155,17 +156,17 @@ CRITICAL: Form revision date changes are ALWAYS at least HIGH urgency — they m
 }
 
 async function sendAlertEmail(results: MonitorResult[]): Promise<boolean> {
-  const alertResults = results.filter(r => 
+  const alertResults = results.filter(r =>
     r.status === 'CHANGES_DETECTED' || r.status === 'REVIEW_RECOMMENDED' || r.status === 'ERROR'
   );
-  
+
   if (alertResults.length === 0) return false;
 
   const emailBody = alertResults.map(r => {
     const statusEmoji = r.status === 'CHANGES_DETECTED' ? '🚨' : r.status === 'REVIEW_RECOMMENDED' ? '⚠️' : '❌';
     let section = `${statusEmoji} ${r.stateName} (${r.stateCode.toUpperCase()}) — ${r.status}\n`;
     section += `Summary: ${r.summary}\n`;
-    
+
     if (r.changes.length > 0) {
       section += '\nChanges detected:\n';
       for (const change of r.changes) {
@@ -174,12 +175,12 @@ async function sendAlertEmail(results: MonitorResult[]): Promise<boolean> {
         section += `    Source: ${change.sourceUrl}\n`;
       }
     }
-    
+
     return section;
   }).join('\n---\n\n');
 
   const allClear = results.filter(r => r.status === 'NO_CHANGES');
-  
+
   const fullBody = `DivorceGPT State Law Monitor — ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
 
 ${alertResults.length} state(s) require attention. ${allClear.length} state(s) confirmed current.
@@ -196,24 +197,46 @@ Do NOT reply to this email. Review the flagged changes and update the state conf
 Monitor registry: src/lib/monitor-registry.ts
 `;
 
-  // Use the existing send-session-email infrastructure or Google Workspace SMTP
+  // Send the alert email DIRECTLY via Resend.
+  // Previously this did fetch(`${NEXT_PUBLIC_APP_URL || 'localhost:3000'}/api/send-monitor-alert`),
+  // which silently failed in production whenever NEXT_PUBLIC_APP_URL was unset
+  // (the container POSTed to its own localhost:3000 and got nothing). Calling
+  // Resend directly removes that point of failure entirely.
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'DivorceGPT <noreply@divorcegpt.com>';
+  const ALERT_TO = process.env.MONITOR_ALERT_TO || 'admin@divorcegpt.com';
+  const subject = `[DivorceGPT Monitor] ${alertResults.length} state(s) flagged — ${alertResults.map(r => r.stateCode.toUpperCase()).join(', ')}`;
+
+  if (!RESEND_API_KEY) {
+    console.error('RESEND_API_KEY not configured — logging monitor alert to console instead');
+    console.log(`=== MONITOR ALERT (no email key) ===\nTo: ${ALERT_TO}\nSubject: ${subject}\n\n${fullBody}`);
+    return false;
+  }
+
   try {
-    // Try using the existing email API if available
-    const emailApiUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const res = await fetch(`${emailApiUrl}/api/send-monitor-alert`, {
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+      },
       body: JSON.stringify({
-        to: 'admin@divorcegpt.com',
-        subject: `[DivorceGPT Monitor] ${alertResults.length} state(s) flagged — ${alertResults.map(r => r.stateCode.toUpperCase()).join(', ')}`,
-        body: fullBody,
+        from: FROM_EMAIL,
+        to: [ALERT_TO],
+        subject,
+        text: fullBody,
       }),
     });
-    return res.ok;
+    if (!res.ok) {
+      console.error('Resend monitor alert failed:', await res.text());
+      console.log('=== MONITOR ALERT (email failed) ===');
+      console.log(fullBody);
+      return false;
+    }
+    return true;
   } catch (error) {
     console.error('Failed to send monitor alert email:', error);
-    // Log the alert to console as fallback
-    console.log('=== MONITOR ALERT (email failed) ===');
+    console.log('=== MONITOR ALERT (email threw) ===');
     console.log(fullBody);
     return false;
   }
@@ -229,7 +252,7 @@ export async function POST(req: Request) {
     }
 
     const entries = getAllRegistryEntries();
-    
+
     if (entries.length === 0) {
       return NextResponse.json({ message: 'No states registered', results: [] });
     }
@@ -267,7 +290,7 @@ export async function POST(req: Request) {
 // GET: Return info about the monitor (no check triggered)
 export async function GET() {
   const entries = getAllRegistryEntries();
-  
+
   return NextResponse.json({
     registeredStates: entries.map(e => ({
       stateCode: e.stateCode,

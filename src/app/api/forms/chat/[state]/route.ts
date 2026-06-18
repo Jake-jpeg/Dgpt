@@ -8,6 +8,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
 import { getStateConfig } from '@/lib/states';
+import { ANTHROPIC_MODEL } from '@/lib/ai-config';
 import {
   verifySessionToken,
   extractSessionToken,
@@ -442,32 +443,31 @@ export async function POST(
 
     contextMessage += ']';
 
-    // ── Call Anthropic (with prompt caching, 1-hour TTL) ────
-    // 1h TTL chosen to survive user think-time across a full intake session.
-    // Requires extended-cache-ttl beta header.
-    const response = await anthropic.messages.create(
-      {
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        system: [
-          {
-            type: 'text',
-            text: stateConfig.systemPrompt,
-            cache_control: { type: 'ephemeral', ttl: '1h' },
-          },
-          {
-            type: 'text',
-            text: contextMessage,
-          },
-        ],
-        messages: sanitizedMessages,
-      },
-      {
-        headers: {
-          'anthropic-beta': 'extended-cache-ttl-2025-04-11',
+    // ── Call Anthropic (with prompt caching) ────────────────
+    // The state systemPrompt (~14K tokens) is identical for every user
+    // of this state, so the cache entry is SHARED across users. With a
+    // 1-hour TTL, sparse/sporadic traffic (users arriving >5min but <60min
+    // apart) converts what would be cache *writes* into cache *reads*, and
+    // bridges the document-gathering pauses inside a single session.
+    // contextMessage stays AFTER the breakpoint so it never busts the cache.
+    const response = await anthropic.messages.create({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 1500,
+      system: [
+        {
+          type: 'text',
+          text: stateConfig.systemPrompt,
+          cache_control: { type: 'ephemeral', ttl: '1h' },
         },
-      }
-    );
+        {
+          type: 'text',
+          text: contextMessage,
+        },
+      ],
+      messages: sanitizedMessages,
+    }, {
+      headers: { 'anthropic-beta': 'extended-cache-ttl-2025-04-11' },
+    });
 
     // ── Cache performance logging ──────────────────────────
     const usage = response.usage as {
