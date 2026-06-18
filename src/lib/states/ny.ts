@@ -621,7 +621,7 @@ Packet revision: 2/3/26
 ` + NY_FORM_LANGUAGE;
 
 export const ny: StateConfig = {
-  code: 'ny', name: 'New York', live: true, price: 9900, priceDisplay: '$99',
+  code: 'ny', name: 'New York', live: true, price: 25000, priceDisplay: '$250',
   qualificationQuestions: [
     { id: 'residency', invertLogic: false }, { id: 'children', invertLogic: true },
     { id: 'property', invertLogic: true }, { id: 'support', invertLogic: true },

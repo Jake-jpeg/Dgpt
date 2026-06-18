@@ -44,7 +44,7 @@ export default function Home() {
                 Fast &amp; Affordable Uncontested Divorce Online
               </h1>
               <p className="mt-5 text-lg text-zinc-300 leading-relaxed max-w-xl">
-                Prepare your divorce forms with an automated AI clerk — $99. A self-guided tool for individuals in simple, uncontested cases.
+                Prepare your divorce forms with an automated AI clerk — $250. A self-guided tool for individuals in simple, uncontested cases.
               </p>
 
               {/* Trust Signals */}
@@ -118,7 +118,7 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">Choose Your Path</h3>
-            <p className="mt-4 text-lg text-zinc-600">Simple case? Do it yourself for free, or let AI handle the paperwork for $99.</p>
+            <p className="mt-4 text-lg text-zinc-600">Simple case? Do it yourself for free, or let AI handle the paperwork for $250.</p>
           </div>
           <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto">
 
@@ -135,11 +135,11 @@ export default function Home() {
               <div className="mt-8"><Link href="/free-forms" className="block w-full rounded-full py-3 text-center text-sm font-semibold bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition">Get Free Court Forms →</Link></div>
             </div>
 
-            {/* Card 2: AI-Assisted $99 — blue/gold FEATURED */}
+            {/* Card 2: AI-Assisted $250 — blue/gold FEATURED */}
             <div className="relative rounded-2xl bg-gradient-to-b from-[#1a365d] to-[#234876] p-8 text-white shadow-xl shadow-[#1a365d]/20 ring-2 ring-[#c59d5f] md:-translate-y-4 flex flex-col min-h-[620px]">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2"><span className="inline-flex items-center rounded-full bg-[#c59d5f] px-4 py-1 text-xs font-bold text-white shadow-lg shadow-[#c59d5f]/30">Most Popular</span></div>
               <h4 className="text-xl font-bold text-white">DIY with AI Assistance</h4>
-              <div className="mt-3"><span className="text-4xl font-bold text-[#c59d5f]">$99</span></div>
+              <div className="mt-3"><span className="text-4xl font-bold text-[#c59d5f]">$250</span></div>
               <p className="mt-3 text-sm text-zinc-300">AI prepares your court forms in plain language. You review and file.</p>
               <ul className="mt-6 space-y-3 flex-1">
                 {["AI fills your forms — plain language guidance", "Every field explained before you answer", "State & county-specific documents", "Court filing instructions included", "12-month session access", "Email support"].map((f, i) => (
@@ -166,12 +166,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Select State for $99 AI */}
+      {/* Select State for $250 AI */}
       <section id="states" className="py-24 bg-zinc-50">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h3 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">AI-Assisted Divorce — Select Your State</h3>
-            <p className="mt-4 text-lg text-zinc-600">$99 for a complete court-ready document packet. Eligibility check required.</p>
+            <p className="mt-4 text-lg text-zinc-600">$250 for a complete court-ready document packet. Eligibility check required.</p>
           </div>
           <div className="grid gap-8 md:grid-cols-2">
             {states.map((s) => (
@@ -184,7 +184,7 @@ export default function Home() {
                 <p className={`mt-4 text-sm ${s.live ? "text-zinc-300" : "text-zinc-500"}`}>{s.tagline}</p>
                 <div className={`mt-6 flex items-center justify-between border-t pt-4 ${s.live ? "border-white/10" : "border-zinc-200"}`}>
                   <span className="text-sm text-zinc-400">{s.counties}</span>
-                  {s.live && <span className="text-sm font-semibold text-[#c59d5f]">$99</span>}
+                  {s.live && <span className="text-sm font-semibold text-[#c59d5f]">$250</span>}
                 </div>
                 {s.live && <div className="absolute top-8 right-8 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition-all group-hover:bg-[#c59d5f] group-hover:shadow-lg"><svg className="h-5 w-5 text-white transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg></div>}
               </Link>
@@ -201,7 +201,7 @@ export default function Home() {
           <div className="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
             {[
               { icon: "📋", title: "Free DIY", steps: ["Visit your state court website", "Download official divorce forms", "Fill them out yourself", "File at the courthouse or e-file"] },
-              { icon: "🤖", title: "AI-Assisted ($99)", steps: ["Select your state & qualify", "AI guides you through every field", "Forms prepared in plain language", "Download & file with the court"] },
+              { icon: "🤖", title: "AI-Assisted ($250)", steps: ["Select your state & qualify", "AI guides you through every field", "Forms prepared in plain language", "Download & file with the court"] },
             ].map((p, i) => (
               <div key={i} className="rounded-2xl bg-zinc-50 p-8 ring-1 ring-zinc-100">
                 <span className="text-3xl">{p.icon}</span>
@@ -226,7 +226,7 @@ export default function Home() {
             <div>
               <h4 className="font-semibold text-white mb-3">Services</h4>
               <div className="space-y-2 text-sm">
-                <Link href="#states" className="block text-zinc-400 hover:text-[#c59d5f] transition">AI-Assisted Divorce ($99)</Link>
+                <Link href="#states" className="block text-zinc-400 hover:text-[#c59d5f] transition">AI-Assisted Divorce ($250)</Link>
                 <Link href="/open-source" className="block text-zinc-400 hover:text-[#c59d5f] transition">Open Source</Link>
               </div>
             </div>

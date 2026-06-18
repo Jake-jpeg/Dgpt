@@ -136,8 +136,8 @@ docker run -p 8080:8080 dgpt-pdf
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <div className="rounded-2xl bg-gradient-to-b from-[#1a365d] to-[#234876] p-8 text-center">
             <h3 className="text-xl font-bold text-white">Just want your divorce forms done?</h3>
-            <p className="mt-2 text-sm text-zinc-300">DivorceGPT handles everything for $99. Plain language. Court-ready documents.</p>
-            <Link href="/#states" className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">Get AI Assistance — $99 →</Link>
+            <p className="mt-2 text-sm text-zinc-300">DivorceGPT handles everything for $250. Plain language. Court-ready documents.</p>
+            <Link href="/#states" className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">Get AI Assistance — $250 →</Link>
           </div>
         </div>
       </section>

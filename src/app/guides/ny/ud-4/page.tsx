@@ -318,7 +318,7 @@ export default function UD4Guide() {
             DivorceGPT handles the UD-4, UD-4A, and every other form in your uncontested divorce packet — with plain-language guidance through every field.
           </p>
           <Link href="/" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#c59d5f] px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#c59d5f]/25 hover:bg-[#d4ac6e] hover:shadow-xl transition-all">
-            Get Started — $99 →
+            Get Started — $250 →
           </Link>
           <p className="mt-3 text-xs text-zinc-400">New York &amp; New Jersey · Uncontested · No Children</p>
         </div>

@@ -69,7 +69,7 @@ export default function Home() {
             </Link>
           </div>
           
-          <p className="mt-4 text-sm text-zinc-400">$99 one-time fee · No hidden costs</p>
+          <p className="mt-4 text-sm text-zinc-400">$250 one-time fee · No hidden costs</p>
         </div>
       </section>
 
@@ -84,7 +84,7 @@ export default function Home() {
           <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {[
               { title: "Check Eligibility", desc: "Answer a few questions to confirm this service is right for you." },
-              { title: "Pay $99", desc: "One-time payment. No hidden fees. No subscriptions." },
+              { title: "Pay $250", desc: "One-time payment. No hidden fees. No subscriptions." },
               { title: "Get Your Forms", desc: "Receive your prepared divorce forms ready for filing." },
               { title: "Ask Questions", desc: "Use DivorceGPT to understand any part of the process." },
             ].map((step, index) => (

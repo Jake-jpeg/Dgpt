@@ -63,8 +63,8 @@ export default function FreeFormsPage() {
 
         <div className="mt-12 rounded-2xl bg-gradient-to-b from-[#1a365d] to-[#234876] p-8 text-center">
           <h3 className="text-xl font-bold text-white">Want AI to Fill Out Your Forms?</h3>
-          <p className="mt-2 text-sm text-zinc-300">DivorceGPT walks you through every field in plain language and prepares your complete court-ready packet for $99.</p>
-          <Link href="/#states" className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">Get AI Assistance — $99 →</Link>
+          <p className="mt-2 text-sm text-zinc-300">DivorceGPT walks you through every field in plain language and prepares your complete court-ready packet for $250.</p>
+          <Link href="/#states" className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-[#c59d5f]/30 hover:bg-[#d4ac6e] transition">Get AI Assistance — $250 →</Link>
         </div>
 
         <div className="mt-8 text-center">
