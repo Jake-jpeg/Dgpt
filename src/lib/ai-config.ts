@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
 // AI MODEL CONFIG — single source of truth for the Anthropic model.
 //
-// Flip Sonnet/Opus (or any model) via the ANTHROPIC_MODEL env var —
+// Flip the model via the ANTHROPIC_MODEL env var (Opus by default) —
 // no code edits needed. All API routes import ANTHROPIC_MODEL from here.
 //
 // Default: claude-opus-4-8 (Claude Opus 4.8).
