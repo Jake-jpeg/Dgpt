@@ -457,7 +457,7 @@ export async function POST(
         {
           type: 'text',
           text: stateConfig.systemPrompt,
-          cache_control: { type: 'ephemeral', ttl: '1h' },
+          cache_control: { type: 'ephemeral' },
         },
         {
           type: 'text',
@@ -465,8 +465,6 @@ export async function POST(
         },
       ],
       messages: sanitizedMessages,
-    }, {
-      headers: { 'anthropic-beta': 'extended-cache-ttl-2025-04-11' },
     });
 
     // ── Cache performance logging ──────────────────────────
