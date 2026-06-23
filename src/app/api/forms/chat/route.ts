@@ -72,6 +72,21 @@ function isAtLeastMonthsAgo(date: Date, months: number, canonicalNow: Date): boo
   return date <= threshold;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// LANGUAGE SCOPE GUARD — Korean + English only (deterministic)
+// Latin (English + romanized Korean + court-form names) and Hangul are
+// allowed; a message is blocked only on a RUN (>= 3) of other-script chars.
+// ═══════════════════════════════════════════════════════════════
+const DISALLOWED_SCRIPT = /[\u4e00-\u9fff\u3400-\u4dbf\u3040-\u309f\u30a0-\u30ff\u0400-\u052f\u0600-\u06ff\u0750-\u077f\u0590-\u05ff\u0900-\u097f\u0980-\u09ff\u0e00-\u0e7f\u0370-\u03ff]/g;
+const LANG_SCOPE_THRESHOLD = 3;
+function isDisallowedLanguage(text: string): boolean {
+  const matches = text.match(DISALLOWED_SCRIPT);
+  return !!matches && matches.length >= LANG_SCOPE_THRESHOLD;
+}
+const LANG_SCOPE_NOTICE =
+  'DivorceGPT supports English and Korean only. Please continue in English or Korean.\n\n' +
+  'DivorceGPT는 영어와 한국어만 지원합니다. 영어 또는 한국어로 진행해 주세요.';
+
 export async function POST(req: Request) {
   try {
     const { messages, currentPhase, phase1Data, phase2Data, phase3Data, stateCode } = await req.json();
@@ -83,6 +98,17 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { reply: `State "${resolvedState}" is not yet supported. Check back soon.`, extractedData: null },
         { status: 404 }
+      );
+    }
+
+    // ── Language scope guard (KOR/ENG only) — hard stop before model ──
+    const latestUserMsg = Array.isArray(messages)
+      ? ([...messages].reverse().find((m: { role: string; content: string }) => m.role === 'user')?.content || '')
+      : '';
+    if (isDisallowedLanguage(latestUserMsg)) {
+      return NextResponse.json(
+        { reply: LANG_SCOPE_NOTICE, extractedData: null },
+        { status: 200 }
       );
     }
 

@@ -204,6 +204,26 @@ function detectLanguage(text: string): string {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// LANGUAGE SCOPE GUARD — Korean + English only (deterministic)
+// Allowed scripts: Latin (English + romanized Korean + court-form names/
+// addresses, which are always English) and Hangul (Korean). A message is
+// blocked only when it carries a RUN (>= 3) of characters from other
+// scripts, so a single stray character never hard-stops a real KOR/ENG user.
+// ═══════════════════════════════════════════════════════════════
+const DISALLOWED_SCRIPT = /[\u4e00-\u9fff\u3400-\u4dbf\u3040-\u309f\u30a0-\u30ff\u0400-\u052f\u0600-\u06ff\u0750-\u077f\u0590-\u05ff\u0900-\u097f\u0980-\u09ff\u0e00-\u0e7f\u0370-\u03ff]/g;
+
+const LANG_SCOPE_THRESHOLD = 3;
+
+function isDisallowedLanguage(text: string): boolean {
+  const matches = text.match(DISALLOWED_SCRIPT);
+  return !!matches && matches.length >= LANG_SCOPE_THRESHOLD;
+}
+
+const LANG_SCOPE_NOTICE =
+  'DivorceGPT supports English and Korean only. Please continue in English or Korean.\n\n' +
+  'DivorceGPT는 영어와 한국어만 지원합니다. 영어 또는 한국어로 진행해 주세요.';
+
+// ═══════════════════════════════════════════════════════════════
 // INPUT VALIDATION
 // ═══════════════════════════════════════════════════════════════
 const MAX_MESSAGE_LENGTH = 5000;
@@ -333,6 +353,17 @@ export async function POST(
       return NextResponse.json(
         { reply: 'Invalid message format.', extractedData: null },
         { status: 400 }
+      );
+    }
+
+    // ── Language scope guard (KOR/ENG only) ─────────────────
+    // Hard stop BEFORE the model call if the latest user message is
+    // substantially in a disallowed script. No model call, no extraction.
+    const latestUserMsg = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
+    if (isDisallowedLanguage(latestUserMsg)) {
+      return NextResponse.json(
+        { reply: LANG_SCOPE_NOTICE, extractedData: null },
+        { status: 200 }
       );
     }
 
