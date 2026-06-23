@@ -81,14 +81,14 @@ function TermsContent() {
               <li>Displays plain-language labels identifying what information each form field requests</li>
               <li>Generates PDF packets for your review before filing</li>
               <li>Explains what forms are, what fields mean, and filing procedures</li>
-              <li>Responds in 12 supported languages: English, Spanish, French, Portuguese (Brazilian), Italian, German, Indonesian, Arabic, Chinese (Simplified), Japanese, Hindi, and Korean</li>
+              <li>Responds in English and Korean (한국어) during intake and form explanation</li>
             </ul>
           </section>
 
           <section className="mb-8">
-            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Multilingual Support & Limitations</h2>
+            <h2 className="text-xl font-semibold text-zinc-900 mb-4">Korean & English Support</h2>
             <p className="text-zinc-600 mb-4">
-              DivorceGPT can communicate with you in the 12 languages listed above during the intake and form explanation process. These languages were selected based on Anthropic&apos;s published multilingual benchmark data showing at least 96% accuracy relative to English performance.
+              DivorceGPT can communicate with you in English and Korean during the intake and form explanation process. All court filings are generated in English, as required by the courts.
             </p>
             <p className="text-zinc-600 mb-4">
               <strong>All court filings are generated in English.</strong> New York and New Jersey courts require documents to be filed in English. Regardless of which language you communicate in during the intake process, your final court-ready documents will always be in English.
@@ -100,7 +100,7 @@ function TermsContent() {
               <strong>If your language is not on the supported list,</strong> DivorceGPT will not attempt to respond in that language. You will be directed to proceed in English or consult an attorney who speaks your language.
             </p>
             <p className="text-zinc-600">
-              For all non-English users, we recommend confirming your understanding of the court documents with a licensed attorney who speaks your language before filing. Attorney referral services are available through the <a href="https://www.nysba.org/lawyerreferral/" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#2c5282]">New York State Bar Association</a> and the <a href="https://njsba.com/resources/county-bar-associations/" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#2c5282]">New Jersey State Bar Association</a>. See our <a href="/guides/language-support" className="text-[#1a365d] underline hover:text-[#2c5282]">Language Support</a> page for the full list, accuracy benchmarks, and disclaimers.
+              For Korean-language users, we recommend confirming your understanding of the English court documents with a licensed attorney before filing. Attorney referral services are available through the <a href="https://www.nysba.org/lawyerreferral/" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#2c5282]">New York State Bar Association</a> and the <a href="https://njsba.com/resources/county-bar-associations/" target="_blank" rel="noopener noreferrer" className="text-[#1a365d] underline hover:text-[#2c5282]">New Jersey State Bar Association</a>. See our <a href="/guides/language-support" className="text-[#1a365d] underline hover:text-[#2c5282]">Language Support</a> page for the full list, accuracy benchmarks, and disclaimers.
             </p>
           </section>
 
@@ -210,7 +210,7 @@ function TermsContent() {
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-zinc-900 mb-4">Payment, Access, and Document Generation</h2>
             <p className="text-zinc-600 mb-4">
-              <strong>Payment:</strong> The service fee is $250 USD, payable via Stripe. Payment is required before accessing form preparation features.
+              <strong>Payment:</strong> The service fee is $500 USD, payable via Stripe. Payment is required before accessing form preparation features.
             </p>
             <p className="text-zinc-600 mb-4">
               <strong>Access Window:</strong> Your session is valid for 12 months from the date of purchase. This covers all three phases of the divorce filing process. DivorceGPT does not track court timelines or provide ongoing assistance during this period — the access window is solely for document generation.
@@ -225,7 +225,7 @@ function TermsContent() {
               <strong>Usage Limits:</strong> Each session is limited to 200 AI messages. If you reach this limit before completing all phases, your session ends. This limit exists to ensure fair usage across all users. A new session requires a new purchase.
             </p>
             <p className="text-zinc-600 mb-4">
-              <strong>Session Expiration:</strong> If your session expires after 12 months, you must purchase a new session at the standard rate of $250 USD. A new session requires re-entry of all information. Court processing delays are outside the scope of this service and do not extend your access window.
+              <strong>Session Expiration:</strong> If your session expires after 12 months, you must purchase a new session at the standard rate of $500 USD. A new session requires re-entry of all information. Court processing delays are outside the scope of this service and do not extend your access window.
             </p>
             <p className="text-zinc-600 mb-4">
               <strong>Refund Policy:</strong>
@@ -263,7 +263,7 @@ function TermsContent() {
               <li>DivorceGPT and June Guided Solutions LLC are not liable for any damages arising from your use of this service</li>
               <li>We are not responsible for the outcome of your divorce case</li>
               <li>We are not responsible for errors in court filings or rejections by the court</li>
-              <li>Our total liability is limited to the amount you paid for the service ($250)</li>
+              <li>Our total liability is limited to the amount you paid for the service ($500)</li>
             </ul>
           </section>
 

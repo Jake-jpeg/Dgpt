@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   description: "Get your New York divorce forms prepared and explained in plain language.",
   alternates: {
     canonical: '/ny',
+    languages: { 'en-US': '/ny', 'ko-KR': '/ko/ny', 'x-default': '/ny' },
   },
 };
 

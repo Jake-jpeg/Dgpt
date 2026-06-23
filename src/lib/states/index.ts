@@ -60,8 +60,8 @@ export const DEFAULT_TIERS: PricingTier[] = [
   {
     id: 'pro_se',
     label: 'DIY Divorce Packet',
-    price: 25000,
-    priceDisplay: '$250',
+    price: 50000,
+    priceDisplay: '$500',
     description: 'AI-prepared court forms for simple, uncontested cases. You file it yourself.',
     features: [
       'Complete court-ready document packet',

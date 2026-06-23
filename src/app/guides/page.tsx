@@ -5,19 +5,11 @@ import type { Metadata } from "next";
 
 const guides = [
   {
-    state: "OSS",
-    title: "DivorceGPT is Open Source — Download the Full Source Code",
-    description: "The entire codebase — frontend, PDF server, qualification flow, everything — is free and MIT licensed. Clone it, deploy it, add your state.",
-    href: "/open-source",
-    tags: ["GitHub", "MIT License", "Free"],
-    pinned: true,
-  },
-  {
     state: "ALL",
-    title: "Supported Languages — Multilingual AI Assistance",
-    description: "DivorceGPT supports 12 languages. See the full list, accuracy benchmarks from Anthropic, and important disclaimers for non-English speakers.",
+    title: "Language Support — Korean & English (한국어 지원)",
+    description: "DivorceGPT operates in Korean and English. All court filings are generated in English; intake and guidance are available in Korean.",
     href: "/guides/language-support",
-    tags: ["Languages", "Multilingual", "AI Accuracy"],
+    tags: ["한국어", "Korean", "English"],
     pinned: true,
   },
   {

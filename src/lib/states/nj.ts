@@ -366,17 +366,12 @@ When all collected:
 \`\`\`
 
 ═══════════════════════════════════════════════════════════════
-LANGUAGE SUPPORT
+LANGUAGE SUPPORT — KOREAN & ENGLISH ONLY
 ═══════════════════════════════════════════════════════════════
 
-SUPPORTED LANGUAGES (12):
-English, Spanish, French, Portuguese (Brazilian), Italian, German, Indonesian, Arabic, Chinese (Simplified), Japanese, Hindi, Korean.
+SUPPORTED LANGUAGES (2): English and Korean (한국어). These are the ONLY two languages DivorceGPT supports.
 
-IMPORTANT — Chinese (Simplified) IS a supported language. If a user writes in Chinese characters (e.g., 中文, 我想离婚), respond in Chinese. Do NOT reject Chinese or claim it is unsupported. This is a confirmed supported language at 97.1% accuracy.
-
-IMPORTANT — Korean (한국어) IS a supported language. If a user writes in Korean characters (e.g., 한국어, 이혼하고 싶습니다), respond in Korean. Do NOT reject Korean or claim it is unsupported. This is a confirmed supported language at 96.6% accuracy.
-
-If the user communicates in one of these supported languages, respond in that language. Explain form fields, filing instructions, and the process in that language. All form data (names, addresses, etc.) must still be collected in English for court documents.
+If the user writes in Korean (e.g., 한국어, 이혼하고 싶습니다), respond in Korean. If the user writes in English, respond in English. You may explain form fields, filing instructions, and the process in either language. All form data (names, addresses, etc.) must still be collected in English for the court documents.
 
 CRITICAL — LANGUAGE CONSISTENCY FOR ALL RESPONSE TYPES:
 This rule applies to EVERY response you generate, including:
@@ -384,17 +379,17 @@ This rule applies to EVERY response you generate, including:
 - Scope limitation explanations (children, military, DV, etc.)
 - Error messages and validation warnings
 - FAQ answers and system explanations
-If the user has been communicating in a supported language, ALL of the above MUST be delivered in that language. Do NOT fall back to English for guardrail or canned responses when the conversation is in another language.
+If the user has been communicating in Korean, ALL of the above MUST be delivered in Korean. Do NOT fall back to English for guardrail or canned responses when the conversation is in Korean.
 
-UNSUPPORTED LANGUAGES:
-If the user communicates in a language NOT on the supported list above, respond in English with:
-"DivorceGPT does not officially support [detected language]. For your protection, we recommend proceeding in English or consulting an attorney who speaks your language. You can find an attorney through the New Jersey State Bar Association (njsba.com) or the New York State Bar Association Lawyer Referral Service (nysba.org/lawyerreferral). Would you like to continue in English?"
+ANY OTHER LANGUAGE:
+If the user communicates in any language OTHER than English or Korean, respond in English with:
+"DivorceGPT supports English and Korean only. For your protection, we recommend proceeding in English or Korean, or consulting an attorney who speaks your language. Would you like to continue in English or Korean?"
 
-Do NOT attempt to respond in the unsupported language. Do NOT guess at translations. This is a structural guardrail, not a suggestion.
+Do NOT attempt to respond in any language other than English or Korean. Do NOT guess at translations. This is a structural guardrail, not a suggestion.
 
 NON-ENGLISH COMPREHENSION CHECK:
-When a non-English session reaches the end of any phase (phase1Complete, phase2Complete, or phase3Complete), add this note in the user's language:
-"Before you file these documents, please review them carefully. The court forms are in English. If you are not confident reading the English documents, we recommend having them reviewed by someone fluent in English or by a licensed attorney who speaks your language."
+When a Korean-language session reaches the end of any phase (phase1Complete, phase2Complete, or phase3Complete), add this note in Korean:
+"Before you file these documents, please review them carefully. The court forms are in English. If you are not confident reading the English documents, we recommend having them reviewed by someone fluent in English or by a licensed attorney."
 
 ═══════════════════════════════════════════════════════════════
 INITIAL GREETING
@@ -446,7 +441,7 @@ Packet revision: 3/8/26 — v4
 ` + NJ_FORM_LANGUAGE;
 
 export const nj: StateConfig = {
-  code: 'nj', name: 'New Jersey', live: false, price: 25000, priceDisplay: '$250',
+  code: 'nj', name: 'New Jersey', live: true, price: 50000, priceDisplay: '$500',
   qualificationQuestions: [
     { id: 'residency', invertLogic: false },
     { id: 'children', invertLogic: true },

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import LanguageToggle from "../../components/LanguageToggle";
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -29,10 +30,11 @@ export default function Home() {
                 <span className="text-lg">⚖️</span>
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-zinc-900">DivorceGPT</h1>
+                <h1 className="text-lg font-semibold text-zinc-900" translate="no">DivorceGPT</h1>
                 <p className="text-xs text-zinc-500">New York Uncontested Divorce</p>
               </div>
             </Link>
+            <LanguageToggle />
           </div>
         </div>
       </header>
@@ -54,7 +56,7 @@ export default function Home() {
           </p>
 
           <p className="mt-4 text-sm text-zinc-400">
-            Multilingual support available — <Link href="/guides/language-support" className="underline hover:text-white transition">see supported languages</Link>
+            Korean speakers: <Link href="/ko/ny" className="underline hover:text-white transition">한국어로 보기 →</Link>
           </p>
 
           <div className="mt-10">
@@ -69,7 +71,7 @@ export default function Home() {
             </Link>
           </div>
           
-          <p className="mt-4 text-sm text-zinc-400">$250 one-time fee · No hidden costs</p>
+          <p className="mt-4 text-sm text-zinc-400">$500 one-time fee · No hidden costs</p>
         </div>
       </section>
 
@@ -84,7 +86,7 @@ export default function Home() {
           <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {[
               { title: "Check Eligibility", desc: "Answer a few questions to confirm this service is right for you." },
-              { title: "Pay $250", desc: "One-time payment. No hidden fees. No subscriptions." },
+              { title: "Pay $500", desc: "One-time payment. No hidden fees. No subscriptions." },
               { title: "Get Your Forms", desc: "Receive your prepared divorce forms ready for filing." },
               { title: "Ask Questions", desc: "Use DivorceGPT to understand any part of the process." },
             ].map((step, index) => (
@@ -183,7 +185,7 @@ export default function Home() {
             {[
               { q: "Is this legal advice?", a: "No. DivorceGPT explains what divorce forms ask for and how to file them. It does not provide legal advice. For legal advice, consult an attorney." },
               { q: "What technology powers DivorceGPT?", a: "DivorceGPT uses advanced AI technology via a secure commercial API. Under our API provider's terms, your inputs are not used for AI model training and are automatically deleted within days. June Guided Solutions, LLC (the company behind DivorceGPT) does not retain any chat history or conversation data. If you need support, you must provide your own screenshot of the conversation — we have no way to retrieve it." },
-              { q: "Does DivorceGPT support other languages?", a: "Yes. DivorceGPT can communicate in 12 supported languages including Spanish, Chinese, Korean, Hindi, Arabic, and more. All court filings are generated in English as required by New York courts. See our Language Support page for the full list and important disclaimers." },
+              { q: "Does DivorceGPT support Korean?", a: "Yes. DivorceGPT operates in Korean and English. Use the 한국어 / EN switch at the top of the page to work in Korean. All court filings are generated in English as required by New York courts. See our Language Support page for details." },
               { q: "How long does the process take?", a: "You can complete your forms in minutes, but the overall divorce process takes time — the court needs to process filings between each phase. Timeline varies by county. Your session remains valid for 12 months to cover even the slowest courts." },
               { q: "How do I access my session?", a: "After payment, you'll be redirected to your session page. Bookmark this page — the URL is your access link. There are no accounts or passwords." },
               { q: "What if my spouse won't cooperate?", a: "This service is for uncontested divorces where both spouses agree. If your spouse won't cooperate, you may need a contested divorce attorney." },

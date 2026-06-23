@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     // ---------------------------------------------------------------------------
     // Resolve pricing: tier-based if provided, else legacy flat price
     // ---------------------------------------------------------------------------
-    let unitAmount = stateConfig?.price || 25000; // fallback to $250
+    let unitAmount = stateConfig?.price || 50000; // fallback to $500
     let productName = stateConfig?.stripeProductName || 'DivorceGPT';
     let productDescription = stateConfig?.stripeProductDescription || '';
     let tierId = tier || 'pro_se';

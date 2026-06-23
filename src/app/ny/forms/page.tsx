@@ -130,7 +130,7 @@ function FormsContent() {
           // reset the completion flag. Prevents corrupt/stale sessions.
           // ═══════════════════════════════════════════════════════════
           const p1 = existingSession.phase1Data || {};
-          const p1Fields = ['plaintiffName', 'defendantName', 'qualifyingCounty', 'qualifyingParty', 
+          const p1Fields = ['plaintiffName', 'defendantName', 'qualifyingCounty', 'qualifyingParty', 'residencyType',
                            'qualifyingAddress', 'plaintiffPhone', 'plaintiffAddress', 'defendantAddress', 'ceremonyType'];
           const p1Valid = p1Fields.every(f => (p1 as Record<string, string>)[f]);
           let wasRepaired = false;
@@ -309,7 +309,7 @@ function FormsContent() {
       const data = await res.json();
       if (data.extractedData) {
         // Route fields to correct phase based on field name, not current phase
-        const phase1Fields = ['plaintiffName', 'defendantName', 'qualifyingCounty', 'qualifyingParty', 
+        const phase1Fields = ['plaintiffName', 'defendantName', 'qualifyingCounty', 'qualifyingParty', 'residencyType',
                              'qualifyingAddress', 'plaintiffPhone', 'plaintiffAddress', 'defendantAddress', 'ceremonyType'];
         const phase2Fields = ['indexNumber', 'summonsDate', 'marriageDate', 'marriageCity', 'marriageCounty', 'marriageState', 'breakdownDate'];
         const phase3Fields = ['judgmentEntryDate', 'defendantCurrentAddress'];
@@ -466,6 +466,15 @@ function FormsContent() {
           alert('Failed to generate UD-1. Please try again.');
         }
       } else if (currentPhase === 2) {
+        // FLAG C FIX: the DRL §230 residency ground populates the sworn UD-6
+        // (Para 2). It must be the user's actual selection (A–F), never a
+        // hardcoded default. Block generation rather than stamp a false oath.
+        const residencyGround = (phase1Data.residencyType || '').toString().trim().toUpperCase();
+        if (!/^[A-F]$/.test(residencyGround)) {
+          alert('Before generating Phase 2, you must confirm your residency ground under DRL §230 (Option A–F). Ask in the chat which option matches your facts — the UD-6 is sworn under penalty of perjury and cannot be auto-filled.');
+          setIsGenerating(false);
+          return;
+        }
         // Generate Phase 2 package using Python PDF microservice
         const formData = {
           plaintiffName: phase1Data.plaintiffName || '',
@@ -487,7 +496,7 @@ function FormsContent() {
           // Additional fields for UD-5, UD-6
           serviceWithinNY: true,
           defendantAppeared: true,
-          residencyType: 'A',
+          residencyType: residencyGround,
         };
         
         try {
@@ -681,7 +690,7 @@ function FormsContent() {
           </ul>
         </div>
         <Link href="/ny/qualify" className="inline-block rounded-full bg-[#c59d5f] px-6 py-3 text-white hover:bg-[#d4ac6e]">
-          Start New Session ($250)
+          Start New Session ($500)
         </Link>
       </div>
     </div>
@@ -709,7 +718,7 @@ function FormsContent() {
           </ul>
         </div>
         <Link href="/ny/qualify" className="inline-block rounded-full bg-[#c59d5f] px-6 py-3 text-white hover:bg-[#d4ac6e]">
-          Start New Session ($250)
+          Start New Session ($500)
         </Link>
       </div>
     </div>
@@ -1081,7 +1090,7 @@ function FormsContent() {
           <div className="flex items-center gap-3 text-[10px] text-zinc-400">
             <span>Powered by Claude AI</span>
             <span>·</span>
-            <Link href="/guides/language-support" target="_blank" className="hover:text-[#1a365d] transition">12 Languages Supported</Link>
+            <Link href="/guides/language-support" target="_blank" className="hover:text-[#1a365d] transition">한국어 · English</Link>
             <span>·</span>
             <Link href="/privacy" target="_blank" className="hover:text-[#1a365d] transition">Privacy</Link>
             <span>·</span>

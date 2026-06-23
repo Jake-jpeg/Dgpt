@@ -1,31 +1,41 @@
 import type { Metadata, Viewport } from "next";
-// 1. This imports your Tailwind styles so the site looks good
-import "./globals.css"; 
-// 2. This imports the engine we just built
-import { LanguageProvider } from "../components/LanguageProvider"; 
+import { headers } from "next/headers";
+import "./globals.css";
+import { LanguageProvider } from "../components/LanguageProvider";
 
 export const metadata: Metadata = {
   title: "DivorceGPT by June Guided Solutions, LLC",
-  description: "AI-powered divorce form preparation — plain language, no lawyer needed.",
-  metadataBase: new URL('https://divorcegpt.com'),
+  description: "AI-powered divorce form preparation — plain language, no lawyer needed. Korean & English.",
+  metadataBase: new URL("https://divorcegpt.com"),
   alternates: {
-    canonical: '/',
+    canonical: "/",
+    languages: {
+      "en-US": "/",
+      "ko-KR": "/ko",
+      "x-default": "/",
+    },
   },
 };
 
 export const viewport: Viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
   maximumScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Set <html lang> per locale so Korean pages serve lang="ko" to crawlers
+  // and browsers (your curated Korean wins over Chrome auto-translate).
+  const h = await headers();
+  const path = h.get("x-url-path") || "";
+  const lang = path === "/ko" || path.startsWith("/ko/") ? "ko" : "en";
+
   return (
-    <html lang="en">
+    <html lang={lang}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18006427996"></script>
@@ -41,10 +51,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased bg-zinc-50">
-        {/* 3. We wrap the whole app here so every page can access the dictionary */}
-        <LanguageProvider>
-          {children}
-        </LanguageProvider>
+        <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>
   );

@@ -172,10 +172,10 @@ export default function FilingFeesGuide() {
         <section className="mb-14">
           <h2 className="text-2xl font-bold text-zinc-900 mb-4">What About DivorceGPT&apos;s Fee?</h2>
           <p className="text-zinc-700 leading-relaxed mb-4">
-            DivorceGPT charges <strong>$250</strong> for AI-assisted document preparation. This is a document preparation fee — not a court filing fee. It covers the preparation of your complete court-ready document packet with plain-language guidance through every field.
+            DivorceGPT charges <strong>$500</strong> for AI-assisted document preparation. This is a document preparation fee — not a court filing fee. It covers the preparation of your complete court-ready document packet with plain-language guidance through every field.
           </p>
           <p className="text-zinc-700 leading-relaxed">
-            The $250 is separate from the $335 in court fees. Your total out-of-pocket cost for an uncontested divorce using DivorceGPT would be approximately <strong>$585</strong> ($250 + $335), plus any additional costs for service of process or certified copies.
+            The $500 is separate from the $335 in court fees. Your total out-of-pocket cost for an uncontested divorce using DivorceGPT would be approximately <strong>$835</strong> ($500 + $335), plus any additional costs for service of process or certified copies.
           </p>
         </section>
 
@@ -195,7 +195,7 @@ export default function FilingFeesGuide() {
                 <tr><td className="px-5 py-3 text-zinc-700">Index Number</td><td className="px-5 py-3 text-right font-semibold text-zinc-900">$210</td><td className="px-5 py-3 text-zinc-500">At filing</td></tr>
                 <tr><td className="px-5 py-3 text-zinc-700">Note of Issue + RJI</td><td className="px-5 py-3 text-right font-semibold text-zinc-900">$125</td><td className="px-5 py-3 text-zinc-500">When submitting for review</td></tr>
                 <tr className="bg-[#1a365d]/5"><td className="px-5 py-3 font-bold text-[#1a365d]">Total (Court Fees)</td><td className="px-5 py-3 text-right font-bold text-[#1a365d]">$335</td><td className="px-5 py-3 text-zinc-500">Mandatory</td></tr>
-                <tr><td className="px-5 py-3 text-zinc-700">DivorceGPT Document Prep</td><td className="px-5 py-3 text-right font-semibold text-zinc-900">$250</td><td className="px-5 py-3 text-zinc-500">Optional</td></tr>
+                <tr><td className="px-5 py-3 text-zinc-700">DivorceGPT Document Prep</td><td className="px-5 py-3 text-right font-semibold text-zinc-900">$500</td><td className="px-5 py-3 text-zinc-500">Optional</td></tr>
                 <tr><td className="px-5 py-3 text-zinc-700">Certified Judgment Copy</td><td className="px-5 py-3 text-right font-semibold text-zinc-900">~$8+</td><td className="px-5 py-3 text-zinc-500">After judgment</td></tr>
                 <tr><td className="px-5 py-3 text-zinc-700">Certificate of Dissolution (DOH-2168)</td><td className="px-5 py-3 text-right font-semibold text-zinc-900">$5</td><td className="px-5 py-3 text-zinc-500">With final judgment</td></tr>
                 <tr><td className="px-5 py-3 text-zinc-700">Process Server (if needed)</td><td className="px-5 py-3 text-right font-semibold text-zinc-900">$85–$150</td><td className="px-5 py-3 text-zinc-500">During service</td></tr>
@@ -210,10 +210,10 @@ export default function FilingFeesGuide() {
         <div className="rounded-2xl bg-gradient-to-b from-[#1a365d] to-[#234876] p-8 text-center">
           <h3 className="text-xl font-bold text-white mb-3">Ready to Prepare Your Divorce Documents?</h3>
           <p className="text-sm text-zinc-300 mb-6 max-w-lg mx-auto">
-            DivorceGPT prepares your complete court-ready document packet for $250 — with plain-language guidance through every field.
+            DivorceGPT prepares your complete court-ready document packet for $500 — with plain-language guidance through every field.
           </p>
           <Link href="/" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#c59d5f] px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#c59d5f]/25 hover:bg-[#d4ac6e] hover:shadow-xl transition-all">
-            Get Started — $250 →
+            Get Started — $500 →
           </Link>
           <p className="mt-3 text-xs text-zinc-400">New York &amp; New Jersey · Uncontested · No Children</p>
         </div>

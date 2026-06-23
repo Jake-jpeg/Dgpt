@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLanguage } from "../../../components/LanguageProvider";
+import LanguageToggle from "../../../components/LanguageToggle";
 
 type Answers = Record<string, boolean | null>;
 
@@ -112,7 +113,7 @@ export default function NJQualifyPage() {
     <div className="min-h-screen bg-zinc-50">
       <header className="sticky top-0 z-50 backdrop-blur-sm bg-white/80 border-b border-zinc-100">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center">
+          <div className="flex h-16 items-center justify-between">
             <Link href="/nj" className="flex items-center gap-3 transition hover:opacity-80">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#1a365d] to-[#2c5282] shadow-lg shadow-[#1a365d]/20">
                 <span className="text-lg">⚖️</span>
@@ -122,6 +123,7 @@ export default function NJQualifyPage() {
                 <p className="text-xs text-zinc-500">New Jersey — Qualification</p>
               </div>
             </Link>
+            <LanguageToggle />
           </div>
         </div>
       </header>
@@ -216,7 +218,7 @@ export default function NJQualifyPage() {
             
             <div className="mt-6 rounded-2xl bg-white p-8 shadow-sm ring-1 ring-zinc-100">
               <p className="text-sm text-zinc-500">DIY Divorce Packet</p>
-              <p className="text-4xl font-bold text-[#1a365d]">$250</p>
+              <p className="text-4xl font-bold text-[#1a365d]">$500</p>
               <p className="mt-1 text-sm text-zinc-500">One-time payment · 12-month access</p>
             </div>
             
@@ -224,7 +226,7 @@ export default function NJQualifyPage() {
               onClick={() => { window.location.href = "/nj/agree?tier=pro_se"; }}
               className="mt-8 group inline-flex items-center gap-2 rounded-full bg-[#c59d5f] px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-[#c59d5f]/30 transition-all duration-200 hover:bg-[#d4ac6e] hover:shadow-2xl hover:-translate-y-0.5"
             >
-              Continue with DIY ($250)
+              Continue with DIY ($500)
               <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>

@@ -47,17 +47,31 @@ export function LanguageProvider({ children, initialState }: { children: ReactNo
     setMounted(true);
   }, [pathname]);
 
+  // Restore saved language preference on mount (Korean + English only)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("dgpt_lang");
+      if (saved === "ko" || saved === "en") setLangState(saved);
+    } catch {}
+  }, []);
+
   const setLang = (newLang: string) => {
-    setLangState(newLang);
+    const next = newLang === "ko" ? "ko" : "en";
+    setLangState(next);
+    try {
+      localStorage.setItem("dgpt_lang", next);
+      document.documentElement.lang = next;
+    } catch {}
   };
 
   const setState = (newState: string) => {
     setStateValue(newState);
   };
 
-  // Always use English dictionary — multilingual is now handled by AI at the chat level
+  // Korean + English only. The toggle drives the static-UI dictionary;
+  // the AI chat layer is constrained to Korean + English server-side.
   const currentDict = stateDictionaries[state] || dictionary;
-  const t = currentDict.en;
+  const t = (lang === "ko" ? currentDict.ko : currentDict.en) || currentDict.en;
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, t, state, setState }}>

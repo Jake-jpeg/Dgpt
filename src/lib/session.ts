@@ -10,6 +10,7 @@ export interface Phase1Data {
   defendantName: string;
   qualifyingCounty: string;
   qualifyingParty: 'plaintiff' | 'defendant' | '';
+  residencyType: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | ''; // DRL §230 ground (user-selected)
   qualifyingAddress: string;
   plaintiffPhone: string;
   plaintiffAddress: string;
