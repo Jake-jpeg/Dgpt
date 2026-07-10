@@ -1,16 +1,25 @@
 /**
- * DEV AUTH STUB — local testing without real OAuth credentials.
+ * TEST SIGN-IN — testing without real OAuth credentials. Two distinct paths:
  *
- * Two independent locks (see devAuthStubEnabled):
- *   1. DEV_AUTH_STUB=true must be set explicitly, AND
- *   2. NODE_ENV must not be "production" — in production this endpoint is a
- *      404 regardless of env flags.
+ * 1. DEV AUTH STUB (non-production only): DEV_AUTH_STUB=true and NODE_ENV is
+ *    not "production". Unchanged.
  *
- * Attorney dev-logins still must pass the ATTORNEY_EMAILS allowlist, so the
- * RBAC path exercised in dev is the same one used in production.
+ * 2. BETA TEST LOGIN (production, closed testing only): ALL of —
+ *      a. BETA_TEST_LOGIN=true set explicitly in the environment, AND
+ *      b. the beta access gate is up (FREE_ACCESS_KEYS non-empty), AND
+ *      c. the caller has ALREADY cleared the gate (valid beta-key cookie).
+ *    A production deployment with the gate off never exposes this endpoint,
+ *    no matter what flags are set.
+ *
+ *    ⚠ While BETA_TEST_LOGIN is on, anyone holding a beta key can sign in as
+ *    any email — identity is NOT verified. Closed testing with synthetic
+ *    data only. Remove the flag before opening the site.
+ *
+ * Attorney test-logins still must pass the ATTORNEY_EMAILS allowlist, so the
+ * RBAC path exercised here is the same one used with real OAuth.
  */
 import { z } from "zod";
-import { devAuthStubEnabled } from "@/lib/env";
+import { testLoginAllowed } from "@/lib/auth/test-login";
 import { createSessionToken, sessionCookieHeader } from "@/lib/auth/session";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertRateLimit } from "@/lib/security/rate-limit";
@@ -18,7 +27,7 @@ import { assertCsrf } from "@/lib/security/csrf";
 
 export async function POST(req: Request) {
   try {
-    if (!devAuthStubEnabled()) throw new HttpError(404, "Not found");
+    if (!testLoginAllowed(req)) throw new HttpError(404, "Not found");
     assertRateLimit(req, "login");
     assertCsrf(req);
 

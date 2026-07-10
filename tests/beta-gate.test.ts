@@ -166,6 +166,48 @@ describe("unlock endpoint", () => {
   });
 });
 
+describe("beta test login (production, closed testing only)", () => {
+  const devLogin = async (cookie?: string) => {
+    const { POST } = await import("@/app/api/auth/dev-login/route");
+    freshLimits();
+    return POST(
+      jsonRequest("/api/auth/dev-login", {
+        body: { role: "CLIENT", email: "betatester@example.test", name: "Beta Tester" },
+        cookie,
+      })
+    );
+  };
+
+  it("requires ALL THREE: flag on, gate up, valid beta cookie already held", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DEV_AUTH_STUB", "false");
+
+    // Flag off → 404 even with gate + cookie.
+    vi.stubEnv("BETA_TEST_LOGIN", "false");
+    expect((await devLogin(`${BETA_COOKIE}=synthetic-beta-key-1`)).status).toBe(404);
+
+    // Flag on but no beta cookie → 404.
+    vi.stubEnv("BETA_TEST_LOGIN", "true");
+    expect((await devLogin()).status).toBe(404);
+
+    // Flag on, wrong/revoked key in cookie → 404.
+    expect((await devLogin(`${BETA_COOKIE}=revoked-key`)).status).toBe(404);
+
+    // Flag on + gate up + valid key → test sign-in works.
+    const ok = await devLogin(`${BETA_COOKIE}=synthetic-beta-key-1`);
+    expect(ok.status).toBe(200);
+    expect(ok.headers.get("set-cookie")).toContain("dgpt_session=");
+  });
+
+  it("production with the gate OFF never exposes test login, regardless of flags", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DEV_AUTH_STUB", "true"); // even trying to force the dev stub
+    vi.stubEnv("BETA_TEST_LOGIN", "true");
+    process.env.FREE_ACCESS_KEYS = ""; // gate down = public site
+    expect((await devLogin(`${BETA_COOKIE}=synthetic-beta-key-1`)).status).toBe(404);
+  });
+});
+
 describe("DV ship-blocker interplay", () => {
   it("beta-gated production boots (warn only) — closed testing is not shipping", () => {
     vi.stubEnv("NODE_ENV", "production");

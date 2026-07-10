@@ -55,7 +55,13 @@ code from the env var and everyone who used it is locked out on their next
 request, no cookie expiry involved. Leave `FREE_ACCESS_KEYS` empty to open
 the site. The gate is a door, not a login — Google/Microsoft sign-in still
 governs identity behind it. Exempt paths: `/beta`, `/api/beta/*`, and the
-bearer-authed `/api/admin/purge` cron. While the gate is on, a production
+bearer-authed `/api/admin/purge` cron.
+
+For closed testing without OAuth credentials, `BETA_TEST_LOGIN=true` exposes
+the test sign-in **in production** — but only while the gate is up, and only
+to requests already carrying a valid beta-key cookie. Identity is not
+verified on that path; synthetic data only, and remove the flag before
+public launch (the server logs a warning at boot while it's on). While the gate is on, a production
 deploy with the unfilled DV-card placeholder boots with a loud warning
 (closed testing); with the gate off, production still refuses to boot until
 the DV card is filled.

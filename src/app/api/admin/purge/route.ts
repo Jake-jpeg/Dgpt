@@ -11,6 +11,10 @@ import { errorResponse, HttpError } from "@/lib/auth/rbac";
 
 export async function POST(req: Request) {
   try {
+    // Fail closed (not 500) when the secret isn't configured yet.
+    if (!process.env.ADMIN_SECRET) {
+      throw new HttpError(503, "Retention purge is not configured (set ADMIN_SECRET)");
+    }
     const auth = req.headers.get("authorization") ?? "";
     const expected = `Bearer ${env("ADMIN_SECRET")}`;
     if (!auth || auth !== expected) throw new HttpError(401, "Unauthorized");

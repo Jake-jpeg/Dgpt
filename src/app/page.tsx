@@ -104,7 +104,7 @@ export default function Landing() {
 
       {me?.devStub && !me.user && (
         <div className="mt-6 rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 p-6">
-          <h2 className="font-semibold text-amber-800">Dev auth stub (non-production only)</h2>
+          <h2 className="font-semibold text-amber-800">Test sign-in (dev / closed beta only)</h2>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <select
               value={devRole}
@@ -129,7 +129,8 @@ export default function Landing() {
           </div>
           {err && <p className="mt-2 text-sm text-red-600">{err}</p>}
           <p className="mt-2 text-xs text-amber-700">
-            Attorney dev sign-ins must still be on the ATTORNEY_EMAILS allowlist.
+            Identity is not verified here — synthetic test data only. Attorney
+            sign-ins must still be on the ATTORNEY_EMAILS allowlist.
           </p>
         </div>
       )}
