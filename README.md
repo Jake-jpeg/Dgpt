@@ -1,146 +1,166 @@
-# DivorceGPT
+# DivorceGPT 2.0 — Stage 1: Gated Intake
 
-AI-powered document preparation for uncontested divorces. Built by a licensed attorney. Open source under MIT.
+A gated, dual-login web app for a solo NJ family-law practice. It runs a
+structured divorce intake for uncontested NJ cases and hands a completed,
+conflict-cleared intake to the attorney for review.
 
-**Live:** [divorcegpt.com](https://divorcegpt.com)
-**Transparency disclosure:** [divorcegpt.com/transparency](https://divorcegpt.com/transparency)
+**It is not a chatbot and not a legal-advice tool.** The intake "bot" is a
+constrained state machine with retrieval — see [Guardrails](#guardrails).
 
----
-
-## What This Is
-
-DivorceGPT prepares court-ready divorce documents for pro se litigants — people representing themselves in uncontested divorces without an attorney. The system collects information through a conversational AI interface, validates every field server-side, and generates the complete filing package.
-
-Currently supports **New York** and **New Jersey**.
-
-This is not a chatbot that gives legal advice. It is a document preparation tool that adopts the posture of a county courthouse clerk: it explains what forms ask for, translates legalese into plain English, and populates documents based on exactly what the user provides. It does not recommend, predict, or assess.
-
-## Why It Exists
-
-An uncontested divorce with no kids and no property to divide should be straightforward. In practice, the paperwork costs $3,000+ and takes months — not because the law is complex, but because the forms are. DivorceGPT exists to close that gap.
-
-The full story is on the [transparency page](https://divorcegpt.com/transparency).
-
-## Architecture
-
-```
-src/
-├── app/
-│   ├── api/forms/chat/
-│   │   ├── route.ts              # General engine (state-agnostic)
-│   │   └── [state]/route.ts      # Dynamic state route
-│   ├── ny/                       # New York frontend
-│   ├── nj/                       # New Jersey frontend
-│   └── ...
-├── lib/
-│   └── states/
-│       ├── index.ts              # State registry
-│       ├── ny.ts                 # NY system prompt + config
-│       ├── ny-form-language.ts   # NY form descriptions
-│       ├── nj.ts                 # NJ system prompt + config
-│       └── nj-form-language.ts   # NJ form descriptions
-├── components/
-└── middleware.ts                  # Maintenance mode
-```
-
-**How it works:** The chat engine (`route.ts`) is state-agnostic. It loads state-specific AI instructions and field definitions from `lib/states/{code}.ts` at runtime. To add a new state, you create a state config file and register it in `index.ts`. No new routes required.
-
-**Three-phase workflow:** Phase 1 generates the commencement document. The user files it, gets a case number, and returns. Phase 2 generates the full submission package. Phase 3 generates post-judgment service documents.
-
-## Compliance Architecture
-
-DivorceGPT enforces five layers of compliance, described in detail at [divorcegpt.com/transparency](https://divorcegpt.com/transparency):
-
-1. **No legal advice** — The AI is instructed to never recommend, predict, or assess. Hard-prohibited language patterns enforced at the system prompt level.
-2. **Sensitive data redaction** — SSNs, bank accounts, credit cards, and driver's license numbers are stripped server-side before messages reach the AI provider. The system retains no chat data.
-3. **Session termination** — Threats of violence, child safety concerns, fraud requests, and criminal admissions trigger immediate, irreversible session termination with crisis resources.
-4. **Scope enforcement** — Cases involving children, contested assets, spousal maintenance, attorney involvement, active military service, or any domestic violence history are automatically disqualified. DV disqualification is permanent and cannot be retracted.
-5. **Server-side validation** — Every extracted field (names, addresses, dates, phone numbers, case numbers) passes through hard-coded validators. The AI is the interface. The server is the authority.
+Stage 1 scope: auth, the conflict wall, the scope gate, the two-tier intake,
+the ready-for-attorney-review handoff, the attorney review view, security, and
+synthetic-data testing. **Not** in Stage 1: document drafting (Stage 2 — the
+attorney view shows a disabled affordance wired to nothing), payments (never
+in-app, any stage), the custody tier (deferred), in-app scheduling.
 
 ## Stack
 
-- **Framework:** Next.js 16 (App Router)
-- **AI:** Anthropic Claude (Sonnet)
-- **Payments:** Stripe
-- **PDF generation:** Separate ReportLab server (not included in this repo)
-- **Styling:** Tailwind CSS 4
-- **Language:** TypeScript
-- **Deployment:** DigitalOcean
+- Next.js 16 (App Router) + TypeScript + Tailwind 4
+- SQLite via `node:sqlite` (built into Node ≥ 22 — zero native deps). All SQL
+  lives in `src/lib/db/`; migrating to managed Postgres later is a driver swap
+  confined to that directory.
+- Hand-rolled OIDC (authorization code + PKCE, `jose` for JWT/JWKS) — no
+  password storage, no beta auth frameworks.
+- Vitest for the guardrail test suite (77 tests, synthetic data only).
 
-## Setup
-
-### Prerequisites
-
-- Node.js 18+
-- npm
-- Anthropic API key
-- Stripe account (for payment flow)
-
-### Install
+## Quick start
 
 ```bash
-git clone https://github.com/Jake-jpeg/Dgpt.git
-cd Dgpt
 npm install
+cp .env.example .env       # fill in SESSION_SECRET etc.; set DEV_AUTH_STUB=true for local testing
+npm run dev                # http://localhost:3000
+npm test                   # the guardrail suite
 ```
 
-### Environment
+With `DEV_AUTH_STUB=true` (non-production only — it is structurally disabled
+when `NODE_ENV=production`), the landing page shows a dev sign-in that mints
+CLIENT or ATTORNEY sessions without real OAuth. Attorney dev sign-ins must
+still be on the `ATTORNEY_EMAILS` allowlist, so the same RBAC path runs in dev
+and prod.
 
-Copy `.env.example` and fill in your keys:
+Real logins: Google OAuth for clients, Microsoft Entra ID for the attorney
+side. Create the app registrations, set redirect URIs to
+`{APP_URL}/api/auth/callback/google` and `{APP_URL}/api/auth/callback/entra`,
+and fill the env vars. An Entra login whose email is not in `ATTORNEY_EMAILS`
+is rejected at login **and** re-checked on every request.
 
-```bash
-cp .env.example .env
+## Beta access gate
+
+Set `FREE_ACCESS_KEYS` (comma-separated) and the ENTIRE site goes behind
+`/beta`: visitors clear a Cloudflare Turnstile CAPTCHA (if
+`TURNSTILE_SITE_KEY`/`TURNSTILE_SECRET_KEY` are set — otherwise that step is
+skipped), then enter an access code. The code is stored in an httpOnly cookie
+and **re-validated against `FREE_ACCESS_KEYS` on every request** — remove a
+code from the env var and everyone who used it is locked out on their next
+request, no cookie expiry involved. Leave `FREE_ACCESS_KEYS` empty to open
+the site. The gate is a door, not a login — Google/Microsoft sign-in still
+governs identity behind it. Exempt paths: `/beta`, `/api/beta/*`, and the
+bearer-authed `/api/admin/purge` cron. While the gate is on, a production
+deploy with the unfilled DV-card placeholder boots with a loud warning
+(closed testing); with the gate off, production still refuses to boot until
+the DV card is filled.
+
+## The flow
+
+```
+login → PRE_GATE (names only) → conflict check ──HIT──► referral card, purge
+                                     │CLEAR
+                              scope gate (fixed order, server-owned):
+                                residency → venue → DV → children → complexity
+                                     │ any trip → static card, purge
+                              tier branch (assets / alimony)
+                                     │
+                        TIER1 (no kids/assets/alimony)  or  TIER2 (settled ED + agreed maintenance)
+                                     │
+                              READY_FOR_REVIEW → attorney dashboard
 ```
 
-Required variables:
+- The server decides which step is current from the session's machine state
+  (`src/lib/intake/machine.ts`). URL/API manipulation cannot skip a step.
+- On any trip, the session is **purged** — for conflicted, out-of-scope, and
+  abandoned sessions the DB retains only a minimal audit trail (event codes;
+  names appear only as salted HMAC hashes) and the PII-free bot log.
+- **DV screen**: deliberately broad ("Is there now, or has there ever been,
+  domestic violence or a restraining order between you and your spouse?").
+  Any yes — past or present — exits to a human handoff card pointing at the
+  firm directly and the county courthouse Domestic Violence / Victim's unit.
+  The exit retains exactly what a conflict hit retains: bare audit event
+  codes, nothing about the person or the situation (tested at the DB level).
+  The firm contact on that card is a **ship-blocker placeholder**: a
+  production server refuses to boot until it's filled in
+  (`src/lib/config-guard.ts`, enforced via `src/instrumentation.ts`).
+- QDRO-needed retirement divisions are **in scope**: flagged for the attorney
+  and the intake continues. Business interests, valuation needs, and any
+  disagreement route **out** to the Bergen Bar referral card.
 
-| Variable | Purpose |
+## Guardrails
+
+The bot's entire response surface is the closed union in
+`src/lib/bot/responder.ts`:
+
+1. scripted process explanations (`src/config/process-copy.ts`)
+2. approved glossary cards served verbatim by retrieval (`src/config/glossary.ts`)
+3. scripted clarification questions (`src/config/clarifications.ts`)
+4. static referral/rejection/deflection cards (`src/config/cards.ts`)
+
+There is no generative path. Free text is interpreted only by the keyword
+classifier (`src/lib/bot/classifier.ts`), whose output is a closed enum;
+"applied to my facts" phrasing always wins over a term match ("what does
+waiver mean?" → the card; "so do I waive X?" → the consult deflection). If an
+LLM is ever slotted into the classifier seat, it classifies only — its output
+is validated against known IDs and anything else is treated as UNRECOGNIZED.
+
+Everything the user can ever read is **attorney-controlled config** under
+`src/config/`. All copy is currently `[ATTORNEY TO SUPPLY]` placeholders —
+replace before real use; the engine renders whatever the config defines.
+
+## Data classes (design standard: "okay even if we get hacked")
+
+| Table | Contents | Survives purge? |
+|---|---|---|
+| `intake_session` | state machine skeleton | no |
+| `party_identity` | pre-gate names only | no |
+| `intake_answer` | substantive intake (post-CLEAR only — enforced at the persistence layer) | no |
+| `bot_interaction_log` | content IDs only, never free text/PII | yes |
+| `audit_event` | event codes + salted name hashes | yes |
+
+Retention: sessions idle past `RETENTION_ABANDONED_DAYS` (default 14) are
+purged by `POST /api/admin/purge` (Bearer `ADMIN_SECRET`) — run it from cron.
+HTTPS everywhere in production (HSTS is set), secrets via env only, CSRF
+double-defense (custom header + origin check) on all state-changing routes,
+per-IP rate limits on login/intake/bot endpoints, security headers in
+middleware.
+
+## Tests map to the acceptance criteria
+
+| Criterion | Test file |
 |---|---|
-| `ANTHROPIC_API_KEY` | Claude API access |
-| `STRIPE_SECRET_KEY` | Payment processing |
-| `RESEND_API_KEY` | Email delivery |
-| `RESEND_FROM_EMAIL` | Sender address |
-| `MONITOR_SECRET` | Admin endpoint auth |
-| `NEXT_PUBLIC_APP_URL` | Public URL |
-| `NEXT_PUBLIC_BASE_URL` | Base URL |
-| `NEXT_PUBLIC_MAINTENANCE_MODE` | `true` to enable maintenance page |
+| 1. Conflict wall unbypassable | `tests/conflict-wall.test.ts` |
+| 2. No substantive persistence for conflicted/out/abandoned (DB level) | `tests/persistence.test.ts` |
+| 3. Bot never emits non-scripted content (adversarial prompts) | `tests/bot-guardrails.test.ts` |
+| 4. Hard role separation server-side | `tests/rbac.test.ts` |
+| 5. Both intake modes through the same wall/gate | `tests/intake-modes.test.ts` |
+| 6. All copy from attorney config | `tests/config-and-units.test.ts` + corpus check in bot tests |
+| 7. Stage-2 affordance disabled and wired to nothing | `tests/intake-modes.test.ts` |
 
-### Run
+All test identities and the conflict match-list
+(`src/config/synthetic/conflict-matchlist.json`) are synthetic. Never use real
+client data as fixtures.
 
-```bash
-npm run dev
-```
+## Swapping in the real conflict system
 
-The app runs at `http://localhost:3000`.
+Implement `ConflictCheckProvider` (`src/lib/conflict/provider.ts`) against the
+firm system and return it from `getConflictProvider()`. The wall's behavior is
+already real and enforced; only the data source is stubbed.
 
-**Note:** PDF generation requires the separate ReportLab server running on port 8080. The chat interface and form collection work without it — you just won't be able to generate final documents.
+## Stage 2 notes
 
-## Adding a New State
+The attorney review view renders a disabled "Generate MSA draft (Stage 2)"
+button. There is deliberately **no** drafting endpoint anywhere in the app
+(tested). The intake package (`GET /api/attorney/sessions/{id}`) is the input
+contract Stage 2 will consume.
 
-1. Create `src/lib/states/{code}.ts` with the state's system prompt, qualification questions, field definitions, and phase structure. Use `ny.ts` or `nj.ts` as reference.
-2. Create `src/lib/states/{code}-form-language.ts` for form descriptions.
-3. Register the state in `src/lib/states/index.ts`.
-4. Create the frontend pages under `src/app/{code}/`.
+---
 
-The chat engine picks up new states automatically via `getStateConfig()`.
-
-## Known Limitations
-
-- Address/county mismatch detection works for NYC boroughs but does not cover all 62 NY counties or NJ counties by ZIP code lookup. It relies on keyword matching.
-- The compliance monitor checks court websites but does not auto-update. Changes require manual review.
-- PDF generation depends on an external ReportLab server not included in this repo.
-- Session data lives in browser localStorage. Switching browsers or clearing data loses progress.
-
-## Security
-
-If you find a vulnerability, please email **admin@divorcegpt.com**. Do not open a public issue.
-
-This project serves people going through one of the most difficult experiences of their lives. Responsible disclosure is appreciated.
-
-## Who Built This
-
-**Jake Kim** — Licensed attorney in New York and New Jersey. Self-taught developer. Built DivorceGPT because making a simple divorce actually simple required someone who understood both the law and the technology.
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+DivorceGPT by June Guided Solutions, LLC. Stage 1 collects information for
+attorney review only; nothing in this application constitutes legal advice.

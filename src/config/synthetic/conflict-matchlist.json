@@ -1,0 +1,13 @@
+{
+  "_comment": "SYNTHETIC TEST DATA ONLY — never real client names. This backs the stubbed ConflictCheckProvider until the real firm-system integration lands. Every entry is fictional.",
+  "entries": [
+    { "name": "Harold Fictionberg", "priorNames": ["Harold Testman"] },
+    { "name": "Wanda Fictionberg", "priorNames": [] },
+    { "name": "Sylvia Mocksdottir", "priorNames": ["Sylvia Placeholder"] },
+    { "name": "Ernesto Fakeston", "priorNames": [] },
+    { "name": "Priya Notarealperson", "priorNames": ["Priya Sampleton"] },
+    { "name": "Dmitri Stubbovich", "priorNames": [] },
+    { "name": "Agnes Dummyfield", "priorNames": ["Agnes Mockler"] },
+    { "name": "Terrence Faux-Smith", "priorNames": ["Terrence Faux"] }
+  ]
+}
