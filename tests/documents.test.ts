@@ -30,12 +30,7 @@ import {
   listApprovalsForVersion,
   releaseVersion,
 } from "@/lib/db/documents";
-import {
-  getFileStorage,
-  resetFileStorageForTests,
-  sha256Hex,
-  LocalFileStorage,
-} from "@/lib/storage";
+import { getFileStorage, resetFileStorageForTests, LocalFileStorage } from "@/lib/storage";
 import { GET as docsGet, POST as docsPost } from "@/app/api/matters/[id]/documents/route";
 import { POST as approvePost } from "@/app/api/document-versions/[id]/approve/route";
 import { POST as releasePost } from "@/app/api/document-versions/[id]/release/route";

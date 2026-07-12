@@ -1,17 +1,26 @@
-# DivorceGPT 2.0 — Stage 1: Gated Intake
+# DivorceGPT 2.0 — Attorney-Supervised Client Workflow
 
-A gated, dual-login web app for a solo NJ family-law practice. It runs a
-structured divorce intake for uncontested NJ cases and hands a completed,
-conflict-cleared intake to the attorney for review.
+Private, **invitation-only**, attorney-supervised client intake and document
+workflow software operated by a law firm (default branding: J. Kim Law Firm,
+configurable via `NEXT_PUBLIC_OPERATING_FIRM_NAME`). Clients retain the firm,
+receive an invitation into the portal, provide facts and documents; the
+software organizes information and flags missing items; an attorney reviews
+all substantive work and affirmatively approves any external release.
 
-**It is not a chatbot and not a legal-advice tool.** The intake "bot" is a
-constrained state machine with retrieval — see [Guardrails](#guardrails).
+**It is not a law firm, not an attorney, not a public legal-advice chatbot,
+not an autonomous drafting service, and not a payment platform.** The
+client-facing intake "bot" is a constrained state machine with retrieval —
+see [Guardrails](#guardrails). Internal AI (OpenAI, staff/attorney-only,
+kill-switched) produces only ATTORNEY_REVIEW_REQUIRED work product.
 
-Stage 1 scope: auth, the conflict wall, the scope gate, the two-tier intake,
-the ready-for-attorney-review handoff, the attorney review view, security, and
-synthetic-data testing. **Not** in Stage 1: document drafting (Stage 2 — the
-attorney view shows a disabled affordance wired to nothing), payments (never
-in-app, any stage), the custody tier (deferred), in-app scheduling.
+2.0 attorney-workflow scope: DB-stored 4-role RBAC (CLIENT/STAFF/ATTORNEY/
+ADMIN), matter-centered model, hashed single-use invitations, versioned
+disclosure consent, attorney-only conflict clearance, accommodations,
+version-exact hash-bound document approval/release, server-only OpenAI
+layer, retention + legal hold, hash-chained audit. See `docs/ARCHITECTURE.md`
+and `docs/HANDOFF-FOR-OPENAI-AUDIT.md` for the full map. **Not** in scope:
+payments (never in-app), custody tier (deferred), in-app scheduling,
+client-facing generative AI (prohibited).
 
 ## Stack
 
@@ -21,16 +30,37 @@ in-app, any stage), the custody tier (deferred), in-app scheduling.
   confined to that directory.
 - Hand-rolled OIDC (authorization code + PKCE, `jose` for JWT/JWKS) — no
   password storage, no beta auth frameworks.
-- Vitest for the guardrail test suite (77 tests, synthetic data only).
+- Vitest for the guardrail test suite (167 tests, synthetic data only).
 
-## Quick start
+## Quick start (local development)
 
 ```bash
 npm install
 cp .env.example .env       # fill in SESSION_SECRET etc.; set DEV_AUTH_STUB=true for local testing
 npm run dev                # http://localhost:3000
-npm test                   # the guardrail suite
+npm test                   # the guardrail suite (167 tests)
+npx tsc --noEmit           # typecheck
+npx eslint src tests       # lint
+npm run build              # production build
 ```
+
+Local walkthrough of the 2.0 flow (all APIs; UI for the new surfaces is
+[INCOMPLETE], see docs/ASSUMPTIONS-AND-GAPS.md):
+
+1. Sign in via the dev stub as an attorney (allowlisted email).
+2. `POST /api/matters` → `POST /api/matters/{id}/invitations` → copy the
+   one-time token.
+3. Sign in as a client → `POST /api/invitations/accept` with the token →
+   `GET /api/disclosure` → `POST /api/matters/{id}/consent`
+   (`acknowledge: true`).
+4. `POST /api/intake/start` → identity screen parks the session pending
+   review → attorney `POST /api/matters/{id}/conflict`
+   (`disposition: "CLEARED"`) → gates → intake → READY_FOR_REVIEW.
+5. Documents: upload → attorney approve (exact version) → release →
+   client can download that exact released version only.
+
+Internal AI is off by default (`AI_FEATURES_ENABLED=false`); the portal is
+fully functional without it.
 
 With `DEV_AUTH_STUB=true` (non-production only — it is structurally disabled
 when `NODE_ENV=production`), the landing page shows a dev sign-in that mints
@@ -44,9 +74,11 @@ side. Create the app registrations, set redirect URIs to
 and fill the env vars. An Entra login whose email is not in `ATTORNEY_EMAILS`
 is rejected at login **and** re-checked on every request.
 
-## Beta access gate
+## Beta access gate (legacy — not the ordinary entry point)
 
-Set `FREE_ACCESS_KEYS` (comma-separated) and the ENTIRE site goes behind
+The 2.0 entry point is firm invitations. The old beta gate stays available
+behind `BETA_GATE_ENABLED=true` **and** `FREE_ACCESS_KEYS` (default off).
+When enabled, set `FREE_ACCESS_KEYS` (comma-separated) and the gated site goes behind
 `/beta`: visitors clear a Cloudflare Turnstile CAPTCHA (if
 `TURNSTILE_SITE_KEY`/`TURNSTILE_SECRET_KEY` are set — otherwise that step is
 skipped), then enter an access code. The code is stored in an httpOnly cookie
