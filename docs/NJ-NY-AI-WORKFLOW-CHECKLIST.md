@@ -68,4 +68,4 @@ is production-ready, ethics-approved, carrier-approved, or court-approved.
 - [x] docs/intake/ generated from config (NJ/NY intake maps, form mappings, document checklists, legal review queue) via scripts/generate-intake-docs.ts
 - [x] docs/NJ-NY-LOCAL-DEMO-GUIDE.md; ARCHITECTURE/DATA-FLOW/ROLE-PERMISSIONS updated; .env.example extended (OPENAI_*, RUN_OPENAI_SMOKE, LEGAL_CONTENT_*)
 ## B18 Final validation (all commands actually run; honest reporting)
-- [ ] npm test · tsc · eslint · build · e2e-demo · seed script · final report
+- [x] npm test (234/234) · tsc · eslint · build · e2e-demo (66/66) · seed script (145/145) · final report

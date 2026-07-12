@@ -22,11 +22,14 @@ Local proof only — synthetic data, no deployment, no push, no production data.
 | B15 | OpenAI live smoke test (opt-in `RUN_OPENAI_SMOKE=true`) | DONE |
 | B16 | Offline evals (39 checks, 7 dimensions) + evaluation doc | DONE |
 | B17 | Documentation set (AI docs, generated intake docs, demo guide, core-doc updates) + `.env.example` | DONE |
-| B18 | Final validation + report | PENDING |
+| B18 | Final validation (234 tests, tsc, eslint, build, 66-check e2e, 145-check seed; device sync + device-side tsc clean) | DONE |
 
-Test suite: 234/234 passing through B16 (static AI-import check updated for
-the second STAFF/ATTORNEY-only importer, the extract route). `tsc --noEmit`
-clean.
+Final validation (B18, 2026-07-12): `npm test` 234/234 (16 files, incl. the
+39-check NJ/NY eval suite) · `tsc --noEmit` clean (cloud AND device copy) ·
+`eslint` clean · `next build` succeeds · `scripts/e2e-demo.mjs` 66/66 ·
+`scripts/seed-nj-ny-matters.mjs` 20/20 matters, 145/145 checks · smoke test
+refusal paths verified (live PASS requires the operator's key). Branch
+synced to the local machine working tree (device-side type-check clean).
 
 Open legal-content items are tracked in `docs/legal-authority/*` with
 `[needs cite check]` / `[not found]` markers; nothing is auto-APPROVED.
