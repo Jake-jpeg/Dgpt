@@ -66,13 +66,18 @@ const REPEAT_COLUMNS: Record<string, { key: string; label: string; kind: "text" 
     { key: "name", label: "Child's name", kind: "text" },
     { key: "dateOfBirth", label: "Date of birth", kind: "date" },
     { key: "residesWith", label: "Currently lives with", kind: "text" },
-    { key: "statesLastFiveYears", label: "State(s) lived in, last 5 years", kind: "text" },
+    { key: "state", label: "State where the child lives now", kind: "text" },
+    { key: "school", label: "School (if any)", kind: "text" },
   ],
+  // Also used for residence-history items: the state field is what the
+  // firm's deterministic jurisdiction signals read — keep it first.
   repeat_case: [
-    { key: "court", label: "Court and state", kind: "text" },
+    { key: "state", label: "State", kind: "text" },
+    { key: "court", label: "Court / county (if a court case)", kind: "text" },
     { key: "caseNumber", label: "Case or docket number (if known)", kind: "text" },
-    { key: "year", label: "Year", kind: "text" },
-    { key: "caseType", label: "What the case was about", kind: "text" },
+    { key: "from", label: "From (approx.)", kind: "text" },
+    { key: "to", label: "To (approx.)", kind: "text" },
+    { key: "caseType", label: "What it was about (if a court case)", kind: "text" },
   ],
   repeat_employer: [
     { key: "employer", label: "Employer", kind: "text" },
