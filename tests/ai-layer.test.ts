@@ -93,9 +93,17 @@ describe("access control", () => {
       }
     };
     walk(apiDir);
-    // The single AI route (staff/attorney-only) is the only importer.
-    expect(offenders.length).toBe(1);
-    expect(offenders[0].replaceAll("\\", "/")).toContain("/api/matters/[id]/ai/route.ts");
+    // Exactly two importers, both STAFF/ATTORNEY-only: the AI action route
+    // and the explicit local document-extraction route (B9). No client route
+    // may ever appear in this list.
+    const normalized = offenders.map((p) => p.replaceAll("\\", "/")).sort();
+    expect(normalized.length).toBe(2);
+    expect(normalized[0]).toContain("/api/document-versions/[id]/extract/route.ts");
+    expect(normalized[1]).toContain("/api/matters/[id]/ai/route.ts");
+    for (const file of offenders) {
+      const src = fs.readFileSync(file, "utf8");
+      expect(src).toMatch(/requireUser\(req, \["STAFF", "ATTORNEY"\]\)/);
+    }
   });
 
   it("the structural guard re-reads the role: a demoted staffer is denied", async () => {

@@ -16,12 +16,15 @@ import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
 import { invokeInternalAi } from "@/lib/ai/openai";
 import { AiDisabledError, AI_FEATURES } from "@/lib/ai/types";
+import { AI_ACTIONS } from "@/lib/ai/schemas2";
+import { runAiAction } from "@/lib/ai/run-action";
+import { AiConfigError } from "@/lib/ai/responses";
 import { getFileStorage } from "@/lib/storage";
 import { addDocumentVersion, createDocument } from "@/lib/db/documents";
 import { listSessionsByMatter, getAnswers, getIdentity } from "@/lib/db/repo";
 
 const schema = z.object({
-  feature: z.enum(AI_FEATURES),
+  feature: z.enum([...AI_FEATURES, ...AI_ACTIONS] as [string, ...string[]]),
   instruction: z.string().trim().max(4000).optional(),
 });
 
@@ -43,6 +46,29 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const parsed = schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid AI request");
 
+    // ── NJ/NY structured actions (Responses API + provenance) ─────────
+    if ((AI_ACTIONS as readonly string[]).includes(parsed.data.feature)) {
+      const result = await runAiAction({
+        matterId: matter.id,
+        actingUserId: authed.account.id,
+        action: parsed.data.feature as (typeof AI_ACTIONS)[number],
+        instruction: parsed.data.instruction,
+      });
+      return Response.json(
+        {
+          artifact: {
+            documentId: result.documentId,
+            versionId: result.versionId,
+            status: result.status, // ATTORNEY_REVIEW_REQUIRED — always
+            title: result.report.title,
+            kind: result.report.kind,
+          },
+          metadata: { model: result.model, responseId: result.responseId },
+        },
+        { status: 201 }
+      );
+    }
+
     // Assemble structured context server-side (never raw client payloads).
     const sessions = listSessionsByMatter(matter.id);
     const context = {
@@ -58,8 +84,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       })),
     };
 
+    const legacyFeature = parsed.data.feature as (typeof AI_FEATURES)[number];
     const result = await invokeInternalAi({
-      feature: parsed.data.feature,
+      feature: legacyFeature,
       matterId: matter.id,
       actingUserId: authed.account.id,
       context,
@@ -71,7 +98,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const stored = await getFileStorage().put(bytes);
     const doc = createDocument({
       matterId: matter.id,
-      title: FEATURE_TITLES[parsed.data.feature],
+      title: FEATURE_TITLES[legacyFeature],
       docKind: "AI_DRAFT",
       createdBy: authed.account.id,
     });
@@ -103,6 +130,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         { error: "Internal AI features are currently disabled. Manual workflows are unaffected." },
         { status: 503 }
       );
+    }
+    if (e instanceof AiConfigError) {
+      // Internal configuration error — clear to firm users, never to clients,
+      // and never a silent vendor/model fallback.
+      return Response.json({ error: e.message }, { status: 500 });
     }
     if (e instanceof Error && e.message.startsWith("AI_GUARD:")) {
       return Response.json({ error: e.message }, { status: 502 });

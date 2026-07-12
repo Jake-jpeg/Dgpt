@@ -141,6 +141,17 @@ CREATE TABLE IF NOT EXISTS matter (
   legal_hold             INTEGER NOT NULL DEFAULT 0,
   legal_hold_reason      TEXT,
   client_user_id         TEXT REFERENCES app_user(id),
+  -- B6 attorney jurisdiction & scope review (facts vs determination)
+  jurisdiction_candidate   TEXT,
+  jurisdiction_confirmed   TEXT,
+  jurisdiction_confirmed_by TEXT,
+  jurisdiction_confirmed_at TEXT,
+  matter_category          TEXT,
+  matter_category_confirmed_by TEXT,
+  scope_status             TEXT NOT NULL DEFAULT 'UNREVIEWED'
+                           CHECK (scope_status IN ('UNREVIEWED','UNDER_REVIEW','ACCEPTED','DECLINED','MULTI_JURISDICTION_REVIEW_REQUIRED')),
+  scope_notes              TEXT,
+  intake_schema_version    TEXT,
   created_by             TEXT NOT NULL,
   created_at             TEXT NOT NULL,
   updated_at             TEXT NOT NULL,
@@ -305,6 +316,34 @@ CREATE TABLE IF NOT EXISTS document_release (
   created_at          TEXT NOT NULL
 );
 
+-- ── P. Schema-driven intake answers (2.0 NJ/NY engine) ──────────────
+CREATE TABLE IF NOT EXISTS matter_intake_answer (
+  matter_id   TEXT NOT NULL,
+  question_id TEXT NOT NULL,
+  value       TEXT NOT NULL,               -- JSON-encoded validated value
+  updated_at  TEXT NOT NULL,
+  updated_by  TEXT NOT NULL,
+  PRIMARY KEY (matter_id, question_id)
+);
+
+CREATE TABLE IF NOT EXISTS matter_intake_answer_history (
+  id          TEXT PRIMARY KEY,
+  matter_id   TEXT NOT NULL,
+  question_id TEXT NOT NULL,
+  value       TEXT NOT NULL,
+  changed_at  TEXT NOT NULL,
+  changed_by  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_answer_history ON matter_intake_answer_history(matter_id, question_id);
+
+CREATE TABLE IF NOT EXISTS document_extraction (
+  document_version_id TEXT PRIMARY KEY,
+  status      TEXT NOT NULL CHECK (status IN ('EXTRACTED','UNSUPPORTED','FAILED')),
+  text        TEXT,                        -- bounded extracted text (synthetic proof)
+  locator_note TEXT,
+  created_at  TEXT NOT NULL
+);
+
 -- ── N. AI invocation metadata (NEVER prompts or content) ────────────
 CREATE TABLE IF NOT EXISTS ai_invocation (
   id         TEXT PRIMARY KEY,
@@ -312,7 +351,12 @@ CREATE TABLE IF NOT EXISTS ai_invocation (
   user_ref   TEXT NOT NULL,
   feature    TEXT NOT NULL,
   model      TEXT NOT NULL,
-  status     TEXT NOT NULL,                  -- OK | ERROR | DISABLED
+  status     TEXT NOT NULL,                  -- OK | ERROR | DISABLED | DENIED | REJECTED_OUTPUT
+  response_id TEXT,                          -- provider response ID (metadata)
+  prompt_version TEXT,
+  latency_ms INTEGER,
+  tokens_in  INTEGER,
+  tokens_out INTEGER,
   created_at TEXT NOT NULL
 );
 
@@ -331,6 +375,20 @@ CREATE TABLE IF NOT EXISTS app_config (
  */
 const MIGRATIONS = [
   `ALTER TABLE intake_session ADD COLUMN matter_id TEXT`,
+  `ALTER TABLE matter ADD COLUMN jurisdiction_candidate TEXT`,
+  `ALTER TABLE matter ADD COLUMN jurisdiction_confirmed TEXT`,
+  `ALTER TABLE matter ADD COLUMN jurisdiction_confirmed_by TEXT`,
+  `ALTER TABLE matter ADD COLUMN jurisdiction_confirmed_at TEXT`,
+  `ALTER TABLE matter ADD COLUMN matter_category TEXT`,
+  `ALTER TABLE matter ADD COLUMN matter_category_confirmed_by TEXT`,
+  `ALTER TABLE matter ADD COLUMN scope_status TEXT NOT NULL DEFAULT 'UNREVIEWED'`,
+  `ALTER TABLE matter ADD COLUMN scope_notes TEXT`,
+  `ALTER TABLE matter ADD COLUMN intake_schema_version TEXT`,
+  `ALTER TABLE ai_invocation ADD COLUMN response_id TEXT`,
+  `ALTER TABLE ai_invocation ADD COLUMN prompt_version TEXT`,
+  `ALTER TABLE ai_invocation ADD COLUMN latency_ms INTEGER`,
+  `ALTER TABLE ai_invocation ADD COLUMN tokens_in INTEGER`,
+  `ALTER TABLE ai_invocation ADD COLUMN tokens_out INTEGER`,
   `ALTER TABLE audit_event ADD COLUMN actor TEXT`,
   `ALTER TABLE audit_event ADD COLUMN prev_hash TEXT`,
   `ALTER TABLE audit_event ADD COLUMN hash TEXT`,

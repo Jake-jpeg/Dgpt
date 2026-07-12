@@ -56,6 +56,16 @@ export interface MatterRow {
   legalHold: boolean;
   legalHoldReason: string | null;
   clientUserId: string | null;
+  // B6 — attorney jurisdiction & scope review
+  jurisdictionCandidate: string | null;
+  jurisdictionConfirmed: string | null;
+  jurisdictionConfirmedBy: string | null;
+  jurisdictionConfirmedAt: string | null;
+  matterCategory: string | null;
+  matterCategoryConfirmedBy: string | null;
+  scopeStatus: string;
+  scopeNotes: string | null;
+  intakeSchemaVersion: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -73,6 +83,15 @@ function rowToMatter(r: Record<string, unknown>): MatterRow {
     legalHold: r.legal_hold === 1,
     legalHoldReason: (r.legal_hold_reason as string | null) ?? null,
     clientUserId: (r.client_user_id as string | null) ?? null,
+    jurisdictionCandidate: (r.jurisdiction_candidate as string | null) ?? null,
+    jurisdictionConfirmed: (r.jurisdiction_confirmed as string | null) ?? null,
+    jurisdictionConfirmedBy: (r.jurisdiction_confirmed_by as string | null) ?? null,
+    jurisdictionConfirmedAt: (r.jurisdiction_confirmed_at as string | null) ?? null,
+    matterCategory: (r.matter_category as string | null) ?? null,
+    matterCategoryConfirmedBy: (r.matter_category_confirmed_by as string | null) ?? null,
+    scopeStatus: (r.scope_status as string) ?? "UNREVIEWED",
+    scopeNotes: (r.scope_notes as string | null) ?? null,
+    intakeSchemaVersion: (r.intake_schema_version as string | null) ?? null,
     createdBy: r.created_by as string,
     createdAt: r.created_at as string,
     updatedAt: r.updated_at as string,
