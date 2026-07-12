@@ -72,3 +72,27 @@ configurable thresholds purge; ENGAGED/CLOSED exempt; legal hold blocks
 absolutely. Purge removes sessions/answers/identity/documents/files and
 retains conflict submissions, disclosure acks, matter disposition, and the
 hash-chained audit trail.
+
+## 7. NJ/NY structured intake & workbench
+
+Client (CLEARED matters only) ⇄ `GET/PUT /api/matters/[id]/intake2`:
+role-shaped views (clients get plain-language CLIENT items only; internal
+metadata is stripped server-side), answers persisted per matter with full
+history, conditions re-evaluated server-side on every save. Attorney
+determination (`POST /api/matters/[id]/jurisdiction`, ATTORNEY-only with a
+persistence-layer role re-check) confirms state/category/scope and pins the
+schema version; deterministic signals from residence FACTS flag
+multi-jurisdiction records but never auto-select.
+
+## 8. AI workbench call path
+
+STAFF/ATTORNEY → `POST /api/matters/[id]/ai` (structured action) →
+`runAiAction`: role re-read → disabled-check BEFORE any network →
+`buildMatterContext` (answers + checklist + bounded extraction text +
+authority allowlist; assembled server-side, never raw client payloads) →
+Responses API (strict json_schema, store:false, salted safety identifier,
+bounded tokens/timeout/retries, no 4xx retry, no fallback model) →
+three-layer validation → accept ⇒ AI_DRAFT version in
+ATTORNEY_REVIEW_REQUIRED; reject ⇒ REJECTED_OUTPUT + AI_OUTPUT_REJECTED
+audit, nothing saved. Ledger: `ai_invocation` (response id, prompt version,
+latency, tokens — metadata only, ever).

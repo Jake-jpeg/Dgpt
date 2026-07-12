@@ -18,13 +18,13 @@ Local proof only — synthetic data, no deployment, no push, no production data.
 | B11 | Client intake experience UI (`/portal/intake`, schema-driven, save/resume, a11y) | DONE |
 | B12 | Deterministic document checklist (+ attorney waive/override, disclaimer) | DONE |
 | B13 | Form-readiness report (attorney-only; never "ready to file") | DONE |
-| B14 | Synthetic test matters (20 scenarios) | PENDING |
-| B15 | OpenAI live smoke test (opt-in `RUN_OPENAI_SMOKE=true`) | PENDING |
-| B16 | Offline evals / regression tests + evaluation doc | PENDING |
-| B17 | Documentation set + `.env.example` updates | PENDING |
+| B14 | Synthetic test matters (20 scenarios; 145/145 live checks) | DONE |
+| B15 | OpenAI live smoke test (opt-in `RUN_OPENAI_SMOKE=true`) | DONE |
+| B16 | Offline evals (39 checks, 7 dimensions) + evaluation doc | DONE |
+| B17 | Documentation set (AI docs, generated intake docs, demo guide, core-doc updates) + `.env.example` | DONE |
 | B18 | Final validation + report | PENDING |
 
-Test suite: 195/195 passing after B3–B13 (static AI-import check updated for
+Test suite: 234/234 passing through B16 (static AI-import check updated for
 the second STAFF/ATTORNEY-only importer, the extract route). `tsc --noEmit`
 clean.
 

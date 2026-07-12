@@ -48,3 +48,18 @@ AI may never: communicate legal advice to clients, control permissions,
 clear/decline conflicts, approve/release documents, determine legal
 outcomes, or claim attorney review (`docs/APPROVAL-FLOW.md`, prompts in
 `src/lib/ai/prompts/`).
+
+## NJ/NY workbench additions
+
+| Capability | CLIENT | STAFF | ATTORNEY | ADMIN |
+|---|---|---|---|---|
+| Schema-driven questionnaire (own matter, after CLEARED) | ✔ | ✔ assisted | ✔ | ✘ |
+| See authority mappings / review statuses / determinations | ✘ (structural strip) | ✔ | ✔ | ✘ |
+| Jurisdiction & scope determination (pins schema version) | ✘ | ✘ **(structural)** | ✔ only | ✘ |
+| Document checklist board + received/incomplete overrides | plain requests only | ✔ | ✔ | ✘ |
+| **Waive a checklist item** | ✘ | ✘ | ✔ only | ✘ |
+| Form-readiness report (never "ready to file") | ✘ | ✘ | ✔ | ✘ |
+| Legal source status (`/api/legal-authorities`) | ✘ | ✔ | ✔ | ✘ |
+| Run document extraction (local, bounded) | ✘ | ✔ | ✔ | ✘ |
+| Run the 10 structured AI actions | ✘ (structural) | ✔ | ✔ | ✘ |
+| Approve / release AI_DRAFT output | ✘ | ✘ | ✔ only | ✘ |

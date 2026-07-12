@@ -74,3 +74,33 @@ verbatim attorney-approved copy (`src/lib/bot/`, `src/config/`). No
 generative AI touches the client-facing intake; the OpenAI layer is a
 separate, staff/attorney-only internal surface whose outputs always enter
 the document lifecycle as ATTORNEY_REVIEW_REQUIRED.
+
+## NJ/NY intake + lawyer workbench layer (branch divorcegpt-2-nj-ny-intake-ai)
+
+Additions, all preserving the structures above:
+
+- **Legal-authority snapshot** (`src/config/legal-authority/{nj,ny}/records.json`
+  + `src/lib/legal/authority.ts`): dated, machine-readable authority records
+  with review statuses; the runtime never browses the web; nothing ships
+  APPROVED; `ALLOW_UNAPPROVED_LEGAL_CONTENT` is local-only and refused at
+  startup elsewhere (`src/instrumentation.ts`).
+- **Versioned intake schemas** (`src/config/intake/*` +
+  `src/lib/intake2/`): shared factual core + per-state modules composed
+  per matter category (15 categories, `INTAKE_SCHEMA_VERSION`), evaluated
+  by a pure deterministic engine (conditions, progress, checklist,
+  jurisdiction signals). Startup validation refuses dangling references.
+  New tables: `matter_intake_answer` (+ full history table), plus matter
+  columns for the attorney's jurisdiction/category/scope determination and
+  the pinned schema version.
+- **AI workbench** (`src/lib/ai/{responses,schemas2,actions,run-action,extract}.ts`):
+  OpenAI Responses API, strict structured outputs, `store:false`, salted
+  safety identifier, no fallback models; ten actions; three-layer output
+  validation (schema → citation allowlist → provenance refs); rejected
+  outputs are never saved; accepted outputs become AI_DRAFT versions in
+  ATTORNEY_REVIEW_REQUIRED. Bounded local document extraction
+  (`document_extraction` table) feeds the context as untrusted data.
+- **Surfaces**: schema-driven client questionnaire (`/portal/intake`),
+  attorney/staff workbench panels on the firm matter view (jurisdiction,
+  intake review, checklist, form readiness, legal sources, AI actions),
+  and internal APIs (`/api/matters/[id]/{intake2,jurisdiction,checklist,form-readiness}`,
+  `/api/legal-authorities`, `/api/document-versions/[id]/extract`).
