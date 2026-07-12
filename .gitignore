@@ -30,3 +30,6 @@ next-env.d.ts
 # session file-transfer artifacts (never commit; may contain env values)
 _to_delete/snapshot-*.tar.gz
 *.tar.gz
+
+# local file storage (synthetic uploads; never in source)
+/data/
