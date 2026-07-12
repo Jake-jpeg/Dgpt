@@ -54,6 +54,20 @@
 - **Migrations** are additive try/catch ALTERs — fine for the disposable
   dev/beta SQLite DB; a real migration tool should come with Postgres.
 
+- **Pilot hardening (this pass):** providers authenticate, the DB
+  authorizes — NO account is created by sign-in alone. Client accounts are
+  created only at invitation acceptance; firm accounts only by admin/
+  bootstrap. The Entra roleHint is STAFF but confers nothing. Dev login is
+  local-only; the production beta test login is retired. Admin email-edit
+  for account recovery is [INCOMPLETE] (subject relink exists; email change
+  does not). The software-ownership statement is [OWNER CONFIRMATION
+  REQUIRED] (docs/OPERATOR-AND-IP-OWNERSHIP.md).
+- **npm audit deferral:** 2 moderate findings = one transitive advisory
+  (postcss <8.5.10 pinned inside next; GHSA-qx2v-qp2m-jg93). No nonbreaking
+  fix exists upstream yet; revisit on the next Next.js release. The
+  advisory concerns XSS via stringified CSS output — this app processes
+  only first-party Tailwind CSS at build time.
+
 ## [NOT CONFIGURED] (infrastructure/vendor)
 
 Production file storage + malware scanning · managed Postgres · real

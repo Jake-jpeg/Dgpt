@@ -74,7 +74,53 @@ Validation of this pass:
   audit) plus every required negative path and a 10-page smoke test.
 - Demo instructions: docs/MVP-DEMO-GUIDE.md
 
+## Pilot-hardening pass (2026-07-12, branch divorcegpt-2-pilot-hardening) ✔
+
+- Exact branding: default firm name is **Jake Kim Law Firm** everywhere it
+  renders (test-enforced; old name absent from src/); NO public
+  office-location language (correction #2); ownership facts never invented —
+  configurable operator/IP fields + docs/OPERATOR-AND-IP-OWNERSHIP.md with
+  [OWNER CONFIRMATION REQUIRED] items.
+- Landing: CTAs → "Discuss an institutional pilot" / "View the workflow";
+  acquisition de-emphasized; APP_STAGE-aware status copy
+  (local/staging/closed_pilot, exact strings test-enforced); footer
+  no-attorney-client-relationship + engagement-agreement language; OpenAI
+  non-affiliation retained; page rendered dynamically for runtime stage.
+- No-payments architecture verified + guard tests
+  (tests/no-payments.test.ts) + docs/NO-PAYMENTS-POSTURE.md.
+- OAuth hardening: MICROSOFT_* env names (ENTRA_* honored); single-tenant
+  enforcement (common/consumers/organizations refused); nonce added to both
+  providers; Entra tid validation + tid:oid stable subjects; Google
+  email_verified enforcement; exact redirect-URI config; identity scopes
+  only. PROVIDERS AUTHENTICATE, THE DATABASE AUTHORIZES: no account is ever
+  self-provisioned from authentication — firm accounts must be admin-created
+  (Entra callback refuses otherwise), client accounts are created ONLY by
+  invitation acceptance (validated before provisioning), email matches with
+  a different stable subject are refused (manual relink:
+  docs/ACCOUNT-RECOVERY.md, USER_RELINK_AUTHORIZED audit).
+- Development login is LOCAL-ONLY (APP_STAGE=local + non-production +
+  DEV_AUTH_STUB); neutral 404 otherwise; UI signal off; startup warning if
+  flags are set outside local; production beta test login fully retired.
+- Build hardening: middleware→proxy migration DONE (deprecation warning
+  gone; gating behavior verified live: redirect/pass/403/headers);
+  Turbopack whole-project tracing FIXED (turbopackIgnore on the env-driven
+  DATABASE_PATH resolve); npm audit's 2 moderates are one transitive
+  advisory (postcss 8.4.31 pinned INSIDE next@16.2.10; GHSA-qx2v-qp2m-jg93)
+  — no nonbreaking fix exists (npm proposes next@9 downgrade; even latest
+  next 16.2.10 pins 8.4.31); DEFERRED with rationale (build-time CSS
+  stringify XSS; no untrusted CSS in this app). Install scripts
+  (esbuild/sharp/unrs-resolver) documented — platform binaries arrive via
+  optionalDependencies; sharp is next's optional image dep (unused: no
+  next/image); unrs-resolver is lint-only; no approval granted, no security
+  claim made.
+- docs: PILOT-HARDENING-CHECKLIST, OPERATOR-AND-IP-OWNERSHIP,
+  NO-PAYMENTS-POSTURE, OPENAI-API-SETUP, ACCOUNT-RECOVERY, PILOT-READINESS.
+
+Checks this pass: vitest **195/195** (28 new tests) · tsc clean · eslint
+clean · build clean (0 warnings) · e2e-demo 66/66 · live proxy smoke.
+
 ## Exact next batch (future work)
 
-Cosmetic/UX polish (empty-state art, optimistic updates), a cross-matter
-attorney dashboard, and the [NOT CONFIGURED] infrastructure items.
+Cosmetic/UX polish, cross-matter attorney dashboard, admin email-edit for
+account recovery, audit export, and the [NOT CONFIGURED] infrastructure in
+docs/PILOT-READINESS.md.

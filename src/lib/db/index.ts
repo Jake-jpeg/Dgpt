@@ -341,10 +341,16 @@ let _db: DatabaseSync | null = null;
 export function getDb(): DatabaseSync {
   if (_db) return _db;
   const p = process.env.DATABASE_PATH ?? "./data/dev.db";
+  // DATABASE_PATH is deliberately runtime-dynamic (a data file outside the
+  // source tree). The turbopackIgnore annotation stops Turbopack's
+  // file-tracing from treating this env-driven resolve as "trace the whole
+  // project" — no source files belong in this route's deployment trace.
   if (p !== ":memory:") {
-    fs.mkdirSync(path.dirname(path.resolve(p)), { recursive: true });
+    fs.mkdirSync(path.dirname(path.resolve(/* turbopackIgnore: true */ p)), {
+      recursive: true,
+    });
   }
-  _db = new DatabaseSync(p === ":memory:" ? p : path.resolve(p));
+  _db = new DatabaseSync(p === ":memory:" ? p : path.resolve(/* turbopackIgnore: true */ p));
   _db.exec("PRAGMA foreign_keys = ON;");
   _db.exec(DDL);
   for (const m of MIGRATIONS) {

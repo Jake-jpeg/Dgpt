@@ -106,6 +106,22 @@ Markers: [INCOMPLETE] unfinished · [NOT CONFIGURED] missing infrastructure ·
 | Admin views (users, disclosure version, retention, audit) | src/app/admin/page.tsx | /api/admin/users, /api/admin/config, /api/admin/audit | e2e 15b, guide §3 |
 | End-to-end validation | scripts/e2e-demo.mjs | all of the above | 64/64 PASS (happy + negative paths + page smoke) |
 
+## 10. Pilot hardening (branch divorcegpt-2-pilot-hardening)
+
+| Item | File(s) | Validation |
+|---|---|---|
+| Exact branding (Jake Kim Law Firm; old name absent; no location language) | src/config/branding.ts, src/components/shell.tsx, .env.example | tests/pilot-hardening.test.ts "exact branding" |
+| Operator/IP fields; ownership never invented | src/config/branding.ts (legalServicesProvider/portalOperator/softwareOwner/copyrightOwner), docs/OPERATOR-AND-IP-OWNERSHIP.md | "ownership facts are never invented" test |
+| Stage-aware copy + footer language + CTA changes | src/config/stage.ts, src/app/page.tsx | "stage-aware status copy" tests |
+| No-payments architecture | tests/no-payments.test.ts, docs/NO-PAYMENTS-POSTURE.md | 5 guard tests |
+| Entra single-tenant + nonce + tid/oid binding + MICROSOFT_* envs | src/lib/auth/oauth.ts | "multi-tenant refused", "wrong-tenant id_token", scope tests |
+| Google invitation-first (sign-in creates NOTHING) | src/lib/db/users.ts (findAccountForSession/provisionClientAccount), src/app/api/invitations/accept/route.ts, callback route | "creates nothing", "invalid invitation creates NO account", e2e N11 |
+| Provider ≠ role; DB authorizes; active account required | src/lib/auth/authz.ts, callback route | "does NOT confer ATTORNEY", "deactivating blocks next request" |
+| No silent email relink + manual recovery | users.ts (clearUserSubject), admin users PATCH, docs/ACCOUNT-RECOVERY.md | "never silently relinked", "admin-authorized relink" |
+| Dev login local-only | src/lib/auth/test-login.ts, src/instrumentation.ts | "development login shutdown" suite |
+| Build hardening (proxy migration, tracing fix, audit deferral, install scripts) | src/proxy.ts, src/lib/db/index.ts, docs in IMPLEMENTATION-STATUS | build log 0 warnings; live gating smoke |
+| Pilot readiness matrix | docs/PILOT-READINESS.md | manual review — NOT production-ready |
+
 ## Outstanding
 
 - [NOT CONFIGURED]: production file storage/scanner, managed Postgres, real
