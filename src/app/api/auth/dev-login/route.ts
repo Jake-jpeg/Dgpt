@@ -21,6 +21,8 @@
 import { z } from "zod";
 import { testLoginAllowed } from "@/lib/auth/test-login";
 import { createSessionToken, sessionCookieHeader } from "@/lib/auth/session";
+import { recordAudit } from "@/lib/db/repo";
+import { hashNameForAudit } from "@/lib/security/audit-hash";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertRateLimit } from "@/lib/security/rate-limit";
 import { assertCsrf } from "@/lib/security/csrf";
@@ -47,6 +49,7 @@ export async function POST(req: Request) {
       email,
       name,
     });
+    recordAudit("auth", "AUTH_LOGIN", `mode=test subjectHash=${hashNameForAudit(email)}`);
     return new Response(JSON.stringify({ ok: true, role }), {
       status: 200,
       headers: {

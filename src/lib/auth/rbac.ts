@@ -38,8 +38,20 @@ export async function requireAnyRole(req: Request): Promise<SessionUser> {
   return { ...session, role: account.role };
 }
 
+/** Best-effort access-denial audit (never blocks the response). */
+function auditDenial(status: number, message: string): void {
+  import("@/lib/db/repo")
+    .then(({ recordAudit }) => {
+      recordAudit("access", "ACCESS_DENIED", `status=${status} reason=${message.slice(0, 120)}`);
+    })
+    .catch(() => {
+      /* auditing must never turn a denial into a 500 */
+    });
+}
+
 export function errorResponse(e: unknown): Response {
   if (e instanceof HttpError) {
+    if (e.status === 401 || e.status === 403) auditDenial(e.status, e.message);
     return Response.json({ error: e.message }, { status: e.status });
   }
   const msg = e instanceof Error ? e.message : "Internal error";
@@ -51,7 +63,8 @@ export function errorResponse(e: unknown): Response {
     msg.startsWith("STATE_MACHINE:") ||
     msg.startsWith("CONFLICT_GUARD:") ||
     msg.startsWith("DOCUMENT_GUARD:") ||
-    msg.startsWith("STORAGE_GUARD:")
+    msg.startsWith("STORAGE_GUARD:") ||
+    msg.startsWith("RETENTION_GUARD:")
   ) {
     // Guard trips are conflicts with server-held state, not server faults.
     return Response.json({ error: msg }, { status: 409 });

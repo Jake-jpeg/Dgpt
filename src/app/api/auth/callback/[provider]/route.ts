@@ -7,6 +7,8 @@ import {
 import { attorneyEmailAllowlist } from "@/lib/env";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertRateLimit } from "@/lib/security/rate-limit";
+import { recordAudit } from "@/lib/db/repo";
+import { hashNameForAudit } from "@/lib/security/audit-hash";
 
 export async function GET(
   req: Request,
@@ -32,6 +34,11 @@ export async function GET(
     }
 
     const token = await createSessionToken(identity);
+    recordAudit(
+      "auth",
+      "AUTH_LOGIN",
+      `provider=${provider} role=${identity.role} subjectHash=${hashNameForAudit(identity.email)}`
+    );
     const dest = identity.role === "ATTORNEY" ? "/attorney" : "/intake";
     const headers = new Headers({ Location: dest });
     headers.append("Set-Cookie", sessionCookieHeader(token));
