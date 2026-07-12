@@ -44,7 +44,12 @@ export function betaGateExempt(pathname: string): boolean {
     pathname === "/beta" ||
     pathname.startsWith("/api/beta/") ||
     // Machine endpoint with its own bearer auth (retention cron must keep working).
-    pathname === "/api/admin/purge"
+    pathname === "/api/admin/purge" ||
+    // Boolean-only deployment health check (no session, no client data).
+    pathname === "/api/health" ||
+    // Staging acceptance: neutral 404 outside synthetic staging and
+    // bearer-authorized (constant-time) inside it — its own gate is stricter.
+    pathname === "/api/staging/acceptance"
   );
 }
 

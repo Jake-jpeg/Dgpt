@@ -12,6 +12,7 @@
  * Never prompts, never document bytes, never secrets.
  */
 import { createSessionToken, SESSION_COOKIE, type SessionUser } from "@/lib/auth/session";
+import { BETA_COOKIE } from "@/lib/beta";
 import { createUser, getUserByEmail, findAccountForSession } from "@/lib/db/users";
 import { getDb } from "@/lib/db/index";
 
@@ -70,17 +71,28 @@ interface CallOpts {
   method?: string;
 }
 
+/** With the beta gate on, server-side self-calls carry the gate cookie. */
+function betaCookie(): string {
+  const key = (process.env.FREE_ACCESS_KEYS ?? "").split(",")[0]?.trim();
+  return process.env.BETA_GATE_ENABLED === "true" && key
+    ? `${BETA_COOKIE}=${encodeURIComponent(key)}`
+    : "";
+}
+
 async function call(origin: string, path: string, opts: CallOpts) {
+  const gate = betaCookie();
+  const cookie = [opts.cookie, gate].filter(Boolean).join("; ");
   const headers: Record<string, string> = {
     "x-dgpt-csrf": "1",
     "x-forwarded-for": opts.ip,
-    ...(opts.cookie ? { cookie: opts.cookie } : {}),
+    ...(cookie ? { cookie } : {}),
     ...(opts.form ? {} : { "content-type": "application/json" }),
   };
   const res = await fetch(`${origin}${path}`, {
     method: opts.method ?? (opts.body !== undefined || opts.form ? "POST" : "GET"),
     headers,
     body: opts.form ?? (opts.body !== undefined ? JSON.stringify(opts.body) : undefined),
+    redirect: "manual",
   });
   const ct = res.headers.get("content-type") ?? "";
   const data = ct.includes("application/json") ? await res.json().catch(() => ({})) : { _raw: await res.arrayBuffer() };
