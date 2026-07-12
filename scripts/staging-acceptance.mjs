@@ -14,10 +14,20 @@
  * inconsistency, NY form-readiness narrative, NY jurisdiction summary.
  * The secret is read from env and NEVER printed.
  */
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
+
+function autoSecret() {
+  if (process.env.STAGING_ADMIN_SECRET) return process.env.STAGING_ADMIN_SECRET;
+  try {
+    if (existsSync("./data/stage-secrets.json")) {
+      return JSON.parse(readFileSync("./data/stage-secrets.json", "utf8")).ADMIN_SECRET ?? "";
+    }
+  } catch { /* fall through */ }
+  return "";
+}
 
 const BASE = (process.env.STAGING_URL ?? "").replace(/\/+$/, "");
-const SECRET = process.env.STAGING_ADMIN_SECRET ?? "";
+const SECRET = autoSecret();
 const OUT = process.argv.includes("--out")
   ? process.argv[process.argv.indexOf("--out") + 1]
   : "docs/evidence/online-staging/acceptance.json";

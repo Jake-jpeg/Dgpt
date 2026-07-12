@@ -16,12 +16,12 @@
  *                                          redirect URIs, PDF_SERVICE_URL)
  *   node scripts/do-deploy.mjs status
  */
-import { readFileSync, writeFileSync, existsSync, chmodSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, chmodSync, mkdirSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 
 const API = "https://api.digitalocean.com/v2";
 const MODE = process.argv[2] ?? "inspect";
-const SECRETS_FILE = "/tmp/stage-secrets.json";
+const SECRETS_FILE = "./data/stage-secrets.json";
 const STAGING_APP_NAMES = new Set(["dgpt-staging", "dgpt-pdf-staging"]);
 
 function loadEnvFiles() {
@@ -59,6 +59,7 @@ async function doApi(method, path, body) {
 
 function loadOrCreateSecrets() {
   if (existsSync(SECRETS_FILE)) return JSON.parse(readFileSync(SECRETS_FILE, "utf8"));
+  mkdirSync("./data", { recursive: true });
   const s = {
     PDF_SERVICE_TOKEN: randomBytes(32).toString("hex"),
     SESSION_SECRET: randomBytes(32).toString("hex"),
@@ -67,7 +68,7 @@ function loadOrCreateSecrets() {
     FREE_ACCESS_KEY: "staging-" + randomBytes(8).toString("hex"),
   };
   writeFileSync(SECRETS_FILE, JSON.stringify(s, null, 2));
-  chmodSync(SECRETS_FILE, 0o600);
+  try { chmodSync(SECRETS_FILE, 0o600); } catch { /* windows */ }
   return s;
 }
 
@@ -223,7 +224,42 @@ async function status() {
   }
 }
 
-const actions = { inspect, create, finalize, status };
+async function waitFor(fn, label, tries = 60, delayMs = 15000) {
+  for (let i = 0; i < tries; i++) {
+    const v = await fn();
+    if (v) return v;
+    if (i === 0) console.log(`waiting: ${label}…`);
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+  throw new Error(`timed out waiting for ${label}`);
+}
+
+async function all() {
+  await inspect();
+  await create();
+  await waitFor(async () => {
+    const a = await findByName("dgpt-staging");
+    const b = await findByName("dgpt-pdf-staging");
+    return a?.default_ingress && b?.default_ingress ? true : null;
+  }, "DigitalOcean to assign staging URLs");
+  await finalize();
+  await waitFor(async () => {
+    const a = await findByName("dgpt-staging");
+    const b = await findByName("dgpt-pdf-staging");
+    const phase = async (app) => {
+      const { deployments = [] } = await doApi("GET", `/apps/${app.id}/deployments?per_page=1`);
+      return deployments[0]?.phase;
+    };
+    const [pa, pb] = [await phase(a), await phase(b)];
+    console.log(`  deploy phases: dgpt-staging=${pa} dgpt-pdf-staging=${pb}`);
+    if (pa === "ERROR" || pb === "ERROR") throw new Error("a deployment entered ERROR — check the DO build logs");
+    return pa === "ACTIVE" && pb === "ACTIVE" ? true : null;
+  }, "both deployments to become ACTIVE", 80, 20000);
+  await status();
+  console.log("\nDone. Next: add the two OAuth redirect URIs printed above, then run the acceptance script.");
+}
+
+const actions = { inspect, create, finalize, status, all };
 if (!actions[MODE]) {
   console.error(`unknown mode ${MODE}`);
   process.exit(2);
