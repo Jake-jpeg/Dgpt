@@ -49,7 +49,7 @@ export async function middleware(request: NextRequest) {
   // The cookie stores the access key itself and is re-validated against the
   // env var on EVERY request: removing a key from FREE_ACCESS_KEYS locks its
   // holders out on their next request, regardless of cookie lifetime.
-  if (betaGateEnabled() && !betaGateExempt(pathname)) {
+  if (pathname !== "/" && betaGateEnabled() && !betaGateExempt(pathname)) {
     const key = request.cookies.get(BETA_COOKIE)?.value;
     if (!isValidBetaKey(key ? decodeURIComponent(key) : key)) {
       if (pathname.startsWith("/api/")) {

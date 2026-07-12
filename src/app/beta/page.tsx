@@ -9,6 +9,10 @@
  */
 import { useEffect, useRef, useState } from "react";
 
+const inquiryEmail =
+  process.env.NEXT_PUBLIC_INQUIRY_EMAIL?.trim() ||
+  "admin@juneguidedsolutions.com";
+
 declare global {
   interface Window {
     turnstile?: {
@@ -144,8 +148,8 @@ export default function BetaGate() {
 
         <p className="mt-6 border-t pt-4 text-xs text-slate-400">
           No access code? The site isn&apos;t open yet. For inquiries:{" "}
-          <a href="mailto:admin@divorcegpt.com" className="underline">
-            admin@divorcegpt.com
+          <a href={`mailto:${inquiryEmail}`} className="underline">
+            {inquiryEmail}
           </a>
         </p>
       </div>

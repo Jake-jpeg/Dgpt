@@ -2,18 +2,22 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DivorceGPT — Intake",
+  title: "DivorceGPT.com | Attorney-Supervised Family-Law Workflow",
   description:
-    "Structured intake for uncontested New Jersey divorces. Not legal advice.",
-  robots: { index: false, follow: false },
+    "A structured, attorney-supervised family-law intake and case-preparation workflow for New York and New Jersey.",
+  robots: { index: true, follow: true },
+  openGraph: {
+    title: "DivorceGPT.com",
+    description:
+      "Attorney-supervised family-law intake and workflow technology.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
