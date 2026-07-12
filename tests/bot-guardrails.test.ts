@@ -12,7 +12,7 @@ import {
   cookieFor,
   SYNTH_CLIENT,
   startSession,
-  runIdentity,
+  runIdentityAndClear,
   jsonRequest,
   params,
   freshLimits,
@@ -41,7 +41,7 @@ beforeEach(async () => {
   cookie = await cookieFor(SYNTH_CLIENT);
   freshLimits();
   sessionId = await startSession(cookie);
-  await runIdentity(cookie, sessionId); // bot becomes active post-CLEAR
+  await runIdentityAndClear(cookie, sessionId); // bot becomes active post attorney-CLEAR
 });
 
 async function ask(text: string) {

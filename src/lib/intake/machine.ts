@@ -37,6 +37,7 @@
 
 export const MACHINE_STATES = [
   "PRE_GATE",
+  "CONFLICT_REVIEW_PENDING",
   "GATE_RESIDENCY",
   "GATE_VENUE",
   "GATE_DV",
@@ -73,7 +74,11 @@ export const GATE_SEQUENCE: MachineState[] = [
 ];
 
 const ALLOWED_TRANSITIONS: Record<MachineState, MachineState[]> = {
-  PRE_GATE: ["GATE_RESIDENCY"], // only via a CLEAR conflict check
+  // 2.0: automated screening NEVER clears a session into the gates. Identity
+  // capture parks the session in CONFLICT_REVIEW_PENDING; only an attorney's
+  // CLEARED disposition on the matter moves it forward.
+  PRE_GATE: ["CONFLICT_REVIEW_PENDING"],
+  CONFLICT_REVIEW_PENDING: ["GATE_RESIDENCY"],
   GATE_RESIDENCY: ["GATE_VENUE"],
   GATE_VENUE: ["GATE_DV"],
   GATE_DV: ["GATE_CHILDREN"],

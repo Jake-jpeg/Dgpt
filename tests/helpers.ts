@@ -2,7 +2,13 @@
  * Test helpers — exercise the REAL route handlers over the REAL persistence
  * layer, exactly as HTTP would, with synthetic identities only.
  */
-import { createSessionToken, SESSION_COOKIE, type SessionUser } from "@/lib/auth/session";
+import {
+  createSessionToken,
+  verifySessionToken,
+  SESSION_COOKIE,
+  type SessionUser,
+} from "@/lib/auth/session";
+import { listMattersForClient } from "@/lib/db/matters";
 import { resetRateLimitsForTests } from "@/lib/security/rate-limit";
 
 export const SYNTH_CLIENT: SessionUser = {
@@ -64,6 +70,88 @@ export function freshLimits(): void {
   resetRateLimitsForTests();
 }
 
+// ── 2.0 matter/invitation setup (invitation-only portal) ─────────────
+
+import { resolveAccount } from "@/lib/db/users";
+import { createMatter, grantMatterAccess } from "@/lib/db/matters";
+import { createInvitation } from "@/lib/db/invitations";
+import { recordDisclosureAck } from "@/lib/db/disclosure";
+import { DISCLOSURE_VERSION } from "@/config/disclosure";
+import { POST as acceptRoute } from "@/app/api/invitations/accept/route";
+import { POST as conflictRoute } from "@/app/api/matters/[id]/conflict/route";
+import { getSession } from "@/lib/db/repo";
+
+/** Bind a synthetic session identity to a DB account row (as a login would). */
+export function provisionAccount(user: SessionUser) {
+  return resolveAccount({
+    subject: user.subject,
+    email: user.email,
+    name: user.name,
+    sessionRole: user.role,
+    adminBootstrapEmails: (process.env.ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  });
+}
+
+export interface MatterContext {
+  matterId: string;
+  clientUserId: string;
+  attorneyUserId: string;
+}
+
+/**
+ * Full 2.0 onboarding for a synthetic client: attorney account, matter,
+ * invitation created → accepted through the real route → disclosure
+ * acknowledged. Leaves the matter's conflict status untouched (NOT_STARTED).
+ */
+export async function setupClientWithMatter(
+  client: SessionUser = SYNTH_CLIENT
+): Promise<MatterContext> {
+  const attorney = provisionAccount(SYNTH_ATTORNEY);
+  const clientAccount = provisionAccount(client);
+  const matter = createMatter({ label: `Synthetic Matter (${client.email})`, createdBy: attorney.id });
+  grantMatterAccess(matter.id, attorney.id, attorney.id);
+  const { rawToken } = createInvitation({ matterId: matter.id, createdBy: attorney.id });
+  freshLimits();
+  const res = await acceptRoute(
+    jsonRequest("/api/invitations/accept", {
+      cookie: await cookieFor(client),
+      body: { token: rawToken },
+    })
+  );
+  if (res.status !== 200) throw new Error(`invitation accept failed: ${res.status}`);
+  recordDisclosureAck({
+    matterRef: matter.id,
+    userRef: clientAccount.id,
+    version: DISCLOSURE_VERSION,
+  });
+  return { matterId: matter.id, clientUserId: clientAccount.id, attorneyUserId: attorney.id };
+}
+
+/** Attorney disposition through the real route (structural guards exercised). */
+export async function setConflictDisposition(
+  matterId: string,
+  disposition: "CLEARED" | "DECLINED" | "NEEDS_MORE_INFORMATION",
+  attorney: SessionUser = SYNTH_ATTORNEY
+) {
+  freshLimits();
+  const res = await conflictRoute(
+    jsonRequest(`/api/matters/${matterId}/conflict`, {
+      cookie: await cookieFor(attorney),
+      body: { disposition },
+    }),
+    params({ id: matterId })
+  );
+  return { status: res.status, data: await res.json() };
+}
+
+export async function clearMatter(matterId: string) {
+  const r = await setConflictDisposition(matterId, "CLEARED");
+  if (r.status !== 200) throw new Error(`attorney clearance failed: ${r.status}`);
+}
+
 // ── flow drivers (through the real HTTP handlers) ────────────────────
 
 import { POST as startRoute } from "@/app/api/intake/start/route";
@@ -84,9 +172,34 @@ export const HIT_IDENTITY = {
   adverseParty: { fullLegalName: "Harold Fictionberg", priorNames: [] },
 };
 
+/**
+ * Start an intake session through the real route. 2.0: intake is
+ * invitation-only, so this helper first ensures the synthetic user has a
+ * matter — full invitation + disclosure flow for clients, a granted matter
+ * for staff/attorneys.
+ */
 export async function startSession(cookie: string): Promise<string> {
+  const token = cookie.split("=").slice(1).join("=");
+  const user = await verifySessionToken(token);
+  if (!user) throw new Error("startSession: invalid synthetic cookie");
+  let matterId: string;
+  if (user.role === "CLIENT") {
+    const account = provisionAccount(user);
+    const mine = listMattersForClient(account.id);
+    matterId = mine[0]?.id ?? (await setupClientWithMatter(user)).matterId;
+  } else {
+    const account = provisionAccount(user);
+    const m = createMatter({
+      label: `Synthetic ${account.role}-initiated Matter`,
+      createdBy: account.id,
+    });
+    grantMatterAccess(m.id, account.id, account.id);
+    matterId = m.id;
+  }
   freshLimits();
-  const res = await startRoute(jsonRequest("/api/intake/start", { cookie }));
+  const res = await startRoute(
+    jsonRequest("/api/intake/start", { cookie, body: { matterId } })
+  );
   const data = await res.json();
   if (!res.ok) throw new Error(`start failed: ${data.error}`);
   return data.session.id;
@@ -101,6 +214,19 @@ export async function runIdentity(cookie: string, id: string, identity: unknown 
   return { status: res.status, data: await res.json() };
 }
 
+/** Identity + automated screen + attorney CLEARED, in one step. */
+export async function runIdentityAndClear(
+  cookie: string,
+  id: string,
+  identity: unknown = CLEAN_IDENTITY
+) {
+  const r = await runIdentity(cookie, id, identity);
+  const matterId = getSession(id)?.matterId;
+  if (!matterId) throw new Error("runIdentityAndClear: session has no matter");
+  await clearMatter(matterId);
+  return r;
+}
+
 export async function runGate(cookie: string, id: string, answer: unknown) {
   freshLimits();
   const res = await gateRoute(
@@ -110,10 +236,19 @@ export async function runGate(cookie: string, id: string, answer: unknown) {
   return { status: res.status, data: await res.json() };
 }
 
-/** Drive a session through identity + all five gates with in-scope answers. */
+/**
+ * Drive a session through identity → automated screen → ATTORNEY clearance →
+ * all five gates with in-scope answers. (2.0: nothing proceeds past the
+ * screen without the attorney's CLEARED disposition.)
+ */
 export async function runToTierBranch(cookie: string, id: string): Promise<void> {
   const idres = await runIdentity(cookie, id);
-  if (idres.data.status === "TERMINATED") throw new Error("unexpected conflict hit");
+  if (idres.data.result !== "PENDING_REVIEW") {
+    throw new Error(`expected screening to pend review, got ${JSON.stringify(idres.data)}`);
+  }
+  const matterId = getSession(id)?.matterId;
+  if (!matterId) throw new Error("session has no matter");
+  await clearMatter(matterId);
   for (const answer of [true, "Bergen", false, false, "FULLY_AGREE"]) {
     const r = await runGate(cookie, id, answer);
     if (r.data.status === "TERMINATED") throw new Error("unexpected gate trip");

@@ -32,7 +32,7 @@ import { GET as usersGet, POST as usersPost } from "@/app/api/admin/users/route"
 import { PATCH as userPatch } from "@/app/api/admin/users/[id]/route";
 
 function synth(role: UserRow["role"], email: string): { user: UserRow; session: SessionUser } {
-  const user = createUser({ email, role });
+  createUser({ email, role });
   const session: SessionUser = {
     subject: `devstub|${role.toLowerCase()}:${email}`,
     role,

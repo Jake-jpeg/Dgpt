@@ -23,6 +23,13 @@ import {
   type PartyName,
 } from "@/lib/db/repo";
 import { getConflictProvider } from "@/lib/conflict/provider";
+import {
+  attorneySetConflictDisposition,
+  recordScreenStatus,
+  setMatterLifecycle,
+} from "@/lib/db/matters";
+import { recordConflictSubmission, resolveLatestSubmission } from "@/lib/db/conflicts";
+import { listSessionsByMatter } from "@/lib/db/repo";
 import { hashNameForAudit } from "@/lib/security/audit-hash";
 import { HttpError } from "@/lib/auth/rbac";
 import type { SessionUser } from "@/lib/auth/session";
@@ -74,19 +81,32 @@ export function startIntake(user: SessionUser, matterId?: string): SessionRow {
   return s;
 }
 
+/** Neutral, client-facing pending message — identical for every screen outcome. */
+export const CONFLICT_PENDING_MESSAGE =
+  "Your information has been submitted for review. The firm will contact you regarding the next step.";
+
 /**
- * Pre-gate identity capture + conflict check, one atomic step.
- * The ONLY data collected before the check: both parties' full legal names,
+ * Pre-gate identity capture + AUTOMATED CONFLICT SCREENING, one atomic step.
+ * The ONLY data collected before the screen: both parties' full legal names,
  * prior/maiden names, and the adversary identity as the tiebreaker.
+ *
+ * 2.0: automated screening never clears and never declines. It records a
+ * retained conflict_submission, assigns one of the four screen statuses to
+ * the matter, and parks the session in CONFLICT_REVIEW_PENDING. Only an
+ * ATTORNEY disposition (CLEARED) lets intake proceed; the client sees one
+ * neutral message either way and never the screen's internal result.
  */
 export async function submitIdentityAndCheck(
   user: SessionUser,
   sessionId: string,
   body: unknown
-): Promise<{ result: "CLEAR"; session: SessionRow } | TerminatedView> {
+): Promise<{ result: "PENDING_REVIEW"; message: string; session: SessionRow }> {
   const s = requireOwnedSession(user, sessionId);
   if (s.state !== "PRE_GATE") {
     throw new HttpError(409, "Identity was already captured for this session");
+  }
+  if (!s.matterId) {
+    throw new HttpError(409, "This intake is not linked to a matter");
   }
 
   const parsed = z
@@ -97,34 +117,92 @@ export async function submitIdentityAndCheck(
   }
   const { clientParty, adverseParty } = parsed.data;
 
-  // Persist bare identity so the check is auditable while it runs…
+  // Persist bare identity so the screen is auditable while it runs…
   setIdentity(sessionId, clientParty as PartyName, adverseParty as PartyName);
-  recordAudit(sessionId, "CONFLICT_CHECK_RUN");
+  recordAudit(sessionId, "CONFLICT_SCREEN_RUN", `matter=${s.matterId}`);
 
-  const result = await getConflictProvider().check(
+  const raw = await getConflictProvider().check(
     clientParty as PartyName,
     adverseParty as PartyName
   );
+  // Automated screening maps ONLY onto non-terminal statuses.
+  const screenResult = raw === "HIT" ? "POTENTIAL_MATCH" : "NO_APPARENT_MATCH";
 
-  if (result === "HIT") {
-    // Forward-out: static referral card, end session, persist NO substantive
-    // data. Minimal audit only — names survive only as salted hashes.
-    recordAudit(
-      sessionId,
-      "CONFLICT_HIT",
-      JSON.stringify({
-        clientHash: hashNameForAudit(clientParty.fullLegalName),
-        adverseHash: hashNameForAudit(adverseParty.fullLegalName),
-      })
-    );
-    purgeSession(sessionId, "CONFLICT_HIT");
-    return { status: "TERMINATED", card: getCard("CONFLICT_REFERRAL") };
+  recordConflictSubmission({
+    matterRef: s.matterId,
+    clientParty: clientParty as PartyName,
+    adverseParty: adverseParty as PartyName,
+    screenResult,
+    submittedBy: user.subject,
+  });
+  recordScreenStatus(s.matterId, screenResult);
+
+  recordAudit(
+    sessionId,
+    "CONFLICT_SCREEN_RESULT",
+    JSON.stringify({
+      result: screenResult,
+      clientHash: hashNameForAudit(clientParty.fullLegalName),
+      adverseHash: hashNameForAudit(adverseParty.fullLegalName),
+    })
+  );
+
+  assertTransition("PRE_GATE", "CONFLICT_REVIEW_PENDING");
+  updateSession(sessionId, { state: "CONFLICT_REVIEW_PENDING" });
+  return {
+    result: "PENDING_REVIEW",
+    message: CONFLICT_PENDING_MESSAGE,
+    session: getSession(sessionId)!,
+  };
+}
+
+/**
+ * Applies an attorney's conflict disposition to a matter AND its parked
+ * intake session(s). The structural role guards live in the persistence
+ * layer (attorneySetConflictDisposition / resolveLatestSubmission) — this
+ * function orchestrates.
+ */
+export function applyConflictDisposition(opts: {
+  matterId: string;
+  actingUserId: string;
+  disposition: "CLEARED" | "DECLINED" | "NEEDS_MORE_INFORMATION";
+  internalNote?: string;
+}): void {
+  attorneySetConflictDisposition({
+    matterId: opts.matterId,
+    actingUserId: opts.actingUserId,
+    disposition: opts.disposition,
+  });
+  resolveLatestSubmission({
+    matterRef: opts.matterId,
+    actingUserId: opts.actingUserId,
+    disposition: opts.disposition,
+    internalNote: opts.internalNote,
+  });
+  recordAudit(
+    opts.matterId,
+    "CONFLICT_DISPOSITION",
+    `disposition=${opts.disposition}`,
+    opts.actingUserId
+  );
+
+  const sessions = listSessionsByMatter(opts.matterId);
+  if (opts.disposition === "CLEARED") {
+    for (const sess of sessions) {
+      if (sess.state === "CONFLICT_REVIEW_PENDING") {
+        assertTransition("CONFLICT_REVIEW_PENDING", "GATE_RESIDENCY");
+        updateSession(sess.id, { state: "GATE_RESIDENCY", conflictClear: true });
+        recordAudit(sess.id, "CONFLICT_CLEARED_BY_ATTORNEY", undefined, opts.actingUserId);
+      }
+    }
+  } else if (opts.disposition === "DECLINED") {
+    setMatterLifecycle(opts.matterId, "DECLINED");
+    for (const sess of sessions) {
+      // Substantive/session data goes; the retained conflict_submission and
+      // the audit chain survive (they have no FK to the session or matter).
+      purgeSession(sess.id, "CONFLICT_DECLINED_BY_ATTORNEY");
+    }
   }
-
-  recordAudit(sessionId, "CONFLICT_CLEAR");
-  assertTransition("PRE_GATE", "GATE_RESIDENCY");
-  updateSession(sessionId, { state: "GATE_RESIDENCY", conflictClear: true });
-  return { result: "CLEAR", session: getSession(sessionId)! };
 }
 
 /**
@@ -270,6 +348,10 @@ export function sessionView(user: SessionUser, sessionId: string) {
     tier: s.tier,
     initiatedBy: s.initiatedBy,
   };
+  if (s.state === "CONFLICT_REVIEW_PENDING") {
+    // Neutral status only — never the screen result or internal reasoning.
+    return { ...base, message: CONFLICT_PENDING_MESSAGE };
+  }
   if (isGateState(s.state)) {
     const q = GATE_QUESTIONS[s.state];
     return { ...base, gateQuestion: q };

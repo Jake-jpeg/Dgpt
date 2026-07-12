@@ -49,8 +49,8 @@ describe("mode (a): client-initiated intake → attorney review", () => {
 
     // The conflict wall was actually passed through (audited).
     const events = getAuditEvents(id).map((e) => e.event);
-    expect(events).toContain("CONFLICT_CHECK_RUN");
-    expect(events).toContain("CONFLICT_CLEAR");
+    expect(events).toContain("CONFLICT_SCREEN_RUN");
+    expect(events).toContain("CONFLICT_CLEARED_BY_ATTORNEY");
     expect(events).toContain("READY_FOR_REVIEW");
 
     // Attorney sees it.
@@ -73,7 +73,7 @@ describe("mode (a): client-initiated intake → attorney review", () => {
     expect(detail.session.tier).toBe("TIER1");
     expect(detail.identity.clientParty.fullLegalName).toBe("Casey Syntheticperson");
     expect(detail.sections.length).toBeGreaterThan(3);
-    expect(detail.audit.map((a: { event: string }) => a.event)).toContain("CONFLICT_CLEAR");
+    expect(detail.audit.map((a: { event: string }) => a.event)).toContain("CONFLICT_CLEARED_BY_ATTORNEY");
   });
 
   it("incomplete intake cannot be completed", async () => {
@@ -138,15 +138,19 @@ describe("mode (b): attorney-initiated intake — same wall, same gate", () => {
     expect(detail.session.qdroFlag).toBe(true);
     expect(detail.session.attorneyFlags).toContain("QDRO_NEEDED");
     // The wall was audited for the attorney path too.
-    expect(detail.audit.map((a: { event: string }) => a.event)).toContain("CONFLICT_CHECK_RUN");
+    expect(detail.audit.map((a: { event: string }) => a.event)).toContain("CONFLICT_SCREEN_RUN");
   });
 
   it("attorney-initiated sessions hit the conflict wall exactly like client ones", async () => {
     const attorneyCookie = await cookieFor(SYNTH_ATTORNEY);
     const id = await startSession(attorneyCookie);
     const r = await runIdentity(attorneyCookie, id, HIT_IDENTITY);
-    expect(r.data.status).toBe("TERMINATED");
-    expect(r.data.card.id).toBe("CONFLICT_REFERRAL");
+    // Same wall: the screen pends attorney review even for attorney-initiated
+    // sessions — no privileged path, no automated clearance.
+    expect(r.data.result).toBe("PENDING_REVIEW");
+    const { getSession } = await import("@/lib/db/repo");
+    const { getMatter } = await import("@/lib/db/matters");
+    expect(getMatter(getSession(id)!.matterId!)!.conflictStatus).toBe("POTENTIAL_MATCH");
   });
 
   it("attorney cannot skip the scope gate on their own intake", async () => {

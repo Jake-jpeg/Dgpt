@@ -7,7 +7,7 @@ import {
   cookieFor,
   SYNTH_CLIENT,
   startSession,
-  runIdentity,
+  runIdentityAndClear,
   runGate,
   runToTierBranch,
   runBranch,
@@ -35,7 +35,7 @@ async function expectFullyPurged(id: string) {
 describe("out-of-scope sessions leave no substantive data (DB level)", () => {
   it("residency trip → attorney-flag card, purged", async () => {
     const id = await startSession(cookie);
-    await runIdentity(cookie, id);
+    await runIdentityAndClear(cookie, id);
     const r = await runGate(cookie, id, false); // not a 12-month NJ resident
     expect(r.data.status).toBe("TERMINATED");
     expect(r.data.card.id).toBe("RESIDENCY_ATTORNEY_FLAG");
@@ -44,7 +44,7 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
 
   it("DV trip → DV-resource card (distinct from bar referral), purged", async () => {
     const id = await startSession(cookie);
-    await runIdentity(cookie, id);
+    await runIdentityAndClear(cookie, id);
     await runGate(cookie, id, true); // residency ok
     await runGate(cookie, id, "Bergen"); // venue
     const r = await runGate(cookie, id, true); // DV: yes
@@ -58,7 +58,7 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
 
   it("DV exit retains EXACTLY what a conflict hit retains: audit event codes only, nothing about the person or situation", async () => {
     const id = await startSession(cookie);
-    await runIdentity(cookie, id);
+    await runIdentityAndClear(cookie, id);
     await runGate(cookie, id, true);
     await runGate(cookie, id, "Bergen");
     await runGate(cookie, id, true); // DV disclosure
@@ -72,7 +72,8 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
     // The surviving audit trail is bare event codes; details carry only
     // card/state identifiers — no free text, no names, no disclosure content.
     const events = getAuditEvents(id);
-    const allowedDetail = /^(card=[A-Z_]+|GATE_[A-Z_]+|SCOPE_OUT_[A-Z_]+|initiatedBy=(CLIENT|ATTORNEY))$/;
+    const allowedDetail =
+      /^(card=[A-Z_]+|GATE_[A-Z_]+|SCOPE_OUT_[A-Z_]+|initiatedBy=(CLIENT|STAFF|ATTORNEY)|matter=[0-9a-f-]+|\{"result":"(NO_APPARENT_MATCH|POTENTIAL_MATCH)","clientHash":"[0-9a-f]+","adverseHash":"[0-9a-f]+"\})$/;
     for (const e of events) {
       if (e.detail) expect(e.detail).toMatch(allowedDetail);
     }
@@ -81,7 +82,7 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
 
   it("children → custody deferred → referral card, purged", async () => {
     const id = await startSession(cookie);
-    await runIdentity(cookie, id);
+    await runIdentityAndClear(cookie, id);
     await runGate(cookie, id, true);
     await runGate(cookie, id, "Bergen");
     await runGate(cookie, id, false); // no DV
@@ -94,7 +95,7 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
   it("complexity trip (any non-'fully agree') → Bergen Bar card, purged", async () => {
     for (const answer of ["SOME_UNCERTAINTY", "DISAGREEMENT", "NEED_VALUATION"]) {
       const id = await startSession(cookie);
-      await runIdentity(cookie, id);
+      await runIdentityAndClear(cookie, id);
       await runGate(cookie, id, true);
       await runGate(cookie, id, "Bergen");
       await runGate(cookie, id, false);
@@ -148,9 +149,9 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
 describe("abandoned sessions (retention policy)", () => {
   it("sweep purges stale sessions but keeps READY_FOR_REVIEW and fresh ones", async () => {
     const stale = await startSession(cookie);
-    await runIdentity(cookie, stale);
+    await runIdentityAndClear(cookie, stale);
     const fresh = await startSession(cookie);
-    await runIdentity(cookie, fresh);
+    await runIdentityAndClear(cookie, fresh);
 
     // Backdate the stale session's last activity 30 days.
     getDbSessionForTest(stale, 30);
