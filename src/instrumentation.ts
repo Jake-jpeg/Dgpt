@@ -20,6 +20,20 @@ export async function register() {
       );
     }
 
+    // NJ/NY legal-content governance: refuse the local-only unapproved-content
+    // override outside APP_STAGE=local, and surface snapshot warnings loudly.
+    const { assertLegalContentFlagsValid, legalContentWarnings } = await import(
+      "@/lib/legal/authority"
+    );
+    assertLegalContentFlagsValid(); // throws in staging/closed_pilot
+    for (const w of legalContentWarnings()) {
+      console.warn(`⚠ LEGAL CONTENT: [${w.code}] ${w.message}`);
+    }
+
+    // Intake-schema integrity: refuse to start on structural schema errors.
+    const { validateIntakeConfigOrThrow } = await import("@/lib/intake2/validate");
+    validateIntakeConfigOrThrow();
+
     // Pilot hardening: the development login is LOCAL-ONLY. If either flag
     // is set outside the local stage (or in production), warn loudly at
     // startup — the flags do NOT re-enable the route (see
