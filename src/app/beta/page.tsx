@@ -9,9 +9,8 @@
  */
 import { useEffect, useRef, useState } from "react";
 
-const inquiryEmail =
-  process.env.NEXT_PUBLIC_INQUIRY_EMAIL?.trim() ||
-  "admin@juneguidedsolutions.com";
+// Branding is configuration — no hard-coded mailbox (see src/config/branding.ts).
+const inquiryEmail = process.env.NEXT_PUBLIC_INQUIRY_EMAIL?.trim() || "";
 
 declare global {
   interface Window {
@@ -147,10 +146,17 @@ export default function BetaGate() {
         </button>
 
         <p className="mt-6 border-t pt-4 text-xs text-slate-400">
-          No access code? The site isn&apos;t open yet. For inquiries:{" "}
-          <a href={`mailto:${inquiryEmail}`} className="underline">
-            {inquiryEmail}
-          </a>
+          No access code? The site isn&apos;t open yet.
+          {inquiryEmail ? (
+            <>
+              {" "}For inquiries:{" "}
+              <a href={`mailto:${inquiryEmail}`} className="underline">
+                {inquiryEmail}
+              </a>
+            </>
+          ) : (
+            " Please contact the firm directly with any inquiries."
+          )}
         </p>
       </div>
     </main>

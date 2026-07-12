@@ -1,5 +1,11 @@
-const inquiryEmail =
-  process.env.NEXT_PUBLIC_INQUIRY_EMAIL?.trim() || "admin@juneguidedsolutions.com";
+import { inquiryEmail as brandedInquiryEmail, operatingFirmName } from "@/config/branding";
+
+// Branding is configuration (see src/config/branding.ts) — no hard-coded
+// addresses. When NEXT_PUBLIC_INQUIRY_EMAIL is unset the page renders a
+// neutral contact affordance instead of inventing an address.
+const inquiryEmail = brandedInquiryEmail();
+const firmName = operatingFirmName();
+const inquiryHref = inquiryEmail ? `mailto:${inquiryEmail}` : "#contact";
 
 const capabilities = [
   "Structured client intake",
@@ -18,7 +24,7 @@ export default function Landing() {
           <a className="brand" href="#top" aria-label="DivorceGPT home">
             DivorceGPT<span className="brand-dot">.com</span>
           </a>
-          <a className="nav-link" href={`mailto:${inquiryEmail}`}>
+          <a className="nav-link" href={inquiryHref}>
             Institutional inquiries
           </a>
         </nav>
@@ -33,7 +39,7 @@ export default function Landing() {
               legal-service organizations in New York and New Jersey.
             </p>
             <div className="hero-actions">
-              <a className="button button-primary" href={`mailto:${inquiryEmail}`}>
+              <a className="button button-primary" href={inquiryHref}>
                 Discuss a pilot or acquisition
               </a>
               <a className="button button-secondary" href="#platform">
@@ -85,8 +91,8 @@ export default function Landing() {
           <p className="eyebrow">Current posture</p>
           <h2>Open to a limited institutional pilot, licensing discussion, or acquisition inquiry.</h2>
         </div>
-        <a className="button button-light" href={`mailto:${inquiryEmail}`}>
-          Contact {inquiryEmail}
+        <a id="contact" className="button button-light" href={inquiryHref}>
+          {inquiryEmail ? `Contact ${inquiryEmail}` : "Contact the firm"}
         </a>
       </section>
 
@@ -98,6 +104,11 @@ export default function Landing() {
         <p>
           No attorney-client relationship is formed through this website. This
           website does not provide legal advice.
+        </p>
+        <p>
+          DivorceGPT is workflow software used by {firmName}. Legal services,
+          when engaged, are provided by the firm and its attorneys — never by
+          the software itself.
         </p>
         <p>© {new Date().getFullYear()} June Guided Solutions, LLC.</p>
       </footer>
