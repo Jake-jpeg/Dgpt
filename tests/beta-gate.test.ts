@@ -17,10 +17,13 @@ const KEYS = "synthetic-beta-key-1,synthetic-beta-key-2";
 
 beforeEach(() => {
   freshLimits();
+  // 2.0: the gate is LEGACY — it requires the explicit enable flag AND keys.
+  process.env.BETA_GATE_ENABLED = "true";
   process.env.FREE_ACCESS_KEYS = KEYS;
 });
 
 afterEach(() => {
+  process.env.BETA_GATE_ENABLED = "false";
   process.env.FREE_ACCESS_KEYS = "";
   vi.unstubAllEnvs();
 });
@@ -32,10 +35,15 @@ function pageReq(path: string, cookie?: string): NextRequest {
 }
 
 describe("gate configuration", () => {
-  it("gate is active iff FREE_ACCESS_KEYS is non-empty", () => {
+  it("gate is active only with BETA_GATE_ENABLED=true AND keys (legacy, off by default)", () => {
     expect(betaGateEnabled()).toBe(true);
     process.env.FREE_ACCESS_KEYS = "  ";
-    expect(betaGateEnabled()).toBe(false);
+    expect(betaGateEnabled()).toBe(false); // flag alone is not enough
+    process.env.FREE_ACCESS_KEYS = KEYS;
+    process.env.BETA_GATE_ENABLED = "false";
+    expect(betaGateEnabled()).toBe(false); // keys alone are not enough either
+    delete process.env.BETA_GATE_ENABLED;
+    expect(betaGateEnabled()).toBe(false); // default: gate is NOT the entry point
   });
 
   it("keys are comma-separated and individually revocable", () => {
@@ -59,12 +67,14 @@ describe("gate configuration", () => {
 });
 
 describe("middleware enforcement (whole site)", () => {
-  it("pages without the cookie redirect to /beta", async () => {
-    for (const path of ["/", "/intake", "/attorney"]) {
+  it("gated pages without the cookie redirect to /beta (landing page stays public)", async () => {
+    for (const path of ["/intake", "/attorney"]) {
       const res = await middleware(pageReq(path));
       expect(res.status).toBeGreaterThanOrEqual(300);
       expect(res.headers.get("location")).toContain("/beta");
     }
+    const landing = await middleware(pageReq("/"));
+    expect(landing.status).toBe(200); // informational landing is ungated
   });
 
   it("API calls without the cookie get 403, not a redirect", async () => {
@@ -80,10 +90,10 @@ describe("middleware enforcement (whole site)", () => {
 
   it("REVOCATION: nuking the key from the env locks holders out on the next request", async () => {
     const cookie = `${BETA_COOKIE}=synthetic-beta-key-1`;
-    const before = await middleware(pageReq("/", cookie));
+    const before = await middleware(pageReq("/intake", cookie));
     expect(before.headers.get("location")).toBeNull();
     process.env.FREE_ACCESS_KEYS = "synthetic-beta-key-2"; // key 1 nuked
-    const after = await middleware(pageReq("/", cookie));
+    const after = await middleware(pageReq("/intake", cookie));
     expect(after.headers.get("location")).toContain("/beta");
   });
 

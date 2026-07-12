@@ -24,8 +24,13 @@ export function betaKeys(): string[] {
     .filter(Boolean);
 }
 
+/**
+ * 2.0: the beta gate is LEGACY. Invitation-linked matters are the ordinary
+ * entry point; the gate only activates when BOTH the explicit
+ * BETA_GATE_ENABLED=true flag is set AND keys exist. Default is off.
+ */
 export function betaGateEnabled(): boolean {
-  return betaKeys().length > 0;
+  return process.env.BETA_GATE_ENABLED === "true" && betaKeys().length > 0;
 }
 
 export function isValidBetaKey(key: string | undefined | null): boolean {
