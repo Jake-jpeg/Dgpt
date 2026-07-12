@@ -387,6 +387,8 @@ export default function IntakePage() {
         endSession(data.card as CardData);
         return;
       }
+      // 2.0: screening pends attorney review — one neutral message for every
+      // outcome. Refresh shows the CONFLICT_REVIEW_PENDING panel.
       await refresh(sessionId!);
     });
 
@@ -472,7 +474,9 @@ export default function IntakePage() {
     <main className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Divorce Intake</h1>
-        <Link href="/" className="text-sm text-blue-600 hover:underline">Home</Link>
+        <Link href="/portal/matter" className="text-sm text-blue-600 hover:underline">
+          My matter
+        </Link>
       </div>
 
       {err && (
@@ -496,7 +500,7 @@ export default function IntakePage() {
         <div className="rounded-xl border bg-white p-6">
           <p className="whitespace-pre-wrap text-slate-700">
             {copy.welcome ??
-              "This structured intake collects the information the attorney needs for an uncontested New Jersey divorce. A conflict-of-interest check runs first; only both spouses' names are collected before it clears."}
+              "This structured intake collects the information the attorney needs for an uncontested New Jersey divorce. A conflict-of-interest screen runs first; only both spouses' names are collected before the firm reviews it."}
           </p>
           <button
             onClick={start}
@@ -505,6 +509,45 @@ export default function IntakePage() {
           >
             Begin intake
           </button>
+          {err && (err.includes("invitation") || err.includes("disclosure")) && (
+            <p className="mt-3 text-sm text-slate-600">
+              {err.includes("invitation") ? (
+                <>
+                  Portal access starts with a firm invitation —{" "}
+                  <Link href="/invite" className="text-blue-700 underline">
+                    enter your invitation
+                  </Link>
+                  .
+                </>
+              ) : (
+                <>
+                  Please review the disclosure on{" "}
+                  <Link href="/portal/matter" className="text-blue-700 underline">
+                    your matter page
+                  </Link>{" "}
+                  first.
+                </>
+              )}
+            </p>
+          )}
+        </div>
+      )}
+
+      {sessionId && state === "CONFLICT_REVIEW_PENDING" && (
+        <div className="rounded-xl border bg-white p-6">
+          <h2 className="font-semibold">Submitted for review</h2>
+          <p className="mt-2 text-slate-700">
+            {String(
+              view?.message ??
+                "Your information has been submitted for review. The firm will contact you regarding the next step."
+            )}
+          </p>
+          <Link
+            href="/portal/matter"
+            className="mt-4 inline-block rounded-lg border px-5 py-2 hover:bg-slate-100"
+          >
+            Back to my matter
+          </Link>
         </div>
       )}
 

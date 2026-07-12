@@ -24,9 +24,14 @@ export default function Landing() {
           <a className="brand" href="#top" aria-label="DivorceGPT home">
             DivorceGPT<span className="brand-dot">.com</span>
           </a>
-          <a className="nav-link" href={inquiryHref}>
-            Institutional inquiries
-          </a>
+          <span style={{ display: "inline-flex", gap: 22 }}>
+            <a className="nav-link" href="/portal">
+              Portal sign in
+            </a>
+            <a className="nav-link" href={inquiryHref}>
+              Institutional inquiries
+            </a>
+          </span>
         </nav>
 
         <div id="top" className="hero-grid">
