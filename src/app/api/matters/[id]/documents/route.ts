@@ -26,10 +26,12 @@ import {
 import {
   addDocumentVersion,
   createDocument,
+  listApprovalsForVersion,
   listDocumentsForMatter,
   listReleasedForMatter,
   listVersions,
 } from "@/lib/db/documents";
+import { getUserById } from "@/lib/db/users";
 import { recordAudit } from "@/lib/db/repo";
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -63,8 +65,17 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
           mime: v.mime,
           sizeBytes: v.sizeBytes,
           originalFilename: v.originalFilename,
-          source: v.source,
+          source: v.source, // "AI" flags AI-generated/unreviewed provenance
           createdAt: v.createdAt,
+          approvals: listApprovalsForVersion(v.id).map((a) => ({
+            id: a.id,
+            approvalType: a.approvalType,
+            destination: a.destination,
+            sha256: a.sha256,
+            approvedBy: getUserById(a.approvedBy)?.email ?? a.approvedBy,
+            revoked: Boolean(a.revokedAt),
+            createdAt: a.createdAt,
+          })),
         })),
       })),
     });

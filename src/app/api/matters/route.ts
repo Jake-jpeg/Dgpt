@@ -18,7 +18,9 @@ import {
   listMattersForGrantee,
   type MatterRow,
 } from "@/lib/db/matters";
-import { recordAudit } from "@/lib/db/repo";
+import { recordAudit, listSessionsByMatter } from "@/lib/db/repo";
+import { getUserById } from "@/lib/db/users";
+import { listDocumentsForMatter, listVersions } from "@/lib/db/documents";
 
 function matterSummary(m: MatterRow) {
   return {
@@ -28,6 +30,23 @@ function matterSummary(m: MatterRow) {
     conflictStatus: m.conflictStatus,
     legalHold: m.legalHold,
     updatedAt: m.updatedAt,
+  };
+}
+
+/** Working-list row for STAFF/ATTORNEY with a grant on the matter. */
+function firmMatterRow(m: MatterRow) {
+  const client = m.clientUserId ? getUserById(m.clientUserId) : null;
+  const latestSession = listSessionsByMatter(m.id)[0] ?? null;
+  const versions = listDocumentsForMatter(m.id).flatMap((d) => listVersions(d.id));
+  const awaitingReview = versions.filter((v) =>
+    ["ATTORNEY_REVIEW_REQUIRED", "DRAFT", "CHANGES_REQUESTED"].includes(v.status)
+  ).length;
+  const released = versions.filter((v) => v.status === "RELEASED").length;
+  return {
+    ...matterSummary(m),
+    client: client ? { name: client.name || client.email, email: client.email } : null,
+    intakeStatus: latestSession?.state ?? "NOT_STARTED",
+    documents: { total: versions.length, awaitingReview, released },
   };
 }
 
@@ -45,11 +64,13 @@ export async function GET(req: Request) {
         matters: matters.map((m) => ({ id: m.id, updatedAt: m.updatedAt })),
       });
     } else if (account.role === "ADMIN") {
+      // Management view: labels + status only, no matter content.
       matters = listAllMatters();
+      return Response.json({ matters: matters.map(matterSummary) });
     } else {
       matters = listMattersForGrantee(account.id);
+      return Response.json({ matters: matters.map(firmMatterRow) });
     }
-    return Response.json({ matters: matters.map(matterSummary) });
   } catch (e) {
     return errorResponse(e);
   }

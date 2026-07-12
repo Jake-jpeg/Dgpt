@@ -35,7 +35,11 @@ export async function POST(req: Request) {
 
     const parsed = z
       .object({
-        role: z.enum(["CLIENT", "ATTORNEY"]),
+        // All four roles accepted for LOCAL testing. The session role is a
+        // hint only: authorization re-reads app_user.role, and STAFF/ADMIN
+        // are never self-provisioned from a session token — those rows must
+        // already exist (seeded or admin-created) and bind by email.
+        role: z.enum(["CLIENT", "STAFF", "ATTORNEY", "ADMIN"]),
         email: z.string().email(),
         name: z.string().trim().min(1).max(80).default("Dev User"),
       })
