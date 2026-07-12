@@ -46,7 +46,13 @@ export function errorResponse(e: unknown): Response {
   if (msg.startsWith("VALIDATION:")) {
     return Response.json({ error: msg }, { status: 400 });
   }
-  if (msg.startsWith("PERSISTENCE_GUARD:") || msg.startsWith("STATE_MACHINE:")) {
+  if (
+    msg.startsWith("PERSISTENCE_GUARD:") ||
+    msg.startsWith("STATE_MACHINE:") ||
+    msg.startsWith("CONFLICT_GUARD:") ||
+    msg.startsWith("DOCUMENT_GUARD:") ||
+    msg.startsWith("STORAGE_GUARD:")
+  ) {
     // Guard trips are conflicts with server-held state, not server faults.
     return Response.json({ error: msg }, { status: 409 });
   }

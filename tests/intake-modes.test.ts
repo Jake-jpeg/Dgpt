@@ -184,7 +184,7 @@ describe("criterion 7: Stage-2 drafting is stubbed and wired to nothing", () => 
     expect(detail.stage2.draftingAvailable).toBe(false);
   });
 
-  it("no drafting/MSA/document endpoint exists anywhere in the API surface", () => {
+  it("no client-facing generative drafting endpoint exists (documents are the attorney-supervised 2.0 surface)", () => {
     const apiDir = path.join(__dirname, "..", "src", "app", "api");
     const routes: string[] = [];
     const walk = (dir: string) => {
@@ -195,8 +195,15 @@ describe("criterion 7: Stage-2 drafting is stubbed and wired to nothing", () => 
       }
     };
     walk(apiDir);
-    const offenders = routes.filter((r) => /draft|msa|document|generate/i.test(r));
+    // MSA generation stays absent. 2.0 document routes are upload/approval/
+    // release plumbing, not drafting — assert no msa/generate route at all…
+    const offenders = routes.filter((r) => /msa|generate/i.test(r));
     expect(offenders).toEqual([]);
+    // …and nothing document- or draft-shaped under the client intake surface.
+    const intakeOffenders = routes.filter((r) =>
+      /api[\/\\]intake[\/\\].*(document|draft)/i.test(r)
+    );
+    expect(intakeOffenders).toEqual([]);
   });
 
   it("the review UI renders the Stage-2 button disabled", () => {
