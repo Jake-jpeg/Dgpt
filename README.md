@@ -44,8 +44,10 @@ npx eslint src tests       # lint
 npm run build              # production build
 ```
 
-Local walkthrough of the 2.0 flow (all APIs; UI for the new surfaces is
-[INCOMPLETE], see docs/ASSUMPTIONS-AND-GAPS.md):
+**Full local demo:** see `docs/MVP-DEMO-GUIDE.md` (browser walkthrough for
+all four roles + `node scripts/e2e-demo.mjs` automated validation).
+
+API-level walkthrough of the same flow:
 
 1. Sign in via the dev stub as an attorney (allowlisted email).
 2. `POST /api/matters` → `POST /api/matters/{id}/invitations` → copy the

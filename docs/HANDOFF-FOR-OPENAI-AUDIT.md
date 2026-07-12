@@ -87,6 +87,25 @@ Markers: [INCOMPLETE] unfinished · [NOT CONFIGURED] missing infrastructure ·
 | OpenAI non-affiliation retained | src/app/page.tsx footer | branding test |
 | Neutral client language; markers never rendered | client-view.ts, disclosure.ts | branding neutrality tests |
 
+## 9. MVP UI (second pass)
+
+| Item | File(s) | Backing APIs | Validation |
+|---|---|---|---|
+| Entry, 4 roles, no self-registration | src/app/portal/page.tsx | /api/auth/me (DB role), dev-login, OAuth login routes | e2e page smoke + logins |
+| Invitation mgmt (create/copy URL/revoke, one-time token) | src/app/firm/matters/[id]/page.tsx | /api/matters/[id]/invitations, /api/invitations/[id]/revoke | e2e steps 2, guide §3 |
+| Client acceptance (neutral failures) | src/app/invite/page.tsx | /api/invitations/accept | e2e 3/3b |
+| Disclosure (affirmative, unchecked; no source markers rendered) | src/app/portal/matter/page.tsx | /api/disclosure, /api/matters/[id]/consent | e2e 4a/4b; branding tests |
+| Conflict prescreen + neutral pending | src/app/intake/page.tsx | /api/intake/[id]/identity | e2e 5b/6 |
+| Attorney conflict queue (attorney-only controls) | src/app/firm/conflicts/page.tsx | /api/attorney/conflicts, /api/matters/[id]/conflict | e2e 7a/7b, N1/N2 |
+| Client intake + save progress + missing items + help + uploads + status | src/app/portal/matter/page.tsx, intake page | matter view, info-requests, assistance, documents, intake routes | e2e 8–9, guide §3 |
+| Accommodations | firm matter page | /api/matters/[id]/accommodations | e2e/guide |
+| Document review (states, hashes, AI-unreviewed flag) | firm matter page | /api/matters/[id]/documents (enriched) | e2e 10a/11 |
+| Attorney approval (exact version; no bulk) | firm matter page | /api/document-versions/[id]/approve, /status | e2e 12, N4/N5 |
+| Controlled release (title/version/type/attorney/timestamp/destination) | ReleaseConfirm in firm matter page | /api/document-versions/[id]/release | e2e 13, N6–N10 |
+| Client released-only view | src/app/portal/matter/page.tsx | client-shaped documents + download | e2e 14, N3 |
+| Admin views (users, disclosure version, retention, audit) | src/app/admin/page.tsx | /api/admin/users, /api/admin/config, /api/admin/audit | e2e 15b, guide §3 |
+| End-to-end validation | scripts/e2e-demo.mjs | all of the above | 64/64 PASS (happy + negative paths + page smoke) |
+
 ## Outstanding
 
 - [NOT CONFIGURED]: production file storage/scanner, managed Postgres, real
@@ -95,7 +114,5 @@ Markers: [INCOMPLETE] unfinished · [NOT CONFIGURED] missing infrastructure ·
 - [COUNSEL REVIEW REQUIRED]: disclosure text, client-facing status strings,
   DV card + all [ATTORNEY TO SUPPLY] config copy, retention periods,
   privacy notice, AI-vendor data terms.
-- [INCOMPLETE]: firm-side and client-side UI for the new 2.0 surfaces
-  (matters, conflict review queue, document approval, admin console) — the
-  API layer is complete and test-covered; pages still expose the Stage-1
-  flow. See ASSUMPTIONS-AND-GAPS.md §UI.
+- UI for the 2.0 surfaces is now implemented (see §9); remaining
+  [INCOMPLETE] is cosmetic polish only.

@@ -36,17 +36,18 @@
 
 ## Gaps / [INCOMPLETE]
 
-- **UI for 2.0 surfaces.** The API layer for matters, invitations,
-  disclosure/consent, conflict review, accommodations, documents,
-  approvals/releases, AI, admin users/config is complete and test-covered —
-  but `src/app/` pages still render the Stage-1 flow only. The intake page
-  does not yet walk a client through invitation entry → disclosure →
-  pending-review status, and there is no attorney matter/conflict/document
-  UI or admin console. Backend contracts are stable; UI is the next batch of
-  work.
-- **Attorney conflict queue** is per-matter (`GET /api/matters/[id]/conflict`);
-  a cross-matter "everything pending review" dashboard endpoint does not
-  exist yet.
+- ~~UI for 2.0 surfaces~~ — RESOLVED (MVP UI batch): /portal, /invite,
+  /portal/matter, /intake (2.0 states), /firm, /firm/conflicts,
+  /firm/matters/[id], /admin. See docs/MVP-UI-CHECKLIST.md and
+  docs/MVP-DEMO-GUIDE.md.
+- ~~Attorney conflict queue~~ — RESOLVED: GET /api/attorney/conflicts +
+  /firm/conflicts (grant-scoped).
+- **UI polish is minimal by design** (restrained MVP): no optimistic
+  updates, tables over dashboards, minimal empty states. The demo guide
+  covers the full flow.
+- **dev-login now accepts all four roles** for LOCAL testing only; the
+  session role remains a hint — STAFF/ADMIN must exist as DB rows (seeded
+  via the admin API) and authorization re-reads the DB role per request.
 - **Legacy attorney session views** (`/api/attorney/sessions*`) remain
   session-scoped, not matter-scoped (they still work and are tested).
 - **Rate limiting** is in-memory (single instance).

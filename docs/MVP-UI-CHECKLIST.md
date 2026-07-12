@@ -31,5 +31,10 @@ New/updated supporting endpoints (thin, same guard stack):
 - GET /api/matters (STAFF/ATTORNEY) → adds client display, intake/doc status
 - GET /api/matters/[id]/documents (firm shape) → adds approvals + releases
 
-Demo: scripts/seed-demo.mjs (synthetic firm users) · scripts/e2e-demo.mjs
-(happy path + negative paths over HTTP) · docs/MVP-DEMO-GUIDE.md.
+Demo: scripts/e2e-demo.mjs (seeds synthetic firm users via the real admin
+API, then validates the happy path + negative paths over HTTP; --seed-only
+to just seed) · docs/MVP-DEMO-GUIDE.md.
+
+Status: ALL screens implemented and validated — vitest 167/167, tsc, eslint,
+build green; scripts/e2e-demo.mjs 64/64 (happy path, negative paths, page
+smoke). See docs/MVP-DEMO-GUIDE.md for the exact demonstration steps.

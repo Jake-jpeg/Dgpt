@@ -46,15 +46,35 @@ README.md · AGENTS.md (2.0 banner) · .gitignore
 ## Failures remaining
 
 None in code checks. Open items are inventory, not failures:
-- [INCOMPLETE] UI pages for the new 2.0 surfaces (API-complete; see
-  ASSUMPTIONS-AND-GAPS.md)
 - [NOT CONFIGURED] production storage/scanner, Postgres, real conflict
   provider, OAuth registrations, inquiry mailbox, email delivery
 - [COUNSEL REVIEW REQUIRED] disclosure text, client status strings,
   [ATTORNEY TO SUPPLY] config copy, retention periods, privacy notice
 
+## MVP UI batch (2026-07-12, second pass) ✔
+
+All user-facing screens implemented and wired to the existing APIs:
+`/portal` (4-role entry, no self-registration) · `/invite` (neutral
+failures) · `/portal/matter` (status, disclosure consent, requested items,
+uploads, released docs, help) · `/intake` (2.0 pending state) · `/firm`
+(matter list + create) · `/firm/conflicts` (attorney disposition queue) ·
+`/firm/matters/[id]` (invitations, documents, version-exact approve/release
+with full confirmation, requests/accommodations/notes, audit) · `/admin`
+(users/roles, disclosure version, retention config, chain-verified audit).
+Supporting APIs: authoritative /api/auth/me, 4-role dev-login,
+/api/attorney/conflicts, matter + admin audit endpoints, enriched firm
+lists/documents.
+
+Validation of this pass:
+- vitest 167/167 · tsc clean · eslint clean · next build OK
+- scripts/e2e-demo.mjs against a running dev server: **64/64** —
+  full happy path (matter → invitation → acceptance → disclosure →
+  screening → attorney clearance → intake → upload → review → internal
+  version → exact-version approval → controlled release → client download →
+  audit) plus every required negative path and a 10-page smoke test.
+- Demo instructions: docs/MVP-DEMO-GUIDE.md
+
 ## Exact next batch (future work)
 
-UI batch: client onboarding flow (invitation entry → disclosure → pending
-status), attorney matter/conflict-review/document-approval views, admin
-console — all against the existing tested APIs.
+Cosmetic/UX polish (empty-state art, optimistic updates), a cross-matter
+attorney dashboard, and the [NOT CONFIGURED] infrastructure items.
