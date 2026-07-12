@@ -24,6 +24,18 @@ export function devAuthStubEnabled(): boolean {
   return process.env.DEV_AUTH_STUB === "true" && !isProduction();
 }
 
+/**
+ * ADMIN bootstrap/recovery ONLY (narrow scope by design): lets a listed
+ * account self-provision the ADMIN role at first login. Ordinary role
+ * management lives in the app_user table via the admin API.
+ */
+export function adminBootstrapEmails(): string[] {
+  return (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export function attorneyEmailAllowlist(): string[] {
   return (process.env.ATTORNEY_EMAILS ?? "")
     .split(",")

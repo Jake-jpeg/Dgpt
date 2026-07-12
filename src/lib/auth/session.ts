@@ -9,7 +9,9 @@
 import { SignJWT, jwtVerify } from "jose";
 import { env, isProduction } from "@/lib/env";
 
-export type Role = "CLIENT" | "ATTORNEY";
+export type Role = "CLIENT" | "STAFF" | "ATTORNEY" | "ADMIN";
+
+const ROLES: readonly string[] = ["CLIENT", "STAFF", "ATTORNEY", "ADMIN"];
 
 export interface SessionUser {
   /** Opaque stable subject: `${provider}|${providerSubject}` */
@@ -51,11 +53,11 @@ export async function verifySessionToken(token: string): Promise<SessionUser | n
       algorithms: ["HS256"],
     });
     const role = payload.role;
-    if (role !== "CLIENT" && role !== "ATTORNEY") return null;
+    if (typeof role !== "string" || !ROLES.includes(role)) return null;
     if (typeof payload.sub !== "string") return null;
     return {
       subject: payload.sub,
-      role,
+      role: role as Role,
       email: typeof payload.email === "string" ? payload.email : "",
       name: typeof payload.name === "string" ? payload.name : "",
     };

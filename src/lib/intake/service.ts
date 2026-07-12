@@ -57,13 +57,18 @@ export function requireOwnedSession(user: SessionUser, sessionId: string): Sessi
   return s;
 }
 
-export function startIntake(user: SessionUser): SessionRow {
+export function startIntake(user: SessionUser, matterId?: string): SessionRow {
   // Both intake modes pass through the same wall: client-initiated and
-  // attorney/paralegal-initiated sessions start in PRE_GATE, no exceptions.
+  // staff/attorney-initiated sessions start in PRE_GATE, no exceptions.
+  // ADMIN does not perform intake (least privilege).
+  if (user.role === "ADMIN") {
+    throw new HttpError(403, "Admins do not perform intake");
+  }
   const s = createSession({
     initiatedBy: user.role,
     ownerSubject: user.subject,
     initialState: "PRE_GATE",
+    matterId,
   });
   recordAudit(s.id, "SESSION_STARTED", `initiatedBy=${user.role}`);
   return s;

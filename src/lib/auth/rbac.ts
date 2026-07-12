@@ -8,8 +8,7 @@
  *   revokes access immediately.
  * - Failures return errors, never data.
  */
-import { attorneyEmailAllowlist } from "@/lib/env";
-import { getSessionUser, type Role, type SessionUser } from "./session";
+import type { Role, SessionUser } from "./session";
 
 export class HttpError extends Error {
   constructor(public status: number, message: string) {
@@ -17,29 +16,26 @@ export class HttpError extends Error {
   }
 }
 
+/**
+ * Stage-1 compatibility wrappers, now DB-backed: the CURRENT role is
+ * re-read from app_user on every call (see src/lib/auth/authz.ts). The
+ * session cookie alone never authorizes anything.
+ */
 export async function requireRole(req: Request, role: Role): Promise<SessionUser> {
-  const user = await getSessionUser(req);
-  if (!user) throw new HttpError(401, "Not signed in");
-  if (user.role !== role) throw new HttpError(403, "Forbidden for this role");
-  if (role === "ATTORNEY") {
-    const allow = attorneyEmailAllowlist();
-    if (!allow.includes(user.email.toLowerCase())) {
-      throw new HttpError(403, "Attorney access not authorized for this account");
-    }
-  }
-  return user;
+  const { requireUser } = await import("./authz");
+  const { session, account } = await requireUser(req, [role]);
+  return { ...session, role: account.role };
 }
 
 export async function requireAnyRole(req: Request): Promise<SessionUser> {
-  const user = await getSessionUser(req);
-  if (!user) throw new HttpError(401, "Not signed in");
-  if (user.role === "ATTORNEY") {
-    const allow = attorneyEmailAllowlist();
-    if (!allow.includes(user.email.toLowerCase())) {
-      throw new HttpError(403, "Attorney access not authorized for this account");
-    }
-  }
-  return user;
+  const { requireUser } = await import("./authz");
+  const { session, account } = await requireUser(req, [
+    "CLIENT",
+    "STAFF",
+    "ATTORNEY",
+    "ADMIN",
+  ]);
+  return { ...session, role: account.role };
 }
 
 export function errorResponse(e: unknown): Response {

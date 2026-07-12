@@ -8,6 +8,7 @@
  * an in-scope intake state. The API layer enforces this too; this is the
  * belt-and-suspenders at the persistence boundary.
  */
+import { createHash } from "node:crypto";
 import { getDb, newId, nowIso } from "./index";
 import type { MachineState } from "@/lib/intake/machine";
 import { ANSWER_WRITABLE_STATES } from "@/lib/intake/machine";
@@ -21,8 +22,9 @@ export interface SessionRow {
   id: string;
   state: MachineState;
   tier: "TIER1" | "TIER2" | null;
-  initiatedBy: "CLIENT" | "ATTORNEY";
+  initiatedBy: "CLIENT" | "STAFF" | "ATTORNEY";
   ownerSubject: string;
+  matterId: string | null;
   conflictClear: boolean;
   county: string | null;
   qdroFlag: boolean;
@@ -39,6 +41,7 @@ function rowToSession(r: Record<string, unknown>): SessionRow {
     tier: (r.tier as SessionRow["tier"]) ?? null,
     initiatedBy: r.initiated_by as SessionRow["initiatedBy"],
     ownerSubject: r.owner_subject as string,
+    matterId: (r.matter_id as string | null) ?? null,
     conflictClear: r.conflict_clear === 1,
     county: (r.county as string | null) ?? null,
     qdroFlag: r.qdro_flag === 1,
@@ -50,19 +53,27 @@ function rowToSession(r: Record<string, unknown>): SessionRow {
 }
 
 export function createSession(opts: {
-  initiatedBy: "CLIENT" | "ATTORNEY";
+  initiatedBy: "CLIENT" | "STAFF" | "ATTORNEY";
   ownerSubject: string;
   initialState: MachineState;
+  matterId?: string;
 }): SessionRow {
   const db = getDb();
   const id = newId();
   const t = nowIso();
   db.prepare(
     `INSERT INTO intake_session
-     (id, state, initiated_by, owner_subject, created_at, updated_at, last_activity_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(id, opts.initialState, opts.initiatedBy, opts.ownerSubject, t, t, t);
+     (id, state, initiated_by, owner_subject, matter_id, created_at, updated_at, last_activity_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, opts.initialState, opts.initiatedBy, opts.ownerSubject, opts.matterId ?? null, t, t, t);
   return getSession(id)!;
+}
+
+export function listSessionsByMatter(matterId: string): SessionRow[] {
+  const rows = getDb()
+    .prepare(`SELECT * FROM intake_session WHERE matter_id = ? ORDER BY updated_at DESC`)
+    .all(matterId) as Record<string, unknown>[];
+  return rows.map(rowToSession);
 }
 
 export function getSession(id: string): SessionRow | null {
@@ -173,6 +184,19 @@ export function insertAnswer(sessionId: string, fieldId: string, value: unknown)
       "PERSISTENCE_GUARD: refusing to persist substantive data without conflict CLEAR"
     );
   }
+  if (s.matterId) {
+    // 2.0: a matter-linked session additionally requires the matter itself to
+    // hold an ATTORNEY-set CLEARED disposition — automated screening cannot
+    // produce it (see src/lib/db/matters.ts).
+    const m = getDb()
+      .prepare(`SELECT conflict_status FROM matter WHERE id = ?`)
+      .get(s.matterId) as { conflict_status: string } | undefined;
+    if (!m || m.conflict_status !== "CLEARED") {
+      throw new Error(
+        "PERSISTENCE_GUARD: refusing to persist substantive data before the matter is CLEARED by an attorney"
+      );
+    }
+  }
   if (!ANSWER_WRITABLE_STATES.includes(s.state)) {
     throw new Error(
       `PERSISTENCE_GUARD: refusing to persist substantive data in state ${s.state}`
@@ -227,15 +251,66 @@ export function getBotLog(sessionRef: string) {
   }[];
 }
 
-// ── Audit events (minimal; survives purges) ──────────────────────────
+// ── Audit events (hash-chained; survives purges) ─────────────────────
 
-export function recordAudit(sessionRef: string, event: string, detail?: string): void {
-  getDb()
+/**
+ * Tamper-evident audit trail: every event carries
+ * hash = SHA-256(prev_hash | id | ref | event | detail | actor | created_at).
+ * Editing or deleting any historical row breaks every later hash
+ * (verifyAuditChain). Raw confidential content NEVER goes in `detail` —
+ * names appear only as salted HMAC hashes (src/lib/security/audit-hash.ts),
+ * documents only as IDs/content hashes.
+ */
+export function recordAudit(
+  sessionRef: string,
+  event: string,
+  detail?: string,
+  actor?: string
+): void {
+  const db = getDb();
+  const last = db
+    .prepare(`SELECT hash FROM audit_event ORDER BY rowid DESC LIMIT 1`)
+    .get() as { hash: string | null } | undefined;
+  const prev = last?.hash ?? "GENESIS";
+  const id = newId();
+  const t = nowIso();
+  const hash = createHash("sha256")
+    .update([prev, id, sessionRef, event, detail ?? "", actor ?? "", t].join("|"))
+    .digest("hex");
+  db.prepare(
+    `INSERT INTO audit_event (id, session_ref, event, detail, actor, prev_hash, hash, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, sessionRef, event, detail ?? null, actor ?? null, prev, hash, t);
+}
+
+/** Walk the whole chain; returns the first broken row id, or null if intact. */
+export function verifyAuditChain(): string | null {
+  const rows = getDb()
     .prepare(
-      `INSERT INTO audit_event (id, session_ref, event, detail, created_at)
-       VALUES (?, ?, ?, ?, ?)`
+      `SELECT id, session_ref, event, detail, actor, prev_hash, hash, created_at
+       FROM audit_event ORDER BY rowid ASC`
     )
-    .run(newId(), sessionRef, event, detail ?? null, nowIso());
+    .all() as {
+    id: string;
+    session_ref: string;
+    event: string;
+    detail: string | null;
+    actor: string | null;
+    prev_hash: string | null;
+    hash: string | null;
+    created_at: string;
+  }[];
+  let prev = "GENESIS";
+  for (const r of rows) {
+    const expect = createHash("sha256")
+      .update(
+        [prev, r.id, r.session_ref, r.event, r.detail ?? "", r.actor ?? "", r.created_at].join("|")
+      )
+      .digest("hex");
+    if (r.prev_hash !== prev || r.hash !== expect) return r.id;
+    prev = r.hash ?? "";
+  }
+  return null;
 }
 
 export function getAuditEvents(sessionRef: string) {
