@@ -175,9 +175,14 @@ export default function ClientMatterPage() {
             <h2>Status</h2>
             <p className="text-[.95rem]">{matter.status}</p>
             {ackDone && matter.canProceed && (
-              <Link className="btn btn-primary mt-3" href="/intake">
-                Continue my intake
-              </Link>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <Link className="btn btn-primary" href="/portal/intake">
+                  Continue my questionnaire
+                </Link>
+                <Link className="btn btn-quiet" href="/intake">
+                  Original intake session
+                </Link>
+              </div>
             )}
             {ackDone && !matter.canProceed && (
               <Link className="btn btn-quiet mt-3" href="/intake">

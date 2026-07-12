@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Shell, useMe, StatusBadge, ErrorNotice } from "@/components/shell";
 import { api, fmtWhen, STATE_LABELS } from "@/lib/ui/client-api";
+import Workbench from "./workbench";
 
 interface MatterDetail {
   id: string;
@@ -693,7 +694,8 @@ export default function FirmMatterDetail() {
               <p className="panel-sub">
                 Output is internal work product: it lands as an AI document
                 version requiring attorney review and is never visible to the
-                client. Unavailable when AI features are disabled.
+                client. Unavailable when AI features are disabled. The NJ/NY
+                structured actions live in the AI workbench panel below.
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <select
@@ -721,6 +723,9 @@ export default function FirmMatterDetail() {
               </div>
             </div>
           </div>
+
+          {/* ── NJ/NY lawyer workbench (B10) ─────────────────────── */}
+          <Workbench matterId={matterId} isAttorney={isAttorney} onArtifactCreated={load} />
 
           {/* ── Requests, accommodations, notes ─────────────────── */}
           <div className="panel">

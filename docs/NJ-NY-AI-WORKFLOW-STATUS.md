@@ -14,8 +14,8 @@ Local proof only — synthetic data, no deployment, no push, no production data.
 | B7 | OpenAI Responses API integration (store:false, salted safety identifier, no-fallback config errors, metadata-only logging) | DONE |
 | B8 | Structured outputs + provenance validation (10 actions, strict JSON schema, citation allowlist, REJECTED_OUTPUT never saved) | DONE |
 | B9 | Document analysis inputs (bounded local extraction; explicit STAFF/ATTORNEY action; UNSUPPORTED/[INCOMPLETE] honesty) | DONE |
-| B10 | Lawyer workbench UI | IN PROGRESS |
-| B11 | Client intake experience UI | PENDING |
+| B10 | Lawyer workbench UI (jurisdiction, intake review, checklist, form readiness, legal sources, AI actions + report viewer) | DONE |
+| B11 | Client intake experience UI (`/portal/intake`, schema-driven, save/resume, a11y) | DONE |
 | B12 | Deterministic document checklist (+ attorney waive/override, disclaimer) | DONE |
 | B13 | Form-readiness report (attorney-only; never "ready to file") | DONE |
 | B14 | Synthetic test matters (20 scenarios) | PENDING |
