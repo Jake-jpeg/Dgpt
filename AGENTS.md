@@ -8,6 +8,19 @@ and factual. Read this whole file before editing anything. Last updated:
 > data, or the beta access code. All live values exist only in the
 > DigitalOcean dashboard and Jake's local `.env` (gitignored).
 
+> **2.0 ATTORNEY-WORKFLOW UPDATE (2026-07-12, branch
+> `divorcegpt-2-attorney-workflow`):** this brief describes Stage 1. The
+> attorney-workflow conversion supersedes parts of it: DB-stored 4-role RBAC
+> (CLIENT/STAFF/ATTORNEY/ADMIN), matter-centered model, invitation-only
+> client access, disclosure consent, conflict screening that ONLY an
+> attorney can clear/decline, version-exact hash-bound document
+> approval/release, server-only OpenAI internal layer (kill-switched),
+> retention + legal hold, hash-chained audit. Read `docs/ARCHITECTURE.md`,
+> `docs/ROLE-PERMISSIONS.md`, `docs/APPROVAL-FLOW.md`, and
+> `docs/HANDOFF-FOR-OPENAI-AUDIT.md` before editing. Invariants below still
+> hold except: the conflict check no longer auto-clears (sessions pend
+> attorney review), and roles are no longer two.
+
 ## 1. What this is
 
 A gated, dual-login intake web app for a solo New Jersey family-law practice
