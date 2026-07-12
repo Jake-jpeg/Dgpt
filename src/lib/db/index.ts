@@ -214,6 +214,18 @@ CREATE TABLE IF NOT EXISTS accommodation (
   created_at  TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS info_request (
+  id         TEXT PRIMARY KEY,
+  matter_id  TEXT NOT NULL REFERENCES matter(id) ON DELETE CASCADE,
+  label      TEXT NOT NULL,                 -- plain-language item shown to the client
+  internal_note TEXT,                       -- staff/attorney only; never sent to the client
+  status     TEXT NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN','RESOLVED')),
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_info_request_matter ON info_request(matter_id);
+
 CREATE TABLE IF NOT EXISTS assistance_request (
   id           TEXT PRIMARY KEY,
   matter_id    TEXT NOT NULL REFERENCES matter(id) ON DELETE CASCADE,

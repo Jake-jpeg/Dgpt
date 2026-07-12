@@ -10,6 +10,7 @@ import { errorResponse } from "@/lib/auth/rbac";
 import { assertRateLimit } from "@/lib/security/rate-limit";
 import { listSessionsByMatter } from "@/lib/db/repo";
 import { clientMatterStatus } from "@/lib/matters/client-view";
+import { listInfoRequests } from "@/lib/db/matter-workflow";
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -19,11 +20,19 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const matter = requireMatterAccess(authed, id);
 
     if (authed.account.role === "CLIENT") {
+      // Plain-language view only: open requested items and the help option.
+      // No internal notes, no conflict machinery, no unreleased work product.
+      const openRequests = listInfoRequests(matter.id)
+        .filter((r) => r.status === "OPEN")
+        .map((r) => ({ id: r.id, label: r.label, createdAt: r.createdAt }));
       return Response.json({
         matter: {
           id: matter.id,
           status: clientMatterStatus(matter),
           canProceed: matter.conflictStatus === "CLEARED",
+          requestedItems: openRequests,
+          helpAvailable: true,
+          helpLabel: "I need help completing this intake.",
         },
       });
     }
