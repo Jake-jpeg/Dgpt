@@ -1,8 +1,10 @@
 /**
- * Edge middleware: security headers on every response + coarse page-level
- * gating for /attorney pages. This is convenience only — the REAL enforcement
- * is server-side in every API handler (requireRole) and in the persistence
- * guards; nothing here is trusted as the sole control.
+ * Edge proxy (Next 16 convention — the direct successor of middleware.ts,
+ * migrated during pilot hardening; behavior is unchanged and covered by
+ * tests/beta-gate.test.ts): security headers on every response + coarse
+ * page-level gating for /attorney pages. This is convenience only — the
+ * REAL enforcement is server-side in every API handler (requireUser) and in
+ * the persistence guards; nothing here is trusted as the sole control.
  */
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -42,7 +44,7 @@ function securityHeaders(res: NextResponse): NextResponse {
   return res;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ── Beta access gate (active whenever FREE_ACCESS_KEYS is set) ──

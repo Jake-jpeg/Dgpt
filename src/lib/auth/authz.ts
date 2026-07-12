@@ -19,7 +19,7 @@
 import { attorneyEmailAllowlist, adminBootstrapEmails } from "@/lib/env";
 import { getSessionUser, type Role, type SessionUser } from "./session";
 import { HttpError } from "./rbac";
-import { resolveAccount, type UserRow } from "@/lib/db/users";
+import { findAccountForSession, type UserRow } from "@/lib/db/users";
 import { canAccessMatter, getMatter, type MatterRow } from "@/lib/db/matters";
 
 export interface AuthedUser {
@@ -37,13 +37,17 @@ export async function requireUser(req: Request, roles: Role[]): Promise<AuthedUs
   const session = await getSessionUser(req);
   if (!session) throw new HttpError(401, "Not signed in");
 
-  const account = resolveAccount({
+  // Providers authenticate; the DATABASE authorizes. A successful Microsoft
+  // or Google sign-in with no corresponding app account gets nothing.
+  const account = findAccountForSession({
     subject: session.subject,
     email: session.email,
     name: session.name,
-    sessionRole: session.role,
     adminBootstrapEmails: adminBootstrapEmails(),
   });
+  if (!account) {
+    throw new HttpError(403, "This sign-in is not linked to an authorized account");
+  }
 
   if (!account.active) throw new HttpError(403, "Account is deactivated");
   if (account.subject !== session.subject) {

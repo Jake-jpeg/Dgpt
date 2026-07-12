@@ -7,8 +7,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { resetDbForTests } from "@/lib/db/index";
 import {
   createUser,
+  findAccountForSession,
   getUserByEmail,
-  resolveAccount,
   setUserRole,
   type UserRow,
 } from "@/lib/db/users";
@@ -40,11 +40,10 @@ function synth(role: UserRow["role"], email: string): { user: UserRow; session: 
     name: `Synthetic ${role}`,
   };
   // bind subject as a login would
-  resolveAccount({
+  findAccountForSession({
     subject: session.subject,
     email,
     name: session.name,
-    sessionRole: role,
     adminBootstrapEmails: [],
   });
   return { user: getUserByEmail(email)!, session };
@@ -77,7 +76,7 @@ describe("DB-stored roles", () => {
     expect(res.status).toBe(403); // create requires STAFF/ATTORNEY per the DB
   });
 
-  it("STAFF and ADMIN roles are never self-provisioned from a session token", async () => {
+  it("NO account is ever self-provisioned from a session token", async () => {
     const cookie = await cookieFor({
       subject: "devstub|mallory:mallory@example.test",
       role: "ADMIN",
@@ -86,8 +85,8 @@ describe("DB-stored roles", () => {
     });
     const res = await usersGet(jsonRequest("/api/admin/users", { cookie, method: "GET" }));
     expect(res.status).toBe(403);
-    // The lazily provisioned row is a CLIENT, not an ADMIN.
-    expect(getUserByEmail("mallory@example.test")!.role).toBe("CLIENT");
+    // Pilot hardening: authentication alone creates NOTHING — no row at all.
+    expect(getUserByEmail("mallory@example.test")).toBeNull();
   });
 
   it("ADMIN_EMAILS is bootstrap-only: listed email provisions ADMIN at first login", async () => {

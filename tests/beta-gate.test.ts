@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { POST as unlockRoute } from "@/app/api/beta/unlock/route";
 import { GET as configRoute } from "@/app/api/beta/config/route";
-import { middleware } from "@/middleware";
+import { proxy as middleware } from "@/proxy";
 import { betaGateEnabled, isValidBetaKey, betaGateExempt, BETA_COOKIE } from "@/lib/beta";
 import { assertCriticalCopyReady } from "@/lib/config-guard";
 import { jsonRequest, freshLimits } from "./helpers";
@@ -188,7 +188,7 @@ describe("beta test login (production, closed testing only)", () => {
     );
   };
 
-  it("requires ALL THREE: flag on, gate up, valid beta cookie already held", async () => {
+  it("is fully retired: production NEVER exposes a test sign-in, whatever the flags", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DEV_AUTH_STUB", "false");
 
@@ -196,17 +196,12 @@ describe("beta test login (production, closed testing only)", () => {
     vi.stubEnv("BETA_TEST_LOGIN", "false");
     expect((await devLogin(`${BETA_COOKIE}=synthetic-beta-key-1`)).status).toBe(404);
 
-    // Flag on but no beta cookie → 404.
+    // Pilot hardening: even the old triple-lock combination (flag on + gate
+    // up + valid beta cookie) is DEAD in production.
     vi.stubEnv("BETA_TEST_LOGIN", "true");
     expect((await devLogin()).status).toBe(404);
-
-    // Flag on, wrong/revoked key in cookie → 404.
     expect((await devLogin(`${BETA_COOKIE}=revoked-key`)).status).toBe(404);
-
-    // Flag on + gate up + valid key → test sign-in works.
-    const ok = await devLogin(`${BETA_COOKIE}=synthetic-beta-key-1`);
-    expect(ok.status).toBe(200);
-    expect(ok.headers.get("set-cookie")).toContain("dgpt_session=");
+    expect((await devLogin(`${BETA_COOKIE}=synthetic-beta-key-1`)).status).toBe(404);
   });
 
   it("production with the gate OFF never exposes test login, regardless of flags", async () => {

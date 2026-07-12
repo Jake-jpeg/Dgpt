@@ -72,7 +72,12 @@ export function freshLimits(): void {
 
 // ── 2.0 matter/invitation setup (invitation-only portal) ─────────────
 
-import { resolveAccount } from "@/lib/db/users";
+import {
+  createUser,
+  findAccountForSession,
+  getUserByEmail,
+  getUserBySubject,
+} from "@/lib/db/users";
 import { createMatter, grantMatterAccess } from "@/lib/db/matters";
 import { createInvitation } from "@/lib/db/invitations";
 import { recordDisclosureAck } from "@/lib/db/disclosure";
@@ -81,18 +86,27 @@ import { POST as acceptRoute } from "@/app/api/invitations/accept/route";
 import { POST as conflictRoute } from "@/app/api/matters/[id]/conflict/route";
 import { getSession } from "@/lib/db/repo";
 
-/** Bind a synthetic session identity to a DB account row (as a login would). */
+/**
+ * Test-fixture account setup. Providers no longer create accounts (pilot
+ * hardening), so synthetic accounts are pre-created here exactly as an
+ * admin would create them, then bound to the synthetic session subject as
+ * a first login would.
+ */
 export function provisionAccount(user: SessionUser) {
-  return resolveAccount({
+  if (!getUserBySubject(user.subject) && !getUserByEmail(user.email)) {
+    createUser({ email: user.email, role: user.role, name: user.name });
+  }
+  const account = findAccountForSession({
     subject: user.subject,
     email: user.email,
     name: user.name,
-    sessionRole: user.role,
     adminBootstrapEmails: (process.env.ADMIN_EMAILS ?? "")
       .split(",")
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean),
   });
+  if (!account) throw new Error(`provisionAccount failed for ${user.email}`);
+  return account;
 }
 
 export interface MatterContext {

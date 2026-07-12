@@ -35,21 +35,24 @@ function InviteInner() {
   }
 
   const user = me?.user ?? null;
+  const identity = me?.identity ?? null;
+  const isFirmAccount = Boolean(user && user.role !== "CLIENT");
+  const canAccept = Boolean(identity) && !isFirmAccount;
 
   return (
     <Shell title="Enter your invitation">
       <ErrorNotice message={err} />
 
-      {!loading && !user && (
+      {!loading && !identity && (
         <div className="notice notice-info mb-4">
           Please <Link href="/portal" className="underline">sign in</Link> first
-          — your invitation is linked to your account when you accept it.
+          — your invitation is linked to the account you sign in with.
         </div>
       )}
 
-      {user && user.role !== "CLIENT" && (
+      {isFirmAccount && (
         <div className="notice notice-info mb-4">
-          You are signed in as {user.role}. Invitations are accepted by client
+          You are signed in as {user!.role}. Invitations are accepted by client
           accounts.
         </div>
       )}
@@ -60,6 +63,14 @@ function InviteInner() {
           Paste the invitation the firm provided. Invitations are single-use
           and expire; if yours does not work, contact the firm for a new one.
         </p>
+        {identity && !isFirmAccount && (
+          <div className="notice notice-info mb-3">
+            This invitation will be permanently linked to the account you are
+            signed in with: <strong>{identity.email}</strong>. If that is not
+            the account you want to use, sign out and sign in with the right
+            one before accepting.
+          </div>
+        )}
         <label className="text-sm">
           <span className="field-label">Invitation code</span>
           <input
@@ -73,9 +84,9 @@ function InviteInner() {
         <button
           className="btn btn-primary mt-4"
           onClick={accept}
-          disabled={busy || token.trim().length < 16 || !user || user.role !== "CLIENT"}
+          disabled={busy || token.trim().length < 16 || !canAccept}
         >
-          {busy ? "Checking…" : "Accept invitation"}
+          {busy ? "Checking…" : "Accept invitation with this account"}
         </button>
       </div>
     </Shell>

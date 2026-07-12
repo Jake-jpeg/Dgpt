@@ -139,7 +139,20 @@ export default function ClientMatterPage() {
       <ErrorNotice message={err} />
       {info && <div className="notice notice-good mb-4">{info}</div>}
 
-      {!loading && me?.user?.role !== "CLIENT" && (
+      {!loading && !me?.user && me?.identity && (
+        <div className="panel">
+          <h2>Invitation needed</h2>
+          <p className="panel-sub">
+            You are signed in as {me.identity.email}, but portal access begins
+            with an invitation from the firm.
+          </p>
+          <Link className="btn btn-primary" href="/invite">
+            Enter my invitation
+          </Link>
+        </div>
+      )}
+
+      {!loading && me?.user && me.user.role !== "CLIENT" && (
         <div className="notice notice-info">This page is for client accounts.</div>
       )}
 

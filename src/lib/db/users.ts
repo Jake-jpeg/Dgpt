@@ -87,24 +87,28 @@ export function createUser(opts: {
 }
 
 /**
- * Resolve (or provision) the account row for an authenticated session.
+ * Find the account row for an authenticated session — PROVIDERS
+ * AUTHENTICATE, THE DATABASE AUTHORIZES (pilot hardening).
  *
  * Resolution order:
  *  1. subject match (normal path after first login);
- *  2. email match (admin pre-created the user) → bind the subject;
- *  3. no row → provision. Provisioned role is CLIENT unless:
- *     - the email is on ADMIN_EMAILS (bootstrap/recovery) → ADMIN;
- *     - `sessionRole` is ATTORNEY (the login flow already enforced the
- *       ATTORNEY_EMAILS allowlist; authz re-checks it every request) → ATTORNEY.
- *     STAFF/ADMIN are never provisioned from a session token alone.
+ *  2. email match against a pre-created row whose subject is not yet bound
+ *     (admin created the user; first login binds the stable subject). A row
+ *     already bound to a DIFFERENT subject is returned as-is — the caller's
+ *     subject check refuses it; nothing silently relinks on email alone;
+ *  3. ADMIN_EMAILS bootstrap/recovery ONLY: a listed email may provision the
+ *     ADMIN role at first login;
+ *  4. otherwise NULL. Successful Microsoft or Google authentication creates
+ *     NOTHING: firm accounts must be admin-created, and client accounts are
+ *     created exclusively by invitation acceptance
+ *     (`provisionClientAccount`).
  */
-export function resolveAccount(opts: {
+export function findAccountForSession(opts: {
   subject: string;
   email: string;
-  name: string;
-  sessionRole: UserRole;
+  name?: string;
   adminBootstrapEmails: string[];
-}): UserRow {
+}): UserRow | null {
   const db = getDb();
   const email = opts.email.trim().toLowerCase();
   const existing = getUserBySubject(opts.subject);
@@ -114,7 +118,7 @@ export function resolveAccount(opts: {
   if (byEmail) {
     if (byEmail.subject && byEmail.subject !== opts.subject) {
       // Same email, different identity subject — do not silently rebind.
-      return byEmail; // caller will fail authz because subject won't match
+      return byEmail; // caller's subject check refuses it
     }
     db.prepare(`UPDATE app_user SET subject = ?, name = ?, updated_at = ? WHERE id = ?`).run(
       opts.subject,
@@ -125,17 +129,54 @@ export function resolveAccount(opts: {
     return getUserById(byEmail.id)!;
   }
 
-  let role: UserRole = "CLIENT";
-  if (email && opts.adminBootstrapEmails.includes(email)) role = "ADMIN";
-  else if (opts.sessionRole === "ATTORNEY") role = "ATTORNEY";
+  if (email && opts.adminBootstrapEmails.includes(email)) {
+    const id = newId();
+    const t = nowIso();
+    db.prepare(
+      `INSERT INTO app_user (id, subject, email, name, role, active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'ADMIN', 1, ?, ?)`
+    ).run(id, opts.subject, email, opts.name ?? "", t, t);
+    return getUserById(id)!;
+  }
 
+  return null;
+}
+
+/**
+ * THE ONLY code path that creates a CLIENT account from a session identity —
+ * called exclusively by invitation acceptance after the token validates.
+ * A generic Google sign-in never reaches this.
+ */
+export function provisionClientAccount(opts: {
+  subject: string;
+  email: string;
+  name?: string;
+}): UserRow {
+  const existing = getUserBySubject(opts.subject);
+  if (existing) return existing;
   const id = newId();
   const t = nowIso();
-  db.prepare(
-    `INSERT INTO app_user (id, subject, email, name, role, active, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 1, ?, ?)`
-  ).run(id, opts.subject, email, opts.name ?? "", role, t, t);
+  getDb()
+    .prepare(
+      `INSERT INTO app_user (id, subject, email, name, role, active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'CLIENT', 1, ?, ?)`
+    )
+    .run(id, opts.subject, opts.email.trim().toLowerCase(), opts.name ?? "", t, t);
   return getUserById(id)!;
+}
+
+/**
+ * Manual account-recovery/relink (docs/ACCOUNT-RECOVERY.md): an ADMIN, after
+ * firm-side identity verification, clears the stored subject so the user's
+ * NEXT provider sign-in re-binds by email. Audited by the caller.
+ */
+export function clearUserSubject(userId: string): UserRow {
+  getDb()
+    .prepare(`UPDATE app_user SET subject = NULL, updated_at = ? WHERE id = ?`)
+    .run(nowIso(), userId);
+  const u = getUserById(userId);
+  if (!u) throw new Error("VALIDATION: user not found");
+  return u;
 }
 
 /** Admin action: change a user's role (audited by the caller). */

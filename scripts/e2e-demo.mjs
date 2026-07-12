@@ -391,11 +391,26 @@ async function main() {
   const adminAudit = await call(admin, "GET", "/api/admin/audit?limit=50");
   ok("15b. admin audit review works + chain intact", adminAudit.status === 200 && adminAudit.data.chainIntact === true);
 
-  // ── Cross-matter isolation ─────────────────────────────────────────
+  // ── Cross-matter isolation + invitation-first Google model ────────
+  // A signed-in identity with NO accepted invitation has no account at all.
+  const noAccount = await call(intruder, "GET", `/api/matters/${matterId}`);
+  ok("N11. client identity without invitation is denied (403, nothing created)", noAccount.status === 403);
+
+  // Give the intruder their own matter through the proper flow…
+  const m2 = await call(attorney, "POST", "/api/matters", {
+    label: "Demo Matter 2026-002 (synthetic)",
+  });
+  const invite2 = await call(attorney, "POST", `/api/matters/${m2.data.matter.id}/invitations`, {});
+  const accept2 = await call(intruder, "POST", "/api/invitations/accept", {
+    token: invite2.data.token,
+  });
+  ok("N11b. second client onboards via their own invitation", accept2.status === 200);
+
+  // …and cross-matter access is still a 404 (existence never leaks).
   const foreign = await call(intruder, "GET", `/api/matters/${matterId}`);
-  ok("N11. another client cannot access the matter (404)", foreign.status === 404);
+  ok("N11c. another client cannot access the matter (404)", foreign.status === 404);
   const foreignDocs = await call(intruder, "GET", `/api/matters/${matterId}/documents`);
-  ok("N11b. …or its documents (404)", foreignDocs.status === 404);
+  ok("N11d. …or its documents (404)", foreignDocs.status === 404);
 
   // ── AI-disabled mode ───────────────────────────────────────────────
   const ai = await call(attorney, "POST", `/api/matters/${matterId}/ai`, {

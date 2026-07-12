@@ -7,15 +7,21 @@ import { requireAdmin } from "@/lib/auth/authz";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
-import { getUserById, setUserActive, setUserRole } from "@/lib/db/users";
+import { clearUserSubject, getUserById, setUserActive, setUserRole } from "@/lib/db/users";
 import { recordAudit } from "@/lib/db/repo";
 
 const patchSchema = z
   .object({
     role: z.enum(["CLIENT", "STAFF", "ATTORNEY", "ADMIN"]).optional(),
     active: z.boolean().optional(),
+    /**
+     * Manual account recovery/relink (docs/ACCOUNT-RECOVERY.md): after
+     * firm-side identity verification, clear the stored provider subject so
+     * the user's next sign-in re-binds by email. Always audited.
+     */
+    clearSubject: z.literal(true).optional(),
   })
-  .refine((v) => v.role !== undefined || v.active !== undefined, {
+  .refine((v) => v.role !== undefined || v.active !== undefined || v.clearSubject, {
     message: "nothing to update",
   });
 
@@ -48,6 +54,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         undefined,
         account.id
       );
+    }
+    if (parsed.data.clearSubject) {
+      clearUserSubject(id);
+      recordAudit(id, "USER_RELINK_AUTHORIZED", "subject cleared for re-bind", account.id);
     }
     const updated = getUserById(id)!;
     return Response.json({

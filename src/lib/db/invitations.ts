@@ -93,6 +93,24 @@ export function revokeInvitation(id: string): void {
 }
 
 /**
+ * Validate a raw token WITHOUT consuming it. Returns the invitation when it
+ * is live (exists, unrevoked, unused, unexpired, matter present), else null
+ * for EVERY failure mode — callers must not distinguish. Used by the accept
+ * flow so that no account is ever created for an invalid token.
+ */
+export function previewInvitation(rawToken: string): InvitationRow | null {
+  const r = getDb()
+    .prepare(`SELECT * FROM invitation WHERE token_hash = ?`)
+    .get(hashInviteToken(rawToken)) as Record<string, unknown> | undefined;
+  if (!r) return null;
+  const inv = rowToInvitation(r);
+  if (inv.revokedAt || inv.usedAt) return null;
+  if (new Date(inv.expiresAt).getTime() <= Date.now()) return null;
+  if (!getMatter(inv.matterId)) return null;
+  return inv;
+}
+
+/**
  * Accept an invitation for the authenticated client. Returns the accepted
  * invitation, or null for EVERY failure mode (unknown, expired, revoked,
  * already used, matter unavailable) — callers must not distinguish.
@@ -102,16 +120,10 @@ export function acceptInvitation(opts: {
   clientUserId: string;
 }): InvitationRow | null {
   const db = getDb();
-  const r = db
-    .prepare(`SELECT * FROM invitation WHERE token_hash = ?`)
-    .get(hashInviteToken(opts.rawToken)) as Record<string, unknown> | undefined;
-  if (!r) return null;
-  const inv = rowToInvitation(r);
-  if (inv.revokedAt || inv.usedAt) return null;
-  if (new Date(inv.expiresAt).getTime() <= Date.now()) return null;
+  const inv = previewInvitation(opts.rawToken);
+  if (!inv) return null;
 
-  const matter = getMatter(inv.matterId);
-  if (!matter) return null;
+  const matter = getMatter(inv.matterId)!;
   // A matter is one client's engagement: an invitation cannot rebind a
   // matter that already belongs to a different client account.
   if (matter.clientUserId && matter.clientUserId !== opts.clientUserId) return null;

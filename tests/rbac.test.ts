@@ -91,11 +91,24 @@ describe("attorney allowlist", () => {
 });
 
 describe("clients cannot see each other's sessions", () => {
-  it("another client's session view is a 404, not a data leak", async () => {
+  it("another client's session view is denied without a data leak", async () => {
     const c1 = await cookieFor(SYNTH_CLIENT);
     const c2 = await cookieFor(SYNTH_CLIENT_2);
     const id = await startSession(c1);
     await runIdentity(c1, id);
+
+    // An authenticated identity with NO account gets a flat 403 (providers
+    // authenticate; the database authorizes).
+    freshLimits();
+    const noAccount = await intakeView(
+      jsonRequest(`/api/intake/${id}`, { method: "GET", cookie: c2 }),
+      params({ id })
+    );
+    expect(noAccount.status).toBe(403);
+
+    // A real second client account still gets 404 — existence never leaks.
+    const { provisionAccount, SYNTH_CLIENT_2: C2 } = await import("./helpers");
+    provisionAccount(C2);
     freshLimits();
     const res = await intakeView(
       jsonRequest(`/api/intake/${id}`, { method: "GET", cookie: c2 }),

@@ -20,13 +20,20 @@ export async function register() {
       );
     }
 
-    if (
-      process.env.BETA_TEST_LOGIN === "true" &&
-      process.env.NODE_ENV === "production"
-    ) {
+    // Pilot hardening: the development login is LOCAL-ONLY. If either flag
+    // is set outside the local stage (or in production), warn loudly at
+    // startup — the flags do NOT re-enable the route (see
+    // src/lib/auth/test-login.ts), but their presence indicates a
+    // misconfigured environment that must be cleaned up.
+    const { isLocalStage, appStage } = await import("@/config/stage");
+    const devFlagsSet =
+      process.env.DEV_AUTH_STUB === "true" || process.env.BETA_TEST_LOGIN === "true";
+    if (devFlagsSet && (!isLocalStage() || process.env.NODE_ENV === "production")) {
       console.warn(
-        "BETA_TEST_LOGIN is enabled in production. Closed testing only; " +
-          "remove this flag before opening the intake application."
+        `⚠ STARTUP WARNING: DEV_AUTH_STUB/BETA_TEST_LOGIN is set but APP_STAGE=` +
+          `${appStage()} / NODE_ENV=${process.env.NODE_ENV}. The development ` +
+          `login stays DISABLED outside local development — remove these ` +
+          `flags from this environment.`
       );
     }
   }

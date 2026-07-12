@@ -38,7 +38,9 @@ export default function PortalEntry() {
       });
       const who = (await api.get("/api/auth/me")) as { user: Me | null };
       refresh();
-      router.push(who.user ? HOME[who.user.role] : "/portal");
+      // Providers authenticate; the DB authorizes. An identity with no
+      // account yet belongs on the invitation page.
+      router.push(who.user ? HOME[who.user.role] : "/invite");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Sign-in failed");
     } finally {
@@ -60,6 +62,20 @@ export default function PortalEntry() {
           </p>
           <button className="btn btn-primary" onClick={() => router.push(HOME[user.role])}>
             Continue to your workspace
+          </button>
+        </div>
+      )}
+
+      {!user && me?.identity && (
+        <div className="panel">
+          <h2>Signed in — invitation needed</h2>
+          <p className="panel-sub">
+            You are signed in as {me.identity.email}, but this sign-in is not
+            linked to an account yet. Clients continue by entering the firm&apos;s
+            invitation; firm personnel should contact the administrator.
+          </p>
+          <button className="btn btn-primary" onClick={() => router.push("/invite")}>
+            Enter my invitation
           </button>
         </div>
       )}
