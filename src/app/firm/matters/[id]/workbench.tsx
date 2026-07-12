@@ -726,8 +726,32 @@ function AiActionsPanel({ matterId, onArtifactCreated }: { matterId: string; onA
   const [err, setErr] = useState<string | null>(null);
   const [lastArtifact, setLastArtifact] = useState<{ versionId: string; title: string; status: string } | null>(null);
   const [report, setReport] = useState<AiReportView | null>(null);
+  const [stored, setStored] = useState<{ versionId: string; title: string; status: string; createdAt: string }[]>([]);
 
   const chosen = AI_ACTION_OPTIONS.find((o) => o.value === action)!;
+
+  const loadStored = useCallback(async () => {
+    try {
+      const res = (await api.get(`/api/matters/${matterId}/documents`)) as unknown as {
+        documents: { docKind: string; title: string; versions: { id: string; status: string; mime: string; createdAt: string }[] }[];
+      };
+      setStored(
+        (res.documents ?? [])
+          .filter((d) => d.docKind === "AI_DRAFT")
+          .flatMap((d) =>
+            d.versions
+              .filter((v) => v.mime === "application/json")
+              .map((v) => ({ versionId: v.id, title: d.title, status: v.status, createdAt: v.createdAt }))
+          )
+      );
+    } catch {
+      /* stored-report list is a convenience; the run flow stands alone */
+    }
+  }, [matterId]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadStored();
+  }, [loadStored]);
 
   const run = async () => {
     setBusy(true);
@@ -740,6 +764,7 @@ function AiActionsPanel({ matterId, onArtifactCreated }: { matterId: string; onA
       })) as unknown as { artifact: { versionId: string; title: string; status: string } };
       setLastArtifact(res.artifact);
       onArtifactCreated();
+      await loadStored();
       await openReport(res.artifact.versionId);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "AI action failed");
@@ -789,6 +814,28 @@ function AiActionsPanel({ matterId, onArtifactCreated }: { matterId: string; onA
         <div className="notice notice-info mt-3 text-sm">
           Created “{lastArtifact.title}” — status <StatusBadge value={lastArtifact.status} />. It appears in
           the Documents panel as an AI_DRAFT version.
+        </div>
+      )}
+
+      {stored.length > 0 && (
+        <div className="mt-4">
+          <p className="field-label">Stored AI reports (this matter)</p>
+          <ul className="space-y-1 text-sm">
+            {stored.map((s) => (
+              <li key={s.versionId} className="flex flex-wrap items-center gap-2">
+                <span className="mr-auto">{s.title}</span>
+                <StatusBadge value={s.status} />
+                <span className="text-xs text-slate-500">{fmtWhen(s.createdAt)}</span>
+                <button
+                  className="btn btn-quiet"
+                  style={{ padding: "2px 10px", fontSize: ".75rem" }}
+                  onClick={() => openReport(s.versionId).catch((e) => setErr(e instanceof Error ? e.message : "load failed"))}
+                >
+                  Open report
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

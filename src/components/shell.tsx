@@ -46,6 +46,44 @@ export function useMe(): { me: MeResponse | null; loading: boolean; refresh: () 
 
 const FIRM_NAME = process.env.NEXT_PUBLIC_OPERATING_FIRM_NAME || "Jake Kim Law Firm";
 
+/**
+ * Synthetic-staging banner (Part 8): whenever the deployment reports the
+ * staging stage with the ephemeral-storage override active, every screen
+ * carries a loud, unmissable warning. Driven by the unauthenticated
+ * boolean health endpoint — no secrets involved.
+ */
+function StagingBanner() {
+  const [health, setHealth] = useState<{ stage?: string; ephemeralStorage?: boolean; syntheticDemoOnly?: boolean } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/health")
+      .then((r) => r.json())
+      .then((d) => alive && setHealth(d))
+      .catch(() => alive && setHealth(null));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (!health || health.stage !== "staging") return null;
+  return (
+    <div
+      role="alert"
+      style={{
+        background: "#7c2d12",
+        color: "#fff7ed",
+        textAlign: "center",
+        padding: "6px 12px",
+        fontSize: ".8rem",
+        fontWeight: 600,
+        letterSpacing: ".02em",
+      }}
+    >
+      SYNTHETIC STAGING — {health.ephemeralStorage ? "DATA MAY BE LOST ON REDEPLOYMENT — " : ""}
+      SYNTHETIC DATA ONLY — NOT FOR REAL CLIENT USE
+    </div>
+  );
+}
+
 const NAV: Record<Me["role"], { href: string; label: string }[]> = {
   CLIENT: [{ href: "/portal/matter", label: "My matter" }],
   STAFF: [{ href: "/firm", label: "Matters" }],
@@ -83,6 +121,7 @@ export function Shell({
 
   return (
     <div>
+      <StagingBanner />
       <header className="portal-header">
         <div className="portal-header-inner">
           <div className="flex items-baseline gap-3">

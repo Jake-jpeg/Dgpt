@@ -122,15 +122,60 @@ export function fileStorageDir(): string {
   return process.env.FILE_STORAGE_DIR ?? "./data/files";
 }
 
+/**
+ * SYNTHETIC-STAGING ephemeral-storage override (Part 8).
+ * Valid ONLY when ALL THREE hold:
+ *   SYNTHETIC_STAGING_EPHEMERAL_STORAGE=true
+ *   APP_STAGE=staging
+ *   SYNTHETIC_DEMO_ONLY=true
+ * It permits local-disk (ephemeral!) storage on an App Platform staging
+ * instance for SYNTHETIC data. Redeployment may erase all state; scaling
+ * is unsupported; this is NOT persistent storage and is refused in
+ * closed_pilot/production by assertEphemeralStorageFlagsValid() at startup
+ * and re-checked here. Closed-pilot storage requirements are unchanged:
+ * a real client pilot still requires persistent DB + object storage +
+ * tested backups/restore + malware scanning.
+ */
+export function syntheticEphemeralStorageActive(): boolean {
+  return (
+    process.env.SYNTHETIC_STAGING_EPHEMERAL_STORAGE === "true" &&
+    (process.env.APP_STAGE ?? "").trim().toLowerCase() === "staging" &&
+    process.env.SYNTHETIC_DEMO_ONLY === "true"
+  );
+}
+
+/** Startup guard: the override outside its exact conditions kills boot. */
+export function assertEphemeralStorageFlagsValid(): void {
+  if (process.env.SYNTHETIC_STAGING_EPHEMERAL_STORAGE !== "true") return;
+  const stage = (process.env.APP_STAGE ?? "").trim().toLowerCase();
+  if (stage !== "staging" || process.env.SYNTHETIC_DEMO_ONLY !== "true") {
+    throw new Error(
+      "STORAGE_GUARD: SYNTHETIC_STAGING_EPHEMERAL_STORAGE=true is refused unless " +
+        "APP_STAGE=staging AND SYNTHETIC_DEMO_ONLY=true. It is a synthetic-data " +
+        "staging aid only and is never valid in closed_pilot or production."
+    );
+  }
+  console.warn(
+    "⚠ SYNTHETIC STAGING — ephemeral local storage is active. DATA MAY BE LOST ON REDEPLOYMENT. Synthetic data only."
+  );
+}
+
 export function getFileStorage(): FileStorage {
   if (_storage) return _storage;
   if (isProduction() && process.env.FILE_STORAGE_ALLOW_LOCAL_TEST !== "true") {
-    // [NOT CONFIGURED]: production object storage has not been provisioned.
-    throw new Error(
-      "STORAGE_GUARD: production file storage is not configured. Local disk " +
-        "storage is refused in production (set FILE_STORAGE_ALLOW_LOCAL_TEST=true " +
-        "only for explicit production testing)."
-    );
+    if (syntheticEphemeralStorageActive()) {
+      // Loud, deliberate, synthetic-only staging exception (Part 8).
+      console.warn(
+        "⚠ SYNTHETIC STAGING — serving from ephemeral local storage. DATA MAY BE LOST ON REDEPLOYMENT."
+      );
+    } else {
+      // [NOT CONFIGURED]: production object storage has not been provisioned.
+      throw new Error(
+        "STORAGE_GUARD: production file storage is not configured. Local disk " +
+          "storage is refused in production (set FILE_STORAGE_ALLOW_LOCAL_TEST=true " +
+          "only for explicit production testing)."
+      );
+    }
   }
   _storage = new LocalFileStorage(fileStorageDir());
   return _storage;

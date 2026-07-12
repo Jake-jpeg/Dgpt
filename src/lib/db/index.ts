@@ -264,7 +264,7 @@ CREATE TABLE IF NOT EXISTS document (
   id                 TEXT PRIMARY KEY,
   matter_id          TEXT NOT NULL REFERENCES matter(id) ON DELETE CASCADE,
   title              TEXT NOT NULL,
-  doc_kind           TEXT NOT NULL DEFAULT 'GENERAL',  -- GENERAL | CLIENT_UPLOAD | INTERNAL_DRAFT | AI_DRAFT
+  doc_kind           TEXT NOT NULL DEFAULT 'GENERAL',  -- GENERAL | CLIENT_UPLOAD | INTERNAL_DRAFT | AI_DRAFT | RENDERED_FORM
   created_by         TEXT NOT NULL,
   created_at         TEXT NOT NULL,
   updated_at         TEXT NOT NULL

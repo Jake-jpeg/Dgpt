@@ -46,7 +46,7 @@ export interface DocumentRow {
   id: string;
   matterId: string;
   title: string;
-  docKind: "GENERAL" | "CLIENT_UPLOAD" | "INTERNAL_DRAFT" | "AI_DRAFT";
+  docKind: "GENERAL" | "CLIENT_UPLOAD" | "INTERNAL_DRAFT" | "AI_DRAFT" | "RENDERED_FORM";
   createdBy: string;
   createdAt: string;
   updatedAt: string;

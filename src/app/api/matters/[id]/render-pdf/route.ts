@@ -1,0 +1,144 @@
+/**
+ * Deterministic PDF rendering (Parts 3–4) — ATTORNEY ONLY.
+ *
+ * POST { state, form, confirmFormData: true }
+ *
+ * The attorney's request IS the confirmation of the deterministic form
+ * data (audited FORM_DATA_CONFIRMED with a payload fingerprint). The
+ * rendered PDF is stored as a NEW document version in
+ * ATTORNEY_REVIEW_REQUIRED — approval of the source data never approves
+ * the PDF; the PDF needs its own exact-version approval before any
+ * release. Nothing here releases automatically, and OpenAI has no input
+ * into endpoint, state, form, filename, or permissions.
+ */
+import { z } from "zod";
+import { requireUser, requireMatterAccess } from "@/lib/auth/authz";
+import { errorResponse, HttpError } from "@/lib/auth/rbac";
+import { assertCsrf } from "@/lib/security/csrf";
+import { assertRateLimit } from "@/lib/security/rate-limit";
+import { getMatterAnswers } from "@/lib/db/intake2";
+import { getFileStorage } from "@/lib/storage";
+import { addDocumentVersion, createDocument } from "@/lib/db/documents";
+import { isAllowedRender, renderLabel, PdfServiceError, ALLOWED_RENDERS } from "@/lib/pdf-service/types";
+import { buildRenderPayload } from "@/lib/pdf-service/mappings";
+import { pdfServiceEnabled, renderPdf } from "@/lib/pdf-service/client";
+import { auditFormDataConfirmed, auditPdfRendered } from "@/lib/pdf-service/audit";
+
+const schema = z.object({
+  state: z.enum(["nj", "ny"]),
+  form: z.string().trim().min(1).max(40),
+  confirmFormData: z.literal(true),
+});
+
+export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  // Allowlist + readiness inspection for the workbench panel.
+  try {
+    assertRateLimit(req, "intake");
+    const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
+    const { id } = await ctx.params;
+    const matter = requireMatterAccess(authed, id);
+    return Response.json({
+      enabled: pdfServiceEnabled(),
+      jurisdictionConfirmed: matter.jurisdictionConfirmed,
+      allowedRenders: ALLOWED_RENDERS.filter(
+        (r) => !matter.jurisdictionConfirmed || r.state === matter.jurisdictionConfirmed.toLowerCase()
+      ),
+      note:
+        "Rendering is an attorney action. The rendered PDF starts ATTORNEY_REVIEW_REQUIRED and needs its own exact-version approval before any release.",
+    });
+  } catch (e) {
+    return errorResponse(e);
+  }
+}
+
+export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  try {
+    assertRateLimit(req, "intake");
+    assertCsrf(req);
+    const authed = await requireUser(req, ["ATTORNEY"]);
+    const { id } = await ctx.params;
+    const matter = requireMatterAccess(authed, id);
+
+    const parsed = schema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid render request");
+    const { state, form } = parsed.data;
+
+    if (!isAllowedRender(state, form)) {
+      throw new HttpError(400, "VALIDATION: that state/form pair is not on the render allowlist");
+    }
+    if (!matter.jurisdictionConfirmed || matter.jurisdictionConfirmed.toLowerCase() !== state) {
+      throw new HttpError(
+        409,
+        "JURISDICTION_GUARD: confirm the matter's jurisdiction (attorney determination) before rendering that state's forms"
+      );
+    }
+    if (matter.conflictStatus !== "CLEARED") {
+      throw new HttpError(409, "CONFLICT_GUARD: matter is not cleared");
+    }
+    if (!pdfServiceEnabled()) {
+      return Response.json(
+        { error: "PDF rendering is currently disabled. Manual document workflows are unaffected." },
+        { status: 503 }
+      );
+    }
+
+    // Deterministic mapping from SAVED answers — the attorney's request is
+    // the confirmation of this data (fingerprint audited).
+    const payload = buildRenderPayload(state, form, matter, getMatterAnswers(matter.id));
+    auditFormDataConfirmed({ matterId: matter.id, userId: authed.account.id, state, form, payload });
+
+    const result = await renderPdf({ state, form, payload });
+
+    const stored = await getFileStorage().put(result.bytes);
+    if (stored.sha256 !== result.sha256) {
+      throw new PdfServiceError("PDF_GUARD: stored bytes do not match the rendered hash");
+    }
+    const doc = createDocument({
+      matterId: matter.id,
+      title: `${renderLabel(state, form)} — SYNTHETIC STAGING DOCUMENT (attorney review required)`,
+      docKind: "RENDERED_FORM",
+      createdBy: authed.account.id,
+    });
+    const version = addDocumentVersion({
+      documentId: doc.id,
+      storageKey: stored.storageKey,
+      sha256: stored.sha256,
+      mime: "application/pdf",
+      sizeBytes: stored.sizeBytes,
+      originalFilename: result.filename,
+      source: "INTERNAL",
+      createdBy: authed.account.id,
+      initialStatus: "ATTORNEY_REVIEW_REQUIRED",
+    });
+    auditPdfRendered({
+      matterId: matter.id,
+      userId: authed.account.id,
+      state,
+      form,
+      versionId: version.id,
+      sha256: stored.sha256,
+      sizeBytes: stored.sizeBytes,
+      latencyMs: result.latencyMs,
+      retried: result.retried,
+    });
+
+    return Response.json(
+      {
+        artifact: {
+          documentId: doc.id,
+          versionId: version.id,
+          status: version.status, // ATTORNEY_REVIEW_REQUIRED — always
+          title: doc.title,
+          sha256: stored.sha256,
+          filename: result.filename,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (e) {
+    if (e instanceof PdfServiceError) {
+      return Response.json({ error: e.message }, { status: 502 });
+    }
+    return errorResponse(e);
+  }
+}

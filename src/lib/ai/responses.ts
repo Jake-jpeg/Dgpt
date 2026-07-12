@@ -13,9 +13,28 @@
  * - No chain-of-thought is requested or stored.
  */
 import { createHmac } from "node:crypto";
-import { envOptional } from "@/lib/env";
+import { envOptional, isProduction } from "@/lib/env";
+import { appStage } from "@/config/stage";
 
-const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
+const OFFICIAL_RESPONSES_URL = "https://api.openai.com/v1/responses";
+
+/**
+ * Resolve the Responses endpoint. OPENAI_BASE_URL is a DEVELOPMENT-ONLY
+ * testing override (offline mock server for acceptance dry-runs). Any
+ * non-official base is refused in production builds (which is what every
+ * deployed stage runs), so live staging/pilot traffic can never be
+ * redirected away from the official endpoint.
+ */
+export function responsesUrl(): string {
+  const base = envOptional("OPENAI_BASE_URL");
+  if (!base) return OFFICIAL_RESPONSES_URL;
+  if (isProduction()) {
+    throw new AiConfigError(
+      `AI_GUARD: OPENAI_BASE_URL override is refused in production builds (APP_STAGE=${appStage()}) — development testing only`
+    );
+  }
+  return base.replace(/\/+$/, "") + "/responses";
+}
 
 export function aiModel(): string {
   return envOptional("OPENAI_MODEL") ?? "gpt-4o-mini";
@@ -97,13 +116,14 @@ export async function callStructured(opts: {
     safety_identifier: safetyIdentifier(opts.matterId),
   });
 
+  const endpoint = responsesUrl();
   let lastError: Error | null = null;
   for (let attempt = 0; attempt <= aiMaxRetries(); attempt++) {
     const started = Date.now();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), aiTimeoutMs());
     try {
-      const res = await fetch(OPENAI_RESPONSES_URL, {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers,
         body,

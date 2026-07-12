@@ -34,6 +34,12 @@ export async function register() {
     const { validateIntakeConfigOrThrow } = await import("@/lib/intake2/validate");
     validateIntakeConfigOrThrow();
 
+    // Online synthetic staging (Part 8): the ephemeral-storage override is
+    // valid ONLY with APP_STAGE=staging AND SYNTHETIC_DEMO_ONLY=true —
+    // anything else refuses startup. Loud banner when active.
+    const { assertEphemeralStorageFlagsValid } = await import("@/lib/storage");
+    assertEphemeralStorageFlagsValid();
+
     // Pilot hardening: the development login is LOCAL-ONLY. If either flag
     // is set outside the local stage (or in production), warn loudly at
     // startup — the flags do NOT re-enable the route (see
