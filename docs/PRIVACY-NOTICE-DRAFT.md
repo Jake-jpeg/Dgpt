@@ -8,7 +8,7 @@
 ## Who we are
 
 This portal is operated by **[OPERATING FIRM — from
-NEXT_PUBLIC_OPERATING_FIRM_NAME; default J. Kim Law Firm]** (the "firm").
+NEXT_PUBLIC_OPERATING_FIRM_NAME; default Jake Kim Law Firm]** (the "firm").
 DivorceGPT is workflow software the firm uses to organize information you
 provide. Legal services are provided by the firm and its attorneys, not by
 the software.

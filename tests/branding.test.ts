@@ -33,8 +33,8 @@ function fakeMatter(conflictStatus: MatterRow["conflictStatus"]): MatterRow {
 }
 
 describe("operating-firm branding is configuration", () => {
-  it("defaults to J. Kim Law Firm and follows the env override", () => {
-    expect(operatingFirmName()).toBe("J. Kim Law Firm");
+  it("defaults to the exact firm name and follows the env override", () => {
+    expect(operatingFirmName()).toBe("Jake Kim Law Firm");
     process.env.NEXT_PUBLIC_OPERATING_FIRM_NAME = "Synthetic Firm LLP";
     expect(operatingFirmName()).toBe("Synthetic Firm LLP");
     expect(getDisclosure().paragraphs.join(" ")).toContain("Synthetic Firm LLP");

@@ -1,10 +1,18 @@
-import { inquiryEmail as brandedInquiryEmail, operatingFirmName } from "@/config/branding";
+import {
+  inquiryEmail as brandedInquiryEmail,
+  copyrightOwner,
+  legalServicesProvider,
+} from "@/config/branding";
+import { stageStatusCopy } from "@/config/stage";
+
+// Stage-aware status copy must reflect the RUNTIME environment, not a value
+// frozen at build time — render this page dynamically.
+export const dynamic = "force-dynamic";
 
 // Branding is configuration (see src/config/branding.ts) — no hard-coded
 // addresses. When NEXT_PUBLIC_INQUIRY_EMAIL is unset the page renders a
 // neutral contact affordance instead of inventing an address.
 const inquiryEmail = brandedInquiryEmail();
-const firmName = operatingFirmName();
 const inquiryHref = inquiryEmail ? `mailto:${inquiryEmail}` : "#contact";
 
 const capabilities = [
@@ -17,6 +25,7 @@ const capabilities = [
 ];
 
 export default function Landing() {
+  const firmName = legalServicesProvider();
   return (
     <main>
       <section className="hero-shell">
@@ -45,16 +54,13 @@ export default function Landing() {
             </p>
             <div className="hero-actions">
               <a className="button button-primary" href={inquiryHref}>
-                Discuss a pilot or acquisition
+                Discuss an institutional pilot
               </a>
               <a className="button button-secondary" href="#platform">
-                View the concept
+                View the workflow
               </a>
             </div>
-            <p className="availability">
-              The platform is not currently accepting public users or providing
-              legal services.
-            </p>
+            <p className="availability">{stageStatusCopy()}</p>
           </div>
 
           <aside className="workflow-card" aria-label="Illustrative workflow">
@@ -94,7 +100,7 @@ export default function Landing() {
       <section className="institutional-shell">
         <div>
           <p className="eyebrow">Current posture</p>
-          <h2>Open to a limited institutional pilot, licensing discussion, or acquisition inquiry.</h2>
+          <h2>Open to a limited institutional pilot or licensing discussion.</h2>
         </div>
         <a id="contact" className="button button-light" href={inquiryHref}>
           {inquiryEmail ? `Contact ${inquiryEmail}` : "Contact the firm"}
@@ -107,7 +113,10 @@ export default function Landing() {
           sponsored by, or endorsed by OpenAI.
         </p>
         <p>
-          No attorney-client relationship is formed through this website. This
+          Visiting this website or submitting an institutional inquiry does not
+          create an attorney-client relationship. Portal access does not itself
+          create or expand representation. Any representation is governed solely
+          by a separate written engagement agreement with {firmName}. This
           website does not provide legal advice.
         </p>
         <p>
@@ -115,7 +124,7 @@ export default function Landing() {
           when engaged, are provided by the firm and its attorneys — never by
           the software itself.
         </p>
-        <p>© {new Date().getFullYear()} June Guided Solutions, LLC.</p>
+        <p>© {new Date().getFullYear()} {copyrightOwner()}.</p>
       </footer>
     </main>
   );

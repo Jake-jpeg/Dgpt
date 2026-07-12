@@ -1,7 +1,7 @@
 # Architecture — DivorceGPT 2.0 (Attorney Workflow)
 
 DivorceGPT is private workflow software operated by a law firm (default
-branding: J. Kim Law Firm via `NEXT_PUBLIC_OPERATING_FIRM_NAME`). It is not a
+branding: Jake Kim Law Firm via `NEXT_PUBLIC_OPERATING_FIRM_NAME`). It is not a
 law firm, not an attorney, not a public chatbot, not an autonomous drafting
 service, and not a payment platform.
 

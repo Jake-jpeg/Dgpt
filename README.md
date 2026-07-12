@@ -1,7 +1,7 @@
 # DivorceGPT 2.0 — Attorney-Supervised Client Workflow
 
 Private, **invitation-only**, attorney-supervised client intake and document
-workflow software operated by a law firm (default branding: J. Kim Law Firm,
+workflow software operated by a law firm (default branding: Jake Kim Law Firm,
 configurable via `NEXT_PUBLIC_OPERATING_FIRM_NAME`). Clients retain the firm,
 receive an invitation into the portal, provide facts and documents; the
 software organizes information and flags missing items; an attorney reviews
@@ -43,6 +43,15 @@ npx tsc --noEmit           # typecheck
 npx eslint src tests       # lint
 npm run build              # production build
 ```
+
+**Stages:** set `APP_STAGE=local|staging|closed_pilot` — drives the landing
+status copy, and the development login exists ONLY in `local`
+(+ `DEV_AUTH_STUB=true`, non-production). Firm sign-in is single-tenant
+Microsoft Entra (`MICROSOFT_*` env; an active admin-created account is
+required — authentication alone confers nothing). Client sign-in is Google,
+invitation-first: signing in creates nothing until a firm invitation is
+accepted. See `docs/PILOT-READINESS.md` for what remains before any real
+client data.
 
 **Full local demo:** see `docs/MVP-DEMO-GUIDE.md` (browser walkthrough for
 all four roles + `node scripts/e2e-demo.mjs` automated validation).

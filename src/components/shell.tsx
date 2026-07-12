@@ -19,6 +19,8 @@ export interface Me {
 
 export interface MeResponse {
   user: Me | null;
+  /** Authenticated identity (provider-verified) even when no account exists. */
+  identity: { email: string; name: string } | null;
   clientMatterId: string | null;
   devStub: boolean;
   providers: { google: boolean; entra: boolean };
@@ -42,7 +44,7 @@ export function useMe(): { me: MeResponse | null; loading: boolean; refresh: () 
   return { me, loading, refresh: () => setTick((t) => t + 1) };
 }
 
-const FIRM_NAME = process.env.NEXT_PUBLIC_OPERATING_FIRM_NAME || "J. Kim Law Firm";
+const FIRM_NAME = process.env.NEXT_PUBLIC_OPERATING_FIRM_NAME || "Jake Kim Law Firm";
 
 const NAV: Record<Me["role"], { href: string; label: string }[]> = {
   CLIENT: [{ href: "/portal/matter", label: "My matter" }],
@@ -101,10 +103,12 @@ export function Shell({
                 {n.label}
               </Link>
             ))}
-            {user ? (
+            {user || me?.identity ? (
               <>
                 <span className="text-xs text-slate-300">
-                  {user.name || user.email} · {user.role}
+                  {user
+                    ? `${user.name || user.email} · ${user.role}`
+                    : `${me!.identity!.email} · not yet linked`}
                 </span>
                 <button
                   onClick={signOut}
