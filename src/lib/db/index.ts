@@ -236,6 +236,18 @@ CREATE TABLE IF NOT EXISTS assistance_request (
   updated_at   TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS internal_note (
+  id         TEXT PRIMARY KEY,
+  matter_id  TEXT NOT NULL REFERENCES matter(id) ON DELETE CASCADE,
+  author     TEXT NOT NULL,
+  kind       TEXT NOT NULL DEFAULT 'NOTE' CHECK (kind IN ('NOTE','ESCALATION')),
+  body       TEXT NOT NULL,                 -- internal work product; NEVER client-visible
+  status     TEXT NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN','RESOLVED')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_internal_note_matter ON internal_note(matter_id);
+
 -- ── M. Documents (attorney-supervised lifecycle) ────────────────────
 CREATE TABLE IF NOT EXISTS document (
   id                 TEXT PRIMARY KEY,
