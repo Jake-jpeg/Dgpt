@@ -21,7 +21,19 @@
  *
  * Usage:
  *   node scripts/do-deploy.mjs all --dry-run   (no network, no secrets)
+ *   node scripts/do-deploy.mjs probe           (read-only reachability check:
+ *                                               ONE GET /v2/apps?per_page=1&page=1)
  *   node scripts/do-deploy.mjs inspect | create | finalize | status | all
+ *
+ * Transport (Node 22+/24, Windows PowerShell examples) — every request has a
+ * 30s timeout and failures print a SANITIZED diagnostic (error name/message,
+ * cause code/message, method, pathname, timeout flag — never tokens, headers,
+ * env values, or request bodies). If `probe` fails at the transport layer:
+ *   IPv4-first DNS : $env:NODE_OPTIONS="--dns-result-order=ipv4first"
+ *   System CA store: $env:NODE_OPTIONS="--use-system-ca"          (corporate
+ *                    TLS-inspection roots; combinable with the flag above)
+ *   Env proxy      : $env:NODE_USE_ENV_PROXY="1"  (Node 24+: fetch honors
+ *                    HTTPS_PROXY/HTTP_PROXY/NO_PROXY when set)
  *
  * Minimum DigitalOcean custom-token scopes: app:read, app:create,
  * app:update. No delete scope is needed; no DELETE request exists.
@@ -254,15 +266,61 @@ export class CollisionError extends Error {
 
 let TOKEN = "";
 
+/** Test hook only — lets regression tests exercise doApi with a sentinel. */
+export function __setTokenForTests(value) {
+  TOKEN = value;
+}
+
+export const REQUEST_TIMEOUT_MS = 30_000;
+
+/**
+ * Sanitized transport diagnostic. Contains ONLY: error name, error message,
+ * cause code, cause message, request method, request pathname, timeout flag.
+ * Never tokens, Authorization headers, env values, or request bodies —
+ * and any accidental token occurrence is scrubbed defensively.
+ */
+export function sanitizeNetworkError(e, method, pathname) {
+  const timedOut =
+    e?.name === "TimeoutError" ||
+    e?.name === "AbortError" ||
+    e?.cause?.code === "UND_ERR_CONNECT_TIMEOUT" ||
+    e?.cause?.code === "UND_ERR_HEADERS_TIMEOUT";
+  const scrub = (v) => {
+    let out = String(v ?? "-").slice(0, 200);
+    if (TOKEN) out = out.split(TOKEN).join("«redacted»");
+    return out.replace(/Bearer\s+\S+/gi, "Bearer «redacted»");
+  };
+  return [
+    `TRANSPORT FAILURE during ${method} ${pathname}`,
+    `  errorName    = ${scrub(e?.name ?? "?")}`,
+    `  errorMessage = ${scrub(e?.message ?? "?")}`,
+    `  causeCode    = ${scrub(e?.cause?.code ?? "-")}`,
+    `  causeMessage = ${scrub(e?.cause?.message ?? "-")}`,
+    `  timedOut     = ${timedOut}`,
+    ``,
+    `Hints (PowerShell): $env:NODE_OPTIONS="--dns-result-order=ipv4first" (IPv6/DNS issues);`,
+    `$env:NODE_OPTIONS="--use-system-ca" (corporate TLS-inspection CA);`,
+    `$env:NODE_USE_ENV_PROXY="1" with $env:HTTPS_PROXY set (Node 24+ env-proxy support).`,
+    `Then re-run: node scripts/do-deploy.mjs probe`,
+  ].join("\n");
+}
+
 async function doApi(method, apiPath, body) {
-  const res = await fetch(`${API}${apiPath}`, {
-    method,
-    headers: { authorization: `Bearer ${TOKEN}`, "content-type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  const pathname = apiPath.split("?")[0];
+  let res;
+  try {
+    res = await fetch(`${API}${apiPath}`, {
+      method,
+      headers: { authorization: `Bearer ${TOKEN}`, "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch (e) {
+    throw new Error(sanitizeNetworkError(e, method, pathname));
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(`DO API ${method} ${apiPath}: ${data?.message ?? `HTTP ${res.status}`}`);
+    throw new Error(`DO API ${method} ${pathname}: ${data?.message ?? `HTTP ${res.status}`}`);
   }
   return data;
 }
@@ -290,6 +348,14 @@ export async function findByName(name, apiFn = doApi) {
 }
 
 /* ── modes ────────────────────────────────────────────────────────── */
+
+/** Read-only reachability probe: exactly ONE GET, nothing else. */
+export async function probe(apiFn = doApi) {
+  const data = await apiFn("GET", "/apps?per_page=1&page=1");
+  const visible = (data.apps ?? []).length;
+  console.log(`probe OK — DigitalOcean API reachable and authorized (page 1 returned ${visible} app record${visible === 1 ? "" : "s"}).`);
+  return true;
+}
 
 async function inspect() {
   const apps = await listAllApps();
@@ -469,7 +535,7 @@ if (isDirectRun) {
     process.exit(0);
   }
 
-  const actions = { inspect, create, finalize, status, all };
+  const actions = { probe, inspect, create, finalize, status, all };
   if (!actions[MODE]) {
     console.error(`unknown mode ${MODE}`);
     process.exit(2);

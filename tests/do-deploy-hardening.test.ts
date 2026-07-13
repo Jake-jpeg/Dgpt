@@ -23,6 +23,9 @@ import {
   writeSecretsAtomic,
   loadOrCreateSecrets,
   dryRunPlan,
+  probe,
+  sanitizeNetworkError,
+  __setTokenForTests,
 } from "../scripts/do-deploy.mjs";
 
 const SECRETS = {
@@ -247,5 +250,57 @@ describe("spec construction", () => {
     expect(rlByKey.PDF_SERVICE_TOKEN.type).toBe("SECRET");
     expect(dgpt.services[0].github.deploy_on_push).toBe(false);
     expect(rl.services[0].github.deploy_on_push).toBe(false);
+  });
+});
+
+describe("transport repair (sanitized diagnostics + probe)", () => {
+  const SENTINEL_TOKEN = "dop_v1_sentinel_token_never_real_0123456789abcdef";
+
+  it("a transport failure exposes its sanitized cause code — never the token or Authorization header", async () => {
+    __setTokenForTests(SENTINEL_TOKEN);
+    const transportError = Object.assign(new TypeError("fetch failed"), {
+      cause: { code: "ENOTFOUND", message: `getaddrinfo ENOTFOUND api.digitalocean.com Bearer ${SENTINEL_TOKEN}` },
+    });
+    const boom = vi.fn(async () => {
+      throw transportError;
+    });
+    vi.stubGlobal("fetch", boom);
+    let caught = "";
+    try {
+      await probe(); // uses the real doApi → real sanitizer
+    } catch (e) {
+      caught = String((e as Error).message);
+    } finally {
+      __setTokenForTests("");
+    }
+    expect(caught).toContain("TRANSPORT FAILURE during GET /apps");
+    expect(caught).toContain("errorName    = TypeError");
+    expect(caught).toContain("causeCode    = ENOTFOUND");
+    expect(caught).toContain("timedOut     = false");
+    expect(caught).not.toContain(SENTINEL_TOKEN);
+    expect(caught).not.toMatch(/Bearer\s+(?!«redacted»)\S/);
+  });
+
+  it("timeout aborts are flagged and sanitized", () => {
+    __setTokenForTests(SENTINEL_TOKEN);
+    const msg = sanitizeNetworkError(
+      Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" }),
+      "GET",
+      "/apps"
+    );
+    __setTokenForTests("");
+    expect(msg).toContain("timedOut     = true");
+    expect(msg).not.toContain(SENTINEL_TOKEN);
+  });
+
+  it("probe mode performs exactly one GET — no POST/PUT/PATCH/DELETE", async () => {
+    const seen: string[] = [];
+    const apiFn = vi.fn(async (method: string, p: string) => {
+      seen.push(`${method} ${p}`);
+      return { apps: [{ spec: { name: "whatever" } }] };
+    });
+    await probe(apiFn);
+    expect(seen).toEqual(["GET /apps?per_page=1&page=1"]);
+    expect(seen.join(" ")).not.toMatch(/POST|PUT|PATCH|DELETE/);
   });
 });
