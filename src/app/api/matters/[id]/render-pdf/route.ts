@@ -93,9 +93,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (stored.sha256 !== result.sha256) {
       throw new PdfServiceError("PDF_GUARD: stored bytes do not match the rendered hash");
     }
+    // Stage-aware labeling: staging keeps the loud synthetic marker; every
+    // other stage uses the production label. Review posture never changes —
+    // the version below starts ATTORNEY_REVIEW_REQUIRED regardless of stage.
+    const stageMarker =
+      process.env.APP_STAGE === "staging"
+        ? " — SYNTHETIC STAGING DOCUMENT (attorney review required)"
+        : " — attorney review required";
     const doc = createDocument({
       matterId: matter.id,
-      title: `${renderLabel(state, form)} — SYNTHETIC STAGING DOCUMENT (attorney review required)`,
+      title: `${renderLabel(state, form)}${stageMarker}`,
       docKind: "RENDERED_FORM",
       createdBy: authed.account.id,
     });

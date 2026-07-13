@@ -190,8 +190,29 @@ describe("render route lifecycle", () => {
     const data = (await res.json()) as { artifact: { versionId: string; status: string; sha256: string } };
     expect(data.artifact.status).toBe("ATTORNEY_REVIEW_REQUIRED");
 
+    // APP_STAGE is unset in this suite (production posture): the rendered
+    // document carries the clean review label, never the synthetic marker.
     const rendered = listDocumentsForMatter(matter.id).find((d) => d.docKind === "RENDERED_FORM")!;
-    expect(rendered.title).toContain("SYNTHETIC STAGING DOCUMENT");
+    expect(rendered.title).toContain("attorney review required");
+    expect(rendered.title).not.toContain("SYNTHETIC");
+
+    // Staging keeps the loud synthetic marker on newly rendered documents.
+    process.env.APP_STAGE = "staging";
+    freshLimits();
+    const stagingRes = await renderPost(
+      jsonRequest(`/api/matters/${matter.id}/render-pdf`, {
+        cookie: attorneyCookie,
+        body: { state: "nj", form: "verification", confirmFormData: true },
+      }),
+      params({ id: matter.id })
+    );
+    expect(stagingRes.status).toBe(201);
+    const stagingDoc = listDocumentsForMatter(matter.id)
+      .filter((d) => d.docKind === "RENDERED_FORM")
+      .find((d) => d.title.includes("SYNTHETIC STAGING DOCUMENT"));
+    expect(stagingDoc).toBeTruthy();
+    delete process.env.APP_STAGE;
+
     const version = listVersions(rendered.id)[0];
     expect(version.mime).toBe("application/pdf");
     expect(version.sha256).toBe(data.artifact.sha256);
