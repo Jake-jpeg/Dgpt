@@ -15,12 +15,16 @@
  * The secret is read from env and NEVER printed.
  */
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
+import { resolveSecretsPath } from "./do-deploy.mjs";
 
 function autoSecret() {
   if (process.env.STAGING_ADMIN_SECRET) return process.env.STAGING_ADMIN_SECRET;
   try {
-    if (existsSync("./data/stage-secrets.json")) {
-      return JSON.parse(readFileSync("./data/stage-secrets.json", "utf8")).ADMIN_SECRET ?? "";
+    // Same OUT-OF-REPO store the deploy script writes (STAGING_SECRETS_PATH
+    // override, else the OS user-data default). Contents never printed.
+    const file = resolveSecretsPath();
+    if (existsSync(file)) {
+      return JSON.parse(readFileSync(file, "utf8")).ADMIN_SECRET ?? "";
     }
   } catch { /* fall through */ }
   return "";

@@ -30,6 +30,28 @@ Procedure (scripts/do-deploy.mjs; token read from env files, never printed):
    — runs Parts 11–12 (≤5 live OpenAI calls) and writes the metadata-only
    results JSON under docs/evidence/online-staging/.
 
+Hardening (audited + implemented before any execution):
+
+- **Ownership guard.** A name is never authority. Before ANY update (and
+  before "continuing" an existing app), the target must match ALL of:
+  exact authorized name, exact authorized repo/branch on every component,
+  `deploy_on_push=false`, `APP_STAGE=staging`, the management marker
+  `DGPT_STAGING_MANAGED_BY=divorcegpt-do-deploy-v1`, and no custom domain.
+  Both created apps carry the marker.
+- **Fail-closed collisions.** Absent → create; present + verified →
+  idempotent continuation; present + ANY failed check → abort with a
+  sanitized error (name + check codes only) — nothing updated, no
+  duplicate created.
+- **Full pagination, exact-name matching only** (no prefixes/substrings).
+- **Secrets** are generated to an OUT-OF-REPO store (`STAGING_SECRETS_PATH`
+  or the OS user-data default) with an atomic write; contents never
+  printed. `ATTORNEY_EMAILS`/`ADMIN_EMAILS` are SECRET-typed at DO.
+- **Dry-run:** `node scripts/do-deploy.mjs all --dry-run` — zero network,
+  zero token, zero env-file reads, zero secret writes; prints the redacted
+  plan and every intended method/endpoint family.
+- Minimum DO custom-token scopes: `app:read`, `app:create`, `app:update`.
+  No DELETE request exists in the script.
+
 Deployment record (filled after the run): see
 docs/ONLINE-STAGING-ACCEPTANCE.md and docs/evidence/online-staging/.
 

@@ -34,15 +34,20 @@ in Git, never in app-spec plaintext, never in NEXT_PUBLIC_*.
 | GOOGLE_CLIENT_ID | plain/protected | |
 | GOOGLE_CLIENT_SECRET | SECRET | |
 | GOOGLE_REDIRECT_URI | plain = `<staging-url>/api/auth/callback/google` | |
-| ATTORNEY_EMAILS | plain | synthetic + real firm attorney for interactive proof (comma-separated) |
-| ADMIN_EMAILS | plain | synthetic staging admin bootstrap |
+| ATTORNEY_EMAILS | SECRET | authorization config + personal identifiers (synthetic + firm attorney) |
+| ADMIN_EMAILS | SECRET | authorization config (synthetic staging admin) |
 | BETA_GATE_ENABLED | plain = `true` | public-discovery shield |
 | FREE_ACCESS_KEYS | SECRET | staging access key |
 | DATABASE_PATH | plain = `/tmp/staging.db` | EPHEMERAL by design (synthetic only) |
 | FILE_STORAGE_DIR | plain = `/tmp/staging-files` | EPHEMERAL by design (synthetic only) |
 | DEV_AUTH_STUB | plain = `false` (or unset) | dev login stays off in staging |
+| DGPT_STAGING_MANAGED_BY | plain = `divorcegpt-do-deploy-v1` | ownership marker set by the deploy script (both apps) |
 | ALLOW_UNAPPROVED_LEGAL_CONTENT | UNSET | startup refuses it outside local (verified) |
 | RUN_OPENAI_SMOKE | unset/`false` | |
+
+Operator-machine variables (never sent to DO): `DIGITALOCEAN_ACCESS_TOKEN`
+(process.env primary; .env.local optional) and `STAGING_SECRETS_PATH`
+(optional override of the out-of-repo secrets store).
 
 ## dgpt-pdf-staging (repo Jake-jpeg/RL, branch divorcegpt-2-pdf-staging-auth)
 

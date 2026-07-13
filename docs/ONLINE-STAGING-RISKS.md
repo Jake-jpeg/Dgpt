@@ -28,6 +28,14 @@ and unacceptable for real clients without the closed-pilot fixes.
 7. MODEL OUTPUT VARIANCE: live model may produce rejected outputs
    (REJECTED_OUTPUT) — by design; acceptance records them honestly.
 8. PRODUCTION UNTOUCHED invariant: separate apps, separate branches, auto-
-   deploy OFF, no domain attach. Verified read-only against the live apps.
+   deploy OFF, no domain attach. Deploy tooling enforces it structurally:
+   ownership guard (marker + exact repo/branch + stage + no custom domain)
+   before any update or idempotent continuation; fail-closed abort on any
+   same-name collision; full pagination with exact-name matching; no
+   DELETE request exists; minimum token scopes app:read/create/update.
+9. STAGING SECRETS FILE lives outside the repository (default under the
+   OS user-data dir). chmod 600 where supported; on Windows, NTFS ACLs
+   are operator-controlled — treat the folder as sensitive and delete the
+   file when staging is torn down.
 
 LOCAL DEVELOPMENT BUILD — NOT APPROVED FOR LIVE CLIENT USE.
