@@ -1,5 +1,19 @@
-const inquiryEmail =
-  process.env.NEXT_PUBLIC_INQUIRY_EMAIL?.trim() || "admin@juneguidedsolutions.com";
+import {
+  inquiryEmail as brandedInquiryEmail,
+  copyrightOwner,
+  legalServicesProvider,
+} from "@/config/branding";
+import { stageStatusCopy } from "@/config/stage";
+
+// Stage-aware status copy must reflect the RUNTIME environment, not a value
+// frozen at build time — render this page dynamically.
+export const dynamic = "force-dynamic";
+
+// Branding is configuration (see src/config/branding.ts) — no hard-coded
+// addresses. When NEXT_PUBLIC_INQUIRY_EMAIL is unset the page renders a
+// neutral contact affordance instead of inventing an address.
+const inquiryEmail = brandedInquiryEmail();
+const inquiryHref = inquiryEmail ? `mailto:${inquiryEmail}` : "#contact";
 
 const capabilities = [
   "Structured client intake",
@@ -11,6 +25,7 @@ const capabilities = [
 ];
 
 export default function Landing() {
+  const firmName = legalServicesProvider();
   return (
     <main>
       <section className="hero-shell">
@@ -18,9 +33,14 @@ export default function Landing() {
           <a className="brand" href="#top" aria-label="DivorceGPT home">
             DivorceGPT<span className="brand-dot">.com</span>
           </a>
-          <a className="nav-link" href={`mailto:${inquiryEmail}`}>
-            Institutional inquiries
-          </a>
+          <span style={{ display: "inline-flex", gap: 22 }}>
+            <a className="nav-link" href="/portal">
+              Portal sign in
+            </a>
+            <a className="nav-link" href={inquiryHref}>
+              Institutional inquiries
+            </a>
+          </span>
         </nav>
 
         <div id="top" className="hero-grid">
@@ -33,17 +53,14 @@ export default function Landing() {
               legal-service organizations in New York and New Jersey.
             </p>
             <div className="hero-actions">
-              <a className="button button-primary" href={`mailto:${inquiryEmail}`}>
-                Discuss a pilot or acquisition
+              <a className="button button-primary" href={inquiryHref}>
+                Discuss an institutional pilot
               </a>
               <a className="button button-secondary" href="#platform">
-                View the concept
+                View the workflow
               </a>
             </div>
-            <p className="availability">
-              The platform is not currently accepting public users or providing
-              legal services.
-            </p>
+            <p className="availability">{stageStatusCopy()}</p>
           </div>
 
           <aside className="workflow-card" aria-label="Illustrative workflow">
@@ -61,7 +78,7 @@ export default function Landing() {
       <section id="platform" className="section-shell">
         <div className="section-heading">
           <p className="eyebrow">What is being built</p>
-          <h2>A workflow system—not an automated lawyer.</h2>
+          <h2>A workflow system for family-law practice.</h2>
           <p>
             The product is designed to organize information and move matters
             efficiently toward human legal review. It does not independently
@@ -83,23 +100,31 @@ export default function Landing() {
       <section className="institutional-shell">
         <div>
           <p className="eyebrow">Current posture</p>
-          <h2>Open to a limited institutional pilot, licensing discussion, or acquisition inquiry.</h2>
+          <h2>In active development. Open to early-access partners and pilot discussions with New York and New Jersey family-law practices.</h2>
         </div>
-        <a className="button button-light" href={`mailto:${inquiryEmail}`}>
-          Contact {inquiryEmail}
+        <a id="contact" className="button button-light" href={inquiryHref}>
+          {inquiryEmail ? `Contact ${inquiryEmail}` : "Contact the firm"}
         </a>
       </section>
 
       <footer>
         <p>
           DivorceGPT.com is an independent project and is not affiliated with,
-          sponsored by, or endorsed by OpenAI.
+          sponsored by, or endorsed by any AI provider.
         </p>
         <p>
-          No attorney-client relationship is formed through this website. This
+          Visiting this website or submitting an institutional inquiry does not
+          create an attorney-client relationship. Portal access does not itself
+          create or expand representation. Any representation is governed solely
+          by a separate written engagement agreement with {firmName}. This
           website does not provide legal advice.
         </p>
-        <p>© {new Date().getFullYear()} June Guided Solutions, LLC.</p>
+        <p>
+          DivorceGPT is workflow software used by {firmName}. Legal services,
+          when engaged, are provided by the firm and its attorneys — never by
+          the software itself.
+        </p>
+        <p>© {new Date().getFullYear()} {copyrightOwner()}.</p>
       </footer>
     </main>
   );
