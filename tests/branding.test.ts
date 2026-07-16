@@ -73,7 +73,7 @@ describe("operating-firm branding is configuration", () => {
 
   it("the OpenAI non-affiliation statement is retained on the landing page", () => {
     const page = fs.readFileSync(path.join(__dirname, "..", "src", "app", "page.tsx"), "utf8");
-    expect(page).toMatch(/not affiliated with,\s*\n?\s*sponsored by, or endorsed by OpenAI/);
+    expect(page).toMatch(/not affiliated with,\s*\n?\s*sponsored by, or endorsed by any AI provider/);
   });
 });
 

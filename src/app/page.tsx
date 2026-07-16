@@ -78,7 +78,7 @@ export default function Landing() {
       <section id="platform" className="section-shell">
         <div className="section-heading">
           <p className="eyebrow">What is being built</p>
-          <h2>A workflow system—not an automated lawyer.</h2>
+          <h2>A workflow system for family-law practice.</h2>
           <p>
             The product is designed to organize information and move matters
             efficiently toward human legal review. It does not independently
@@ -100,7 +100,7 @@ export default function Landing() {
       <section className="institutional-shell">
         <div>
           <p className="eyebrow">Current posture</p>
-          <h2>Open to a limited institutional pilot or licensing discussion.</h2>
+          <h2>In active development. Open to early-access partners and pilot discussions with New York and New Jersey family-law practices.</h2>
         </div>
         <a id="contact" className="button button-light" href={inquiryHref}>
           {inquiryEmail ? `Contact ${inquiryEmail}` : "Contact the firm"}
@@ -110,7 +110,7 @@ export default function Landing() {
       <footer>
         <p>
           DivorceGPT.com is an independent project and is not affiliated with,
-          sponsored by, or endorsed by OpenAI.
+          sponsored by, or endorsed by any AI provider.
         </p>
         <p>
           Visiting this website or submitting an institutional inquiry does not

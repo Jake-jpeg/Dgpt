@@ -132,7 +132,7 @@ describe("stage-aware status copy", () => {
     expect(landing).toContain("does not\n          create an attorney-client relationship");
     expect(landing).toContain("Portal access does not itself");
     expect(landing).toContain("separate written engagement agreement with");
-    expect(landing).toMatch(/not affiliated with,\s*\n?\s*sponsored by, or endorsed by OpenAI/);
+    expect(landing).toMatch(/not affiliated with,\s*\n?\s*sponsored by, or endorsed by any AI provider/);
     // De-emphasized acquisition + new CTAs.
     expect(landing).toContain("Discuss an institutional pilot");
     expect(landing).toContain("View the workflow");
