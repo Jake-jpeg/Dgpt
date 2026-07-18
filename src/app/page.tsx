@@ -113,6 +113,13 @@ export default function Landing() {
           sponsored by, or endorsed by any AI provider.
         </p>
         <p>
+          In the interest of transparency: internal drafting assistance
+          currently runs on Anthropic&apos;s Claude (Sonnet) API as the
+          platform&apos;s sole model provider, with no fallback provider
+          configured. AI output is internal-only and always subject to
+          attorney review before any use.
+        </p>
+        <p>
           Visiting this website or submitting an institutional inquiry does not
           create an attorney-client relationship. Portal access does not itself
           create or expand representation. Any representation is governed solely

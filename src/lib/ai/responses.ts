@@ -1,57 +1,70 @@
 /**
- * OpenAI Responses API client (B7) — SERVER-ONLY, structured outputs.
+ * Anthropic Messages API client (B7) — SERVER-ONLY, structured outputs.
  *
- * - Single provider; if the configured model is unavailable the call fails
- *   with an INTERNAL configuration error — no silent vendor or model
- *   switch, and nothing is exposed to a client.
- * - Privacy-minimizing: store=false; a privacy-preserving safety identifier
- *   (salted hash of the matter id — never an email or name); no persisted
- *   conversation state; bounded output tokens; request timeout; bounded
- *   retries (never on 4xx).
+ * Provider decision (operator): the platform's SOLE model provider is
+ * Anthropic (Claude Sonnet family). No fallback provider and no fallback
+ * model — if the configured model is unavailable the call fails with an
+ * INTERNAL configuration error; nothing is exposed to a client.
+ *
+ * - Structured output via a FORCED tool call: the action's JSON schema is
+ *   presented as the single available tool and tool_choice pins it, so the
+ *   model must return arguments matching that schema. The three-layer
+ *   output validation in run-action (schema → citation allowlist →
+ *   provenance refs) is unchanged and still rejects anything off-shape.
+ * - Privacy-minimizing: no persisted conversation state; a privacy-
+ *   preserving safety identifier (salted hash of the matter id — never an
+ *   email or name) rides in metadata.user_id; bounded output tokens;
+ *   request timeout; bounded retries (never on 4xx).
  * - Metadata-only logging: response ID, model, prompt version, latency,
  *   token usage. NEVER prompt contents, document text, or responses.
- * - No chain-of-thought is requested or stored.
+ * - No extended thinking is requested; no chain-of-thought is stored.
  */
 import { createHmac } from "node:crypto";
 import { envOptional, isProduction } from "@/lib/env";
 import { appStage } from "@/config/stage";
 
-const OFFICIAL_RESPONSES_URL = "https://api.openai.com/v1/responses";
+const OFFICIAL_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_VERSION = "2023-06-01";
+export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5";
 
 /**
- * Resolve the Responses endpoint. OPENAI_BASE_URL is a DEVELOPMENT-ONLY
+ * Resolve the Messages endpoint. ANTHROPIC_BASE_URL is a DEVELOPMENT-ONLY
  * testing override (offline mock server for acceptance dry-runs). Any
  * non-official base is refused in production builds (which is what every
  * deployed stage runs), so live staging/pilot traffic can never be
  * redirected away from the official endpoint.
  */
-export function responsesUrl(): string {
-  const base = envOptional("OPENAI_BASE_URL");
-  if (!base) return OFFICIAL_RESPONSES_URL;
+export function messagesUrl(): string {
+  const base = envOptional("ANTHROPIC_BASE_URL");
+  if (!base) return OFFICIAL_MESSAGES_URL;
   if (isProduction()) {
     throw new AiConfigError(
-      `AI_GUARD: OPENAI_BASE_URL override is refused in production builds (APP_STAGE=${appStage()}) — development testing only`
+      `AI_GUARD: ANTHROPIC_BASE_URL override is refused in production builds (APP_STAGE=${appStage()}) — development testing only`
     );
   }
-  return base.replace(/\/+$/, "") + "/responses";
+  return base.replace(/\/+$/, "") + "/messages";
 }
 
 export function aiModel(): string {
-  return envOptional("OPENAI_MODEL") ?? "gpt-4o-mini";
+  return envOptional("ANTHROPIC_MODEL") ?? DEFAULT_ANTHROPIC_MODEL;
 }
 export function aiReviewModel(): string {
-  return envOptional("OPENAI_REVIEW_MODEL") ?? aiModel();
+  return envOptional("ANTHROPIC_REVIEW_MODEL") ?? aiModel();
 }
 export function aiTimeoutMs(): number {
-  const n = Number(process.env.OPENAI_REQUEST_TIMEOUT_MS ?? "60000");
+  const n = Number(
+    process.env.AI_REQUEST_TIMEOUT_MS ?? process.env.OPENAI_REQUEST_TIMEOUT_MS ?? "60000"
+  );
   return Number.isFinite(n) && n > 1000 ? n : 60000;
 }
 export function aiMaxOutputTokens(): number {
-  const n = Number(process.env.OPENAI_MAX_OUTPUT_TOKENS ?? "4000");
+  const n = Number(
+    process.env.AI_MAX_OUTPUT_TOKENS ?? process.env.OPENAI_MAX_OUTPUT_TOKENS ?? "4000"
+  );
   return Number.isFinite(n) && n > 100 ? n : 4000;
 }
 export function aiMaxRetries(): number {
-  const n = Number(process.env.OPENAI_MAX_RETRIES ?? "2");
+  const n = Number(process.env.AI_MAX_RETRIES ?? process.env.OPENAI_MAX_RETRIES ?? "2");
   return Number.isFinite(n) && n >= 0 && n <= 5 ? n : 2;
 }
 
@@ -85,38 +98,33 @@ export async function callStructured(opts: {
   jsonSchema: Record<string, unknown>;
   matterId: string | null;
 }): Promise<StructuredCallResult> {
-  const key = envOptional("OPENAI_API_KEY");
-  if (!key) throw new AiConfigError("AI_GUARD: OPENAI_API_KEY is not configured");
+  const key = envOptional("ANTHROPIC_API_KEY");
+  if (!key) throw new AiConfigError("AI_GUARD: ANTHROPIC_API_KEY is not configured");
 
   const headers: Record<string, string> = {
     "content-type": "application/json",
-    authorization: `Bearer ${key}`,
+    "x-api-key": key,
+    "anthropic-version": ANTHROPIC_VERSION,
   };
-  const org = envOptional("OPENAI_ORG_ID");
-  const project = envOptional("OPENAI_PROJECT_ID");
-  if (org) headers["OpenAI-Organization"] = org;
-  if (project) headers["OpenAI-Project"] = project;
 
   const body = JSON.stringify({
     model: opts.model,
-    input: [
-      { role: "system", content: opts.system },
-      { role: "user", content: opts.user },
-    ],
-    text: {
-      format: {
-        type: "json_schema",
+    max_tokens: aiMaxOutputTokens(),
+    system: opts.system,
+    messages: [{ role: "user", content: opts.user }],
+    tools: [
+      {
         name: opts.schemaName,
-        strict: true,
-        schema: opts.jsonSchema,
+        description:
+          "Return the structured report for this action. Respond ONLY by calling this tool with arguments that match the schema exactly.",
+        input_schema: opts.jsonSchema,
       },
-    },
-    max_output_tokens: aiMaxOutputTokens(),
-    store: false,
-    safety_identifier: safetyIdentifier(opts.matterId),
+    ],
+    tool_choice: { type: "tool", name: opts.schemaName },
+    metadata: { user_id: safetyIdentifier(opts.matterId) },
   });
 
-  const endpoint = responsesUrl();
+  const endpoint = messagesUrl();
   let lastError: Error | null = null;
   for (let attempt = 0; attempt <= aiMaxRetries(); attempt++) {
     const started = Date.now();
@@ -131,42 +139,32 @@ export async function callStructured(opts: {
       });
       clearTimeout(timer);
       if (res.status === 401 || res.status === 403) {
-        throw new AiConfigError("AI_GUARD: provider rejected credentials (check key/org/project)");
+        throw new AiConfigError("AI_GUARD: provider rejected credentials (check ANTHROPIC_API_KEY)");
       }
       if (res.status === 404 || res.status === 400) {
         // Model unavailable / bad request: configuration error — status code
         // only, never the response body (it can echo request content).
         const maybeModel = res.status === 404 ? " (configured model may be unavailable)" : "";
-        throw new AiConfigError(`AI_GUARD: provider request invalid (HTTP ${res.status})${maybeModel} — no fallback model is attempted`);
+        throw new AiConfigError(
+          `AI_GUARD: provider request invalid (HTTP ${res.status})${maybeModel} — no fallback model is attempted`
+        );
       }
       if (!res.ok) {
         lastError = new Error(`AI_GUARD: provider request failed (HTTP ${res.status})`);
-        continue; // retry 5xx/429
+        continue; // retry 429/5xx/529
       }
       const data = (await res.json()) as {
         id?: string;
         model?: string;
-        output?: { type: string; content?: { type: string; text?: string }[] }[];
-        output_text?: string;
+        content?: { type: string; name?: string; input?: unknown; text?: string }[];
         usage?: { input_tokens?: number; output_tokens?: number };
       };
-      const text =
-        data.output_text ??
-        data.output
-          ?.flatMap((o) => o.content ?? [])
-          .filter((c) => c.type === "output_text" || c.type === "text")
-          .map((c) => c.text ?? "")
-          .join("") ??
-        "";
-      if (!text) throw new Error("AI_GUARD: provider returned no structured text");
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        throw new Error("AI_GUARD: provider returned non-JSON structured output");
+      const block = data.content?.find((c) => c.type === "tool_use");
+      if (!block || block.input === undefined || block.input === null) {
+        throw new Error("AI_GUARD: provider returned no structured output");
       }
       return {
-        parsed,
+        parsed: block.input,
         responseId: data.id ?? null,
         model: data.model ?? opts.model,
         latencyMs: Date.now() - started,

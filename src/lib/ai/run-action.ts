@@ -33,7 +33,7 @@ import { ACTION_KIND, AI_ACTIONS, reportJsonSchema, validateAiReport, type AiAct
 import { ACTION_TITLES, PROMPT_VERSION, systemPrompt, userPrompt } from "./actions";
 
 function aiEnabled(): boolean {
-  return process.env.AI_FEATURES_ENABLED === "true" && Boolean(process.env.OPENAI_API_KEY);
+  return process.env.AI_FEATURES_ENABLED === "true" && Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
 function logInvocation(opts: {

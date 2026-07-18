@@ -6,6 +6,10 @@ import os from "node:os";
 import path from "node:path";
 
 process.env.DATABASE_PATH = ":memory:";
+// Tests must never inherit ambient provider config from the host shell.
+delete process.env.ANTHROPIC_BASE_URL;
+delete process.env.ANTHROPIC_API_KEY;
+delete process.env.ANTHROPIC_MODEL;
 process.env.FILE_STORAGE_DIR = path.join(os.tmpdir(), `dgpt-test-files-${process.pid}`);
 process.env.SESSION_SECRET = "test-secret-test-secret-test-secret-1234";
 process.env.AUDIT_HASH_SECRET = "test-audit-salt-test-audit-salt";

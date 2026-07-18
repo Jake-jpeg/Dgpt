@@ -14,7 +14,7 @@ import { requireUser, requireMatterAccess } from "@/lib/auth/authz";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
-import { invokeInternalAi } from "@/lib/ai/openai";
+import { invokeInternalAi } from "@/lib/ai/anthropic";
 import { AiDisabledError, AI_FEATURES } from "@/lib/ai/types";
 import { AI_ACTIONS } from "@/lib/ai/schemas2";
 import { runAiAction } from "@/lib/ai/run-action";

@@ -92,8 +92,8 @@ beforeEach(async () => {
 
 afterEach(() => {
   delete process.env.AI_FEATURES_ENABLED;
-  delete process.env.OPENAI_API_KEY;
-  delete process.env.OPENAI_MODEL;
+  delete process.env.ANTHROPIC_API_KEY;
+  delete process.env.ANTHROPIC_MODEL;
   delete process.env.ALLOW_UNAPPROVED_LEGAL_CONTENT;
   delete process.env.APP_STAGE;
   vi.unstubAllGlobals();
@@ -142,8 +142,11 @@ function mockResponsesFetch(payload: unknown, status = 200) {
     new Response(
       JSON.stringify({
         id: "resp_synthetic_eval",
-        model: "gpt-test-model",
-        output_text: typeof payload === "string" ? payload : JSON.stringify(payload),
+        model: "claude-test-model",
+        content:
+          typeof payload === "string"
+            ? [{ type: "text", text: payload }]
+            : [{ type: "tool_use", id: "toolu_synthetic", name: "StructuredReport", input: payload }],
         usage: { input_tokens: 111, output_tokens: 55 },
       }),
       { status, headers: { "content-type": "application/json" } }
@@ -155,8 +158,8 @@ function mockResponsesFetch(payload: unknown, status = 200) {
 
 function enableAi() {
   process.env.AI_FEATURES_ENABLED = "true";
-  process.env.OPENAI_API_KEY = "sk-synthetic-eval-key-never-real";
-  process.env.OPENAI_MODEL = "gpt-test-model";
+  process.env.ANTHROPIC_API_KEY = "sk-synthetic-eval-key-never-real";
+  process.env.ANTHROPIC_MODEL = "claude-test-model";
 }
 
 async function saveClientAnswer(questionId: string, value: unknown) {
@@ -498,7 +501,7 @@ describe("E4 AI security", () => {
     expect(row?.status).toBe("DENIED");
   });
 
-  it("request contract: store:false, strict schema, salted safety identifier (never the matter id)", async () => {
+  it("request contract: forced tool schema, salted safety identifier (never the matter id)", async () => {
     await clearMatter(ctx.matterId);
     enableAi();
     await saveClientAnswer("shared.identity.client_name", "Casey Syntheticperson");
@@ -506,17 +509,16 @@ describe("E4 AI security", () => {
     await runAiAction({ matterId: ctx.matterId, actingUserId: ctx.attorneyUserId, action: "GENERATE_INTAKE_MEMO" });
     expect(mock).toHaveBeenCalledTimes(1);
     const [url, init] = mock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(String(url)).toContain("api.openai.com/v1/responses");
+    expect(String(url)).toContain("api.anthropic.com/v1/messages");
     const body = JSON.parse(String(init.body));
-    expect(body.store).toBe(false);
-    expect(body.text.format.strict).toBe(true);
-    expect(body.text.format.type).toBe("json_schema");
-    expect(body.max_output_tokens).toBeGreaterThan(0);
-    expect(String(body.safety_identifier)).toMatch(/^m-[0-9a-f]{24}$/);
-    expect(String(body.safety_identifier)).not.toContain(ctx.matterId);
-    // No chain-of-thought request; no tools.
-    expect(body.reasoning).toBeUndefined();
-    expect(body.tools).toBeUndefined();
+    expect(body.tool_choice.type).toBe("tool");
+    expect(body.tools).toHaveLength(1);
+    expect(body.tools[0].input_schema.type).toBe("object");
+    expect(body.max_tokens).toBeGreaterThan(0);
+    expect(String(body.metadata.user_id)).toMatch(/^m-[0-9a-f]{24}$/);
+    expect(String(body.metadata.user_id)).not.toContain(ctx.matterId);
+    // No extended thinking requested; forced single tool only.
+    expect(body.thinking).toBeUndefined();
   });
 
   it("prompts harden against injection and carry the matter materials as data", async () => {
@@ -555,7 +557,7 @@ describe("E4 AI security", () => {
     vi.stubGlobal("fetch", mock);
     await expect(
       callStructured({
-        model: "gpt-test-model",
+        model: "claude-test-model",
         system: "s",
         user: "u",
         schemaName: "AttorneyIntakeMemo",

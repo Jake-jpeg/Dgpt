@@ -23,7 +23,7 @@ import {
   type MatterContext,
 } from "./helpers";
 import { resetFileStorageForTests } from "@/lib/storage";
-import { invokeInternalAi, aiFeaturesEnabled } from "@/lib/ai/openai";
+import { invokeInternalAi, aiFeaturesEnabled } from "@/lib/ai/anthropic";
 import { AiDisabledError } from "@/lib/ai/types";
 import { POST as aiPost } from "@/app/api/matters/[id]/ai/route";
 import { GET as docsGet } from "@/app/api/matters/[id]/documents/route";
@@ -38,7 +38,7 @@ let clientCookie: string;
 function mockOpenAiFetch(replyText = `internal draft mentioning ${SENTINEL}`) {
   const mock = vi.fn(async () =>
     new Response(
-      JSON.stringify({ choices: [{ message: { content: replyText } }] }),
+      JSON.stringify({ content: [{ type: "text", text: replyText }], usage: { input_tokens: 5, output_tokens: 5 } }),
       { status: 200, headers: { "content-type": "application/json" } }
     )
   );
@@ -54,14 +54,14 @@ beforeEach(async () => {
   attorneyCookie = await cookieFor(SYNTH_ATTORNEY);
   clientCookie = await cookieFor(SYNTH_CLIENT);
   process.env.AI_FEATURES_ENABLED = "true";
-  process.env.OPENAI_API_KEY = "sk-synthetic-test-key-never-real";
-  process.env.OPENAI_MODEL = "gpt-test-model";
+  process.env.ANTHROPIC_API_KEY = "sk-synthetic-test-key-never-real";
+  process.env.ANTHROPIC_MODEL = "claude-test-model";
 });
 
 afterEach(() => {
   delete process.env.AI_FEATURES_ENABLED;
-  delete process.env.OPENAI_API_KEY;
-  delete process.env.OPENAI_MODEL;
+  delete process.env.ANTHROPIC_API_KEY;
+  delete process.env.ANTHROPIC_MODEL;
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -247,7 +247,7 @@ describe("confidentiality", () => {
         if (entry.isDirectory()) walk(p);
         else if (/\.(ts|tsx)$/.test(p)) {
           const content = fs.readFileSync(p, "utf8");
-          if (/NEXT_PUBLIC_[A-Z_]*(OPENAI|API_KEY|SECRET|TOKEN)/.test(content)) hits.push(p);
+          if (/NEXT_PUBLIC_[A-Z_]*(OPENAI|ANTHROPIC|API_KEY|SECRET|TOKEN)/.test(content)) hits.push(p);
         }
       }
     };

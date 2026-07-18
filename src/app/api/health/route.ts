@@ -29,7 +29,7 @@ export async function GET() {
     syntheticDemoOnly: process.env.SYNTHETIC_DEMO_ONLY === "true",
     ephemeralStorage: syntheticEphemeralStorageActive(),
     db,
-    aiConfigured: process.env.AI_FEATURES_ENABLED === "true" && Boolean(process.env.OPENAI_API_KEY),
+    aiConfigured: process.env.AI_FEATURES_ENABLED === "true" && Boolean(process.env.ANTHROPIC_API_KEY),
     pdfService: pdfCache.value,
   };
   return Response.json(body, { status: db === "ok" ? 200 : 503 });
