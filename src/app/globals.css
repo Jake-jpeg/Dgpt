@@ -249,3 +249,113 @@ footer p { margin: 5px 0; }
   .portal-main { padding: 20px 14px 56px; }
   .panel { padding: 16px; }
 }
+
+/* ── Beta access gate — quiet enterprise legal ─────────────────────────
+   Scoped to .gate-* so the landing and portal surfaces are untouched.  */
+:root {
+  --ent-navy: #0b1526;
+  --ent-ink: #16202e;
+  --ent-muted: #5a6577;
+  --ent-line: #dfe5ee;
+  --ent-accent: #1e4e8c;
+  --ent-accent-dark: #173e70;
+  --ent-gold: #9c7c3c;
+}
+
+.gate-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  background: linear-gradient(180deg, var(--ent-navy) 0%, #0f1b2e 55%, #16243c 100%);
+}
+.gate-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 40px;
+  background: #fff;
+  color: var(--ent-ink);
+  border: 1px solid var(--ent-line);
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(11, 21, 38, .25);
+}
+
+/* clamp + nowrap: the wordmark scales down rather than escaping the card. */
+.gate-wordmark {
+  margin: 0;
+  font-size: clamp(28px, 6vw, 40px);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.1;
+  white-space: nowrap;
+  color: var(--ent-ink);
+}
+.gate-wordmark-tld { color: var(--ent-muted); font-weight: 500; }
+.gate-kicker {
+  margin: 10px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ent-gold);
+}
+.gate-rule { height: 1px; margin: 24px 0; border: 0; background: var(--ent-line); }
+.gate-copy { margin: 0; font-size: 14px; color: var(--ent-muted); }
+
+.gate-captcha { margin-top: 20px; }
+.gate-captcha-note { margin: 8px 0 0; font-size: 12px; color: var(--ent-muted); }
+
+.gate-label { display: block; margin-top: 24px; font-size: 13px; font-weight: 600; }
+.gate-input {
+  display: block;
+  width: 100%;
+  height: 44px;
+  margin-top: 8px;
+  padding: 0 12px;
+  font-size: 15px;
+  color: var(--ent-ink);
+  background: #fff;
+  border: 1px solid var(--ent-line);
+  border-radius: 6px;
+  box-shadow: inset 0 1px 2px rgba(16, 24, 40, .06);
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.gate-input::placeholder { color: #9aa4b2; }
+.gate-input:focus {
+  outline: none;
+  border-color: var(--ent-accent);
+  box-shadow: 0 0 0 3px rgba(30, 78, 140, .18);
+}
+.gate-error { margin: 14px 0 0; font-size: 13px; color: #93312f; }
+
+.gate-button {
+  width: 100%;
+  height: 44px;
+  margin-top: 20px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--ent-accent);
+  border: 1px solid var(--ent-accent);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .12s ease;
+}
+.gate-button:hover:not(:disabled) { background: var(--ent-accent-dark); border-color: var(--ent-accent-dark); }
+.gate-button:focus-visible { outline: 2px solid var(--ent-accent); outline-offset: 2px; }
+.gate-button:disabled { opacity: .45; cursor: not-allowed; }
+
+.gate-foot {
+  margin: 28px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--ent-line);
+  font-size: 12px;
+  color: var(--ent-muted);
+}
+.gate-foot a { color: var(--ent-accent); text-decoration: underline; text-underline-offset: 2px; }
+
+@media (max-width: 420px) {
+  .gate-card { padding: 28px 22px; }
+}

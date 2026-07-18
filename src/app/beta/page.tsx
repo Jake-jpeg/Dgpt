@@ -101,27 +101,34 @@ export default function BetaGate() {
   const captchaPending = Boolean(config?.captcha) && !captchaToken;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-md rounded-2xl border bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-bold">DivorceGPT</h1>
-        <p className="mt-1 text-sm font-medium text-slate-500">Private beta</p>
-        <p className="mt-4 text-sm text-slate-600">
+    <main className="gate-shell">
+      <div className="gate-card">
+        <h1 className="gate-wordmark">
+          DivorceGPT<span className="gate-wordmark-tld">.com</span>
+        </h1>
+        {/* Sentence case in the DOM; CSS uppercases it so screen readers
+            do not spell the kicker out letter by letter. */}
+        <p className="gate-kicker">Private beta — invitation only</p>
+
+        <hr className="gate-rule" />
+
+        <p className="gate-copy">
           This site is in closed testing. If you were given an access code,
           enter it below to continue.
         </p>
 
         {config?.captcha && (
-          <div className="mt-5">
+          <div className="gate-captcha">
             <div ref={widgetRef} />
             {captchaPending && (
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="gate-captcha-note">
                 Complete the verification above to continue.
               </p>
             )}
           </div>
         )}
 
-        <label className="mt-5 block text-sm font-medium">
+        <label className="gate-label">
           Access code
           <input
             type="password"
@@ -130,27 +137,27 @@ export default function BetaGate() {
             onKeyDown={(e) => e.key === "Enter" && !captchaPending && code.trim() && unlock()}
             maxLength={200}
             autoComplete="off"
-            className="mt-1 w-full rounded-lg border px-3 py-2"
+            className="gate-input"
             placeholder="Enter your access code"
           />
         </label>
 
-        {err && <p className="mt-3 text-sm text-red-600">{err}</p>}
+        {err && <p className="gate-error">{err}</p>}
 
         <button
           onClick={unlock}
           disabled={busy || !code.trim() || captchaPending}
-          className="mt-5 w-full rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="gate-button"
         >
           {busy ? "Checking…" : "Enter beta"}
         </button>
 
-        <p className="mt-6 border-t pt-4 text-xs text-slate-400">
+        <p className="gate-foot">
           No access code? The site isn&apos;t open yet.
           {inquiryEmail ? (
             <>
               {" "}For inquiries:{" "}
-              <a href={`mailto:${inquiryEmail}`} className="underline">
+              <a href={`mailto:${inquiryEmail}`}>
                 {inquiryEmail}
               </a>
             </>
