@@ -1,19 +1,9 @@
-import {
-  inquiryEmail as brandedInquiryEmail,
-  copyrightOwner,
-  legalServicesProvider,
-} from "@/config/branding";
+import { copyrightOwner, legalServicesProvider } from "@/config/branding";
 import { stageStatusCopy } from "@/config/stage";
 
 // Stage-aware status copy must reflect the RUNTIME environment, not a value
 // frozen at build time — render this page dynamically.
 export const dynamic = "force-dynamic";
-
-// Branding is configuration (see src/config/branding.ts) — no hard-coded
-// addresses. When NEXT_PUBLIC_INQUIRY_EMAIL is unset the page renders a
-// neutral contact affordance instead of inventing an address.
-const inquiryEmail = brandedInquiryEmail();
-const inquiryHref = inquiryEmail ? `mailto:${inquiryEmail}` : "#contact";
 
 const capabilities = [
   "Structured client intake",
@@ -37,9 +27,6 @@ export default function Landing() {
             <a className="nav-link" href="/portal">
               Portal sign in
             </a>
-            <a className="nav-link" href={inquiryHref}>
-              Institutional inquiries
-            </a>
           </span>
         </nav>
 
@@ -53,9 +40,6 @@ export default function Landing() {
               legal-service organizations in New York and New Jersey.
             </p>
             <div className="hero-actions">
-              <a className="button button-primary" href={inquiryHref}>
-                Discuss an institutional pilot
-              </a>
               <a className="button button-secondary" href="#platform">
                 View the workflow
               </a>
@@ -102,9 +86,6 @@ export default function Landing() {
           <p className="eyebrow">Current posture</p>
           <h2>In active development. Open to early-access partners and pilot discussions with New York and New Jersey family-law practices.</h2>
         </div>
-        <a id="contact" className="button button-light" href={inquiryHref}>
-          {inquiryEmail ? `Contact ${inquiryEmail}` : "Contact the firm"}
-        </a>
       </section>
 
       <footer>
