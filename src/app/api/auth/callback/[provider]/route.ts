@@ -23,6 +23,7 @@ import { attorneyEmailAllowlist, adminBootstrapEmails } from "@/lib/env";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertRateLimit } from "@/lib/security/rate-limit";
 import { findAccountForSession } from "@/lib/db/users";
+import { decideLoginDestination } from "@/lib/auth/authorize-login";
 import { recordAudit } from "@/lib/db/repo";
 import { hashNameForAudit } from "@/lib/security/audit-hash";
 
@@ -52,27 +53,16 @@ export async function GET(
     const boundAccount =
       account && account.subject === identity.subject ? account : null;
 
-    let dest: string;
-    if (provider === "entra") {
-      // Firm side: an ACTIVE, pre-authorized application account is required.
-      if (!boundAccount || !boundAccount.active || boundAccount.role === "CLIENT") {
-        throw new HttpError(
-          403,
-          "This Microsoft account is not linked to an authorized firm account"
-        );
-      }
-      if (boundAccount.role === "ATTORNEY") {
-        const allow = attorneyEmailAllowlist();
-        if (!allow.includes(boundAccount.email.toLowerCase())) {
-          throw new HttpError(403, "This account is not authorized for attorney access");
-        }
-      }
-      dest = boundAccount.role === "ADMIN" ? "/admin" : "/firm";
-    } else {
-      // Client side: sign-in alone creates nothing. With an account → their
-      // matter; without one → the invitation page.
-      dest = boundAccount ? "/portal/matter" : "/invite";
-    }
+    // Providers authenticate; the DB authorizes. A firm-role account is a
+    // firm login on EITHER provider (Microsoft, or a Google Workspace firm
+    // mailbox) and passes the same active + attorney-allowlist gate that
+    // authz.ts re-runs on every later request. Microsoft remains firm-only;
+    // Google without a firm account stays the client/invitation path.
+    const dest = decideLoginDestination({
+      provider: provider as ProviderId,
+      boundAccount,
+      attorneyAllowlist: attorneyEmailAllowlist(),
+    });
 
     const token = await createSessionToken({
       subject: identity.subject,
