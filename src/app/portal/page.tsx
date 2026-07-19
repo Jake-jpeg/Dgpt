@@ -85,20 +85,37 @@ export default function PortalEntry() {
           <div className="panel">
             <h2>Clients</h2>
             <p className="panel-sub">
-              Access is by firm invitation only. Invited clients sign in with
-              their Google account, then enter the invitation the firm sent
-              them.
+              Access is by firm invitation only. Sign in with the email account
+              you already use — Google (Gmail) or Microsoft (Outlook.com or
+              Hotmail email addresses) — then enter the invitation the firm
+              sent you.
             </p>
-            {me?.providers.google ? (
-              <button
-                className="btn btn-primary"
-                onClick={() => (window.location.href = "/api/auth/login/google")}
-              >
-                Sign in with Google
-              </button>
-            ) : (
-              <p className="text-sm text-slate-500">
-                Google sign-in is not configured in this environment.
+            <div className="flex flex-wrap gap-3">
+              {me?.providers.google ? (
+                <button
+                  className="btn btn-primary"
+                  onClick={() => (window.location.href = "/api/auth/login/google")}
+                >
+                  Sign in with Google
+                </button>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  Google sign-in is not configured in this environment.
+                </p>
+              )}
+              {me?.providers.msa && (
+                <button
+                  className="btn btn-primary"
+                  onClick={() => (window.location.href = "/api/auth/login/msa")}
+                >
+                  Sign in with Outlook / Hotmail
+                </button>
+              )}
+            </div>
+            {me?.providers.msa && (
+              <p className="mt-2 text-sm text-slate-500">
+                Outlook and Hotmail addresses are Microsoft accounts — this
+                uses your regular email password.
               </p>
             )}
           </div>

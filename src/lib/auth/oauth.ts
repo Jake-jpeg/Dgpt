@@ -24,6 +24,19 @@
  *      · email_verified is enforced where supplied;
  *      · scopes: openid profile email — no Gmail/Drive/Calendar/Contacts.
  *
+ *  - Microsoft personal accounts / "msa" (invited clients — Outlook.com and
+ *    Hotmail addresses):
+ *      · the CONSUMERS authority, a fixed well-known tenant that is entirely
+ *        separate from the firm's single-tenant `entra` provider. The two
+ *        share no configuration: separate client id/secret, separate
+ *        endpoints, separate redirect URI, separate subject namespace;
+ *      · issuer, audience, signature, expiry, nonce, state validated, and
+ *        the tid claim must equal the consumers tenant;
+ *      · CLIENTS ONLY — a firm-role account arriving here is refused in
+ *        decideLoginDestination. A personal Microsoft account can never
+ *        become a firm login;
+ *      · scopes: openid profile email — no Microsoft Graph permissions.
+ *
  *  - Env naming: MICROSOFT_* is canonical (MICROSOFT_TENANT_ID,
  *    MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, MICROSOFT_REDIRECT_URI);
  *    the original ENTRA_* names remain honored. GOOGLE_REDIRECT_URI may
@@ -37,10 +50,17 @@ import { createHash, randomBytes } from "node:crypto";
 import { appUrl, envOptional } from "@/lib/env";
 import type { Role } from "./session";
 
-export type ProviderId = "google" | "entra";
+export type ProviderId = "google" | "entra" | "msa";
 
 /** Multi-tenant authorities are forbidden — the firm tenant is single. */
 const FORBIDDEN_TENANTS = new Set(["", "common", "consumers", "organizations"]);
+
+/**
+ * The well-known tenant id Microsoft stamps on every personal-account token.
+ * Fixed by Microsoft, not configuration — and deliberately NOT reachable
+ * through MICROSOFT_TENANT_ID, which still refuses `consumers` outright.
+ */
+export const MSA_CONSUMERS_TENANT = "9188040d-6c67-4c5b-b112-36a304b66dad";
 
 export function microsoftTenantId(): string {
   return (
@@ -72,6 +92,9 @@ export function redirectUri(provider: ProviderId): string {
   if (provider === "entra") {
     return envOptional("MICROSOFT_REDIRECT_URI") ?? `${appUrl()}/api/auth/callback/entra`;
   }
+  if (provider === "msa") {
+    return envOptional("MSA_REDIRECT_URI") ?? `${appUrl()}/api/auth/callback/msa`;
+  }
   return envOptional("GOOGLE_REDIRECT_URI") ?? `${appUrl()}/api/auth/callback/google`;
 }
 
@@ -98,6 +121,23 @@ export function providerConfig(provider: ProviderId): ProviderConfig {
       clientId: envOptional("GOOGLE_CLIENT_ID") ?? "",
       clientSecret: envOptional("GOOGLE_CLIENT_SECRET") ?? "",
       // Only identity scopes — never Gmail/Drive/Calendar/Contacts.
+      scope: "openid email profile",
+    };
+  }
+  if (provider === "msa") {
+    // Personal Microsoft accounts (Outlook.com / Hotmail). The consumers
+    // authority is hard-coded — this never reads MICROSOFT_TENANT_ID, so the
+    // firm's single-tenant guarantee is untouched by its existence.
+    return {
+      roleHint: "CLIENT",
+      authorizationEndpoint:
+        "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize",
+      tokenEndpoint: "https://login.microsoftonline.com/consumers/oauth2/v2.0/token",
+      jwksUri: "https://login.microsoftonline.com/consumers/discovery/v2.0/keys",
+      issuer: `https://login.microsoftonline.com/${MSA_CONSUMERS_TENANT}/v2.0`,
+      clientId: envOptional("MSA_CLIENT_ID") ?? "",
+      clientSecret: envOptional("MSA_CLIENT_SECRET") ?? "",
+      // Only identity scopes — never Microsoft Graph mail/files/calendar.
       scope: "openid email profile",
     };
   }
@@ -193,6 +233,26 @@ export function entraStableSubject(payload: JWTPayload, tenant: string): string 
 }
 
 /**
+ * Personal-Microsoft identity binding. The tid claim must be the consumers
+ * tenant — a work/school token (any real firm tenant) presented on this
+ * provider is refused, so the msa path can never carry a firm identity.
+ * Namespaced `msa|` so it can never collide with an `entra|` subject.
+ * Exported for direct testing.
+ */
+export function msaStableSubject(payload: JWTPayload): string {
+  const tid = typeof payload.tid === "string" ? payload.tid : "";
+  if (!tid || tid.toLowerCase() !== MSA_CONSUMERS_TENANT) {
+    throw new Error(
+      "OAUTH: id_token tenant (tid) is not the Microsoft personal-account tenant"
+    );
+  }
+  const oid = typeof payload.oid === "string" ? payload.oid : "";
+  const stable = oid || (typeof payload.sub === "string" ? payload.sub : "");
+  if (!stable) throw new Error("OAUTH: no stable subject claim in id_token");
+  return `msa|${stable}`;
+}
+
+/**
  * Google email_verified enforcement — where the claim is supplied it must
  * be true. Exported for direct testing.
  */
@@ -206,7 +266,7 @@ export interface OAuthIdentity {
   provider: ProviderId;
   /** Session-role HINT only — authorization is decided by app_user. */
   roleHint: Role;
-  /** Stable identity: entra|{tid}:{oid} or google|{sub}. */
+  /** Stable identity: entra|{tid}:{oid}, google|{sub}, or msa|{oid}. */
   subject: string;
   /** Display/contact snapshot only — never an identity key. */
   email: string;
@@ -269,6 +329,8 @@ export async function completeOAuth(
   let subject: string;
   if (provider === "entra") {
     subject = entraStableSubject(payload, assertSingleTenant());
+  } else if (provider === "msa") {
+    subject = msaStableSubject(payload);
   } else {
     assertGoogleEmailVerified(payload);
     if (!payload.sub) throw new Error("OAUTH: no subject in id_token");

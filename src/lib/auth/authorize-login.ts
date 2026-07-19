@@ -21,6 +21,10 @@
  *   - Google is the client path: an invited client (CLIENT account) lands on
  *     their matter; a brand-new Google identity with no account lands on the
  *     invitation page. Sign-in alone still creates no account.
+ *   - Microsoft personal accounts (msa — Outlook.com / Hotmail) behave
+ *     exactly like the Google client path, with one extra rule: they are
+ *     CLIENTS ONLY. A firm-role account arriving on msa is refused and told
+ *     which door to use; a personal account is never a firm login.
  *
  * NO ENUMERATION ON THE MICROSOFT PATH: every firm-side rejection reaching an
  * entra caller collapses to ONE generic message. Distinguishing "deactivated
@@ -51,8 +55,16 @@ export function decideLoginDestination(opts: {
     throw new HttpError(403, provider === "entra" ? ENTRA_GENERIC_REFUSAL : reason);
   };
 
-  // A firm-role account is a firm login on either provider.
+  // A firm-role account is a firm login on either FIRM provider.
   if (boundAccount && boundAccount.role !== "CLIENT") {
+    if (provider === "msa") {
+      // Personal Microsoft accounts are a client door only. A firm-role
+      // account never signs in through it, whatever the DB says.
+      throw new HttpError(
+        403,
+        "Firm accounts must sign in with Microsoft work or firm Google accounts"
+      );
+    }
     if (!boundAccount.active) {
       refuseFirmSide("This firm account is not active");
     }

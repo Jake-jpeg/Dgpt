@@ -9,7 +9,7 @@ export async function GET(
   try {
     assertRateLimit(req, "login");
     const { provider } = await ctx.params;
-    if (provider !== "google" && provider !== "entra") {
+    if (provider !== "google" && provider !== "entra" && provider !== "msa") {
       throw new HttpError(404, "Unknown provider");
     }
     if (!isProviderConfigured(provider as ProviderId)) {

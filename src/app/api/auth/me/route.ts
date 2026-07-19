@@ -48,6 +48,7 @@ export async function GET(req: Request) {
     providers: {
       google: isProviderConfigured("google"),
       entra: isProviderConfigured("entra"),
+      msa: isProviderConfigured("msa"),
     },
   });
 }
