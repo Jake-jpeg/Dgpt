@@ -85,8 +85,9 @@ export default function PortalEntry() {
           <div className="panel">
             <h2>Clients</h2>
             <p className="panel-sub">
-              Access is by firm invitation only. Sign in with your Google
-              account; you will then enter the invitation the firm sent you.
+              Access is by firm invitation only. Invited clients sign in with
+              their Google account, then enter the invitation the firm sent
+              them.
             </p>
             {me?.providers.google ? (
               <button
@@ -105,21 +106,32 @@ export default function PortalEntry() {
           <div className="panel">
             <h2>Firm — staff, attorneys, administration</h2>
             <p className="panel-sub">
-              Firm accounts sign in with Microsoft. Access and permissions are
-              controlled by the firm&apos;s account records, not by this page.
+              Firm accounts sign in with Microsoft or with a firm Google
+              Workspace account. Access and permissions are controlled by the
+              firm&apos;s account records, not by this page.
             </p>
-            {me?.providers.entra ? (
-              <button
-                className="btn btn-primary"
-                onClick={() => (window.location.href = "/api/auth/login/entra")}
-              >
-                Sign in with Microsoft
-              </button>
-            ) : (
-              <p className="text-sm text-slate-500">
-                Microsoft sign-in is not configured in this environment.
-              </p>
-            )}
+            <div className="flex flex-wrap gap-3">
+              {me?.providers.entra ? (
+                <button
+                  className="btn btn-primary"
+                  onClick={() => (window.location.href = "/api/auth/login/entra")}
+                >
+                  Sign in with Microsoft
+                </button>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  Microsoft sign-in is not configured in this environment.
+                </p>
+              )}
+              {me?.providers.google && (
+                <button
+                  className="btn btn-primary"
+                  onClick={() => (window.location.href = "/api/auth/login/google")}
+                >
+                  Sign in with Google
+                </button>
+              )}
+            </div>
           </div>
 
           {me?.devStub && (
