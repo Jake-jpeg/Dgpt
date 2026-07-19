@@ -25,7 +25,13 @@ import { envOptional } from "@/lib/env";
 import { getUserById } from "@/lib/db/users";
 import { logAiInvocation } from "./audit";
 import { AiDisabledError, type AiFeature, type AiInvocationInput, type AiInvocationResult } from "./types";
-import { messagesUrl, aiMaxOutputTokens, safetyIdentifier, DEFAULT_ANTHROPIC_MODEL } from "./responses";
+import {
+  messagesUrl,
+  aiMaxOutputTokens,
+  safetyIdentifier,
+  assertApiKeyCharset,
+  DEFAULT_ANTHROPIC_MODEL,
+} from "./responses";
 import * as internalSummary from "./prompts/internal-summary";
 import * as issueList from "./prompts/issue-list";
 import * as inconsistencyReview from "./prompts/inconsistency-review";
@@ -94,9 +100,12 @@ export async function invokeInternalAi(input: AiInvocationInput): Promise<AiInvo
   }
 
   const { system, user } = promptFor(input.feature, input.context, input.instruction);
+  // Validate BEFORE the try below: a malformed key is a configuration fault
+  // to surface, not a provider error to swallow into a generic failure.
+  const key = assertApiKeyCharset(envOptional("ANTHROPIC_API_KEY") ?? "");
   const headers: Record<string, string> = {
     "content-type": "application/json",
-    "x-api-key": envOptional("ANTHROPIC_API_KEY") ?? "",
+    "x-api-key": key,
     "anthropic-version": ANTHROPIC_VERSION,
   };
 

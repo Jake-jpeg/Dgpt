@@ -10,9 +10,17 @@ export function env(name: string, fallback?: string): string {
   throw new Error(`Missing required environment variable: ${name}`);
 }
 
+/**
+ * Optional environment value, TRIMMED. Deployment consoles and copy/paste
+ * routinely append a trailing newline or stray spaces to a pasted secret;
+ * untrimmed, that whitespace reaches an HTTP header and makes fetch() throw.
+ * Whitespace-only is treated as unset.
+ */
 export function envOptional(name: string): string | undefined {
   const v = process.env[name];
-  return v === "" ? undefined : v;
+  if (v === undefined) return undefined;
+  const trimmed = v.trim();
+  return trimmed === "" ? undefined : trimmed;
 }
 
 export function isProduction(): boolean {

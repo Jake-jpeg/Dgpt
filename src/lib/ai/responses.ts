@@ -28,6 +28,31 @@ const ANTHROPIC_VERSION = "2023-06-01";
 export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5";
 
 /**
+ * Fail loudly on a key that cannot legally become an HTTP header value.
+ *
+ * Header values are ByteStrings: any code point above U+00FF makes fetch()
+ * throw a TypeError SYNCHRONOUSLY, before a single byte reaches the network.
+ * That surfaced in production as a generic 500 in ~71ms with no provider
+ * error to read — a pasted key carrying U+2190 ("←") at index 28, almost
+ * certainly a copy artifact from a rendered document or terminal.
+ *
+ * API keys are printable ASCII by construction, so anything outside
+ * 0x21–0x7E is a paste artifact. The POSITION is reported so the operator
+ * can find it; the key itself is NEVER logged or echoed.
+ */
+export function assertApiKeyCharset(key: string): string {
+  for (let i = 0; i < key.length; i++) {
+    const code = key.charCodeAt(i);
+    if (code < 0x21 || code > 0x7e) {
+      throw new AiConfigError(
+        `AI_GUARD: ANTHROPIC_API_KEY contains an invalid character at position ${i} — re-enter the key in the environment settings`
+      );
+    }
+  }
+  return key;
+}
+
+/**
  * Resolve the Messages endpoint. ANTHROPIC_BASE_URL is a DEVELOPMENT-ONLY
  * testing override (offline mock server for acceptance dry-runs). Any
  * non-official base is refused in production builds (which is what every
@@ -96,6 +121,7 @@ export async function callStructured(opts: {
 }): Promise<StructuredCallResult> {
   const key = envOptional("ANTHROPIC_API_KEY");
   if (!key) throw new AiConfigError("AI_GUARD: ANTHROPIC_API_KEY is not configured");
+  assertApiKeyCharset(key);
 
   const headers: Record<string, string> = {
     "content-type": "application/json",
