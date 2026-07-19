@@ -8,7 +8,7 @@
  * rendered PDF is stored as a NEW document version in
  * ATTORNEY_REVIEW_REQUIRED — approval of the source data never approves
  * the PDF; the PDF needs its own exact-version approval before any
- * release. Nothing here releases automatically, and OpenAI has no input
+ * release. Nothing here releases automatically, and the AI layer has no input
  * into endpoint, state, form, filename, or permissions.
  */
 import { z } from "zod";

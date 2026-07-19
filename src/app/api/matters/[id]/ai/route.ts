@@ -7,7 +7,7 @@
  * through the attorney's version-exact approve → release path.
  *
  * When AI_FEATURES_ENABLED != "true" this endpoint answers 503 and the rest
- * of the portal is unaffected (no other code path touches OpenAI).
+ * of the portal is unaffected (no other code path touches the AI layer).
  */
 import { z } from "zod";
 import { requireUser, requireMatterAccess } from "@/lib/auth/authz";

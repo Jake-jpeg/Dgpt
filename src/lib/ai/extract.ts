@@ -8,7 +8,7 @@
  * never faked. No OCR loops. Extraction runs only on an explicit STAFF/
  * ATTORNEY action.
  *
- * OpenAI file inputs (remote file upload) are NOT used in this build:
+ * Provider file inputs (remote file upload) are NOT used in this build:
  * documented in docs/AI-DOCUMENT-INPUTS.md as [NOT CONFIGURED], including
  * lifecycle/retention questions to resolve before enabling.
  */

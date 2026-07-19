@@ -52,19 +52,15 @@ export function aiReviewModel(): string {
   return envOptional("ANTHROPIC_REVIEW_MODEL") ?? aiModel();
 }
 export function aiTimeoutMs(): number {
-  const n = Number(
-    process.env.AI_REQUEST_TIMEOUT_MS ?? process.env.OPENAI_REQUEST_TIMEOUT_MS ?? "60000"
-  );
+  const n = Number(process.env.AI_REQUEST_TIMEOUT_MS ?? "60000");
   return Number.isFinite(n) && n > 1000 ? n : 60000;
 }
 export function aiMaxOutputTokens(): number {
-  const n = Number(
-    process.env.AI_MAX_OUTPUT_TOKENS ?? process.env.OPENAI_MAX_OUTPUT_TOKENS ?? "4000"
-  );
+  const n = Number(process.env.AI_MAX_OUTPUT_TOKENS ?? "4000");
   return Number.isFinite(n) && n > 100 ? n : 4000;
 }
 export function aiMaxRetries(): number {
-  const n = Number(process.env.AI_MAX_RETRIES ?? process.env.OPENAI_MAX_RETRIES ?? "2");
+  const n = Number(process.env.AI_MAX_RETRIES ?? "2");
   return Number.isFinite(n) && n >= 0 && n <= 5 ? n : 2;
 }
 

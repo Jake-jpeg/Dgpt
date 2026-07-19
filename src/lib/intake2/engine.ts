@@ -1,7 +1,7 @@
 /**
  * Deterministic intake engine. Pure functions over (schema, answers):
  * visibility, missing-required, progress, and the authoritative document
- * checklist. NO model involvement — OpenAI may SUGGEST follow-ups to staff
+ * checklist. NO model involvement — the AI layer may SUGGEST follow-ups to staff
  * or the attorney, but it cannot alter the client's intake path or the
  * checklist (see docs/AI-PROVENANCE.md).
  */

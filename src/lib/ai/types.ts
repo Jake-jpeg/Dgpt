@@ -1,7 +1,7 @@
 /**
  * Internal AI layer — shared types.
  *
- * OpenAI is the ONLY AI provider in this system, and every use is INTERNAL
+ * Anthropic (Claude) is the ONLY AI provider in this system, and every use is INTERNAL
  * work product for STAFF/ATTORNEY: nothing generated here is ever shown to
  * a client without an attorney approving and releasing the exact version.
  */

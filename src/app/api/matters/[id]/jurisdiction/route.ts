@@ -9,7 +9,7 @@
  * POST — ATTORNEY ONLY: confirm candidate/confirmed state, court/category,
  *        firm scope, schema version pin. STAFF/ADMIN are refused at the API
  *        AND by the structural role re-check in the persistence layer.
- *        OpenAI has no pathway here.
+ *        The AI layer has no pathway here.
  */
 import { z } from "zod";
 import { requireUser, requireMatterAccess } from "@/lib/auth/authz";

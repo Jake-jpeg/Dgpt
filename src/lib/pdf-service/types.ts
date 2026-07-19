@@ -1,7 +1,7 @@
 /**
  * Deterministic PDF rendering — types + explicit allowlist (Part 3).
  * The allowlist is the ONLY set of state/form pairs the application will
- * ever ask the ReportLab service to render. OpenAI has no input here: not
+ * ever ask the ReportLab service to render. The AI layer has no input here: not
  * the endpoint, not the state, not the form, not the filename.
  */
 export const ALLOWED_RENDERS = [

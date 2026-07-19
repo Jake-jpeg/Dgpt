@@ -8,7 +8,7 @@
  *    schema; staff may also answer STAFF items; attorney determinations are
  *    written only through the attorney determination path;
  *  - jurisdiction/category/scope are ATTORNEY-only, role re-read at write
- *    time — STAFF/ADMIN (and any automated path, including OpenAI) cannot
+ *    time — STAFF/ADMIN (and any automated path, including the AI layer) cannot
  *    set them.
  */
 import { getDb, newId, nowIso } from "./index";
@@ -129,7 +129,7 @@ export type ScopeStatus = (typeof SCOPE_STATUSES)[number];
 
 /**
  * THE ONLY code path that sets jurisdiction/category/scope. Re-reads the
- * actor's CURRENT role: only an active ATTORNEY may confirm. OpenAI has no
+ * actor's CURRENT role: only an active ATTORNEY may confirm. The AI layer has no
  * route here — the AI layer cannot call this (and client routes cannot
  * import it, enforced by tests).
  */

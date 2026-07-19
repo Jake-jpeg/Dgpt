@@ -19,6 +19,12 @@ import {
 const SESSION_COOKIE = "dgpt_session";
 
 function securityHeaders(res: NextResponse): NextResponse {
+  // Edge/CDN caches (DigitalOcean's included) MUST NOT cache proxied
+  // responses: a cached copy of a prerendered page would be served without
+  // running this proxy at all, silently bypassing the beta gate for every
+  // subsequent visitor. (_next/static assets are excluded by the matcher
+  // and keep their immutable caching.)
+  res.headers.set("Cache-Control", "private, no-store");
   res.headers.set("X-Frame-Options", "DENY");
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "no-referrer");

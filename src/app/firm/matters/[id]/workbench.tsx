@@ -781,7 +781,7 @@ function AiActionsPanel({ matterId, onArtifactCreated }: { matterId: string; onA
   return (
     <Panel
       title="AI workbench actions (staff/attorney only)"
-      sub="Structured internal work product from the firm's OpenAI integration. Every output lands as an AI document version in ATTORNEY REVIEW REQUIRED and can only reach a client through the attorney's exact-version approval and release path. Legal citations are restricted to the local authority snapshot; outputs with unknown citations are rejected and never saved."
+      sub="Structured internal work product from the firm's AI integration (Anthropic Claude). Every output lands as an AI document version in ATTORNEY REVIEW REQUIRED and can only reach a client through the attorney's exact-version approval and release path. Legal citations are restricted to the local authority snapshot; outputs with unknown citations are rejected and never saved."
     >
       {err && <div className="notice notice-warn mb-3 text-sm">{err}</div>}
       <div className="flex flex-wrap items-end gap-3">

@@ -9,6 +9,18 @@ export type Json = Record<string, unknown>;
 async function parse(res: Response): Promise<Json> {
   const data = (await res.json().catch(() => ({}))) as Json;
   if (!res.ok) {
+    // Beta gate: a 403 "Beta access required" means this browser has not
+    // cleared the access-code wall (e.g. it loaded a stale/edge-cached page
+    // shell). Send it to the gate instead of surfacing a misleading
+    // "not configured" state.
+    if (
+      res.status === 403 &&
+      String(data.error ?? "") === "Beta access required" &&
+      typeof window !== "undefined" &&
+      window.location.pathname !== "/beta"
+    ) {
+      window.location.href = "/beta";
+    }
     throw new Error(String(data.error ?? `Request failed (${res.status})`));
   }
   return data;

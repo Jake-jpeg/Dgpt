@@ -5,7 +5,7 @@
  * ADMIN_SECRET bearer (see the route). Each step exercises the REAL HTTP
  * routes of this deployment via self-fetch with minted synthetic sessions —
  * the same enforcement path a browser hits. All identities are synthetic
- * (@example.test). Live OpenAI calls happen ONLY in the "ai" step, one call
+ * (@example.test). Live AI provider calls happen ONLY in the "ai" step, one call
  * per invocation, so the orchestrator controls the total (cap: 5).
  *
  * Output is metadata-only: step names, booleans, IDs, hashes, token counts.
@@ -375,7 +375,7 @@ async function setupMatter(
   };
 }
 
-/* ── single live AI action (ONE OpenAI call per invocation) ────────── */
+/* ── single live AI action (ONE provider call per invocation) ─────── */
 
 async function aiStep(origin: string, matterId: string, action: string): Promise<StepResult> {
   const checks: StepCheck[] = [];
