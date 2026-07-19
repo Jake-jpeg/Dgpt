@@ -20,9 +20,8 @@ import { api, fmtWhen } from "@/lib/ui/client-api";
 interface JurisdictionView {
   factsCollected: Record<string, unknown>;
   signals: {
-    njSignals: string[];
-    nySignals: string[];
-    otherSignals: string[];
+    njImplicated: boolean;
+    nyImplicated: boolean;
     multiJurisdiction: boolean;
     note: string;
   };
@@ -242,9 +241,9 @@ function JurisdictionPanel({ matterId, isAttorney }: { matterId: string; isAttor
             </tbody>
           </table>
           <p className="mt-2 text-xs text-slate-500">
-            Signals — NJ: {view.signals.njSignals.length ? view.signals.njSignals.join("; ") : "none"} · NY:{" "}
-            {view.signals.nySignals.length ? view.signals.nySignals.join("; ") : "none"}
-            {view.signals.otherSignals.length > 0 && <> · other: {view.signals.otherSignals.join("; ")}</>}
+            Signals — NJ: {view.signals.njImplicated ? "implicated" : "none"} · NY:{" "}
+            {view.signals.nyImplicated ? "implicated" : "none"}
+            {view.signals.multiJurisdiction && <> · multi-jurisdiction</>}
           </p>
           <p className="mt-1 text-xs text-slate-500">{view.signals.note}</p>
         </div>
