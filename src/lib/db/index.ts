@@ -360,6 +360,42 @@ CREATE TABLE IF NOT EXISTS ai_invocation (
   created_at TEXT NOT NULL
 );
 
+-- ── N2. Async AI jobs ───────────────────────────────────────────────
+-- DigitalOcean's gateway kills HTTP responses at ~30s while Opus
+-- generations run longer, so AI work is started, tracked here, and polled.
+-- The result and error columns hold METADATA AND IDS ONLY — never prompts,
+-- document text, model output, or client content.
+CREATE TABLE IF NOT EXISTS ai_job (
+  id           TEXT PRIMARY KEY,
+  kind         TEXT NOT NULL,               -- AI_ACTION | INTAKE_TURN
+  matter_ref   TEXT,
+  session_ref  TEXT,
+  requested_by TEXT NOT NULL,
+  status       TEXT NOT NULL,               -- QUEUED | RUNNING | DONE | FAILED
+  result       TEXT,                        -- JSON metadata/ids only
+  error        TEXT,                        -- safe message only, never a stack
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ai_job_matter ON ai_job(matter_ref);
+CREATE INDEX IF NOT EXISTS idx_ai_job_session ON ai_job(session_ref);
+CREATE INDEX IF NOT EXISTS idx_ai_job_status ON ai_job(status);
+
+-- ── N3. Conversational intake transcript ────────────────────────────
+-- Append-only. CASCADEs with its intake_session, so the existing retention
+-- sweep purges transcripts with the session it belongs to.
+CREATE TABLE IF NOT EXISTS intake_chat_message (
+  id         TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL REFERENCES intake_session(id) ON DELETE CASCADE,
+  seq        INTEGER NOT NULL,
+  role       TEXT NOT NULL,                 -- CLIENT | ASSISTANT | SYSTEM_EVENT
+  content    TEXT NOT NULL,
+  lang       TEXT NOT NULL DEFAULT 'en',    -- en | ko
+  created_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_session_seq
+  ON intake_chat_message(session_id, seq);
+
 -- ── O. Admin-managed configuration ──────────────────────────────────
 CREATE TABLE IF NOT EXISTS app_config (
   key        TEXT PRIMARY KEY,
