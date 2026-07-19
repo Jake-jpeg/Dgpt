@@ -130,4 +130,34 @@ describe("decideLoginDestination — Microsoft stays firm-only (regression)", ()
       })
     ).toThrow(HttpError);
   });
+
+  it("does not leak WHY a firm-side entra login failed (no account enumeration)", () => {
+    // A deactivated firm account and an attorney off the allowlist must be
+    // indistinguishable from "no account at all" — otherwise a Microsoft
+    // credential can probe which identities are real firm accounts.
+    const inactive = () =>
+      decideLoginDestination({
+        provider: "entra",
+        boundAccount: row("ATTORNEY", {
+          email: "attorney@firm.test",
+          subject: "entra|t:o",
+          active: false,
+        }),
+        attorneyAllowlist: ALLOW,
+      });
+    expect(inactive).toThrow(/authorized firm account/);
+    expect(inactive).not.toThrow(/not active/);
+
+    const offAllowlist = () =>
+      decideLoginDestination({
+        provider: "entra",
+        boundAccount: row("ATTORNEY", {
+          email: "stranger@firm.test",
+          subject: "entra|t:o",
+        }),
+        attorneyAllowlist: ALLOW,
+      });
+    expect(offAllowlist).toThrow(/authorized firm account/);
+    expect(offAllowlist).not.toThrow(/attorney access/);
+  });
 });
