@@ -16,6 +16,13 @@ export function logAiInvocation(opts: {
   feature: AiFeature;
   model: string;
   status: "OK" | "ERROR" | "DISABLED" | "DENIED";
+  /**
+   * Failure classification for ERROR rows — an HTTP status code, "timeout",
+   * or "no-content". METADATA ONLY: a status code says what happened without
+   * saying anything about the request. Never a provider body, which can echo
+   * prompt content.
+   */
+  detail?: string;
 }): void {
   getDb()
     .prepare(
@@ -26,7 +33,8 @@ export function logAiInvocation(opts: {
   recordAudit(
     opts.matterId ?? "no-matter",
     "AI_INVOCATION",
-    `feature=${opts.feature} model=${opts.model} status=${opts.status}`,
+    `feature=${opts.feature} model=${opts.model} status=${opts.status}` +
+      (opts.detail ? ` detail=${opts.detail}` : ""),
     opts.userId
   );
 }

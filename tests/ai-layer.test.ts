@@ -1,5 +1,13 @@
 /**
- * Batch 7 acceptance: OpenAI service layer.
+ * Batch 7 acceptance: the internal AI service layer.
+ *
+ * Migrated from the deleted src/lib/ai/anthropic.ts to the single provider
+ * client (src/lib/ai/responses.ts -> callStructured). The free-text features
+ * now return their prose through a minimal forced tool, so the provider MOCK
+ * returns a tool_use block instead of a text block, and a 400 surfaces as
+ * AiConfigError rather than a plain Error. Every assertion below still
+ * asserts the same property it always did: access control, kill switch,
+ * artifact status, and no-payload-echo - against the new shapes.
  *  - STAFF/ATTORNEY only; client routes/roles can never invoke it
  *  - disabled mode (AI_FEATURES_ENABLED != "true"): no network call, portal
  *    unaffected, endpoint answers 503
@@ -23,8 +31,9 @@ import {
   type MatterContext,
 } from "./helpers";
 import { resetFileStorageForTests } from "@/lib/storage";
-import { invokeInternalAi, aiFeaturesEnabled } from "@/lib/ai/anthropic";
+import { invokeInternalAi, aiFeaturesEnabled } from "@/lib/ai/internal";
 import { AiDisabledError } from "@/lib/ai/types";
+import { AiConfigError } from "@/lib/ai/responses";
 import { POST as aiPost } from "@/app/api/matters/[id]/ai/route";
 import { GET as docsGet } from "@/app/api/matters/[id]/documents/route";
 import { GET as downloadGet } from "@/app/api/document-versions/[id]/download/route";
@@ -35,10 +44,19 @@ let ctx: MatterContext;
 let attorneyCookie: string;
 let clientCookie: string;
 
-function mockOpenAiFetch(replyText = `internal draft mentioning ${SENTINEL}`) {
+/**
+ * The provider now answers with a forced tool_use block (the free-text
+ * features carry their prose in `input.text`), so the mock mirrors that.
+ */
+function mockProviderFetch(replyText = `internal draft mentioning ${SENTINEL}`) {
   const mock = vi.fn(async () =>
     new Response(
-      JSON.stringify({ content: [{ type: "text", text: replyText }], usage: { input_tokens: 5, output_tokens: 5 } }),
+      JSON.stringify({
+        id: "msg_synthetic",
+        model: "claude-test-model",
+        content: [{ type: "tool_use", name: "INTERNAL_SUMMARY", input: { text: replyText } }],
+        usage: { input_tokens: 5, output_tokens: 5 },
+      }),
       { status: 200, headers: { "content-type": "application/json" } }
     )
   );
@@ -68,7 +86,7 @@ afterEach(() => {
 
 describe("access control", () => {
   it("client role cannot invoke the AI endpoint", async () => {
-    const mock = mockOpenAiFetch();
+    const mock = mockProviderFetch();
     const res = await aiPost(
       jsonRequest(`/api/matters/${ctx.matterId}/ai`, {
         cookie: clientCookie,
@@ -107,7 +125,7 @@ describe("access control", () => {
   });
 
   it("the structural guard re-reads the role: a demoted staffer is denied", async () => {
-    mockOpenAiFetch();
+    mockProviderFetch();
     const staff = provisionAccount({
       subject: "devstub|staff:aistaff@example.test",
       role: "STAFF",
@@ -129,9 +147,9 @@ describe("access control", () => {
 });
 
 describe("kill switch", () => {
-  it("AI disabled → 503 from the endpoint, zero network calls", async () => {
+  it("AI disabled �?' 503 from the endpoint, zero network calls", async () => {
     process.env.AI_FEATURES_ENABLED = "false";
-    const mock = mockOpenAiFetch();
+    const mock = mockProviderFetch();
     expect(aiFeaturesEnabled()).toBe(false);
     const res = await aiPost(
       jsonRequest(`/api/matters/${ctx.matterId}/ai`, {
@@ -144,7 +162,7 @@ describe("kill switch", () => {
     expect(mock).not.toHaveBeenCalled();
   });
 
-  it("AI disabled → the ordinary portal keeps working (matter view, documents)", async () => {
+  it("AI disabled �?' the ordinary portal keeps working (matter view, documents)", async () => {
     process.env.AI_FEATURES_ENABLED = "false";
     const { GET: matterGet } = await import("@/app/api/matters/[id]/route");
     freshLimits();
@@ -163,7 +181,7 @@ describe("kill switch", () => {
 
   it("invokeInternalAi throws AiDisabledError before any provider contact", async () => {
     process.env.AI_FEATURES_ENABLED = "false";
-    const mock = mockOpenAiFetch();
+    const mock = mockProviderFetch();
     const attorney = provisionAccount(SYNTH_ATTORNEY);
     await expect(
       invokeInternalAi({
@@ -179,7 +197,7 @@ describe("kill switch", () => {
 
 describe("artifacts", () => {
   it("AI output lands as ATTORNEY_REVIEW_REQUIRED and is invisible to the client", async () => {
-    mockOpenAiFetch();
+    mockProviderFetch();
     const res = await aiPost(
       jsonRequest(`/api/matters/${ctx.matterId}/ai`, {
         cookie: attorneyCookie,
@@ -210,7 +228,7 @@ describe("artifacts", () => {
 
 describe("confidentiality", () => {
   it("sentinel values in context/output never reach console logs or audit rows", async () => {
-    mockOpenAiFetch();
+    mockProviderFetch();
     const logSpy = vi.spyOn(console, "log");
     const errSpy = vi.spyOn(console, "error");
     const warnSpy = vi.spyOn(console, "warn");
@@ -261,6 +279,28 @@ describe("confidentiality", () => {
       vi.fn(async () => new Response(`{"error":{"message":"prompt echo ${SENTINEL}"}}`, { status: 400 }))
     );
     const attorney = provisionAccount(SYNTH_ATTORNEY);
+    // Shape change from the fold: on the single client a 400 is a
+    // CONFIGURATION fault (AiConfigError), not a transport failure. The
+    // property under test is unchanged and still asserted below: the message
+    // names the status code and NEVER echoes the provider payload.
+    const call = invokeInternalAi({
+      feature: "ISSUE_LIST",
+      matterId: ctx.matterId,
+      actingUserId: attorney.id,
+      context: {},
+    });
+    await expect(call).rejects.toThrow(AiConfigError);
+    await expect(call).rejects.toThrow(/^AI_GUARD:/);
+    await expect(call).rejects.toThrow(/HTTP 400/);
+    await expect(call).rejects.not.toThrow(new RegExp(SENTINEL));
+  });
+
+  it("a failed call is audited as ERROR with the status code, never the body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(`{"error":{"message":"prompt echo ${SENTINEL}"}}`, { status: 400 }))
+    );
+    const attorney = provisionAccount(SYNTH_ATTORNEY);
     await expect(
       invokeInternalAi({
         feature: "ISSUE_LIST",
@@ -268,6 +308,22 @@ describe("confidentiality", () => {
         actingUserId: attorney.id,
         context: {},
       })
-    ).rejects.toThrow(/AI_GUARD: provider request failed \(HTTP 400\)/);
+    ).rejects.toThrow();
+
+    // The old path logged status=ERROR with no indication of WHY. It now
+    // carries the classification — metadata only.
+    const rows = getDb()
+      .prepare(`SELECT status FROM ai_invocation WHERE matter_ref = ?`)
+      .all(ctx.matterId) as { status: string }[];
+    expect(rows.some((r) => r.status === "ERROR")).toBe(true);
+
+    const audit = getDb().prepare(`SELECT detail FROM audit_event`).all() as {
+      detail: string | null;
+    }[];
+    const details = audit.map((a) => a.detail ?? "").join("\n");
+    expect(details).toContain("status=ERROR");
+    expect(details).toContain("detail=http-400");
+    expect(details).not.toContain(SENTINEL);
   });
 });
+
