@@ -500,7 +500,7 @@ export default function IntakePage() {
         <div className="rounded-xl border bg-white p-6">
           <p className="whitespace-pre-wrap text-slate-700">
             {copy.welcome ??
-              "This structured intake collects the information the attorney needs for an uncontested New Jersey divorce. A conflict-of-interest screen runs first; only both spouses' names are collected before the firm reviews it."}
+              "This structured intake collects the information the attorney needs for an uncontested New York divorce. A conflict-of-interest screen runs first; only both spouses' names are collected before the firm reviews it."}
           </p>
           <button
             onClick={start}

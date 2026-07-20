@@ -11,7 +11,7 @@ const capabilities = [
   "Document and missing-information tracking",
   "Paralegal-guided workflows",
   "Attorney review and approval controls",
-  "New York and New Jersey workflow design",
+  "New York workflow design",
 ];
 
 export default function Landing() {
@@ -35,9 +35,9 @@ export default function Landing() {
             <p className="eyebrow">Attorney-supervised legal workflow technology</p>
             <h1>Better intake. Cleaner files. More time for legal judgment.</h1>
             <p className="hero-copy">
-              DivorceGPT.com is being developed as a structured family-law intake
+              DivorceGPT.com is being developed as a structured matrimonial intake
               and case-preparation workflow for attorneys, legal staff, and
-              legal-service organizations in New York and New Jersey.
+              legal-service organizations in New York.
             </p>
             <div className="hero-actions">
               <a className="button button-secondary" href="#platform">
@@ -62,7 +62,7 @@ export default function Landing() {
       <section id="platform" className="section-shell">
         <div className="section-heading">
           <p className="eyebrow">What is being built</p>
-          <h2>A workflow system for family-law practice.</h2>
+          <h2>A workflow system for matrimonial practice.</h2>
           <p>
             The product is designed to organize information and move matters
             efficiently toward human legal review. It does not independently
@@ -84,7 +84,7 @@ export default function Landing() {
       <section className="institutional-shell">
         <div>
           <p className="eyebrow">Current posture</p>
-          <h2>In active development. Open to early-access partners and pilot discussions with New York and New Jersey family-law practices.</h2>
+          <h2>In active development. Open to early-access partners and pilot discussions with New York matrimonial practices.</h2>
         </div>
       </section>
 

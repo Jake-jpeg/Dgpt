@@ -7,7 +7,7 @@
 export const PROCESS_COPY = {
   WELCOME:
     "[ATTORNEY TO SUPPLY] Welcome. This is a structured intake for uncontested " +
-    "New Jersey divorces. It is not legal advice and it is not a chatbot — it " +
+    "New York divorces. It is not legal advice and it is not a chatbot — it " +
     "collects the information the attorney needs, checks that your matter fits " +
     "this service, and hands everything to the attorney for review. You'll be " +
     "asked for both spouses' names first so the office can run a required " +
@@ -37,9 +37,16 @@ export const PROCESS_COPY = {
   WHY_IDENTITY:
     "[ATTORNEY TO SUPPLY] Why we ask: attorney ethics rules require a conflict " +
     "check against both spouses' names before an intake can begin.",
+  // NJ-law explanation removed in the NY-only pass. Do NOT substitute NY law
+  // here — legal explanations are operator-authored. The NY version must
+  // explain, in plain language, the DRL § 230 residence requirement the firm
+  // relies on (its alternatives include one-year residence with a NY
+  // connection and a two-year residence path), without stating a single
+  // threshold as if it were the only rule.
   WHY_RESIDENCY:
-    "[ATTORNEY TO SUPPLY] Why we ask: New Jersey generally requires 12 months " +
-    "of residency by at least one spouse before a divorce can be filed here.",
+    "[ATTORNEY TO SUPPLY — NY] Why we ask: New York sets residence requirements " +
+    "for filing a divorce here (see DRL § 230). The attorney confirms whether " +
+    "your situation meets them.",
   WHY_VENUE:
     "[ATTORNEY TO SUPPLY] Why we ask: the county tells us where the case would " +
     "be filed. It does not disqualify you.",

@@ -22,15 +22,30 @@ export interface GateQuestion {
 export const GATE_QUESTIONS: Record<GateQuestion["state"], GateQuestion> = {
   GATE_RESIDENCY: {
     state: "GATE_RESIDENCY",
+    // [ATTORNEY REVIEW REQUIRED — NY residency gate redrafted from NY-DIVORCE-RESIDENCE-001; operator must approve before live client use]
+    // TEXT ONLY was redrafted for NY. The PASS/FAIL logic in
+    // src/lib/intake/scope-gate.ts is unchanged and still encodes a SINGLE
+    // yes/no threshold — an NJ shape. DRL § 230 has FIVE alternative paths
+    // (incl. a two-year-residence path and a "cause occurred in NY + both
+    // residents" path with no stated duration), which a single yes/no cannot
+    // represent: a "No" here can wrongly scope out a client who qualifies
+    // under another alternative. The operator must redesign the gate logic,
+    // not just approve this wording. See the accompanying report.
     prompt:
-      "Has at least one of you (you or your spouse) lived in New Jersey continuously for the last 12 months?",
+      "Have you or your spouse lived in New York for at least the past year?",
     whyId: "WHY_RESIDENCY",
     kind: "yesno",
-    outCard: "RESIDENCY_ATTORNEY_FLAG", // "no" → out; the adultery exception is never auto-resolved
+    outCard: "RESIDENCY_ATTORNEY_FLAG", // "no" → out with a "contact the office" card (not a hard dead-end)
   },
   GATE_VENUE: {
     state: "GATE_VENUE",
-    prompt: "Which New Jersey county do you live in?",
+    // [ATTORNEY REVIEW REQUIRED — NY residency gate redrafted from NY-DIVORCE-RESIDENCE-001; operator must approve before live client use]
+    // TEXT ONLY. The `options` below and the validation in scope-gate.ts still
+    // use NJ_COUNTIES — a real New York county (e.g. "Kings") is currently
+    // REJECTED as invalid. This control is not functional for NY clients until
+    // a NY county dataset and the scope-gate validation are added (data + logic,
+    // out of scope for this presentation pass). See the accompanying report.
+    prompt: "Which New York county do you live in?",
     whyId: "WHY_VENUE",
     kind: "county",
     options: NJ_COUNTIES.map((c) => ({ value: c, label: c })),
