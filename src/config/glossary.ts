@@ -17,7 +17,18 @@ export interface GlossaryTerm {
   /** Lowercase alias strings the classifier may match against. */
   aliases: string[];
   definition: string;
+  /**
+   * Korean rendering, supplied and approved by the operator. When absent,
+   * the intake assistant translates the framing of `definition` rather than
+   * inventing a Korean definition of its own.
+   */
+  koDefinition?: string;
+  /** Approving attorney. Absent = still placeholder, never client-ready. */
+  approvedBy?: string;
 }
+
+/** Placeholder marker — attorney content has not been supplied yet. */
+export const ATTORNEY_TO_SUPPLY = "[ATTORNEY TO SUPPLY";
 
 export const GLOSSARY: GlossaryTerm[] = [
   {
