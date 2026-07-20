@@ -245,9 +245,90 @@ footer p { margin: 5px 0; }
 .notice-error { background: #fbebeb; border-color: #efc7c7; color: #93312f; }
 .notice-good { background: #e8f6ee; border-color: #bfe4cf; color: #1c6b3c; }
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; }
+
+/* ── Triage-first matter view ───────────────────────────────────────── */
+/* Status board: title + badges, stat chips, and the always-open
+   "Needs your attention" list. One screen, no scrolling to read state. */
+.board { padding: 20px 22px; }
+.board-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.board-title { font-size: 1.1rem; font-weight: 600; letter-spacing: -.01em; margin: 0 auto 0 0; }
+.board-sub { color: var(--muted); font-size: .82rem; margin: 6px 0 0; }
+
+.chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 16px; }
+.chip {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fbfcfe;
+  padding: 10px 12px;
+}
+.chip-label { display: block; font-size: .68rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; }
+.chip-value { display: block; margin-top: 3px; font-size: 1.25rem; font-weight: 600; line-height: 1.1; color: var(--ink); }
+.chip-value.chip-alert { color: #93312f; }
+.chip-sub { font-size: .72rem; color: var(--muted); }
+
+.attention { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
+.attention-h { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin: 0 0 8px; }
+.attention-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.attention-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid #f0d9b6;
+  background: #fdf7ec;
+  border-radius: 6px;
+  font-size: .9rem;
+}
+.attention-item .attention-text { margin-right: auto; }
+.attention-item a { color: var(--blue-dark); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.attention-clear { display: flex; align-items: center; gap: 8px; color: #1c6b3c; font-size: .9rem; padding: 4px 0; }
+
+/* Accordion — heavy sections collapsed by default, state readable in the
+   header without opening. Native <details> for zero-JS accessibility. */
+details.accordion { padding: 0; overflow: hidden; }
+details.accordion > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 16px 20px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+details.accordion > summary::-webkit-details-marker { display: none; }
+details.accordion > summary::before {
+  content: "▸";
+  color: var(--muted);
+  font-size: .8em;
+  transition: transform .12s ease;
+}
+details.accordion[open] > summary::before { transform: rotate(90deg); }
+details.accordion > summary:hover { background: #f7f9fc; }
+details.accordion > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.accordion-title { flex: 0 0 auto; }
+.accordion-state { margin-left: auto; font-weight: 400; font-size: .82rem; color: var(--muted); text-align: right; }
+.accordion-body { padding: 4px 20px 20px; border-top: 1px solid var(--line); }
+.accordion-empty { padding: 0 20px 16px; color: var(--muted); font-size: .85rem; }
+
+/* Compact checklist override control — replaces the per-row button row. */
+.chk-change { position: relative; display: inline-block; }
+.chk-menu {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16,24,40,.06);
+}
+
 @media (max-width: 720px) {
   .portal-main { padding: 20px 14px 56px; }
   .panel { padding: 16px; }
+  .board { padding: 16px; }
+  details.accordion > summary { padding: 14px 16px; }
+  .accordion-body { padding: 4px 16px 16px; }
 }
 
 /* ── Beta access gate — quiet enterprise legal ─────────────────────────

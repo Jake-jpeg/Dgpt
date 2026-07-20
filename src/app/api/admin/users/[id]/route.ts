@@ -7,7 +7,14 @@ import { requireAdmin } from "@/lib/auth/authz";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
-import { clearUserSubject, getUserById, setUserActive, setUserRole } from "@/lib/db/users";
+import {
+  clearUserSubject,
+  getUserById,
+  setUserActive,
+  setUserRole,
+  countUserReferences,
+  deleteUserIfUnreferenced,
+} from "@/lib/db/users";
 import { recordAudit } from "@/lib/db/repo";
 
 const patchSchema = z
@@ -63,6 +70,43 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return Response.json({
       user: { id: updated.id, email: updated.email, role: updated.role, active: updated.active },
     });
+  } catch (e) {
+    return errorResponse(e);
+  }
+}
+
+/**
+ * Hard-delete a user — ONLY when the row has zero case-history references.
+ * A referenced account keeps its history: it is deactivated, never deleted,
+ * so every matter/document/session/audit row retains a valid actor. The
+ * deletion itself is audited (metadata only: the deleted row's email + role).
+ */
+export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  try {
+    assertRateLimit(req, "intake");
+    assertCsrf(req);
+    const { account } = await requireAdmin(req);
+    const { id } = await ctx.params;
+    const target = getUserById(id);
+    if (!target) throw new HttpError(404, "User not found");
+
+    if (countUserReferences(target) > 0) {
+      throw new HttpError(409, "This account has case history — deactivate instead");
+    }
+
+    const { deleted } = deleteUserIfUnreferenced(id);
+    if (!deleted) {
+      // Lost a race: a reference appeared between the check and the delete.
+      throw new HttpError(409, "This account has case history — deactivate instead");
+    }
+    // Audit AFTER deletion, keyed by the (now-removed) row id, metadata only.
+    recordAudit(
+      id,
+      "USER_DELETED",
+      JSON.stringify({ email: target.email, role: target.role }),
+      account.id
+    );
+    return Response.json({ deleted: true });
   } catch (e) {
     return errorResponse(e);
   }

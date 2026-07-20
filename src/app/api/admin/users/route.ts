@@ -11,7 +11,7 @@ import { requireAdmin } from "@/lib/auth/authz";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
-import { createUser, getUserByEmail, listUsers, USER_ROLES } from "@/lib/db/users";
+import { createUser, getUserByEmail, listUsers, countUserReferences, USER_ROLES } from "@/lib/db/users";
 import { recordAudit } from "@/lib/db/repo";
 
 export async function GET(req: Request) {
@@ -26,6 +26,9 @@ export async function GET(req: Request) {
         role: u.role,
         active: u.active,
         createdAt: u.createdAt,
+        // Read-only hint for the console: a row with any case-history
+        // reference can be deactivated but never deleted.
+        deletable: countUserReferences(u) === 0,
       })),
     });
   } catch (e) {
@@ -33,6 +36,10 @@ export async function GET(req: Request) {
   }
 }
 
+// Parse permissively so a CLIENT attempt gets a CLEAR rejection below rather
+// than a generic validation error. Client accounts are born ONLY through
+// invitation acceptance (provisionClientAccount); the admin console must not
+// offer a second door.
 const createSchema = z.object({
   email: z.string().trim().email().max(200),
   name: z.string().trim().max(120).optional(),
@@ -48,6 +55,10 @@ export async function POST(req: Request) {
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid user payload");
     if (!USER_ROLES.includes(parsed.data.role)) {
       throw new HttpError(400, "VALIDATION: unknown role");
+    }
+    if (parsed.data.role === "CLIENT") {
+      // Client accounts are created exclusively by invitation acceptance.
+      throw new HttpError(400, "Client accounts are created by invitation only, not here");
     }
     if (getUserByEmail(parsed.data.email)) {
       throw new HttpError(409, "A user with this email already exists");

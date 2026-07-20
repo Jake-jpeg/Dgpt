@@ -200,3 +200,50 @@ export function ErrorNotice({ message }: { message: string | null }) {
     </div>
   );
 }
+
+/**
+ * Collapsible section. `summary` is a one-line state string shown in the
+ * header so the reader knows what's inside without opening it. When `empty`
+ * is true the panel renders as a muted one-liner and cannot be expanded —
+ * an empty table is never shown. Native <details> keeps it keyboard- and
+ * zoom-friendly with no JS.
+ */
+export function AccordionPanel({
+  title,
+  summary,
+  defaultOpen = false,
+  empty = false,
+  emptyText,
+  children,
+}: {
+  title: string;
+  summary?: string;
+  defaultOpen?: boolean;
+  empty?: boolean;
+  emptyText?: string;
+  children: React.ReactNode;
+}) {
+  if (empty) {
+    return (
+      <div className="panel accordion" aria-disabled="true">
+        <div style={{ padding: "16px 20px", display: "flex", gap: 12, alignItems: "baseline" }}>
+          <span className="accordion-title" style={{ fontWeight: 600, letterSpacing: "-.01em" }}>
+            {title}
+          </span>
+          <span className="accordion-state" style={{ marginLeft: "auto" }}>
+            {emptyText ?? "Nothing here"}
+          </span>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <details className="panel accordion" open={defaultOpen}>
+      <summary>
+        <span className="accordion-title">{title}</span>
+        {summary && <span className="accordion-state">{summary}</span>}
+      </summary>
+      <div className="accordion-body">{children}</div>
+    </details>
+  );
+}

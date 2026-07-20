@@ -199,3 +199,45 @@ export function setUserActive(userId: string, active: boolean): UserRow {
   if (!u) throw new Error("VALIDATION: user not found");
   return u;
 }
+
+/**
+ * Count everything that would be orphaned if this user row were deleted.
+ * Hard deletion is allowed ONLY when this is zero: a user tied to any case
+ * history is deactivated, never removed, so the audit chain and every
+ * matter/document/session keeps a valid actor reference.
+ *
+ * The reference set is deliberately broad: matters (as the client OR the
+ * creator), document versions authored, intake sessions owned (keyed by the
+ * auth subject, not the user id), and conflict submissions made.
+ */
+export function countUserReferences(user: UserRow): number {
+  const db = getDb();
+  const one = (sql: string, arg: string) =>
+    ((db.prepare(sql).get(arg) as { c: number } | undefined)?.c ?? 0);
+
+  let refs = 0;
+  refs += one(`SELECT COUNT(*) AS c FROM matter WHERE client_user_id = ?`, user.id);
+  refs += one(`SELECT COUNT(*) AS c FROM matter WHERE created_by = ?`, user.id);
+  refs += one(`SELECT COUNT(*) AS c FROM document_version WHERE created_by = ?`, user.id);
+  refs += one(`SELECT COUNT(*) AS c FROM conflict_submission WHERE submitted_by = ?`, user.id);
+  // Intake sessions are keyed by the opaque auth subject, not the user id.
+  // A never-signed-in row (subject NULL) can own no sessions.
+  if (user.subject) {
+    refs += one(`SELECT COUNT(*) AS c FROM intake_session WHERE owner_subject = ?`, user.subject);
+  }
+  return refs;
+}
+
+/**
+ * Hard-delete a reference-free user row. Returns false and deletes nothing
+ * if any case history references it — the caller responds 409 and offers
+ * deactivation instead. The reference re-check happens inside the same call
+ * so a row cannot pick up a reference between the check and the delete.
+ */
+export function deleteUserIfUnreferenced(userId: string): { deleted: boolean; user: UserRow | null } {
+  const user = getUserById(userId);
+  if (!user) return { deleted: false, user: null };
+  if (countUserReferences(user) > 0) return { deleted: false, user };
+  getDb().prepare(`DELETE FROM app_user WHERE id = ?`).run(userId);
+  return { deleted: true, user };
+}

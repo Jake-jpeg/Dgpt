@@ -48,6 +48,9 @@ export const api = {
   put(path: string, body?: unknown) {
     return this.send("PUT", path, body);
   },
+  del(path: string, body?: unknown) {
+    return this.send("DELETE", path, body);
+  },
   async upload(path: string, file: File, title?: string): Promise<Json> {
     const form = new FormData();
     form.set("file", file);

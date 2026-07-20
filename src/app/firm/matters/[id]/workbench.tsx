@@ -151,13 +151,37 @@ const SUPPORT_BADGE: Record<string, string> = {
   ATTORNEY_CONFIRMATION_REQUIRED: "badge badge-warn",
 };
 
-function Panel({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
+/**
+ * Collapsible workbench panel. Collapsed by default with a one-line `summary`
+ * of its state in the header, so the attorney reads status without opening
+ * every heavy table. Native <details> — keyboard- and zoom-friendly, and its
+ * children stay mounted while collapsed so each panel's data still loads and
+ * its summary stays live.
+ */
+function Panel({
+  title,
+  sub,
+  summary,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  sub?: string;
+  summary?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="panel">
-      <h2>{title}</h2>
-      {sub && <p className="panel-sub">{sub}</p>}
-      {children}
-    </div>
+    <details className="panel accordion" open={defaultOpen}>
+      <summary>
+        <span className="accordion-title">{title}</span>
+        {summary && <span className="accordion-state">{summary}</span>}
+      </summary>
+      <div className="accordion-body">
+        {sub && <p className="panel-sub">{sub}</p>}
+        {children}
+      </div>
+    </details>
   );
 }
 
@@ -221,6 +245,11 @@ function JurisdictionPanel({ matterId, isAttorney }: { matterId: string; isAttor
     <Panel
       title="Jurisdiction & scope (attorney determination)"
       sub="FACTS COLLECTED are shown separately from the determination. Nothing is auto-selected from a mailing address; multi-state facts flag the matter for review."
+      summary={
+        det.jurisdictionConfirmed
+          ? `${det.jurisdictionConfirmed}${det.matterCategory ? ` · ${det.matterCategory}` : ""} · scope ${det.scopeStatus.replaceAll("_", " ").toLowerCase()}`
+          : "Not yet determined"
+      }
     >
       {view.signals.multiJurisdiction && (
         <div className="notice notice-warn mb-3 font-semibold">
@@ -404,6 +433,11 @@ function IntakeReviewPanel({ matterId }: { matterId: string }) {
     <Panel
       title={`Intake review — schema ${view.schema.id} v${view.schema.version}`}
       sub="Attorney/staff view: includes internal items, authority mappings, and attorney determinations the client never sees. Facts are collected as facts; conclusions stay with the attorney."
+      summary={
+        view.missingRequired.length > 0
+          ? `${view.missingRequired.length} required item${view.missingRequired.length === 1 ? "" : "s"} open`
+          : "All required items answered"
+      }
     >
       {view.missingRequired.length > 0 && (
         <div className="notice notice-warn mb-3 text-sm">
@@ -486,6 +520,7 @@ function ChecklistPanel({ matterId, isAttorney }: { matterId: string; isAttorney
   const [disclaimer, setDisclaimer] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -520,8 +555,15 @@ function ChecklistPanel({ matterId, isAttorney }: { matterId: string; isAttorney
     }
   };
 
+  // One-line header summary — read the checklist without opening it.
+  const requiredNow = entries.filter((e) => e.status === "REQUIRED_NOW").length;
+  const notApplicable = entries.filter((e) => e.status === "NOT_APPLICABLE").length;
+  const summaryParts = [`${requiredNow} required now`];
+  if (notApplicable > 0) summaryParts.push(`${notApplicable} not applicable`);
+  const summary = `${entries.length} item${entries.length === 1 ? "" : "s"} — ${summaryParts.join(", ")}`;
+
   return (
-    <Panel title="Document checklist (deterministic)" sub={disclaimer}>
+    <Panel title="Document checklist (deterministic)" sub={disclaimer} summary={summary}>
       <table className="tbl">
         <thead>
           <tr>
@@ -538,44 +580,77 @@ function ChecklistPanel({ matterId, isAttorney }: { matterId: string; isAttorney
               <td><StatusBadge value={e.status} /></td>
               <td className="text-xs text-slate-600">{e.reason}</td>
               <td>
-                <div className="flex flex-wrap gap-1">
-                  {["RECEIVED", "INCOMPLETE", "ATTORNEY_REVIEW_REQUIRED"].map((o) => (
-                    <button
-                      key={o}
-                      className="btn btn-quiet"
-                      style={{ padding: "2px 8px", fontSize: ".72rem" }}
-                      disabled={busy}
-                      onClick={() => override(e.documentId, o)}
-                    >
-                      {o.replaceAll("_", " ").toLowerCase()}
-                    </button>
-                  ))}
-                  {isAttorney && (
-                    <button
-                      className="btn btn-quiet"
-                      style={{ padding: "2px 8px", fontSize: ".72rem" }}
-                      disabled={busy}
-                      onClick={() => override(e.documentId, "ATTORNEY_WAIVED")}
-                      title="Attorney determination"
-                    >
-                      waive
-                    </button>
-                  )}
-                  <button
-                    className="btn btn-quiet"
-                    style={{ padding: "2px 8px", fontSize: ".72rem" }}
-                    disabled={busy}
-                    onClick={() => override(e.documentId, "CLEAR")}
-                  >
-                    clear override
-                  </button>
-                </div>
+                {/* De-noised: the status badge above carries the state; the
+                    five override buttons are revealed on demand, one row at a
+                    time, instead of 5×N buttons shouting at once. */}
+                <ChecklistOverride
+                  open={menuFor === e.documentId}
+                  busy={busy}
+                  isAttorney={isAttorney}
+                  onToggle={() => setMenuFor(menuFor === e.documentId ? null : e.documentId)}
+                  onPick={(o) => {
+                    setMenuFor(null);
+                    override(e.documentId, o);
+                  }}
+                />
               </td>
             </tr>
           ))}
         </tbody>
       </table>
     </Panel>
+  );
+}
+
+/**
+ * Single compact control that reveals the override options on demand. Same
+ * options and the same `override()` call as before — purely a presentation
+ * change from an always-on five-button row to one "Change" affordance.
+ */
+function ChecklistOverride({
+  open,
+  busy,
+  isAttorney,
+  onToggle,
+  onPick,
+}: {
+  open: boolean;
+  busy: boolean;
+  isAttorney: boolean;
+  onToggle: () => void;
+  onPick: (override: string) => void;
+}) {
+  const options: string[] = ["RECEIVED", "INCOMPLETE", "ATTORNEY_REVIEW_REQUIRED"];
+  if (isAttorney) options.push("ATTORNEY_WAIVED");
+  options.push("CLEAR");
+  return (
+    <div className="chk-change">
+      <button
+        className="btn btn-quiet"
+        style={{ padding: "2px 10px", fontSize: ".75rem" }}
+        disabled={busy}
+        aria-expanded={open}
+        onClick={onToggle}
+      >
+        Change ▾
+      </button>
+      {open && (
+        <div className="chk-menu" role="menu">
+          {options.map((o) => (
+            <button
+              key={o}
+              className="btn btn-quiet"
+              style={{ padding: "2px 8px", fontSize: ".72rem" }}
+              disabled={busy}
+              role="menuitem"
+              onClick={() => onPick(o)}
+            >
+              {o === "CLEAR" ? "clear override" : o.replaceAll("_", " ").toLowerCase()}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -597,7 +672,11 @@ function FormReadinessPanel({ matterId }: { matterId: string }) {
   if (!report) return null;
 
   return (
-    <Panel title="Form readiness (attorney)" sub={report.disclaimer}>
+    <Panel
+      title="Form readiness (attorney)"
+      sub={report.disclaimer}
+      summary={report.status.replaceAll("_", " ").toLowerCase()}
+    >
       <div className="mb-2 flex items-center gap-3">
         <StatusBadge value={report.status} />
       </div>
@@ -658,6 +737,11 @@ function LegalSourcesPanel() {
     <Panel
       title="Legal source status (internal)"
       sub={`Dated local snapshot ${data.snapshot.version}, last counsel review ${data.snapshot.reviewedAt}, max age ${data.snapshot.maxAgeDays} days. Runtime never browses the web; the model may cite only these records.`}
+      summary={
+        data.warnings.length > 0
+          ? `${data.warnings.length} warning${data.warnings.length === 1 ? "" : "s"} · snapshot ${data.snapshot.version}`
+          : `snapshot ${data.snapshot.version}`
+      }
     >
       {data.warnings.length > 0 && (
         <div className="notice notice-warn mb-3 text-sm">
@@ -782,6 +866,7 @@ function AiActionsPanel({ matterId, onArtifactCreated }: { matterId: string; onA
     <Panel
       title="AI workbench actions (staff/attorney only)"
       sub="Structured internal work product from the firm's AI integration (Anthropic Claude). Every output lands as an AI document version in ATTORNEY REVIEW REQUIRED and can only reach a client through the attorney's exact-version approval and release path. Legal citations are restricted to the local authority snapshot; outputs with unknown citations are rejected and never saved."
+      summary="Internal drafts — review required"
     >
       {err && <div className="notice notice-warn mb-3 text-sm">{err}</div>}
       <div className="flex flex-wrap items-end gap-3">

@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Shell, useMe, StatusBadge, ErrorNotice } from "@/components/shell";
+import { Shell, useMe, StatusBadge, ErrorNotice, AccordionPanel } from "@/components/shell";
 import { api, fmtWhen, STATE_LABELS } from "@/lib/ui/client-api";
 import Workbench from "./workbench";
 
@@ -128,6 +128,8 @@ export default function FirmMatterDetail() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [subs, setSubs] = useState<Submission[]>([]);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
+  // Jurisdiction confirmation drives one triage item; undefined = not loaded.
+  const [jurisConfirmed, setJurisConfirmed] = useState<string | null | undefined>(undefined);
 
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -176,6 +178,11 @@ export default function FirmMatterDetail() {
           events: AuditEvent[];
         };
         setAudit(a.events);
+        // Existing endpoint — powers the "jurisdiction unset" triage item.
+        const j = (await api.get(`/api/matters/${matterId}/jurisdiction`)) as {
+          attorneyDetermination?: { jurisdictionConfirmed: string | null };
+        };
+        setJurisConfirmed(j.attorneyDetermination?.jurisdictionConfirmed ?? null);
       }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Could not load the matter");
@@ -213,6 +220,113 @@ export default function FirmMatterDetail() {
     ? `${typeof window !== "undefined" ? window.location.origin : ""}/invite?token=${newToken}`
     : null;
 
+  // ── Triage derivations (all from already-loaded data; no extra calls) ──
+  const allVersions = docs.flatMap((d) => d.versions.map((v) => ({ v, doc: d })));
+  const unapproved = allVersions.filter(({ v }) =>
+    ["DRAFT", "ATTORNEY_REVIEW_REQUIRED", "CHANGES_REQUESTED"].includes(v.status)
+  );
+  const unapprovedAi = unapproved.filter(({ v }) => v.source === "AI");
+  const openInfoReqs = infoReqs.filter((r) => r.status === "OPEN");
+  const openAssists = assists.filter((a) => a.status !== "RESOLVED");
+  const escalations = notes.filter((n) => n.kind === "ESCALATION");
+  const openInvites = invitations.filter((i) => !i.used && !i.revoked);
+  const pendingConflicts = subs.filter((s) => !s.disposition);
+  const readySessions = (matter?.sessions ?? []).filter((s) => s.state === "READY_FOR_REVIEW");
+
+  // "Needs your attention" — exactly the items awaiting attorney action.
+  const attention: { key: string; text: string; href: string; link: string }[] = [];
+  if (isAttorney) {
+    for (const s of pendingConflicts) {
+      attention.push({
+        key: `conflict-${s.id}`,
+        text: "Conflict submission awaiting your disposition",
+        href: "/firm/conflicts",
+        link: "Review",
+      });
+    }
+    if (jurisConfirmed === null) {
+      attention.push({
+        key: "jurisdiction",
+        text: "Jurisdiction & scope not yet determined",
+        href: "#workbench",
+        link: "Set below",
+      });
+    }
+    for (const s of readySessions) {
+      attention.push({
+        key: `ready-${s.id}`,
+        text: "Intake session is ready for your review",
+        href: `/attorney/session/${s.id}`,
+        link: "Open review",
+      });
+    }
+  }
+  for (const { v, doc } of unapprovedAi) {
+    attention.push({
+      key: `ai-${v.id}`,
+      text: `AI draft "${doc.title}" (v${v.versionNo}) awaits attorney review`,
+      href: "#documents",
+      link: "Open documents",
+    });
+  }
+  for (const n of escalations) {
+    attention.push({
+      key: `esc-${n.id}`,
+      text: "Escalation flagged for attorney attention",
+      href: "#requests",
+      link: "Open requests",
+    });
+  }
+  for (const a of openAssists) {
+    attention.push({
+      key: `assist-${a.id}`,
+      text: "Client help request is open",
+      href: "#requests",
+      link: "Open requests",
+    });
+  }
+
+  const chips: { label: string; value: string; sub?: string; alert?: boolean }[] = [
+    {
+      label: "Intake",
+      value: readySessions.length > 0 ? "Ready" : String((matter?.sessions ?? []).length || 0),
+      sub:
+        readySessions.length > 0
+          ? `${readySessions.length} ready for review`
+          : `${(matter?.sessions ?? []).length} session(s)`,
+    },
+    {
+      label: "Docs outstanding",
+      value: String(unapproved.length),
+      sub: unapproved.length ? "unapproved versions" : "all reviewed",
+      alert: unapproved.length > 0,
+    },
+    {
+      label: "Open requests",
+      value: String(openInfoReqs.length),
+      sub: "missing-info",
+    },
+    {
+      label: "Flags / escalations",
+      value: String(escalations.length + openAssists.length),
+      sub: "need attention",
+      alert: escalations.length + openAssists.length > 0,
+    },
+    {
+      label: "Invitations",
+      value: String(openInvites.length),
+      sub: openInvites.length ? "open" : "none open",
+    },
+  ];
+  if (isAttorney) {
+    chips.push({
+      label: "Conflict",
+      value: pendingConflicts.length > 0 ? String(pendingConflicts.length) : "clear",
+      sub: pendingConflicts.length > 0 ? "pending disposition" : matter?.conflictStatus.toLowerCase(),
+      alert: pendingConflicts.length > 0,
+    });
+  }
+
   return (
     <Shell title={matter ? matter.label : "Matter"}>
       <ErrorNotice message={err} />
@@ -223,18 +337,55 @@ export default function FirmMatterDetail() {
 
       {authorized && matter && (
         <>
-          {/* ── Overview ─────────────────────────────────────────── */}
-          <div className="panel">
-            <div className="flex flex-wrap items-center gap-3">
-              <h2 className="mr-auto">Overview</h2>
+          {/* ── Status board (triage-first, always visible) ──────── */}
+          <div className="panel board">
+            <div className="board-head">
+              <p className="board-title">{matter.label}</p>
               <StatusBadge value={matter.conflictStatus} />
               <StatusBadge value={matter.lifecycle} />
               {matter.legalHold && <span className="badge badge-stop">LEGAL HOLD</span>}
             </div>
-            <p className="panel-sub">
+            <p className="board-sub">
               Uncontested divorce workflow · created {fmtWhen(matter.createdAt)} · last
               updated {fmtWhen(matter.updatedAt)}
             </p>
+
+            <div className="chips">
+              {chips.map((c) => (
+                <div className="chip" key={c.label}>
+                  <span className="chip-label">{c.label}</span>
+                  <span className={`chip-value${c.alert ? " chip-alert" : ""}`}>{c.value}</span>
+                  {c.sub && <span className="chip-sub">{c.sub}</span>}
+                </div>
+              ))}
+            </div>
+
+            <div className="attention">
+              <p className="attention-h">Needs your attention</p>
+              {attention.length === 0 ? (
+                <p className="attention-clear">✓ Nothing needs attention right now.</p>
+              ) : (
+                <ul className="attention-list">
+                  {attention.map((a) => (
+                    <li className="attention-item" key={a.key}>
+                      <span className="attention-text">{a.text}</span>
+                      {a.href.startsWith("#") ? (
+                        <a href={a.href}>{a.link}</a>
+                      ) : (
+                        <Link href={a.href}>{a.link}</Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          {/* ── Matter status & lifecycle ────────────────────────── */}
+          <AccordionPanel
+            title="Matter status & lifecycle"
+            summary={`${(matter.sessions ?? []).length} session(s) · ${matter.lifecycle.toLowerCase()}`}
+          >
             {matter.sessions.length > 0 && (
               <table className="tbl">
                 <thead>
@@ -302,12 +453,20 @@ export default function FirmMatterDetail() {
                 </button>
               </div>
             )}
-          </div>
+          </AccordionPanel>
 
           {/* ── Conflict (attorney) ──────────────────────────────── */}
           {isAttorney && (
-            <div className="panel">
-              <h2>Conflict screening</h2>
+            <AccordionPanel
+              title="Conflict screening"
+              summary={
+                subs.length === 0
+                  ? "No submissions"
+                  : pendingConflicts.length > 0
+                    ? `${pendingConflicts.length} pending disposition`
+                    : `${subs.length} submission(s), all dispositioned`
+              }
+            >
               <p className="panel-sub">
                 Internal record — never shown to the client. Dispositions are an
                 attorney determination; use the{" "}
@@ -342,12 +501,20 @@ export default function FirmMatterDetail() {
                   </tbody>
                 </table>
               )}
-            </div>
+            </AccordionPanel>
           )}
 
           {/* ── Invitations ──────────────────────────────────────── */}
-          <div className="panel">
-            <h2>Invitations</h2>
+          <AccordionPanel
+            title="Invitations"
+            summary={
+              openInvites.length > 0
+                ? `${openInvites.length} open`
+                : invitations.length > 0
+                  ? `${invitations.length} total, none open`
+                  : "None yet"
+            }
+          >
             <p className="panel-sub">
               Single-use, expiring. The code is shown ONCE at creation — copy the
               local URL and convey it to the client through an appropriate channel.
@@ -408,11 +575,18 @@ export default function FirmMatterDetail() {
                 </tbody>
               </table>
             )}
-          </div>
+          </AccordionPanel>
 
           {/* ── Documents ────────────────────────────────────────── */}
-          <div className="panel">
-            <h2>Documents</h2>
+          <div id="documents">
+          <AccordionPanel
+            title="Documents"
+            summary={
+              docs.length === 0
+                ? "None yet"
+                : `${docs.length} doc(s)${unapproved.length ? ` · ${unapproved.length} unapproved` : " · all reviewed"}`
+            }
+          >
             <p className="panel-sub">
               Uploads, internal drafts, and AI work product. Every new version
               begins unapproved; approval and release are attorney-only and bind
@@ -722,14 +896,24 @@ export default function FirmMatterDetail() {
                 </button>
               </div>
             </div>
+          </AccordionPanel>
           </div>
 
-          {/* ── NJ/NY lawyer workbench (B10) ─────────────────────── */}
-          <Workbench matterId={matterId} isAttorney={isAttorney} onArtifactCreated={load} />
+          {/* ── NJ/NY lawyer workbench (B10) — each panel is its own accordion ── */}
+          <div id="workbench">
+            <Workbench matterId={matterId} isAttorney={isAttorney} onArtifactCreated={load} />
+          </div>
 
           {/* ── Requests, accommodations, notes ─────────────────── */}
-          <div className="panel">
-            <h2>Requests &amp; assistance</h2>
+          <div id="requests">
+          <AccordionPanel
+            title="Requests & assistance"
+            summary={
+              openInfoReqs.length + openAssists.length + escalations.length > 0
+                ? `${openInfoReqs.length} open request(s), ${openAssists.length} help, ${escalations.length} escalation(s)`
+                : "Nothing open"
+            }
+          >
             <div className="grid gap-6 lg:grid-cols-2">
               <div>
                 <p className="field-label">Missing-information requests</p>
@@ -912,12 +1096,17 @@ export default function FirmMatterDetail() {
                 </ul>
               </div>
             </div>
+          </AccordionPanel>
           </div>
 
           {/* ── Audit (attorney) ─────────────────────────────────── */}
           {isAttorney && (
-            <div className="panel">
-              <h2>Audit trail</h2>
+            <AccordionPanel
+              title="Audit trail"
+              summary={`${audit.length} event(s)`}
+              empty={audit.length === 0}
+              emptyText="No audit events yet"
+            >
               <p className="panel-sub">
                 Tamper-evident event record for this matter and its intake
                 sessions. Identifiers and salted hashes only.
@@ -942,7 +1131,7 @@ export default function FirmMatterDetail() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </AccordionPanel>
           )}
         </>
       )}

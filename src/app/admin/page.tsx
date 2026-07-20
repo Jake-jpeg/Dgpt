@@ -19,6 +19,7 @@ interface AdminUser {
   role: string;
   active: boolean;
   createdAt: string;
+  deletable: boolean;
 }
 interface ConfigRow {
   key: string;
@@ -33,6 +34,8 @@ interface AuditRow {
 }
 
 const ROLES = ["CLIENT", "STAFF", "ATTORNEY", "ADMIN"] as const;
+// Client accounts are born only via invitation acceptance — never offered here.
+const CREATE_ROLES = ["STAFF", "ATTORNEY", "ADMIN"] as const;
 
 export default function AdminPage() {
   const { me, loading } = useMe();
@@ -142,7 +145,7 @@ export default function AdminPage() {
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value)}
                 >
-                  {ROLES.map((r) => (
+                  {CREATE_ROLES.map((r) => (
                     <option key={r} value={r}>
                       {r}
                     </option>
@@ -205,20 +208,45 @@ export default function AdminPage() {
                     </td>
                     <td>{fmtWhen(u.createdAt)}</td>
                     <td>
-                      <button
-                        className={u.active ? "btn btn-danger" : "btn btn-quiet"}
-                        style={{ padding: "4px 12px", fontSize: ".8rem" }}
-                        disabled={busy}
-                        onClick={() =>
-                          act(async () => {
-                            await api.patch(`/api/admin/users/${u.id}`, {
-                              active: !u.active,
-                            });
-                          })
-                        }
-                      >
-                        {u.active ? "Deactivate" : "Reactivate"}
-                      </button>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          className={u.active ? "btn btn-danger" : "btn btn-quiet"}
+                          style={{ padding: "4px 12px", fontSize: ".8rem" }}
+                          disabled={busy}
+                          onClick={() =>
+                            act(async () => {
+                              await api.patch(`/api/admin/users/${u.id}`, {
+                                active: !u.active,
+                              });
+                            })
+                          }
+                        >
+                          {u.active ? "Deactivate" : "Reactivate"}
+                        </button>
+                        {/* Delete is offered ONLY for reference-free rows.
+                            Accounts with case history can be deactivated but
+                            never removed — the server enforces this too. */}
+                        {u.deletable && (
+                          <button
+                            className="btn btn-danger"
+                            style={{ padding: "4px 12px", fontSize: ".8rem" }}
+                            disabled={busy}
+                            onClick={() => {
+                              if (
+                                !window.confirm(
+                                  `Permanently delete ${u.email}? This account has no case history and cannot be recovered.`
+                                )
+                              )
+                                return;
+                              act(async () => {
+                                await api.del(`/api/admin/users/${u.id}`);
+                              }, "User deleted.");
+                            }}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
