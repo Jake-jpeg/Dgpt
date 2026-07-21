@@ -31,10 +31,10 @@ afterEach(() => {
 
 const FIRM = { firmName: "Jake Kim Law Firm", firmContact: "(201) 555-0100" };
 
-describe("constitution 2026-07.3 — Amendment 1 + NY-only Rule 6", () => {
-  it("is versioned 2026-07.3 and states the version in the prompt", () => {
-    expect(INTAKE_CONSTITUTION_VERSION).toBe("2026-07.3");
-    expect(buildConstitution(FIRM)).toContain("CONSTITUTION 2026-07.3");
+describe("constitution 2026-07.4 — drive + count + why", () => {
+  it("is versioned 2026-07.4 and states the version in the prompt", () => {
+    expect(INTAKE_CONSTITUTION_VERSION).toBe("2026-07.4");
+    expect(buildConstitution(FIRM)).toContain("CONSTITUTION 2026-07.4");
   });
 
   it("carries Rule 11 with its example and all four constraints", () => {
@@ -76,6 +76,15 @@ describe("constitution 2026-07.3 — Amendment 1 + NY-only Rule 6", () => {
     expect(text).toContain("Jake Kim Law Firm");
     expect(text).toContain("(201) 555-0100");
   });
+
+  it("carries the 2026-07.4 rules: drive the conversation, tell progress, explain why", () => {
+    const text = buildConstitution(FIRM);
+    expect(text).toContain("12. YOU MOVE THE CONVERSATION FORWARD");
+    expect(text).toMatch(/ask the NEXT question in the SAME reply/);
+    expect(text).toMatch(/NEVER end your turn waiting/);
+    expect(text).toContain("13. TELL THEM WHERE THEY ARE");
+    expect(text).toContain("14. EXPLAIN WHY YOU ASK");
+  });
 });
 
 describe("INTAKE_TONE configuration", () => {
@@ -108,11 +117,11 @@ describe("INTAKE_TONE configuration", () => {
   it("records tone AND version in the session marker", () => {
     delete process.env.INTAKE_TONE;
     expect(constitutionEventText()).toBe(
-      "intake assistant started (constitution 2026-07.3, tone WARM)"
+      "intake assistant started (constitution 2026-07.4, tone WARM)"
     );
     process.env.INTAKE_TONE = "NEUTRAL";
     expect(constitutionEventText()).toContain("tone NEUTRAL");
-    expect(constitutionEventText()).toContain("2026-07.3");
+    expect(constitutionEventText()).toContain("2026-07.4");
   });
 });
 

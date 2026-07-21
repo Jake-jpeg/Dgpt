@@ -241,17 +241,32 @@ export async function loadConversation(sessionId: string): Promise<ConversationC
 
 /* ── the scripted opening (server-side, never model-generated) ──────── */
 
-export function scriptedWelcome(): string {
+/**
+ * A round, honest estimate of how many questions to expect. Counts the
+ * client-answerable items in the pinned schema plus the handful of scope
+ * questions. Conditions mean some won't apply, so the copy says "up to about."
+ */
+export function estimateQuestionCount(schema: ReturnType<typeof schemaForMatter>): number {
+  const clientItems = schema.items.filter(
+    (i) => i.audience === "CLIENT" && i.type !== "document_request" && i.type !== "attorney_determination"
+  ).length;
+  const SCOPE_QUESTIONS = 5; // residency + venue + DV + children + complexity
+  const raw = clientItems + SCOPE_QUESTIONS;
+  return Math.max(5, Math.round(raw / 5) * 5); // round to nearest 5
+}
+
+export function scriptedWelcome(questionEstimate: number): string {
   return (
     `Hello — I'm the intake assistant for ${operatingFirmName()}. I'm not a lawyer and I ` +
     `can't give legal advice; a licensed attorney reviews everything we go ` +
     `through here.\n\n` +
-    `We'll take this one question at a time. It can take up to ` +
-    `${expectedHours()} hours in total, but you can pause and come back ` +
-    `anytime — nothing is lost. We'll ask about everything that may or may ` +
-    `not end up in your settlement agreement, including things that may not ` +
-    `apply to you. If a question is unclear, just ask — I can explain what ` +
-    `it means and give an example.\n\n` +
+    `Here's what to expect: I'll ask you up to about ${questionEstimate} questions, ` +
+    `one at a time, and I'll keep us moving — after each answer I'll go straight ` +
+    `to the next question, so you won't need to prompt me. Some questions may not ` +
+    `apply to you, so it's often fewer. It can take up to ${expectedHours()} hours ` +
+    `in total, but you can pause and come back anytime — nothing is lost. At any ` +
+    `point you can ask me how many are left, why I'm asking something, or what a ` +
+    `question means, and I'll explain.\n\n` +
     `You can answer in English or Korean (한국어로 답하셔도 됩니다). If you'd ` +
     `rather fill out a form instead of chatting, use the "Prefer a form?" ` +
     `link — your progress carries over either way.\n\n` +
@@ -267,10 +282,11 @@ export async function ensureWelcomed(sessionId: string): Promise<void> {
   if (!transcript.some((m) => m.role === "SYSTEM_EVENT" && m.content.startsWith("intake assistant started"))) {
     await appendSystemEvent(sessionId, constitutionEventText(intakeTone()));
   }
+  const ctx = await loadConversation(sessionId);
   await appendChatMessage({
     sessionId,
     role: "ASSISTANT",
-    content: scriptedWelcome(),
+    content: scriptedWelcome(estimateQuestionCount(ctx.schema)),
     lang: "en",
   });
 }
@@ -354,14 +370,46 @@ function transcriptWindow(transcript: ChatMessageRow[], n = 24): string {
 
 function buildUserPrompt(ctx: ConversationContext, clientMessage: string, correction?: string): string {
   const prog = progress(ctx.seqState);
+  const estimate = estimateQuestionCount(ctx.schema);
   return (
-    `INTAKE PROGRESS: ${prog.answered}/${prog.total} questions answered` +
+    `PROGRESS: the client is on about question ${prog.answered + 1} of ~${estimate}` +
     (prog.sectionTitle ? ` · current section "${prog.sectionTitle}" (${prog.sectionIndex}/${prog.sectionCount})` : "") +
-    `.\n\n${describeStep(ctx.step, ctx)}\n\n` +
+    `. If they ask how many questions there are or how far along they are, tell them this plainly (Rule 13).\n\n` +
+    `${describeStep(ctx.step, ctx)}\n\n` +
+    `HOW TO REPLY:\n` +
+    `- If the client ANSWERED the current question: record it (per above), then in the SAME reply ` +
+    `briefly acknowledge and let them know you're moving on. Do NOT wait for them to prompt you (Rule 12).\n` +
+    `- If the client instead ASKED you something (what a question means, why you're asking it, how many are left): ` +
+    `answer it warmly (define terms / give a neutral example / explain the PURPOSE using any approved help text above / ` +
+    `give the progress count), record nothing, and keep them on the current question (Rules 3, 13, 14).\n` +
+    `- If their answer is genuinely unclear: ask them to clarify; record nothing yet.\n\n` +
     `APPROVED GLOSSARY (use verbatim on a hit; plain language otherwise):\n${glossarySlice()}\n\n` +
     `RECENT CONVERSATION:\n${transcriptWindow(ctx.transcript)}\n\n` +
     (correction ? `SERVER CORRECTION (your previous proposal was rejected): ${correction}\n\n` : "") +
     `CLIENT'S NEW MESSAGE:\n${clientMessage}`
+  );
+}
+
+/**
+ * Phase-2 prompt (see runIntakeTurn): the client's answer is already recorded
+ * and the intake advanced. The assistant now DRIVES to the next step — a
+ * brief acknowledgment plus the next question — in a single message, so the
+ * client never has to prompt it forward (Rule 12).
+ */
+function buildAdvancePrompt(ctx: ConversationContext, nextStepToAsk: Step): string {
+  const prog = progress(ctx.seqState);
+  const estimate = estimateQuestionCount(ctx.schema);
+  return (
+    `You just recorded the client's previous answer — it is saved. Now MOVE THE ` +
+    `CONVERSATION FORWARD (Rule 12): in ONE short reply, give a brief warm ` +
+    `acknowledgment of what they just shared, then ask the next question below. ` +
+    `Do NOT wait for the client to prompt you. Record NOTHING this turn (leave ` +
+    `record_answers, record_checklist, and gate_response empty) — you are only ` +
+    `asking. control: CONTINUE.\n\n` +
+    `PROGRESS: about question ${prog.answered + 1} of ~${estimate}.\n\n` +
+    `NEXT ${describeStep(nextStepToAsk, ctx)}\n\n` +
+    `APPROVED GLOSSARY (use verbatim on a hit; plain language otherwise):\n${glossarySlice()}\n\n` +
+    `RECENT CONVERSATION:\n${transcriptWindow(ctx.transcript)}`
   );
 }
 
@@ -389,8 +437,13 @@ async function applyTurn(
   ctx: ConversationContext,
   turn: IntakeTurn,
   actingUserId: string
-): Promise<{ result: TurnResult } | { correction: string }> {
+): Promise<{ result: TurnResult; advanced: boolean } | { correction: string }> {
   const sessionId = ctx.session.id;
+  // Did this turn move the intake forward (record an answer or pass a gate)?
+  // If so, runIntakeTurn drives straight to the next question (Rule 12). If
+  // not (the client asked a question / gave an unclear answer), we stay put
+  // and the model's own reply is what the client sees.
+  let advanced = false;
 
   // 1. Gate response — through the REAL machine. Never trust gateId blindly:
   //    only the machine's current gate is answerable.
@@ -413,8 +466,8 @@ async function applyTurn(
       await appendSystemEvent(sessionId, GATE_CARD_EVENT[evaluation.card] ?? "stopped: scope");
       await addAttorneyFlag(sessionId, `INTAKE_STOPPED_${evaluation.auditEvent}`);
       const say = turn.say?.trim() || card.body;
-      await appendChatMessage({ sessionId, role: "ASSISTANT", content: say, lang: turn.lang });
       return {
+        advanced: false,
         result: {
           say,
           lang: turn.lang,
@@ -438,6 +491,7 @@ async function applyTurn(
     await appendSystemEvent(sessionId, `gate ${current} answered`);
     ctx.session = (await getSession(sessionId))!;
     ctx.seqState.machineState = ctx.session.state as MachineState;
+    advanced = true;
   }
 
   // 2. Answers — validated by the SAME store the form writes (audience,
@@ -461,6 +515,7 @@ async function applyTurn(
     }
     ctx.answers = await getMatterAnswers(ctx.matter.id);
     ctx.seqState.answers = ctx.answers;
+    advanced = true;
   }
 
   // 3. Checklist reports — ids validated against the DERIVED list.
@@ -475,6 +530,7 @@ async function applyTurn(
       await appendSystemEvent(sessionId, `${EV_CHECKLIST_PREFIX}doc=${c.documentId} report=${c.clientReport}`);
     }
     ctx.seqState.checklistReported = Object.keys(await getClientChecklistReports(ctx.matter.id));
+    advanced = true;
   }
 
   // 4. Attorney flag.
@@ -510,10 +566,13 @@ async function applyTurn(
   }
 
   const say = turn.say?.trim() || "Could you tell me a bit more?";
-  await appendChatMessage({ sessionId, role: "ASSISTANT", content: say, lang: turn.lang });
   await touchSession(sessionId);
 
+  // Note: the assistant message is appended by runIntakeTurn — either this
+  // `say` (clarification / completion / non-advancing turn) or, when the
+  // intake advanced, the phase-2 "ask the next question" reply (Rule 12).
   return {
+    advanced,
     result: {
       say,
       lang: turn.lang,
@@ -582,9 +641,23 @@ export async function runIntakeTurn(opts: {
     });
     const turn = call.parsed as unknown as IntakeTurn;
     const applied = await applyTurn(ctx, turn, opts.actingUserId);
-    if ("result" in applied) return applied.result;
-    correction = applied.correction;
-    ctx = await loadConversation(opts.sessionId);
+    if ("correction" in applied) {
+      correction = applied.correction;
+      ctx = await loadConversation(opts.sessionId);
+      continue;
+    }
+    const { result, advanced } = applied;
+
+    // Terminal (stop/complete) or non-advancing (the client asked a question,
+    // or the answer was unclear): the model's own reply IS the message.
+    if (result.stopped || result.complete || !advanced) {
+      await appendChatMessage({ sessionId: opts.sessionId, role: "ASSISTANT", content: result.say, lang: result.lang });
+      return result;
+    }
+
+    // The intake advanced → drive straight to the next question (Rule 12):
+    // one reply that acknowledges and asks what's next, no client prompt.
+    return await driveToNextQuestion(opts.sessionId, system, result);
   }
 
   // Both proposals rejected: honest fallback, nothing persisted from them.
@@ -599,6 +672,54 @@ export async function runIntakeTurn(opts: {
     card: null,
     progress: progress(ctx.seqState),
   };
+}
+
+/**
+ * Phase 2 of a turn: the client's answer is saved and the intake moved on.
+ * The assistant now asks the NEXT question in a single reply (Rule 12). A
+ * separate provider call is used so the question is generated against the
+ * real, freshly-advanced state (gates branch; conditional items open) rather
+ * than guessed before the answer was recorded. If the next step isn't a
+ * question, or the call fails, we fall back to the phase-1 acknowledgment.
+ */
+async function driveToNextQuestion(
+  sessionId: string,
+  system: string,
+  phase1: TurnResult
+): Promise<TurnResult> {
+  const ctx = await loadConversation(sessionId);
+  const ASKABLE = new Set(["QUESTION", "GATE", "CHECKLIST", "READBACK", "CONFIRM"]);
+  const showPhase1 = async (): Promise<TurnResult> => {
+    await appendChatMessage({ sessionId, role: "ASSISTANT", content: phase1.say, lang: phase1.lang });
+    return { ...phase1, progress: progress(ctx.seqState) };
+  };
+  if (!ASKABLE.has(ctx.step.kind)) return showPhase1();
+  try {
+    const call = await callStructured({
+      model: intakeChatModel(),
+      system,
+      user: buildAdvancePrompt(ctx, ctx.step),
+      schemaName: "INTAKE_TURN",
+      jsonSchema: INTAKE_TURN_SCHEMA,
+      matterId: ctx.matter.id,
+    });
+    const turn = call.parsed as unknown as IntakeTurn;
+    const say = (turn.say ?? "").trim();
+    if (!say) return showPhase1();
+    // Phase 2 only ASKS — any record_* the model proposes here is ignored;
+    // nothing is persisted until the client actually answers next turn.
+    await appendChatMessage({ sessionId, role: "ASSISTANT", content: say, lang: turn.lang ?? phase1.lang });
+    return {
+      say,
+      lang: turn.lang ?? phase1.lang,
+      stopped: null,
+      complete: false,
+      card: null,
+      progress: progress(ctx.seqState),
+    };
+  } catch {
+    return showPhase1();
+  }
 }
 
 /* ── read view (client pane + attorney transcript panel) ────────────── */

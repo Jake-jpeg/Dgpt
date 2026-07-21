@@ -32,7 +32,7 @@ import { getSession } from "@/lib/db/repo";
 import { getMatterAnswers } from "@/lib/db/intake2";
 import { grantMatterAccess } from "@/lib/db/matters";
 import { listChatMessages } from "@/lib/db/intake-chat";
-import { runIntakeTurn, ensureWelcomed, scriptedWelcome, INTAKE_TURN_SCHEMA } from "@/lib/intake-chat/orchestrator";
+import { runIntakeTurn, ensureWelcomed, INTAKE_TURN_SCHEMA } from "@/lib/intake-chat/orchestrator";
 import { INTAKE_CONSTITUTION_VERSION } from "@/lib/intake-chat/constitution";
 import { GET as chatGet, POST as chatPost } from "@/app/api/intake-chat/[sessionId]/route";
 import type { SessionUser } from "@/lib/auth/session";
@@ -113,8 +113,9 @@ describe("scripted opening", () => {
     expect(t[0].role).toBe("SYSTEM_EVENT");
     expect(t[0].content).toContain(INTAKE_CONSTITUTION_VERSION);
     expect(t[1].role).toBe("ASSISTANT");
-    expect(t[1].content).toBe(scriptedWelcome());
     expect(t[1].content).toContain("not a lawyer");
+    // Rule 13: the opening states about how many questions to expect.
+    expect(t[1].content).toMatch(/up to about \d+ questions/);
     expect(boom).not.toHaveBeenCalled();
     // Idempotent.
     await ensureWelcomed(sessionId);
@@ -151,7 +152,9 @@ describe("gates ride the real machine", () => {
       turnPayload({ gate_response: { gateId: "GATE_RESIDENCY", value: true } })
     );
     await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "yes" });
-    expect(mock).toHaveBeenCalledTimes(2); // corrective retry happened
+    // wrong gate → correction, correct gate → advance, then the phase-2
+    // "ask the next question" call (Rule 12) = 3 provider calls.
+    expect(mock).toHaveBeenCalledTimes(3);
     expect((await getSession(sessionId))!.state).toBe("GATE_VENUE");
   });
 
@@ -176,6 +179,32 @@ describe("gates ride the real machine", () => {
     const r2 = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "hello?" });
     expect(r2.stopped).toBe("DV");
     expect(boom).not.toHaveBeenCalled();
+  });
+});
+
+describe("the assistant drives the conversation (Rule 12)", () => {
+  it("after recording an answer, a phase-2 call asks the next question in the SAME reply", async () => {
+    const mock = mockTurns(
+      turnPayload({ gate_response: { gateId: "GATE_RESIDENCY", value: true }, say: "Got it." }),
+      turnPayload({ say: "Great — next: which New York county do you live in?" })
+    );
+    const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "yes, 12 years" });
+    // Two calls: phase-1 records, phase-2 asks the next question.
+    expect(mock).toHaveBeenCalledTimes(2);
+    // The client sees the phase-2 reply (the next question), never a dead stop.
+    expect(r.say).toContain("county");
+    expect((await getSession(sessionId))!.state).toBe("GATE_VENUE");
+  });
+
+  it("when the client asks a question instead of answering, nothing advances and there is NO phase-2", async () => {
+    const mock = mockTurns(
+      turnPayload({ say: "Sure — this asks whether you've lived in New York for 2+ years, which helps the attorney work out where your case can proceed. Whenever you're ready: have you or your spouse lived in NY continuously for the past 2 years?" })
+    );
+    const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "wait, why are you asking that?" });
+    expect(mock).toHaveBeenCalledTimes(1); // no drive-forward call
+    expect(r.say).toContain("where your case can proceed");
+    // Stayed on the same question — nothing recorded.
+    expect((await getSession(sessionId))!.state).toBe("GATE_RESIDENCY");
   });
 });
 
@@ -215,7 +244,8 @@ describe("answers: the model proposes, the server disposes", () => {
       turnPayload({ record_answers: [{ questionId: "shared.identity.client_name", value: "Casey S." }] })
     );
     await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "Casey S." });
-    expect(mock).toHaveBeenCalledTimes(2);
+    // invalid → correction, valid → save + advance, then phase-2 ask = 3.
+    expect(mock).toHaveBeenCalledTimes(3);
     const answers = await getMatterAnswers(ctx.matterId);
     expect(answers["made.up.question"]).toBeUndefined();
     expect(answers["shared.identity.client_name"]).toBe("Casey S.");
