@@ -126,15 +126,15 @@ describe("access control", () => {
 
   it("the structural guard re-reads the role: a demoted staffer is denied", async () => {
     mockProviderFetch();
-    const staff = provisionAccount({
-      subject: "devstub|staff:aistaff@example.test",
-      role: "STAFF",
-      email: "aistaff@example.test",
-      name: "AI Staff",
-    });
+    const staff = (await provisionAccount({
+          subject: "devstub|staff:aistaff@example.test",
+          role: "STAFF",
+          email: "aistaff@example.test",
+          name: "AI Staff",
+        }));
     const { setUserRole } = await import("@/lib/db/users");
-    setUserRole(staff.id, "STAFF");
-    setUserRole(staff.id, "CLIENT"); // demote
+    (await setUserRole(staff.id, "STAFF"));
+    (await setUserRole(staff.id, "CLIENT")); // demote
     await expect(
       invokeInternalAi({
         feature: "ISSUE_LIST",
@@ -182,7 +182,7 @@ describe("kill switch", () => {
   it("invokeInternalAi throws AiDisabledError before any provider contact", async () => {
     process.env.AI_FEATURES_ENABLED = "false";
     const mock = mockProviderFetch();
-    const attorney = provisionAccount(SYNTH_ATTORNEY);
+    const attorney = (await provisionAccount(SYNTH_ATTORNEY));
     await expect(
       invokeInternalAi({
         feature: "INTERNAL_SUMMARY",
@@ -233,7 +233,7 @@ describe("confidentiality", () => {
     const errSpy = vi.spyOn(console, "error");
     const warnSpy = vi.spyOn(console, "warn");
 
-    const attorney = provisionAccount(SYNTH_ATTORNEY);
+    const attorney = (await provisionAccount(SYNTH_ATTORNEY));
     await invokeInternalAi({
       feature: "INTERNAL_SUMMARY",
       matterId: ctx.matterId,
@@ -246,12 +246,11 @@ describe("confidentiality", () => {
       expect(logged).not.toContain(SENTINEL);
     }
     // Audit + ai_invocation rows: metadata only.
-    const audit = getDb().prepare(`SELECT event, detail FROM audit_event`).all() as {
-      event: string;
-      detail: string | null;
-    }[];
+    const audit = (await getDb().all<{ event: string; detail: string | null }>(
+      `SELECT event, detail FROM audit_event`
+    ));
     expect(JSON.stringify(audit)).not.toContain(SENTINEL);
-    const ai = getDb().prepare(`SELECT * FROM ai_invocation`).all();
+    const ai = (await getDb().all(`SELECT * FROM ai_invocation`));
     expect(JSON.stringify(ai)).not.toContain(SENTINEL);
     expect(JSON.stringify(ai)).not.toContain("sk-synthetic");
   });
@@ -278,7 +277,7 @@ describe("confidentiality", () => {
       "fetch",
       vi.fn(async () => new Response(`{"error":{"message":"prompt echo ${SENTINEL}"}}`, { status: 400 }))
     );
-    const attorney = provisionAccount(SYNTH_ATTORNEY);
+    const attorney = (await provisionAccount(SYNTH_ATTORNEY));
     // Shape change from the fold: on the single client a 400 is a
     // CONFIGURATION fault (AiConfigError), not a transport failure. The
     // property under test is unchanged and still asserted below: the message
@@ -289,6 +288,7 @@ describe("confidentiality", () => {
       actingUserId: attorney.id,
       context: {},
     });
+    call.catch(() => {}); // assertion target below; pre-attach so no unhandled rejection
     await expect(call).rejects.toThrow(AiConfigError);
     await expect(call).rejects.toThrow(/^AI_GUARD:/);
     await expect(call).rejects.toThrow(/HTTP 400/);
@@ -300,7 +300,7 @@ describe("confidentiality", () => {
       "fetch",
       vi.fn(async () => new Response(`{"error":{"message":"prompt echo ${SENTINEL}"}}`, { status: 400 }))
     );
-    const attorney = provisionAccount(SYNTH_ATTORNEY);
+    const attorney = (await provisionAccount(SYNTH_ATTORNEY));
     await expect(
       invokeInternalAi({
         feature: "ISSUE_LIST",
@@ -312,14 +312,15 @@ describe("confidentiality", () => {
 
     // The old path logged status=ERROR with no indication of WHY. It now
     // carries the classification — metadata only.
-    const rows = getDb()
-      .prepare(`SELECT status FROM ai_invocation WHERE matter_ref = ?`)
-      .all(ctx.matterId) as { status: string }[];
+    const rows = (await getDb().all<{ status: string }>(
+      `SELECT status FROM ai_invocation WHERE matter_ref = ?`,
+      ctx.matterId
+    ));
     expect(rows.some((r) => r.status === "ERROR")).toBe(true);
 
-    const audit = getDb().prepare(`SELECT detail FROM audit_event`).all() as {
-      detail: string | null;
-    }[];
+    const audit = (await getDb().all<{ detail: string | null }>(
+      `SELECT detail FROM audit_event`
+    ));
     const details = audit.map((a) => a.detail ?? "").join("\n");
     expect(details).toContain("status=ERROR");
     expect(details).toContain("detail=http-400");

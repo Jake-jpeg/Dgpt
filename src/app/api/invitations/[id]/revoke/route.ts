@@ -16,12 +16,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const invitation = getInvitation(id);
+    const invitation = (await getInvitation(id));
     if (!invitation) throw new HttpError(404, "Not found");
     // Access is checked against the matter, and reads as 404 when absent.
-    const matter = requireMatterAccess(authed, invitation.matterId);
-    revokeInvitation(invitation.id);
-    recordAudit(matter.id, "INVITATION_REVOKED", `invitation=${invitation.id}`, authed.account.id);
+    const matter = (await requireMatterAccess(authed, invitation.matterId));
+    (await revokeInvitation(invitation.id));
+    (await recordAudit(matter.id, "INVITATION_REVOKED", `invitation=${invitation.id}`, authed.account.id));
     return Response.json({ ok: true });
   } catch (e) {
     return errorResponse(e);

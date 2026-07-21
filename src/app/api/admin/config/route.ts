@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   try {
     assertRateLimit(req, "intake");
     await requireAdmin(req);
-    return Response.json({ config: listConfig() });
+    return Response.json({ config: (await listConfig()) });
   } catch (e) {
     return errorResponse(e);
   }
@@ -32,14 +32,14 @@ export async function PUT(req: Request) {
     const { account } = await requireAdmin(req);
     const parsed = schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid config payload");
-    setConfigValue(parsed.data.key, parsed.data.value, account.id);
-    recordAudit(
-      "config",
-      "CONFIG_CHANGED",
-      `key=${parsed.data.key} value=${parsed.data.value}`,
-      account.id
-    );
-    return Response.json({ config: listConfig() });
+    (await setConfigValue(parsed.data.key, parsed.data.value, account.id));
+    (await recordAudit(
+            "config",
+            "CONFIG_CHANGED",
+            `key=${parsed.data.key} value=${parsed.data.value}`,
+            account.id
+          ));
+    return Response.json({ config: (await listConfig()) });
   } catch (e) {
     return errorResponse(e);
   }

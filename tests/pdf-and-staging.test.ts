@@ -92,15 +92,15 @@ afterEach(() => {
 
 async function njReadyMatter() {
   await clearMatter(ctx.matterId);
-  attorneySetJurisdictionAndScope({
-    matterId: ctx.matterId,
-    actingUserId: ctx.attorneyUserId,
-    jurisdictionConfirmed: "NJ",
-    matterCategory: "NJ_FM_DIVORCE_CONTESTED",
-    scopeStatus: "ACCEPTED",
-  });
-  saveMatterAnswers({ matterId: ctx.matterId, actingUserId: ctx.clientUserId, answers: NJ_MAPPING_ANSWERS });
-  return getMatter(ctx.matterId)!;
+  (await attorneySetJurisdictionAndScope({
+        matterId: ctx.matterId,
+        actingUserId: ctx.attorneyUserId,
+        jurisdictionConfirmed: "NJ",
+        matterCategory: "NJ_FM_DIVORCE_CONTESTED",
+        scopeStatus: "ACCEPTED",
+      }));
+  (await saveMatterAnswers({ matterId: ctx.matterId, actingUserId: ctx.clientUserId, answers: NJ_MAPPING_ANSWERS }));
+  return (await getMatter(ctx.matterId))!;
 }
 
 describe("deterministic mappings", () => {
@@ -192,7 +192,7 @@ describe("render route lifecycle", () => {
 
     // APP_STAGE is unset in this suite (production posture): the rendered
     // document carries the clean review label, never the synthetic marker.
-    const rendered = listDocumentsForMatter(matter.id).find((d) => d.docKind === "RENDERED_FORM")!;
+    const rendered = (await listDocumentsForMatter(matter.id)).find((d) => d.docKind === "RENDERED_FORM")!;
     expect(rendered.title).toContain("attorney review required");
     expect(rendered.title).not.toContain("SYNTHETIC");
 
@@ -207,13 +207,13 @@ describe("render route lifecycle", () => {
       params({ id: matter.id })
     );
     expect(stagingRes.status).toBe(201);
-    const stagingDoc = listDocumentsForMatter(matter.id)
+    const stagingDoc = (await listDocumentsForMatter(matter.id))
       .filter((d) => d.docKind === "RENDERED_FORM")
       .find((d) => d.title.includes("SYNTHETIC STAGING DOCUMENT"));
     expect(stagingDoc).toBeTruthy();
     delete process.env.APP_STAGE;
 
-    const version = listVersions(rendered.id)[0];
+    const version = (await listVersions(rendered.id))[0];
     expect(version.mime).toBe("application/pdf");
     expect(version.sha256).toBe(data.artifact.sha256);
 

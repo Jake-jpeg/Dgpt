@@ -30,13 +30,13 @@ let clientCookie: string;
 async function matterWithContent(): Promise<{ matterId: string; sessionId: string }> {
   const sessionId = await startSession(clientCookie);
   await runIdentity(clientCookie, sessionId);
-  const matterId = getSession(sessionId)!.matterId!;
+  const matterId = (await getSession(sessionId))!.matterId!;
   return { matterId, sessionId };
 }
 
-function backdateMatter(matterId: string, days: number): void {
+async function backdateMatter(matterId: string, days: number): Promise<void> {
   const past = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-  getDb().prepare(`UPDATE matter SET last_activity_at = ? WHERE id = ?`).run(past, matterId);
+  await getDb().run(`UPDATE matter SET last_activity_at = ? WHERE id = ?`, past, matterId);
 }
 
 beforeEach(async () => {
@@ -49,31 +49,31 @@ beforeEach(async () => {
 describe("legal hold", () => {
   it("blocks direct purge and the sweep", async () => {
     const { matterId, sessionId } = await matterWithContent();
-    setLegalHold(matterId, true, "synthetic litigation hold");
+    (await setLegalHold(matterId, true, "synthetic litigation hold"));
     await expect(purgeMatterContent(matterId, "TEST")).rejects.toThrow(/RETENTION_GUARD/);
 
     backdateMatter(matterId, 365);
     const reports = await sweepMatters();
     expect(reports.map((r) => r.matterId)).not.toContain(matterId);
-    expect(countRows("intake_session", sessionId)).toBe(1); // untouched
+    expect((await countRows("intake_session", sessionId))).toBe(1); // untouched
 
     // Releasing the hold makes the same matter sweepable again.
-    setLegalHold(matterId, false);
+    (await setLegalHold(matterId, false));
     const after = await sweepMatters();
     expect(after.map((r) => r.matterId)).toContain(matterId);
-    expect(countRows("intake_session", sessionId)).toBe(0);
+    expect((await countRows("intake_session", sessionId))).toBe(0);
   });
 });
 
 describe("lifecycle exemptions", () => {
   it("ENGAGED matters are exempt from the prospective purge path", async () => {
     const { matterId, sessionId } = await matterWithContent();
-    setMatterLifecycle(matterId, "ENGAGED");
+    (await setMatterLifecycle(matterId, "ENGAGED"));
     await expect(purgeMatterContent(matterId, "TEST")).rejects.toThrow(/RETENTION_GUARD/);
     backdateMatter(matterId, 365);
     const reports = await sweepMatters();
     expect(reports.map((r) => r.matterId)).not.toContain(matterId);
-    expect(countRows("intake_session", sessionId)).toBe(1);
+    expect((await countRows("intake_session", sessionId))).toBe(1);
   });
 
   it("fresh prospective matters are not swept; stale ones are", async () => {
@@ -84,12 +84,12 @@ describe("lifecycle exemptions", () => {
       email: "stale@example.test",
       name: "Stale",
     };
-    provisionAccount(staleUser);
+    (await provisionAccount(staleUser));
     const staleCookie = await cookieFor(staleUser);
     const staleSession = await startSession(staleCookie);
     await runIdentity(staleCookie, staleSession);
-    const staleMatter = getSession(staleSession)!.matterId!;
-    backdateMatter(staleMatter, getConfigNumber(CONFIG_KEYS.RETENTION_PROSPECTIVE_DAYS) + 5);
+    const staleMatter = (await getSession(staleSession))!.matterId!;
+    backdateMatter(staleMatter, (await getConfigNumber(CONFIG_KEYS.RETENTION_PROSPECTIVE_DAYS)) + 5);
 
     const reports = await sweepMatters();
     expect(reports.map((r) => r.matterId)).toContain(staleMatter);
@@ -100,31 +100,34 @@ describe("lifecycle exemptions", () => {
 describe("what survives a purge", () => {
   it("conflict history, disclosure acks, and the audit chain survive", async () => {
     const { matterId, sessionId } = await matterWithContent();
-    expect(countConflictSubmissions(matterId)).toBe(1);
-    const acksBefore = getDb()
-      .prepare(`SELECT COUNT(*) c FROM disclosure_ack WHERE matter_ref = ?`)
-      .get(matterId) as { c: number };
+    expect((await countConflictSubmissions(matterId))).toBe(1);
+    const acksBefore = (await getDb().get<{ c: number }>(
+      `SELECT COUNT(*) c FROM disclosure_ack WHERE matter_ref = ?`,
+      matterId
+    ))!;
     expect(acksBefore.c).toBe(1);
 
     await purgeMatterContent(matterId, "TEST_PURGE");
 
     // Substantive content gone.
-    expect(countRows("intake_session", sessionId)).toBe(0);
-    expect(countRows("party_identity", sessionId)).toBe(0);
-    expect(countRows("intake_answer", sessionId)).toBe(0);
+    expect((await countRows("intake_session", sessionId))).toBe(0);
+    expect((await countRows("party_identity", sessionId))).toBe(0);
+    expect((await countRows("intake_answer", sessionId))).toBe(0);
 
     // Retained minimum intact.
-    expect(countConflictSubmissions(matterId)).toBe(1);
-    const acksAfter = getDb()
-      .prepare(`SELECT COUNT(*) c FROM disclosure_ack WHERE matter_ref = ?`)
-      .get(matterId) as { c: number };
+    expect((await countConflictSubmissions(matterId))).toBe(1);
+    const acksAfter = (await getDb().get<{ c: number }>(
+      `SELECT COUNT(*) c FROM disclosure_ack WHERE matter_ref = ?`,
+      matterId
+    ))!;
     expect(acksAfter.c).toBe(1);
-    expect(verifyAuditChain()).toBeNull();
-    const events = getDb()
-      .prepare(`SELECT event FROM audit_event WHERE session_ref = ?`)
-      .all(matterId) as { event: string }[];
+    expect((await verifyAuditChain())).toBeNull();
+    const events = (await getDb().all<{ event: string }>(
+      `SELECT event FROM audit_event WHERE session_ref = ?`,
+      matterId
+    ));
     expect(events.map((e) => e.event)).toContain("RETENTION_PURGE");
-    expect(getMatter(matterId)).not.toBeNull(); // disposition record remains
+    expect((await getMatter(matterId))).not.toBeNull(); // disposition record remains
   });
 });
 
@@ -136,9 +139,9 @@ describe("configurable retention (no hard-coded final periods)", () => {
       email: "retadmin@example.test",
       name: "Ret Admin",
     };
-    const account = provisionAccount(admin);
+    const account = (await provisionAccount(admin));
     const { setUserRole } = await import("@/lib/db/users");
-    setUserRole(account.id, "ADMIN");
+    (await setUserRole(account.id, "ADMIN"));
 
     const res = await configPut(
       jsonRequest("/api/admin/config", {
@@ -148,7 +151,7 @@ describe("configurable retention (no hard-coded final periods)", () => {
       })
     );
     expect(res.status).toBe(200);
-    expect(getConfigNumber(CONFIG_KEYS.RETENTION_PROSPECTIVE_DAYS)).toBe(90);
+    expect((await getConfigNumber(CONFIG_KEYS.RETENTION_PROSPECTIVE_DAYS))).toBe(90);
   });
 
   it("attorney-only rules are NOT admin-configurable", async () => {
@@ -158,9 +161,9 @@ describe("configurable retention (no hard-coded final periods)", () => {
       email: "retadmin2@example.test",
       name: "Ret Admin 2",
     };
-    const account = provisionAccount(admin);
+    const account = (await provisionAccount(admin));
     const { setUserRole } = await import("@/lib/db/users");
-    setUserRole(account.id, "ADMIN");
+    (await setUserRole(account.id, "ADMIN"));
     freshLimits();
     const res = await configPut(
       jsonRequest("/api/admin/config", {
@@ -175,9 +178,9 @@ describe("configurable retention (no hard-coded final periods)", () => {
   it("sweep can be disabled entirely via config", async () => {
     const { matterId } = await matterWithContent();
     backdateMatter(matterId, 365);
-    setConfigValue(CONFIG_KEYS.RETENTION_SWEEP_ENABLED, "false", "test");
+    (await setConfigValue(CONFIG_KEYS.RETENTION_SWEEP_ENABLED, "false", "test"));
     expect(await sweepMatters()).toEqual([]);
-    setConfigValue(CONFIG_KEYS.RETENTION_SWEEP_ENABLED, "true", "test");
+    (await setConfigValue(CONFIG_KEYS.RETENTION_SWEEP_ENABLED, "true", "test"));
     expect((await sweepMatters()).map((r) => r.matterId)).toContain(matterId);
   });
 });

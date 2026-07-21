@@ -26,27 +26,27 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["ATTORNEY"]);
     const { id } = await ctx.params;
-    const version = getVersion(id);
+    const version = (await getVersion(id));
     if (!version) throw new HttpError(404, "Not found");
-    const doc = getDocument(version.documentId)!;
-    const matter = requireMatterAccess(authed, doc.matterId);
+    const doc = (await getDocument(version.documentId))!;
+    const matter = (await requireMatterAccess(authed, doc.matterId));
 
     const parsed = schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid approval payload");
 
-    const approval = approveVersion({
-      versionId: version.id,
-      actingUserId: authed.account.id,
-      approvalType: parsed.data.approvalType,
-      destination: parsed.data.destination,
-      note: parsed.data.note,
-    });
-    recordAudit(
-      matter.id,
-      "DOCUMENT_APPROVED",
-      `version=${version.id} type=${approval.approvalType} sha256=${approval.sha256}`,
-      authed.account.id
-    );
+    const approval = (await approveVersion({
+          versionId: version.id,
+          actingUserId: authed.account.id,
+          approvalType: parsed.data.approvalType,
+          destination: parsed.data.destination,
+          note: parsed.data.note,
+        }));
+    (await recordAudit(
+            matter.id,
+            "DOCUMENT_APPROVED",
+            `version=${version.id} type=${approval.approvalType} sha256=${approval.sha256}`,
+            authed.account.id
+          ));
     return Response.json({
       approval: {
         id: approval.id,

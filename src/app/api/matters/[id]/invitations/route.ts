@@ -16,9 +16,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     return Response.json({
-      invitations: listInvitationsForMatter(matter.id).map((i) => ({
+      invitations: (await listInvitationsForMatter(matter.id)).map((i) => ({
         id: i.id,
         expiresAt: i.expiresAt,
         revoked: Boolean(i.revokedAt),
@@ -39,15 +39,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     const parsed = createSchema.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid invitation payload");
-    const { invitation, rawToken } = createInvitation({
-      matterId: matter.id,
-      createdBy: authed.account.id,
-      ttlHours: parsed.data.ttlHours,
-    });
-    recordAudit(matter.id, "INVITATION_CREATED", `invitation=${invitation.id}`, authed.account.id);
+    const { invitation, rawToken } = (await createInvitation({
+          matterId: matter.id,
+          createdBy: authed.account.id,
+          ttlHours: parsed.data.ttlHours,
+        }));
+    (await recordAudit(matter.id, "INVITATION_CREATED", `invitation=${invitation.id}`, authed.account.id));
     // rawToken appears here ONCE and is never persisted or logged.
     return Response.json(
       { invitation: { id: invitation.id, expiresAt: invitation.expiresAt }, token: rawToken },

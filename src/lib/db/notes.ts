@@ -29,32 +29,40 @@ function rowToNote(r: Record<string, unknown>): InternalNoteRow {
   };
 }
 
-export function createInternalNote(opts: {
+export async function createInternalNote(opts: {
   matterId: string;
   author: string;
   kind: "NOTE" | "ESCALATION";
   body: string;
-}): InternalNoteRow {
+}): Promise<InternalNoteRow> {
   const id = newId();
   const t = nowIso();
-  getDb()
-    .prepare(
-      `INSERT INTO internal_note (id, matter_id, author, kind, body, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(id, opts.matterId, opts.author, opts.kind, opts.body, t, t);
-  return listInternalNotes(opts.matterId).find((n) => n.id === id)!;
+  await getDb().run(
+    `INSERT INTO internal_note (id, matter_id, author, kind, body, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    id,
+    opts.matterId,
+    opts.author,
+    opts.kind,
+    opts.body,
+    t,
+    t
+  );
+  return (await listInternalNotes(opts.matterId)).find((n) => n.id === id)!;
 }
 
-export function listInternalNotes(matterId: string): InternalNoteRow[] {
-  const rows = getDb()
-    .prepare(`SELECT * FROM internal_note WHERE matter_id = ? ORDER BY created_at DESC`)
-    .all(matterId) as Record<string, unknown>[];
+export async function listInternalNotes(matterId: string): Promise<InternalNoteRow[]> {
+  const rows = await getDb().all(
+    `SELECT * FROM internal_note WHERE matter_id = ? ORDER BY created_at DESC`,
+    matterId
+  );
   return rows.map(rowToNote);
 }
 
-export function resolveInternalNote(id: string): void {
-  getDb()
-    .prepare(`UPDATE internal_note SET status = 'RESOLVED', updated_at = ? WHERE id = ?`)
-    .run(nowIso(), id);
+export async function resolveInternalNote(id: string): Promise<void> {
+  await getDb().run(
+    `UPDATE internal_note SET status = 'RESOLVED', updated_at = ? WHERE id = ?`,
+    nowIso(),
+    id
+  );
 }

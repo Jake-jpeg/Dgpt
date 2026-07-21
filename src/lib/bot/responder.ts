@@ -51,9 +51,9 @@ export function clarificationResponse(id: string): BotResponse {
  * the bot's reply is logged by content ID (UPL defense: proof of exactly what
  * was served, reconstructable verbatim from config + ID).
  */
-export function respondToUserText(sessionRef: string, input: string): BotResponse {
+export async function respondToUserText(sessionRef: string, input: string): Promise<BotResponse> {
   const intent = getClassifier().classify(input);
-  logBotInteraction(sessionRef, "USER", "FREE_TEXT", `INTENT_${intent.intent}`);
+  (await logBotInteraction(sessionRef, "USER", "FREE_TEXT", `INTENT_${intent.intent}`));
 
   let response: BotResponse;
   switch (intent.intent) {
@@ -76,11 +76,11 @@ export function respondToUserText(sessionRef: string, input: string): BotRespons
       break;
   }
 
-  logBotInteraction(
-    sessionRef,
-    "BOT",
-    response.kind,
-    response.kind === "STATIC_CARD" ? response.card.id : response.id
-  );
+  (await logBotInteraction(
+        sessionRef,
+        "BOT",
+        response.kind,
+        response.kind === "STATIC_CARD" ? response.card.id : response.id
+      ));
   return response;
 }

@@ -42,22 +42,28 @@ export function schemaForMatter(matter: MatterRow): IntakeSchema {
   return sharedCoreSchema();
 }
 
-export function getMatterAnswers(matterId: string): AnswerMap {
-  const rows = getDb()
-    .prepare(`SELECT question_id, value FROM matter_intake_answer WHERE matter_id = ?`)
-    .all(matterId) as { question_id: string; value: string }[];
+export async function getMatterAnswers(matterId: string): Promise<AnswerMap> {
+  const rows = await getDb().all<{ question_id: string; value: string }>(
+    `SELECT question_id, value FROM matter_intake_answer WHERE matter_id = ?`,
+    matterId
+  );
   const out: AnswerMap = {};
   for (const r of rows) out[r.question_id] = JSON.parse(r.value);
   return out;
 }
 
-export function getAnswerHistory(matterId: string, questionId?: string) {
+export async function getAnswerHistory(matterId: string, questionId?: string) {
   const db = getDb();
-  const rows = (
-    questionId
-      ? db.prepare(`SELECT question_id, value, changed_at, changed_by FROM matter_intake_answer_history WHERE matter_id = ? AND question_id = ? ORDER BY changed_at ASC`).all(matterId, questionId)
-      : db.prepare(`SELECT question_id, value, changed_at, changed_by FROM matter_intake_answer_history WHERE matter_id = ? ORDER BY changed_at ASC`).all(matterId)
-  ) as { question_id: string; value: string; changed_at: string; changed_by: string }[];
+  const rows = questionId
+    ? await db.all<{ question_id: string; value: string; changed_at: string; changed_by: string }>(
+        `SELECT question_id, value, changed_at, changed_by FROM matter_intake_answer_history WHERE matter_id = ? AND question_id = ? ORDER BY changed_at ASC`,
+        matterId,
+        questionId
+      )
+    : await db.all<{ question_id: string; value: string; changed_at: string; changed_by: string }>(
+        `SELECT question_id, value, changed_at, changed_by FROM matter_intake_answer_history WHERE matter_id = ? ORDER BY changed_at ASC`,
+        matterId
+      );
   return rows.map((r) => ({ questionId: r.question_id, value: JSON.parse(r.value), changedAt: r.changed_at, changedBy: r.changed_by }));
 }
 
@@ -66,19 +72,19 @@ export function getAnswerHistory(matterId: string, questionId?: string) {
  * refuses without an attorney-CLEARED matter; refuses unknown questions;
  * enforces audience by the writer's CURRENT role.
  */
-export function saveMatterAnswers(opts: {
+export async function saveMatterAnswers(opts: {
   matterId: string;
   actingUserId: string;
   answers: { questionId: string; value: unknown }[];
-}): { saved: number } {
-  const matter = getMatter(opts.matterId);
+}): Promise<{ saved: number }> {
+  const matter = await getMatter(opts.matterId);
   if (!matter) throw new Error("PERSISTENCE_GUARD: matter not found");
   if (matter.conflictStatus !== "CLEARED") {
     throw new Error(
       "PERSISTENCE_GUARD: refusing to persist substantive intake before the matter is CLEARED by an attorney"
     );
   }
-  const actor = getUserById(opts.actingUserId);
+  const actor = await getUserById(opts.actingUserId);
   if (!actor || !actor.active) throw new Error("PERSISTENCE_GUARD: unknown or inactive user");
 
   const schema = schemaForMatter(matter);
@@ -100,16 +106,27 @@ export function saveMatterAnswers(opts: {
       throw new Error("PERSISTENCE_GUARD: attorney-only question");
     }
     const value = JSON.stringify(a.value);
-    db.prepare(
+    await db.run(
       `INSERT INTO matter_intake_answer (matter_id, question_id, value, updated_at, updated_by)
        VALUES (?, ?, ?, ?, ?)
        ON CONFLICT(matter_id, question_id)
-       DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`
-    ).run(opts.matterId, a.questionId, value, t, actor.id);
-    db.prepare(
+       DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
+      opts.matterId,
+      a.questionId,
+      value,
+      t,
+      actor.id
+    );
+    await db.run(
       `INSERT INTO matter_intake_answer_history (id, matter_id, question_id, value, changed_at, changed_by)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    ).run(newId(), opts.matterId, a.questionId, value, t, actor.id);
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      newId(),
+      opts.matterId,
+      a.questionId,
+      value,
+      t,
+      actor.id
+    );
     saved++;
   }
   return { saved };
@@ -133,7 +150,7 @@ export type ScopeStatus = (typeof SCOPE_STATUSES)[number];
  * route here — the AI layer cannot call this (and client routes cannot
  * import it, enforced by tests).
  */
-export function attorneySetJurisdictionAndScope(opts: {
+export async function attorneySetJurisdictionAndScope(opts: {
   matterId: string;
   actingUserId: string;
   jurisdictionConfirmed?: "NJ" | "NY" | null;
@@ -141,12 +158,12 @@ export function attorneySetJurisdictionAndScope(opts: {
   scopeStatus?: ScopeStatus;
   scopeNotes?: string;
   jurisdictionCandidate?: string;
-}): MatterRow {
-  const actor = getUserById(opts.actingUserId);
+}): Promise<MatterRow> {
+  const actor = await getUserById(opts.actingUserId);
   if (!actor || !actor.active || actor.role !== "ATTORNEY") {
     throw new Error("JURISDICTION_GUARD: only an active ATTORNEY may confirm jurisdiction, category, or scope");
   }
-  const matter = getMatter(opts.matterId);
+  const matter = await getMatter(opts.matterId);
   if (!matter) throw new Error("VALIDATION: matter not found");
   if (opts.matterCategory && !(MATTER_CATEGORIES as readonly string[]).includes(opts.matterCategory)) {
     throw new Error("VALIDATION: unknown matter category");
@@ -157,35 +174,48 @@ export function attorneySetJurisdictionAndScope(opts: {
   const db = getDb();
   const t = nowIso();
   if (opts.jurisdictionCandidate !== undefined) {
-    db.prepare(`UPDATE matter SET jurisdiction_candidate = ?, updated_at = ? WHERE id = ?`).run(
+    await db.run(
+      `UPDATE matter SET jurisdiction_candidate = ?, updated_at = ? WHERE id = ?`,
       opts.jurisdictionCandidate,
       t,
       opts.matterId
     );
   }
   if (opts.jurisdictionConfirmed !== undefined) {
-    db.prepare(
-      `UPDATE matter SET jurisdiction_confirmed = ?, jurisdiction_confirmed_by = ?, jurisdiction_confirmed_at = ?, updated_at = ? WHERE id = ?`
-    ).run(opts.jurisdictionConfirmed, actor.id, t, t, opts.matterId);
+    await db.run(
+      `UPDATE matter SET jurisdiction_confirmed = ?, jurisdiction_confirmed_by = ?, jurisdiction_confirmed_at = ?, updated_at = ? WHERE id = ?`,
+      opts.jurisdictionConfirmed,
+      actor.id,
+      t,
+      t,
+      opts.matterId
+    );
   }
   if (opts.matterCategory !== undefined) {
-    db.prepare(
-      `UPDATE matter SET matter_category = ?, matter_category_confirmed_by = ?, intake_schema_version = ?, updated_at = ? WHERE id = ?`
-    ).run(opts.matterCategory, actor.id, opts.matterCategory ? INTAKE_SCHEMA_VERSION : null, t, opts.matterId);
+    await db.run(
+      `UPDATE matter SET matter_category = ?, matter_category_confirmed_by = ?, intake_schema_version = ?, updated_at = ? WHERE id = ?`,
+      opts.matterCategory,
+      actor.id,
+      opts.matterCategory ? INTAKE_SCHEMA_VERSION : null,
+      t,
+      opts.matterId
+    );
   }
   if (opts.scopeStatus !== undefined) {
-    db.prepare(`UPDATE matter SET scope_status = ?, updated_at = ? WHERE id = ?`).run(
+    await db.run(
+      `UPDATE matter SET scope_status = ?, updated_at = ? WHERE id = ?`,
       opts.scopeStatus,
       t,
       opts.matterId
     );
   }
   if (opts.scopeNotes !== undefined) {
-    db.prepare(`UPDATE matter SET scope_notes = ?, updated_at = ? WHERE id = ?`).run(
+    await db.run(
+      `UPDATE matter SET scope_notes = ?, updated_at = ? WHERE id = ?`,
       opts.scopeNotes,
       t,
       opts.matterId
     );
   }
-  return getMatter(opts.matterId)!;
+  return (await getMatter(opts.matterId))!;
 }

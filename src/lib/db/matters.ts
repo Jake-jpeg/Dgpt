@@ -99,78 +99,85 @@ function rowToMatter(r: Record<string, unknown>): MatterRow {
   };
 }
 
-export function createMatter(opts: { label: string; createdBy: string }): MatterRow {
+export async function createMatter(opts: { label: string; createdBy: string }): Promise<MatterRow> {
   const db = getDb();
   const id = newId();
   const t = nowIso();
-  db.prepare(
+  await db.run(
     `INSERT INTO matter (id, label, created_by, created_at, updated_at, last_activity_at)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(id, opts.label, opts.createdBy, t, t, t);
-  return getMatter(id)!;
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    id,
+    opts.label,
+    opts.createdBy,
+    t,
+    t,
+    t
+  );
+  return (await getMatter(id))!;
 }
 
-export function getMatter(id: string): MatterRow | null {
-  const r = getDb()
-    .prepare(`SELECT * FROM matter WHERE id = ?`)
-    .get(id) as Record<string, unknown> | undefined;
+export async function getMatter(id: string): Promise<MatterRow | null> {
+  const r = await getDb().get(`SELECT * FROM matter WHERE id = ?`, id);
   return r ? rowToMatter(r) : null;
 }
 
-export function touchMatter(id: string): void {
+export async function touchMatter(id: string): Promise<void> {
   const t = nowIso();
-  getDb()
-    .prepare(`UPDATE matter SET last_activity_at = ?, updated_at = ? WHERE id = ?`)
-    .run(t, t, id);
+  await getDb().run(`UPDATE matter SET last_activity_at = ?, updated_at = ? WHERE id = ?`, t, t, id);
 }
 
-export function listAllMatters(): MatterRow[] {
-  const rows = getDb()
-    .prepare(`SELECT * FROM matter ORDER BY updated_at DESC`)
-    .all() as Record<string, unknown>[];
+export async function listAllMatters(): Promise<MatterRow[]> {
+  const rows = await getDb().all(`SELECT * FROM matter ORDER BY updated_at DESC`);
   return rows.map(rowToMatter);
 }
 
-export function listMattersForClient(clientUserId: string): MatterRow[] {
-  const rows = getDb()
-    .prepare(`SELECT * FROM matter WHERE client_user_id = ? ORDER BY updated_at DESC`)
-    .all(clientUserId) as Record<string, unknown>[];
+export async function listMattersForClient(clientUserId: string): Promise<MatterRow[]> {
+  const rows = await getDb().all(
+    `SELECT * FROM matter WHERE client_user_id = ? ORDER BY updated_at DESC`,
+    clientUserId
+  );
   return rows.map(rowToMatter);
 }
 
-export function listMattersForGrantee(userId: string): MatterRow[] {
-  const rows = getDb()
-    .prepare(
-      `SELECT m.* FROM matter m
-       JOIN matter_access a ON a.matter_id = m.id
-       WHERE a.user_id = ? ORDER BY m.updated_at DESC`
-    )
-    .all(userId) as Record<string, unknown>[];
+export async function listMattersForGrantee(userId: string): Promise<MatterRow[]> {
+  const rows = await getDb().all(
+    `SELECT m.* FROM matter m
+     JOIN matter_access a ON a.matter_id = m.id
+     WHERE a.user_id = ? ORDER BY m.updated_at DESC`,
+    userId
+  );
   return rows.map(rowToMatter);
 }
 
 // ── Matter access grants (STAFF / ATTORNEY) ──────────────────────────
 
-export function grantMatterAccess(matterId: string, userId: string, grantedBy: string): void {
-  getDb()
-    .prepare(
-      `INSERT INTO matter_access (id, matter_id, user_id, granted_by, created_at)
-       VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(matter_id, user_id) DO NOTHING`
-    )
-    .run(newId(), matterId, userId, grantedBy, nowIso());
+export async function grantMatterAccess(
+  matterId: string,
+  userId: string,
+  grantedBy: string
+): Promise<void> {
+  await getDb().run(
+    `INSERT INTO matter_access (id, matter_id, user_id, granted_by, created_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(matter_id, user_id) DO NOTHING`,
+    newId(),
+    matterId,
+    userId,
+    grantedBy,
+    nowIso()
+  );
 }
 
-export function revokeMatterAccess(matterId: string, userId: string): void {
-  getDb()
-    .prepare(`DELETE FROM matter_access WHERE matter_id = ? AND user_id = ?`)
-    .run(matterId, userId);
+export async function revokeMatterAccess(matterId: string, userId: string): Promise<void> {
+  await getDb().run(`DELETE FROM matter_access WHERE matter_id = ? AND user_id = ?`, matterId, userId);
 }
 
-export function hasMatterGrant(matterId: string, userId: string): boolean {
-  const r = getDb()
-    .prepare(`SELECT 1 AS x FROM matter_access WHERE matter_id = ? AND user_id = ?`)
-    .get(matterId, userId);
+export async function hasMatterGrant(matterId: string, userId: string): Promise<boolean> {
+  const r = await getDb().get(
+    `SELECT 1 AS x FROM matter_access WHERE matter_id = ? AND user_id = ?`,
+    matterId,
+    userId
+  );
   return Boolean(r);
 }
 
@@ -181,7 +188,7 @@ export function hasMatterGrant(matterId: string, userId: string): boolean {
  * access to matter content by role (least privilege); an admin who also
  * works matters receives explicit grants.
  */
-export function canAccessMatter(user: UserRow, matter: MatterRow): boolean {
+export async function canAccessMatter(user: UserRow, matter: MatterRow): Promise<boolean> {
   if (!user.active) return false;
   switch (user.role) {
     case "CLIENT":
@@ -196,11 +203,15 @@ export function canAccessMatter(user: UserRow, matter: MatterRow): boolean {
   }
 }
 
-export function bindClientToMatter(matterId: string, clientUserId: string): void {
+export async function bindClientToMatter(matterId: string, clientUserId: string): Promise<void> {
   const t = nowIso();
-  getDb()
-    .prepare(`UPDATE matter SET client_user_id = ?, updated_at = ?, last_activity_at = ? WHERE id = ?`)
-    .run(clientUserId, t, t, matterId);
+  await getDb().run(
+    `UPDATE matter SET client_user_id = ?, updated_at = ?, last_activity_at = ? WHERE id = ?`,
+    clientUserId,
+    t,
+    t,
+    matterId
+  );
 }
 
 // ── Conflict status (structural attorney-only terminal states) ───────
@@ -210,19 +221,22 @@ export function bindClientToMatter(matterId: string, clientUserId: string): void
  * the type and a runtime check both restrict input to the four screen
  * statuses.
  */
-export function recordScreenStatus(matterId: string, status: ScreenStatus): void {
+export async function recordScreenStatus(matterId: string, status: ScreenStatus): Promise<void> {
   if (!(SCREEN_STATUSES as readonly string[]).includes(status)) {
     throw new Error(
       `CONFLICT_GUARD: automated screening may not set conflict status '${status}'`
     );
   }
   const t = nowIso();
-  getDb()
-    .prepare(
-      `UPDATE matter SET conflict_status = ?, conflict_status_set_by = 'SYSTEM_SCREEN',
-       conflict_status_set_at = ?, updated_at = ?, last_activity_at = ? WHERE id = ?`
-    )
-    .run(status, t, t, t, matterId);
+  await getDb().run(
+    `UPDATE matter SET conflict_status = ?, conflict_status_set_by = 'SYSTEM_SCREEN',
+     conflict_status_set_at = ?, updated_at = ?, last_activity_at = ? WHERE id = ?`,
+    status,
+    t,
+    t,
+    t,
+    matterId
+  );
 }
 
 /**
@@ -232,49 +246,62 @@ export function recordScreenStatus(matterId: string, status: ScreenStatus): void
  * moment of the write — a stale session, a spoofed body field, an ADMIN, or
  * STAFF can never produce a terminal conflict disposition.
  */
-export function attorneySetConflictDisposition(opts: {
+export async function attorneySetConflictDisposition(opts: {
   matterId: string;
   actingUserId: string;
   disposition: "CLEARED" | "DECLINED" | "NEEDS_MORE_INFORMATION";
-}): MatterRow {
-  const actor = getUserById(opts.actingUserId);
+}): Promise<MatterRow> {
+  const actor = await getUserById(opts.actingUserId);
   if (!actor || !actor.active || actor.role !== "ATTORNEY") {
     throw new Error(
       "CONFLICT_GUARD: only an active ATTORNEY may set a conflict disposition"
     );
   }
-  const matter = getMatter(opts.matterId);
+  const matter = await getMatter(opts.matterId);
   if (!matter) throw new Error("VALIDATION: matter not found");
   const t = nowIso();
-  getDb()
-    .prepare(
-      `UPDATE matter SET conflict_status = ?, conflict_status_set_by = ?,
-       conflict_status_set_at = ?, updated_at = ?, last_activity_at = ? WHERE id = ?`
-    )
-    .run(opts.disposition, actor.id, t, t, t, opts.matterId);
-  return getMatter(opts.matterId)!;
+  await getDb().run(
+    `UPDATE matter SET conflict_status = ?, conflict_status_set_by = ?,
+     conflict_status_set_at = ?, updated_at = ?, last_activity_at = ? WHERE id = ?`,
+    opts.disposition,
+    actor.id,
+    t,
+    t,
+    t,
+    opts.matterId
+  );
+  return (await getMatter(opts.matterId))!;
 }
 
 /** Client-blocking check used by intake + persistence guards. */
-export function matterConflictCleared(matterId: string): boolean {
-  const m = getMatter(matterId);
+export async function matterConflictCleared(matterId: string): Promise<boolean> {
+  const m = await getMatter(matterId);
   return Boolean(m && m.conflictStatus === "CLEARED");
 }
 
 // ── Lifecycle + legal hold ────────────────────────────────────────────
 
-export function setMatterLifecycle(matterId: string, lifecycle: MatterLifecycle): void {
+export async function setMatterLifecycle(
+  matterId: string,
+  lifecycle: MatterLifecycle
+): Promise<void> {
   const t = nowIso();
-  getDb()
-    .prepare(`UPDATE matter SET lifecycle = ?, updated_at = ?, last_activity_at = ? WHERE id = ?`)
-    .run(lifecycle, t, t, matterId);
+  await getDb().run(
+    `UPDATE matter SET lifecycle = ?, updated_at = ?, last_activity_at = ? WHERE id = ?`,
+    lifecycle,
+    t,
+    t,
+    matterId
+  );
 }
 
-export function setLegalHold(matterId: string, hold: boolean, reason?: string): void {
+export async function setLegalHold(matterId: string, hold: boolean, reason?: string): Promise<void> {
   const t = nowIso();
-  getDb()
-    .prepare(
-      `UPDATE matter SET legal_hold = ?, legal_hold_reason = ?, updated_at = ? WHERE id = ?`
-    )
-    .run(hold ? 1 : 0, hold ? reason ?? null : null, t, matterId);
+  await getDb().run(
+    `UPDATE matter SET legal_hold = ?, legal_hold_reason = ?, updated_at = ? WHERE id = ?`,
+    hold ? 1 : 0,
+    hold ? reason ?? null : null,
+    t,
+    matterId
+  );
 }

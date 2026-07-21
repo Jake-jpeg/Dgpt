@@ -111,26 +111,26 @@ export async function invokeInternalAi(input: AiInvocationInput): Promise<AiInvo
   const model = aiModel();
 
   // Structural role guard — CURRENT role from the DB, STAFF/ATTORNEY only.
-  const actor = getUserById(input.actingUserId);
+  const actor = (await getUserById(input.actingUserId));
   if (!actor || !actor.active || (actor.role !== "STAFF" && actor.role !== "ATTORNEY")) {
-    logAiInvocation({
-      matterId: input.matterId,
-      userId: input.actingUserId,
-      feature: input.feature,
-      model,
-      status: "DENIED",
-    });
+    (await logAiInvocation({
+            matterId: input.matterId,
+            userId: input.actingUserId,
+            feature: input.feature,
+            model,
+            status: "DENIED",
+          }));
     throw new Error("AI_GUARD: only STAFF or ATTORNEY may invoke internal AI features");
   }
 
   if (!aiFeaturesEnabled()) {
-    logAiInvocation({
-      matterId: input.matterId,
-      userId: actor.id,
-      feature: input.feature,
-      model,
-      status: "DISABLED",
-    });
+    (await logAiInvocation({
+            matterId: input.matterId,
+            userId: actor.id,
+            feature: input.feature,
+            model,
+            status: "DISABLED",
+          }));
     throw new AiDisabledError();
   }
 
@@ -147,14 +147,14 @@ export async function invokeInternalAi(input: AiInvocationInput): Promise<AiInvo
       matterId: input.matterId,
     });
   } catch (e) {
-    logAiInvocation({
-      matterId: input.matterId,
-      userId: actor.id,
-      feature: input.feature,
-      model,
-      status: "ERROR",
-      detail: classify(e),
-    });
+    (await logAiInvocation({
+            matterId: input.matterId,
+            userId: actor.id,
+            feature: input.feature,
+            model,
+            status: "ERROR",
+            detail: classify(e),
+          }));
     // Preserve AiConfigError and AI_GUARD messages; never echo a payload.
     if (e instanceof AiConfigError) throw e;
     if (e instanceof Error && e.message.startsWith("AI_GUARD:")) throw e;
@@ -164,23 +164,23 @@ export async function invokeInternalAi(input: AiInvocationInput): Promise<AiInvo
   const parsed = call.parsed as { text?: unknown } | null;
   const text = typeof parsed?.text === "string" ? parsed.text : "";
   if (!text.trim()) {
-    logAiInvocation({
-      matterId: input.matterId,
-      userId: actor.id,
-      feature: input.feature,
-      model,
-      status: "ERROR",
-      detail: "no-content",
-    });
+    (await logAiInvocation({
+            matterId: input.matterId,
+            userId: actor.id,
+            feature: input.feature,
+            model,
+            status: "ERROR",
+            detail: "no-content",
+          }));
     throw new Error("AI_GUARD: provider returned no content");
   }
 
-  logAiInvocation({
-    matterId: input.matterId,
-    userId: actor.id,
-    feature: input.feature,
-    model: call.model,
-    status: "OK",
-  });
+  (await logAiInvocation({
+        matterId: input.matterId,
+        userId: actor.id,
+        feature: input.feature,
+        model: call.model,
+        status: "OK",
+      }));
   return { feature: input.feature, model: call.model, text };
 }

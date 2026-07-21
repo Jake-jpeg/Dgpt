@@ -46,45 +46,43 @@ function rowToSubmission(r: Record<string, unknown>): ConflictSubmissionRow {
   };
 }
 
-export function recordConflictSubmission(opts: {
+export async function recordConflictSubmission(opts: {
   matterRef: string;
   clientParty: PartyName;
   adverseParty: PartyName;
   entities?: string[];
   screenResult: ScreenStatus;
   submittedBy: string;
-}): ConflictSubmissionRow {
+}): Promise<ConflictSubmissionRow> {
   const id = newId();
-  getDb()
-    .prepare(
-      `INSERT INTO conflict_submission
-       (id, matter_ref, client_party, adverse_party, entities, screen_result, submitted_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(
-      id,
-      opts.matterRef,
-      JSON.stringify(opts.clientParty),
-      JSON.stringify(opts.adverseParty),
-      JSON.stringify(opts.entities ?? []),
-      opts.screenResult,
-      opts.submittedBy,
-      nowIso()
-    );
-  return getConflictSubmission(id)!;
+  await getDb().run(
+    `INSERT INTO conflict_submission
+     (id, matter_ref, client_party, adverse_party, entities, screen_result, submitted_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    id,
+    opts.matterRef,
+    JSON.stringify(opts.clientParty),
+    JSON.stringify(opts.adverseParty),
+    JSON.stringify(opts.entities ?? []),
+    opts.screenResult,
+    opts.submittedBy,
+    nowIso()
+  );
+  return (await getConflictSubmission(id))!;
 }
 
-export function getConflictSubmission(id: string): ConflictSubmissionRow | null {
-  const r = getDb()
-    .prepare(`SELECT * FROM conflict_submission WHERE id = ?`)
-    .get(id) as Record<string, unknown> | undefined;
+export async function getConflictSubmission(id: string): Promise<ConflictSubmissionRow | null> {
+  const r = await getDb().get(`SELECT * FROM conflict_submission WHERE id = ?`, id);
   return r ? rowToSubmission(r) : null;
 }
 
-export function listConflictSubmissionsForMatter(matterRef: string): ConflictSubmissionRow[] {
-  const rows = getDb()
-    .prepare(`SELECT * FROM conflict_submission WHERE matter_ref = ? ORDER BY created_at DESC`)
-    .all(matterRef) as Record<string, unknown>[];
+export async function listConflictSubmissionsForMatter(
+  matterRef: string
+): Promise<ConflictSubmissionRow[]> {
+  const rows = await getDb().all(
+    `SELECT * FROM conflict_submission WHERE matter_ref = ? ORDER BY created_at DESC`,
+    matterRef
+  );
   return rows.map(rowToSubmission);
 }
 
@@ -93,34 +91,38 @@ export function listConflictSubmissionsForMatter(matterRef: string): ConflictSub
  * acting user's CURRENT role is re-read here, exactly like
  * attorneySetConflictDisposition in matters.ts.
  */
-export function resolveLatestSubmission(opts: {
+export async function resolveLatestSubmission(opts: {
   matterRef: string;
   actingUserId: string;
   disposition: "CLEARED" | "DECLINED" | "NEEDS_MORE_INFORMATION";
   internalNote?: string;
-}): void {
-  const actor = getUserById(opts.actingUserId);
+}): Promise<void> {
+  const actor = await getUserById(opts.actingUserId);
   if (!actor || !actor.active || actor.role !== "ATTORNEY") {
     throw new Error("CONFLICT_GUARD: only an active ATTORNEY may resolve conflict submissions");
   }
-  const latest = listConflictSubmissionsForMatter(opts.matterRef)[0];
+  const latest = (await listConflictSubmissionsForMatter(opts.matterRef))[0];
   if (!latest) return;
-  getDb()
-    .prepare(
-      `UPDATE conflict_submission
-       SET disposition = ?, resolved_by = ?, resolved_at = ?, internal_note = COALESCE(?, internal_note)
-       WHERE id = ?`
-    )
-    .run(opts.disposition, actor.id, nowIso(), opts.internalNote ?? null, latest.id);
+  await getDb().run(
+    `UPDATE conflict_submission
+     SET disposition = ?, resolved_by = ?, resolved_at = ?, internal_note = COALESCE(?, internal_note)
+     WHERE id = ?`,
+    opts.disposition,
+    actor.id,
+    nowIso(),
+    opts.internalNote ?? null,
+    latest.id
+  );
 }
 
 /** Test/inspection helper. */
-export function countConflictSubmissions(matterRef?: string): number {
+export async function countConflictSubmissions(matterRef?: string): Promise<number> {
   const db = getDb();
-  const r = (
-    matterRef
-      ? db.prepare(`SELECT COUNT(*) c FROM conflict_submission WHERE matter_ref = ?`).get(matterRef)
-      : db.prepare(`SELECT COUNT(*) c FROM conflict_submission`).get()
-  ) as { c: number };
+  const r = (matterRef
+    ? await db.get<{ c: number }>(
+        `SELECT COUNT(*) c FROM conflict_submission WHERE matter_ref = ?`,
+        matterRef
+      )
+    : await db.get<{ c: number }>(`SELECT COUNT(*) c FROM conflict_submission`))!;
   return r.c;
 }

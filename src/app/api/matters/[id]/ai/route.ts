@@ -41,7 +41,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
 
     const parsed = schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid AI request");
@@ -70,18 +70,20 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     }
 
     // Assemble structured context server-side (never raw client payloads).
-    const sessions = listSessionsByMatter(matter.id);
+    const sessions = (await listSessionsByMatter(matter.id));
     const context = {
       matter: { lifecycle: matter.lifecycle, conflictStatus: matter.conflictStatus },
-      sessions: sessions.map((s) => ({
-        state: s.state,
-        tier: s.tier,
-        county: s.county,
-        qdroFlag: s.qdroFlag,
-        attorneyFlags: s.attorneyFlags,
-        identity: getIdentity(s.id),
-        answers: getAnswers(s.id),
-      })),
+      sessions: await Promise.all(
+        (sessions.map(async (s) => ({
+                    state: s.state,
+                    tier: s.tier,
+                    county: s.county,
+                    qdroFlag: s.qdroFlag,
+                    attorneyFlags: s.attorneyFlags,
+                    identity: await getIdentity(s.id),
+                    answers: await getAnswers(s.id),
+                  })))
+      ),
     };
 
     const legacyFeature = parsed.data.feature as (typeof AI_FEATURES)[number];
@@ -96,22 +98,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     // Materialize as internal work product requiring attorney review.
     const bytes = new TextEncoder().encode(result.text);
     const stored = await getFileStorage().put(bytes);
-    const doc = createDocument({
-      matterId: matter.id,
-      title: FEATURE_TITLES[legacyFeature],
-      docKind: "AI_DRAFT",
-      createdBy: authed.account.id,
-    });
-    const version = addDocumentVersion({
-      documentId: doc.id,
-      storageKey: stored.storageKey,
-      sha256: stored.sha256,
-      mime: "text/plain",
-      sizeBytes: stored.sizeBytes,
-      source: "AI",
-      createdBy: authed.account.id,
-      initialStatus: "ATTORNEY_REVIEW_REQUIRED",
-    });
+    const doc = (await createDocument({
+          matterId: matter.id,
+          title: FEATURE_TITLES[legacyFeature],
+          docKind: "AI_DRAFT",
+          createdBy: authed.account.id,
+        }));
+    const version = (await addDocumentVersion({
+          documentId: doc.id,
+          storageKey: stored.storageKey,
+          sha256: stored.sha256,
+          mime: "text/plain",
+          sizeBytes: stored.sizeBytes,
+          source: "AI",
+          createdBy: authed.account.id,
+          initialStatus: "ATTORNEY_REVIEW_REQUIRED",
+        }));
 
     return Response.json(
       {

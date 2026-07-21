@@ -108,7 +108,7 @@ describe("clients cannot see each other's sessions", () => {
 
     // A real second client account still gets 404 — existence never leaks.
     const { provisionAccount, SYNTH_CLIENT_2: C2 } = await import("./helpers");
-    provisionAccount(C2);
+    (await provisionAccount(C2));
     freshLimits();
     const res = await intakeView(
       jsonRequest(`/api/intake/${id}`, { method: "GET", cookie: c2 }),

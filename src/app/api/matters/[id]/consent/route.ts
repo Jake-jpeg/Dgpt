@@ -30,7 +30,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["CLIENT"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
 
     const parsed = schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) {
@@ -41,14 +41,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       throw new HttpError(409, "The disclosure has been updated — please review the current version");
     }
 
-    const ack = recordDisclosureAck({
-      matterRef: matter.id,
-      userRef: authed.account.id,
-      version: current.version,
-      ip: clientKey(req),
-      userAgent: req.headers.get("user-agent"),
-    });
-    recordAudit(matter.id, "CONSENT_RECORDED", `version=${current.version}`, authed.account.id);
+    const ack = (await recordDisclosureAck({
+          matterRef: matter.id,
+          userRef: authed.account.id,
+          version: current.version,
+          ip: clientKey(req),
+          userAgent: req.headers.get("user-agent"),
+        }));
+    (await recordAudit(matter.id, "CONSENT_RECORDED", `version=${current.version}`, authed.account.id));
     return Response.json({
       acknowledged: true,
       version: ack.version,
@@ -64,11 +64,11 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["CLIENT"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     const current = getDisclosure();
     return Response.json({
       version: current.version,
-      acknowledged: hasAcknowledged(matter.id, authed.account.id, current.version),
+      acknowledged: (await hasAcknowledged(matter.id, authed.account.id, current.version)),
     });
   } catch (e) {
     return errorResponse(e);

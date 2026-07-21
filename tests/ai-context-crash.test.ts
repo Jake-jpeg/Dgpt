@@ -61,15 +61,15 @@ function valueFor(item: IntakeItem): unknown {
 async function matterWithFullClientState(): Promise<string> {
   const ctx = await setupClientWithMatter();
   await clearMatter(ctx.matterId);
-  attorneySetJurisdictionAndScope({
-    matterId: ctx.matterId,
-    actingUserId: ctx.attorneyUserId,
-    jurisdictionConfirmed: "NJ",
-    matterCategory: "NJ_FM_DIVORCE_UNCONTESTED",
-    scopeStatus: "ACCEPTED",
-  });
+  (await attorneySetJurisdictionAndScope({
+        matterId: ctx.matterId,
+        actingUserId: ctx.attorneyUserId,
+        jurisdictionConfirmed: "NJ",
+        matterCategory: "NJ_FM_DIVORCE_UNCONTESTED",
+        scopeStatus: "ACCEPTED",
+      }));
 
-  const matter = getMatter(ctx.matterId);
+  const matter = (await getMatter(ctx.matterId));
   if (!matter) throw new Error("fixture: matter vanished");
   const schema = schemaForMatter(matter);
 
@@ -83,32 +83,32 @@ async function matterWithFullClientState(): Promise<string> {
     )
     .map((i) => ({ questionId: i.id, value: valueFor(i) }));
 
-  saveMatterAnswers({
-    matterId: ctx.matterId,
-    actingUserId: ctx.clientUserId,
-    answers,
-  });
+  (await saveMatterAnswers({
+        matterId: ctx.matterId,
+        actingUserId: ctx.clientUserId,
+        answers,
+      }));
 
   // A client-uploaded document + version: the documents/extraction flatMap
   // is the one context branch a bare matter never reaches.
   const bytes = new TextEncoder().encode("synthetic upload");
   const stored = await getFileStorage().put(bytes);
-  const doc = createDocument({
-    matterId: ctx.matterId,
-    title: "Synthetic upload",
-    docKind: "CLIENT_UPLOAD",
-    createdBy: ctx.clientUserId,
-  });
-  addDocumentVersion({
-    documentId: doc.id,
-    storageKey: stored.storageKey,
-    sha256: stored.sha256,
-    mime: "application/pdf",
-    sizeBytes: stored.sizeBytes,
-    originalFilename: "synthetic.pdf",
-    source: "UPLOAD",
-    createdBy: ctx.clientUserId,
-  });
+  const doc = (await createDocument({
+      matterId: ctx.matterId,
+      title: "Synthetic upload",
+      docKind: "CLIENT_UPLOAD",
+      createdBy: ctx.clientUserId,
+    }));
+  (await addDocumentVersion({
+        documentId: doc.id,
+        storageKey: stored.storageKey,
+        sha256: stored.sha256,
+        mime: "application/pdf",
+        sizeBytes: stored.sizeBytes,
+        originalFilename: "synthetic.pdf",
+        source: "UPLOAD",
+        createdBy: ctx.clientUserId,
+      }));
   return ctx.matterId;
 }
 
@@ -120,7 +120,7 @@ describe("buildMatterContext on a matter with full client intake state", () => {
 
   it("returns a usable context: answers, checklist, and citable id sets", async () => {
     const matterId = await matterWithFullClientState();
-    const { contextJson, answerIds, documentVersionIds } = buildMatterContext(matterId);
+    const { contextJson, answerIds, documentVersionIds } = (await buildMatterContext(matterId));
     const parsed = JSON.parse(contextJson);
     expect(parsed.matter.category).toBe("NJ_FM_DIVORCE_UNCONTESTED");
     expect(parsed.intakeAnswers.length).toBeGreaterThan(0);

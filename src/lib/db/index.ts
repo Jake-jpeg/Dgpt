@@ -44,15 +44,26 @@
  *   O. app_config          — admin-managed configuration (retention etc.).
  *                            Attorney-only rules are NOT configurable here.
  *
- * Engine: node:sqlite (built into Node ≥22, zero native dependencies).
- * Portability: schema uses TEXT/INTEGER only and `?` placeholders; migrating
- * to Postgres is a driver swap confined to this directory.
+ * Engines (src/lib/db/driver.ts — the ONLY place dialects differ):
+ *   - DATABASE_URL present  → PostgreSQL. Production. App Platform containers
+ *     are ephemeral; a file database dies with every deploy. Postgres is why
+ *     deploys no longer destroy data.
+ *   - DATABASE_URL absent   → SQLite via node:sqlite (DATABASE_PATH, or
+ *     ":memory:" in tests). Local dev and the whole test suite.
+ *
+ * Portability rules the schema already obeys: TEXT/INTEGER columns only,
+ * `?` placeholders, JS-generated UUIDs and ISO timestamps, no RETURNING,
+ * no dialect functions. The one engine seam: audit_event ordering uses
+ * SQLite's implicit rowid; the Postgres DDL declares a real
+ * `rowid BIGSERIAL` column ("rowid" is not reserved in Postgres), so every
+ * query string stays byte-identical across engines.
  */
-import { DatabaseSync } from "node:sqlite";
-import path from "node:path";
-import fs from "node:fs";
+import type { Db, SqlParam } from "./driver";
+import { createPostgresDb, createSqliteDb } from "./driver";
 
-const DDL = `
+function ddl(dialect: "sqlite" | "postgres"): string {
+  const pg = dialect === "postgres";
+  return `
 CREATE TABLE IF NOT EXISTS intake_session (
   id               TEXT PRIMARY KEY,
   state            TEXT NOT NULL,
@@ -107,7 +118,7 @@ CREATE TABLE IF NOT EXISTS audit_event (
   actor       TEXT,                          -- opaque user id/subject; never a name
   prev_hash   TEXT,                          -- hash chain: tamper-evident
   hash        TEXT,
-  created_at  TEXT NOT NULL
+  created_at  TEXT NOT NULL${pg ? ",\n  rowid       BIGSERIAL                  -- insertion order; implicit in SQLite" : ""}
 );
 CREATE INDEX IF NOT EXISTS idx_audit_ref ON audit_event(session_ref);
 CREATE INDEX IF NOT EXISTS idx_audit_event ON audit_event(event);
@@ -404,10 +415,12 @@ CREATE TABLE IF NOT EXISTS app_config (
   updated_at TEXT NOT NULL
 );
 `;
+}
 
 /**
- * Additive migrations for pre-2.0 dev databases (node:sqlite has no migration
- * framework; the DB is disposable in dev/beta, but be graceful anyway).
+ * Additive migrations for pre-2.0 databases (no migration framework; on a
+ * fresh database every statement fails "duplicate column" and is skipped —
+ * identical semantics on both engines).
  */
 const MIGRATIONS = [
   `ALTER TABLE intake_session ADD COLUMN matter_id TEXT`,
@@ -430,43 +443,77 @@ const MIGRATIONS = [
   `ALTER TABLE audit_event ADD COLUMN hash TEXT`,
 ];
 
-let _db: DatabaseSync | null = null;
+let _engine: Db | null = null;
+let _ready: Promise<Db> | null = null;
+let _facade: Db | null = null;
 
-export function getDb(): DatabaseSync {
-  if (_db) return _db;
-  const p = process.env.DATABASE_PATH ?? "./data/dev.db";
-  // DATABASE_PATH is deliberately runtime-dynamic (a data file outside the
-  // source tree). The turbopackIgnore annotation stops Turbopack's
-  // file-tracing from treating this env-driven resolve as "trace the whole
-  // project" — no source files belong in this route's deployment trace.
-  if (p !== ":memory:") {
-    fs.mkdirSync(path.dirname(path.resolve(/* turbopackIgnore: true */ p)), {
-      recursive: true,
-    });
-  }
-  _db = new DatabaseSync(p === ":memory:" ? p : path.resolve(/* turbopackIgnore: true */ p));
-  _db.exec("PRAGMA foreign_keys = ON;");
-  _db.exec(DDL);
+async function initialize(): Promise<Db> {
+  const url = process.env.DATABASE_URL?.trim();
+  const engine = url
+    ? await createPostgresDb(url)
+    : await createSqliteDb(process.env.DATABASE_PATH ?? "./data/dev.db");
+  await engine.exec(ddl(engine.dialect));
   for (const m of MIGRATIONS) {
     try {
-      _db.exec(m);
+      await engine.exec(m);
     } catch {
       /* column already exists — fine */
     }
   }
-  return _db;
+  _engine = engine;
+  return engine;
+}
+
+function ensure(): Promise<Db> {
+  if (!_ready) _ready = initialize();
+  return _ready;
+}
+
+/**
+ * The app-wide database handle. Returns synchronously; the underlying engine
+ * (and its DDL/migrations) initializes on first use and every method awaits
+ * that initialization. All methods are async — repos await them.
+ */
+export function getDb(): Db {
+  if (_facade) return _facade;
+  _facade = {
+    get dialect() {
+      return _engine?.dialect ?? (process.env.DATABASE_URL?.trim() ? "postgres" : "sqlite");
+    },
+    async get(sql, ...params) {
+      return (await ensure()).get(sql, ...params);
+    },
+    async all(sql, ...params) {
+      return (await ensure()).all(sql, ...params);
+    },
+    async run(sql, ...params: SqlParam[]) {
+      return (await ensure()).run(sql, ...params);
+    },
+    async exec(sql) {
+      return (await ensure()).exec(sql);
+    },
+    async serialized(fn) {
+      return (await ensure()).serialized(fn);
+    },
+    async close() {
+      if (_ready) {
+        const engine = await _ready.catch(() => null);
+        await engine?.close();
+      }
+      _engine = null;
+      _ready = null;
+    },
+  };
+  return _facade;
 }
 
 /** Test helper: close and forget the singleton (e.g. between suites). */
 export function resetDbForTests(): void {
-  if (_db) {
-    try {
-      _db.close();
-    } catch {
-      /* already closed */
-    }
-    _db = null;
-  }
+  const engine = _engine;
+  _engine = null;
+  _ready = null;
+  _facade = null;
+  if (engine) void engine.close();
 }
 
 export function nowIso(): string {
@@ -476,3 +523,5 @@ export function nowIso(): string {
 export function newId(): string {
   return crypto.randomUUID();
 }
+
+export type { Db, SqlParam } from "./driver";

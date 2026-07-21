@@ -23,11 +23,11 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     return Response.json({
       matterId: matter.id,
       conflictStatus: matter.conflictStatus,
-      submissions: listConflictSubmissionsForMatter(matter.id),
+      submissions: (await listConflictSubmissionsForMatter(matter.id)),
     });
   } catch (e) {
     return errorResponse(e);
@@ -45,20 +45,20 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
 
     const parsed = schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid disposition payload");
 
-    applyConflictDisposition({
-      matterId: matter.id,
-      actingUserId: authed.account.id,
-      disposition: parsed.data.disposition,
-      internalNote: parsed.data.internalNote,
-    });
+    (await applyConflictDisposition({
+            matterId: matter.id,
+            actingUserId: authed.account.id,
+            disposition: parsed.data.disposition,
+            internalNote: parsed.data.internalNote,
+          }));
     return Response.json({
       matterId: matter.id,
-      conflictStatus: getMatter(matter.id)!.conflictStatus,
+      conflictStatus: (await getMatter(matter.id))!.conflictStatus,
     });
   } catch (e) {
     return errorResponse(e);

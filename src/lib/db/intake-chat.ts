@@ -51,12 +51,12 @@ function rowToMessage(r: Record<string, unknown>): ChatMessageRow {
   };
 }
 
-export function appendChatMessage(opts: {
+export async function appendChatMessage(opts: {
   sessionId: string;
   role: ChatRole;
   content: string;
   lang?: ChatLang;
-}): ChatMessageRow {
+}): Promise<ChatMessageRow> {
   if (!(CHAT_ROLES as readonly string[]).includes(opts.role)) {
     throw new Error("VALIDATION: unknown chat role");
   }
@@ -70,42 +70,50 @@ export function appendChatMessage(opts: {
   const db = getDb();
   const next =
     ((
-      db
-        .prepare(`SELECT MAX(seq) AS m FROM intake_chat_message WHERE session_id = ?`)
-        .get(opts.sessionId) as { m: number | null } | undefined
+      await db.get<{ m: number | null }>(
+        `SELECT MAX(seq) AS m FROM intake_chat_message WHERE session_id = ?`,
+        opts.sessionId
+      )
     )?.m ?? 0) + 1;
   const id = newId();
-  db.prepare(
+  await db.run(
     `INSERT INTO intake_chat_message (id, session_id, seq, role, content, lang, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(id, opts.sessionId, next, opts.role, opts.content, lang, nowIso());
-  return getChatMessage(id)!;
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    id,
+    opts.sessionId,
+    next,
+    opts.role,
+    opts.content,
+    lang,
+    nowIso()
+  );
+  return (await getChatMessage(id))!;
 }
 
 /** Convenience for machine markers — always English, always SYSTEM_EVENT. */
-export function appendSystemEvent(sessionId: string, content: string): ChatMessageRow {
+export async function appendSystemEvent(sessionId: string, content: string): Promise<ChatMessageRow> {
   return appendChatMessage({ sessionId, role: "SYSTEM_EVENT", content, lang: "en" });
 }
 
-export function getChatMessage(id: string): ChatMessageRow | null {
-  const r = getDb().prepare(`SELECT * FROM intake_chat_message WHERE id = ?`).get(id) as
-    | Record<string, unknown>
-    | undefined;
+export async function getChatMessage(id: string): Promise<ChatMessageRow | null> {
+  const r = await getDb().get(`SELECT * FROM intake_chat_message WHERE id = ?`, id);
   return r ? rowToMessage(r) : null;
 }
 
 /** The full transcript in order — what both the client pane and the
  *  attorney's read-only panel render. */
-export function listChatMessages(sessionId: string): ChatMessageRow[] {
-  const rows = getDb()
-    .prepare(`SELECT * FROM intake_chat_message WHERE session_id = ? ORDER BY seq ASC`)
-    .all(sessionId) as Record<string, unknown>[];
+export async function listChatMessages(sessionId: string): Promise<ChatMessageRow[]> {
+  const rows = await getDb().all(
+    `SELECT * FROM intake_chat_message WHERE session_id = ? ORDER BY seq ASC`,
+    sessionId
+  );
   return rows.map(rowToMessage);
 }
 
-export function countChatMessages(sessionId: string): number {
-  const r = getDb()
-    .prepare(`SELECT COUNT(*) AS c FROM intake_chat_message WHERE session_id = ?`)
-    .get(sessionId) as { c: number } | undefined;
+export async function countChatMessages(sessionId: string): Promise<number> {
+  const r = await getDb().get<{ c: number }>(
+    `SELECT COUNT(*) AS c FROM intake_chat_message WHERE session_id = ?`,
+    sessionId
+  );
   return r?.c ?? 0;
 }

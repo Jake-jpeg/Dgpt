@@ -38,35 +38,35 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     assertCsrf(req);
     const { account } = await requireAdmin(req);
     const { id } = await ctx.params;
-    const target = getUserById(id);
+    const target = (await getUserById(id));
     if (!target) throw new HttpError(404, "User not found");
 
     const parsed = patchSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid patch");
 
     if (parsed.data.role !== undefined && parsed.data.role !== target.role) {
-      setUserRole(id, parsed.data.role);
-      recordAudit(
-        id,
-        "USER_ROLE_CHANGED",
-        JSON.stringify({ from: target.role, to: parsed.data.role }),
-        account.id
-      );
+      (await setUserRole(id, parsed.data.role));
+      (await recordAudit(
+                id,
+                "USER_ROLE_CHANGED",
+                JSON.stringify({ from: target.role, to: parsed.data.role }),
+                account.id
+              ));
     }
     if (parsed.data.active !== undefined && parsed.data.active !== target.active) {
-      setUserActive(id, parsed.data.active);
-      recordAudit(
-        id,
-        parsed.data.active ? "USER_ACTIVATED" : "USER_DEACTIVATED",
-        undefined,
-        account.id
-      );
+      (await setUserActive(id, parsed.data.active));
+      (await recordAudit(
+                id,
+                parsed.data.active ? "USER_ACTIVATED" : "USER_DEACTIVATED",
+                undefined,
+                account.id
+              ));
     }
     if (parsed.data.clearSubject) {
-      clearUserSubject(id);
-      recordAudit(id, "USER_RELINK_AUTHORIZED", "subject cleared for re-bind", account.id);
+      (await clearUserSubject(id));
+      (await recordAudit(id, "USER_RELINK_AUTHORIZED", "subject cleared for re-bind", account.id));
     }
-    const updated = getUserById(id)!;
+    const updated = (await getUserById(id))!;
     return Response.json({
       user: { id: updated.id, email: updated.email, role: updated.role, active: updated.active },
     });
@@ -87,25 +87,25 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
     assertCsrf(req);
     const { account } = await requireAdmin(req);
     const { id } = await ctx.params;
-    const target = getUserById(id);
+    const target = (await getUserById(id));
     if (!target) throw new HttpError(404, "User not found");
 
-    if (countUserReferences(target) > 0) {
+    if ((await countUserReferences(target)) > 0) {
       throw new HttpError(409, "This account has case history — deactivate instead");
     }
 
-    const { deleted } = deleteUserIfUnreferenced(id);
+    const { deleted } = (await deleteUserIfUnreferenced(id));
     if (!deleted) {
       // Lost a race: a reference appeared between the check and the delete.
       throw new HttpError(409, "This account has case history — deactivate instead");
     }
     // Audit AFTER deletion, keyed by the (now-removed) row id, metadata only.
-    recordAudit(
-      id,
-      "USER_DELETED",
-      JSON.stringify({ email: target.email, role: target.role }),
-      account.id
-    );
+    (await recordAudit(
+            id,
+            "USER_DELETED",
+            JSON.stringify({ email: target.email, role: target.role }),
+            account.id
+          ));
     return Response.json({ deleted: true });
   } catch (e) {
     return errorResponse(e);

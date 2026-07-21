@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     const expected = `Bearer ${env("ADMIN_SECRET")}`;
     if (!auth || auth !== expected) throw new HttpError(401, "Unauthorized");
 
-    const purgedSessions = sweepAbandoned(retentionAbandonedDays());
+    const purgedSessions = (await sweepAbandoned(retentionAbandonedDays()));
     const matterReports = await sweepMatters();
     return Response.json({
       purged: purgedSessions.length,

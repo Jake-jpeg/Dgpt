@@ -56,28 +56,28 @@ export function isTerminated(v: unknown): v is TerminatedView {
 }
 
 /** Load a session and verify the caller owns it (or 404 — never leak existence). */
-export function requireOwnedSession(user: SessionUser, sessionId: string): SessionRow {
-  const s = getSession(sessionId);
+export async function requireOwnedSession(user: SessionUser, sessionId: string): Promise<SessionRow> {
+  const s = (await getSession(sessionId));
   if (!s || s.ownerSubject !== user.subject) {
     throw new HttpError(404, "Session not found");
   }
   return s;
 }
 
-export function startIntake(user: SessionUser, matterId?: string): SessionRow {
+export async function startIntake(user: SessionUser, matterId?: string): Promise<SessionRow> {
   // Both intake modes pass through the same wall: client-initiated and
   // staff/attorney-initiated sessions start in PRE_GATE, no exceptions.
   // ADMIN does not perform intake (least privilege).
   if (user.role === "ADMIN") {
     throw new HttpError(403, "Admins do not perform intake");
   }
-  const s = createSession({
-    initiatedBy: user.role,
-    ownerSubject: user.subject,
-    initialState: "PRE_GATE",
-    matterId,
-  });
-  recordAudit(s.id, "SESSION_STARTED", `initiatedBy=${user.role}`);
+  const s = (await createSession({
+      initiatedBy: user.role,
+      ownerSubject: user.subject,
+      initialState: "PRE_GATE",
+      matterId,
+    }));
+  (await recordAudit(s.id, "SESSION_STARTED", `initiatedBy=${user.role}`));
   return s;
 }
 
@@ -101,7 +101,7 @@ export async function submitIdentityAndCheck(
   sessionId: string,
   body: unknown
 ): Promise<{ result: "PENDING_REVIEW"; message: string; session: SessionRow }> {
-  const s = requireOwnedSession(user, sessionId);
+  const s = await requireOwnedSession(user, sessionId);
   if (s.state !== "PRE_GATE") {
     throw new HttpError(409, "Identity was already captured for this session");
   }
@@ -118,8 +118,8 @@ export async function submitIdentityAndCheck(
   const { clientParty, adverseParty } = parsed.data;
 
   // Persist bare identity so the screen is auditable while it runs…
-  setIdentity(sessionId, clientParty as PartyName, adverseParty as PartyName);
-  recordAudit(sessionId, "CONFLICT_SCREEN_RUN", `matter=${s.matterId}`);
+  (await setIdentity(sessionId, clientParty as PartyName, adverseParty as PartyName));
+  (await recordAudit(sessionId, "CONFLICT_SCREEN_RUN", `matter=${s.matterId}`));
 
   const raw = await getConflictProvider().check(
     clientParty as PartyName,
@@ -128,31 +128,31 @@ export async function submitIdentityAndCheck(
   // Automated screening maps ONLY onto non-terminal statuses.
   const screenResult = raw === "HIT" ? "POTENTIAL_MATCH" : "NO_APPARENT_MATCH";
 
-  recordConflictSubmission({
-    matterRef: s.matterId,
-    clientParty: clientParty as PartyName,
-    adverseParty: adverseParty as PartyName,
-    screenResult,
-    submittedBy: user.subject,
-  });
-  recordScreenStatus(s.matterId, screenResult);
+  (await recordConflictSubmission({
+        matterRef: s.matterId,
+        clientParty: clientParty as PartyName,
+        adverseParty: adverseParty as PartyName,
+        screenResult,
+        submittedBy: user.subject,
+      }));
+  (await recordScreenStatus(s.matterId, screenResult));
 
-  recordAudit(
-    sessionId,
-    "CONFLICT_SCREEN_RESULT",
-    JSON.stringify({
-      result: screenResult,
-      clientHash: hashNameForAudit(clientParty.fullLegalName),
-      adverseHash: hashNameForAudit(adverseParty.fullLegalName),
-    })
-  );
+  (await recordAudit(
+        sessionId,
+        "CONFLICT_SCREEN_RESULT",
+        JSON.stringify({
+          result: screenResult,
+          clientHash: hashNameForAudit(clientParty.fullLegalName),
+          adverseHash: hashNameForAudit(adverseParty.fullLegalName),
+        })
+      ));
 
   assertTransition("PRE_GATE", "CONFLICT_REVIEW_PENDING");
-  updateSession(sessionId, { state: "CONFLICT_REVIEW_PENDING" });
+  (await updateSession(sessionId, { state: "CONFLICT_REVIEW_PENDING" }));
   return {
     result: "PENDING_REVIEW",
     message: CONFLICT_PENDING_MESSAGE,
-    session: getSession(sessionId)!,
+    session: (await getSession(sessionId))!,
   };
 }
 
@@ -162,45 +162,45 @@ export async function submitIdentityAndCheck(
  * layer (attorneySetConflictDisposition / resolveLatestSubmission) — this
  * function orchestrates.
  */
-export function applyConflictDisposition(opts: {
+export async function applyConflictDisposition(opts: {
   matterId: string;
   actingUserId: string;
   disposition: "CLEARED" | "DECLINED" | "NEEDS_MORE_INFORMATION";
   internalNote?: string;
-}): void {
-  attorneySetConflictDisposition({
-    matterId: opts.matterId,
-    actingUserId: opts.actingUserId,
-    disposition: opts.disposition,
-  });
-  resolveLatestSubmission({
-    matterRef: opts.matterId,
-    actingUserId: opts.actingUserId,
-    disposition: opts.disposition,
-    internalNote: opts.internalNote,
-  });
-  recordAudit(
-    opts.matterId,
-    "CONFLICT_DISPOSITION",
-    `disposition=${opts.disposition}`,
-    opts.actingUserId
-  );
+}): Promise<void> {
+  (await attorneySetConflictDisposition({
+        matterId: opts.matterId,
+        actingUserId: opts.actingUserId,
+        disposition: opts.disposition,
+      }));
+  (await resolveLatestSubmission({
+        matterRef: opts.matterId,
+        actingUserId: opts.actingUserId,
+        disposition: opts.disposition,
+        internalNote: opts.internalNote,
+      }));
+  (await recordAudit(
+        opts.matterId,
+        "CONFLICT_DISPOSITION",
+        `disposition=${opts.disposition}`,
+        opts.actingUserId
+      ));
 
-  const sessions = listSessionsByMatter(opts.matterId);
+  const sessions = (await listSessionsByMatter(opts.matterId));
   if (opts.disposition === "CLEARED") {
     for (const sess of sessions) {
       if (sess.state === "CONFLICT_REVIEW_PENDING") {
         assertTransition("CONFLICT_REVIEW_PENDING", "GATE_RESIDENCY");
-        updateSession(sess.id, { state: "GATE_RESIDENCY", conflictClear: true });
-        recordAudit(sess.id, "CONFLICT_CLEARED_BY_ATTORNEY", undefined, opts.actingUserId);
+        (await updateSession(sess.id, { state: "GATE_RESIDENCY", conflictClear: true }));
+        (await recordAudit(sess.id, "CONFLICT_CLEARED_BY_ATTORNEY", undefined, opts.actingUserId));
       }
     }
   } else if (opts.disposition === "DECLINED") {
-    setMatterLifecycle(opts.matterId, "DECLINED");
+    (await setMatterLifecycle(opts.matterId, "DECLINED"));
     for (const sess of sessions) {
       // Substantive/session data goes; the retained conflict_submission and
       // the audit chain survive (they have no FK to the session or matter).
-      purgeSession(sess.id, "CONFLICT_DECLINED_BY_ATTORNEY");
+      (await purgeSession(sess.id, "CONFLICT_DECLINED_BY_ATTORNEY"));
     }
   }
 }
@@ -209,12 +209,12 @@ export function applyConflictDisposition(opts: {
  * Answer the CURRENT scope-gate question. The server decides which question
  * is current from the machine state — the client cannot pick or skip.
  */
-export function answerGate(
+export async function answerGate(
   user: SessionUser,
   sessionId: string,
   rawAnswer: unknown
-): { next: MachineState } | TerminatedView {
-  const s = requireOwnedSession(user, sessionId);
+): Promise<{ next: MachineState } | TerminatedView> {
+  const s = await requireOwnedSession(user, sessionId);
   if (!s.conflictClear) throw new HttpError(409, "Conflict check has not cleared");
   if (!isGateState(s.state)) {
     throw new HttpError(409, `No gate question pending in state ${s.state}`);
@@ -225,27 +225,27 @@ export function answerGate(
   if (evaluation.outcome === "OUT") {
     // Out-of-scope: serve the mapped static card, keep minimal audit, purge
     // everything substantive (including the tripping answer — never stored).
-    recordAudit(sessionId, evaluation.auditEvent, `card=${evaluation.card}`);
-    purgeSession(sessionId, evaluation.auditEvent);
+    (await recordAudit(sessionId, evaluation.auditEvent, `card=${evaluation.card}`));
+    (await purgeSession(sessionId, evaluation.auditEvent));
     return { status: "TERMINATED", card: getCard(evaluation.card) };
   }
 
   assertTransition(s.state, evaluation.next);
-  updateSession(sessionId, {
-    state: evaluation.next,
-    ...(evaluation.persist?.county ? { county: evaluation.persist.county } : {}),
-  });
-  recordAudit(sessionId, "GATE_PASSED", s.state);
+  (await updateSession(sessionId, {
+        state: evaluation.next,
+        ...(evaluation.persist?.county ? { county: evaluation.persist.county } : {}),
+      }));
+  (await recordAudit(sessionId, "GATE_PASSED", s.state));
   return { next: evaluation.next };
 }
 
 /** Answer the two tier-branch questions (assets / alimony). */
-export function answerBranch(
+export async function answerBranch(
   user: SessionUser,
   sessionId: string,
   body: unknown
-): { tier: "TIER1" | "TIER2" } | TerminatedView {
-  const s = requireOwnedSession(user, sessionId);
+): Promise<{ tier: "TIER1" | "TIER2" } | TerminatedView> {
+  const s = await requireOwnedSession(user, sessionId);
   if (s.state !== "TIER_BRANCH") {
     throw new HttpError(409, `Tier branching is not pending in state ${s.state}`);
   }
@@ -256,16 +256,16 @@ export function answerBranch(
 
   const outcome = evaluateBranch(parsed.data.branch_assets, parsed.data.branch_alimony);
   if (outcome.outcome === "OUT") {
-    recordAudit(sessionId, outcome.auditEvent, `card=${outcome.card}`);
-    purgeSession(sessionId, outcome.auditEvent);
+    (await recordAudit(sessionId, outcome.auditEvent, `card=${outcome.card}`));
+    (await purgeSession(sessionId, outcome.auditEvent));
     return { status: "TERMINATED", card: getCard(outcome.card) };
   }
 
-  insertAnswer(sessionId, "branch_assets", parsed.data.branch_assets);
-  insertAnswer(sessionId, "branch_alimony", parsed.data.branch_alimony);
+  (await insertAnswer(sessionId, "branch_assets", parsed.data.branch_assets));
+  (await insertAnswer(sessionId, "branch_alimony", parsed.data.branch_alimony));
   assertTransition("TIER_BRANCH", "INTAKE");
-  updateSession(sessionId, { state: "INTAKE", tier: outcome.outcome });
-  recordAudit(sessionId, "TIER_SELECTED", outcome.outcome);
+  (await updateSession(sessionId, { state: "INTAKE", tier: outcome.outcome }));
+  (await recordAudit(sessionId, "TIER_SELECTED", outcome.outcome));
   return { tier: outcome.outcome };
 }
 
@@ -275,12 +275,12 @@ export function answerBranch(
  * attorney (QDRO → continue) or trip out (valuation / business /
  * disagreement → Bergen Bar card + purge).
  */
-export function submitAnswers(
+export async function submitAnswers(
   user: SessionUser,
   sessionId: string,
   body: unknown
-): { saved: number; missing: string[] } | TerminatedView {
-  const s = requireOwnedSession(user, sessionId);
+): Promise<{ saved: number; missing: string[] } | TerminatedView> {
+  const s = await requireOwnedSession(user, sessionId);
   if (s.state !== "INTAKE" || !s.tier) {
     throw new HttpError(409, `Answers are not accepted in state ${s.state}`);
   }
@@ -303,45 +303,45 @@ export function submitAnswers(
   for (const a of validated) {
     const routing = routeAnswer(a.fieldId, a.value);
     if (routing.outcome === "OUT") {
-      recordAudit(sessionId, routing.auditEvent, `card=${routing.card}`);
-      purgeSession(sessionId, routing.auditEvent);
+      (await recordAudit(sessionId, routing.auditEvent, `card=${routing.card}`));
+      (await purgeSession(sessionId, routing.auditEvent));
       return { status: "TERMINATED", card: getCard(routing.card) };
     }
     if (routing.qdroFlag) qdro = true;
     if (routing.attorneyFlags) flags.push(...routing.attorneyFlags);
   }
 
-  for (const a of validated) insertAnswer(sessionId, a.fieldId, a.value);
-  if (qdro) updateSession(sessionId, { qdroFlag: true });
-  for (const f of flags) addAttorneyFlag(sessionId, f);
-  touchSession(sessionId);
+  for (const a of validated) (await insertAnswer(sessionId, a.fieldId, a.value));
+  if (qdro) (await updateSession(sessionId, { qdroFlag: true }));
+  for (const f of flags) (await addAttorneyFlag(sessionId, f));
+  (await touchSession(sessionId));
 
-  const missing = missingRequiredFields(s.tier, getAnswers(sessionId));
+  const missing = missingRequiredFields(s.tier, (await getAnswers(sessionId)));
   return { saved: validated.length, missing };
 }
 
 /** Completion: verify every required field is answered → READY_FOR_REVIEW. */
-export function completeIntake(
+export async function completeIntake(
   user: SessionUser,
   sessionId: string
-): { state: "READY_FOR_REVIEW" } {
-  const s = requireOwnedSession(user, sessionId);
+): Promise<{ state: "READY_FOR_REVIEW" }> {
+  const s = await requireOwnedSession(user, sessionId);
   if (s.state !== "INTAKE" || !s.tier) {
     throw new HttpError(409, `Cannot complete from state ${s.state}`);
   }
-  const missing = missingRequiredFields(s.tier, getAnswers(sessionId));
+  const missing = missingRequiredFields(s.tier, (await getAnswers(sessionId)));
   if (missing.length > 0) {
     throw new HttpError(400, `VALIDATION: intake incomplete: ${missing.join(", ")}`);
   }
   assertTransition("INTAKE", "READY_FOR_REVIEW");
-  updateSession(sessionId, { state: "READY_FOR_REVIEW" });
-  recordAudit(sessionId, "READY_FOR_REVIEW");
+  (await updateSession(sessionId, { state: "READY_FOR_REVIEW" }));
+  (await recordAudit(sessionId, "READY_FOR_REVIEW"));
   return { state: "READY_FOR_REVIEW" };
 }
 
 /** What the client UI needs to render the current step. Never leaks other sessions. */
-export function sessionView(user: SessionUser, sessionId: string) {
-  const s = requireOwnedSession(user, sessionId);
+export async function sessionView(user: SessionUser, sessionId: string) {
+  const s = await requireOwnedSession(user, sessionId);
   const base = {
     id: s.id,
     state: s.state,
@@ -363,8 +363,8 @@ export function sessionView(user: SessionUser, sessionId: string) {
     return {
       ...base,
       sections: sectionsForTier(s.tier),
-      answers: getAnswers(s.id),
-      missing: missingRequiredFields(s.tier, getAnswers(s.id)),
+      answers: (await getAnswers(s.id)),
+      missing: missingRequiredFields(s.tier, (await getAnswers(s.id))),
     };
   }
   return base;

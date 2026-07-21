@@ -59,23 +59,23 @@ function bytesOf(s: string): Uint8Array<ArrayBuffer> {
 
 async function storedVersion(content: string, opts: { docKind?: "GENERAL" | "AI_DRAFT" } = {}) {
   const stored = await getFileStorage().put(bytesOf(content));
-  const attorney = provisionAccount(SYNTH_ATTORNEY);
-  const doc = createDocument({
-    matterId: ctx.matterId,
-    title: "Synthetic Draft",
-    docKind: opts.docKind ?? "GENERAL",
-    createdBy: attorney.id,
-  });
-  const version = addDocumentVersion({
-    documentId: doc.id,
-    storageKey: stored.storageKey,
-    sha256: stored.sha256,
-    mime: "text/plain",
-    sizeBytes: stored.sizeBytes,
-    source: "INTERNAL",
-    createdBy: attorney.id,
-    initialStatus: "ATTORNEY_REVIEW_REQUIRED",
-  });
+  const attorney = (await provisionAccount(SYNTH_ATTORNEY));
+  const doc = (await createDocument({
+      matterId: ctx.matterId,
+      title: "Synthetic Draft",
+      docKind: opts.docKind ?? "GENERAL",
+      createdBy: attorney.id,
+    }));
+  const version = (await addDocumentVersion({
+      documentId: doc.id,
+      storageKey: stored.storageKey,
+      sha256: stored.sha256,
+      mime: "text/plain",
+      sizeBytes: stored.sizeBytes,
+      source: "INTERNAL",
+      createdBy: attorney.id,
+      initialStatus: "ATTORNEY_REVIEW_REQUIRED",
+    }));
   return { doc, version, attorney, stored };
 }
 
@@ -150,90 +150,90 @@ describe("uploads", () => {
 describe("approval is version-exact and hash-bound", () => {
   it("attorney approves an exact version; approval records id + sha256 + type + destination", async () => {
     const { version, attorney } = await storedVersion("v1 content");
-    const approval = approveVersion({
-      versionId: version.id,
-      actingUserId: attorney.id,
-      approvalType: "FOR_CLIENT",
-      destination: "CLIENT_PORTAL",
-    });
+    const approval = (await approveVersion({
+          versionId: version.id,
+          actingUserId: attorney.id,
+          approvalType: "FOR_CLIENT",
+          destination: "CLIENT_PORTAL",
+        }));
     expect(approval.documentVersionId).toBe(version.id);
     expect(approval.sha256).toBe(version.sha256);
-    expect(getVersion(version.id)!.status).toBe("APPROVED_FOR_CLIENT");
+    expect((await getVersion(version.id))!.status).toBe("APPROVED_FOR_CLIENT");
   });
 
   it("a revised version begins unapproved and the old approval does not transfer", async () => {
     const { doc, version, attorney } = await storedVersion("v1 content");
-    approveVersion({
-      versionId: version.id,
-      actingUserId: attorney.id,
-      approvalType: "FOR_CLIENT",
-      destination: "CLIENT_PORTAL",
-    });
+    (await approveVersion({
+            versionId: version.id,
+            actingUserId: attorney.id,
+            approvalType: "FOR_CLIENT",
+            destination: "CLIENT_PORTAL",
+          }));
     const stored2 = await getFileStorage().put(bytesOf("v2 content — changed"));
-    const v2 = addDocumentVersion({
-      documentId: doc.id,
-      storageKey: stored2.storageKey,
-      sha256: stored2.sha256,
-      mime: "text/plain",
-      sizeBytes: stored2.sizeBytes,
-      source: "INTERNAL",
-      createdBy: attorney.id,
-      initialStatus: "ATTORNEY_REVIEW_REQUIRED",
-    });
+    const v2 = (await addDocumentVersion({
+          documentId: doc.id,
+          storageKey: stored2.storageKey,
+          sha256: stored2.sha256,
+          mime: "text/plain",
+          sizeBytes: stored2.sizeBytes,
+          source: "INTERNAL",
+          createdBy: attorney.id,
+          initialStatus: "ATTORNEY_REVIEW_REQUIRED",
+        }));
     expect(v2.status).toBe("ATTORNEY_REVIEW_REQUIRED");
-    expect(listApprovalsForVersion(v2.id)).toEqual([]);
+    expect((await listApprovalsForVersion(v2.id))).toEqual([]);
     // v1 got superseded — its approval can no longer release anything.
-    expect(getVersion(version.id)!.status).toBe("SUPERSEDED");
-    expect(() =>
+    expect((await getVersion(version.id))!.status).toBe("SUPERSEDED");
+    await expect(
       releaseVersion({
         versionId: version.id,
         actingUserId: attorney.id,
         destination: "CLIENT_PORTAL",
         contentSha256: version.sha256,
-      })
-    ).toThrow(/DOCUMENT_GUARD/);
+        })
+    ).rejects.toThrow(/DOCUMENT_GUARD/);
     // And v2 cannot ride on v1's approval.
-    expect(() =>
+    await expect(
       releaseVersion({
         versionId: v2.id,
         actingUserId: attorney.id,
         destination: "CLIENT_PORTAL",
         contentSha256: stored2.sha256,
-      })
-    ).toThrow(/DOCUMENT_GUARD/);
+        })
+    ).rejects.toThrow(/DOCUMENT_GUARD/);
   });
 
   it("STAFF and ADMIN cannot approve or release — structurally", async () => {
     const { version } = await storedVersion("v1 content");
-    const staff = provisionAccount(STAFF_USER);
-    setUserRole(staff.id, "STAFF");
-    const admin = provisionAccount(ADMIN_USER);
-    setUserRole(admin.id, "ADMIN");
+    const staff = (await provisionAccount(STAFF_USER));
+    (await setUserRole(staff.id, "STAFF"));
+    const admin = (await provisionAccount(ADMIN_USER));
+    (await setUserRole(admin.id, "ADMIN"));
     for (const actor of [staff, admin]) {
-      expect(() =>
-        approveVersion({
-          versionId: version.id,
-          actingUserId: actor.id,
-          approvalType: "FOR_CLIENT",
-          destination: "CLIENT_PORTAL",
+      await expect(
+      approveVersion({
+        versionId: version.id,
+        actingUserId: actor.id,
+        approvalType: "FOR_CLIENT",
+        destination: "CLIENT_PORTAL",
         })
-      ).toThrow(/DOCUMENT_GUARD/);
-      expect(() =>
-        releaseVersion({
-          versionId: version.id,
-          actingUserId: actor.id,
-          destination: "CLIENT_PORTAL",
-          contentSha256: version.sha256,
+    ).rejects.toThrow(/DOCUMENT_GUARD/);
+      await expect(
+      releaseVersion({
+        versionId: version.id,
+        actingUserId: actor.id,
+        destination: "CLIENT_PORTAL",
+        contentSha256: version.sha256,
         })
-      ).toThrow(/DOCUMENT_GUARD/);
+    ).rejects.toThrow(/DOCUMENT_GUARD/);
     }
   });
 
   it("STAFF and ADMIN are refused at the API layer too", async () => {
     const { version } = await storedVersion("v1 content");
     for (const user of [STAFF_USER, ADMIN_USER]) {
-      const account = provisionAccount(user);
-      setUserRole(account.id, user.role);
+      const account = (await provisionAccount(user));
+      (await setUserRole(account.id, user.role));
       freshLimits();
       const res = await approvePost(
         jsonRequest(`/api/document-versions/${version.id}/approve`, {
@@ -248,12 +248,12 @@ describe("approval is version-exact and hash-bound", () => {
 
   it("release verifies hash against the ACTUAL stored bytes", async () => {
     const { version, attorney, stored } = await storedVersion("v1 content");
-    approveVersion({
-      versionId: version.id,
-      actingUserId: attorney.id,
-      approvalType: "FOR_CLIENT",
-      destination: "CLIENT_PORTAL",
-    });
+    (await approveVersion({
+            versionId: version.id,
+            actingUserId: attorney.id,
+            approvalType: "FOR_CLIENT",
+            destination: "CLIENT_PORTAL",
+          }));
     // Tamper with the stored file AFTER approval.
     const storage = getFileStorage() as LocalFileStorage;
     await storage.delete(stored.storageKey);
@@ -276,20 +276,20 @@ describe("approval is version-exact and hash-bound", () => {
 
   it("release to a destination the approval did not authorize is refused", async () => {
     const { version, attorney } = await storedVersion("v1 content");
-    approveVersion({
-      versionId: version.id,
-      actingUserId: attorney.id,
-      approvalType: "FOR_CLIENT",
-      destination: "CLIENT_PORTAL",
-    });
-    expect(() =>
+    (await approveVersion({
+            versionId: version.id,
+            actingUserId: attorney.id,
+            approvalType: "FOR_CLIENT",
+            destination: "CLIENT_PORTAL",
+          }));
+    await expect(
       releaseVersion({
         versionId: version.id,
         actingUserId: attorney.id,
         destination: "FILING",
         contentSha256: version.sha256,
-      })
-    ).toThrow(/DOCUMENT_GUARD/);
+        })
+    ).rejects.toThrow(/DOCUMENT_GUARD/);
   });
 });
 
@@ -323,18 +323,18 @@ describe("client visibility", () => {
     expect(dlAi.status).toBe(404);
 
     // Approve + release the first one → becomes visible and downloadable.
-    approveVersion({
-      versionId: version.id,
-      actingUserId: attorney.id,
-      approvalType: "FOR_CLIENT",
-      destination: "CLIENT_PORTAL",
-    });
-    releaseVersion({
-      versionId: version.id,
-      actingUserId: attorney.id,
-      destination: "CLIENT_PORTAL",
-      contentSha256: version.sha256,
-    });
+    (await approveVersion({
+            versionId: version.id,
+            actingUserId: attorney.id,
+            approvalType: "FOR_CLIENT",
+            destination: "CLIENT_PORTAL",
+          }));
+    (await releaseVersion({
+            versionId: version.id,
+            actingUserId: attorney.id,
+            destination: "CLIENT_PORTAL",
+            contentSha256: version.sha256,
+          }));
     freshLimits();
     res = await docsGet(
       jsonRequest(`/api/matters/${ctx.matterId}/documents`, { method: "GET", cookie: clientCookie }),
@@ -359,7 +359,7 @@ describe("client visibility", () => {
       email: "othermatter@example.test",
       name: "Other",
     };
-    provisionAccount(other);
+    (await provisionAccount(other));
     freshLimits();
     const res = await docsGet(
       jsonRequest(`/api/matters/${ctx.matterId}/documents`, { method: "GET", cookie: await cookieFor(other) }),

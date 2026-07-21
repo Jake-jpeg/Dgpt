@@ -10,7 +10,7 @@ import { getDb, newId, nowIso } from "@/lib/db/index";
 import { recordAudit } from "@/lib/db/repo";
 import type { AiFeature } from "./types";
 
-export function logAiInvocation(opts: {
+export async function logAiInvocation(opts: {
   matterId: string | null;
   userId: string;
   feature: AiFeature;
@@ -23,14 +23,19 @@ export function logAiInvocation(opts: {
    * prompt content.
    */
   detail?: string;
-}): void {
-  getDb()
-    .prepare(
-      `INSERT INTO ai_invocation (id, matter_ref, user_ref, feature, model, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(newId(), opts.matterId, opts.userId, opts.feature, opts.model, opts.status, nowIso());
-  recordAudit(
+}): Promise<void> {
+  await getDb().run(
+    `INSERT INTO ai_invocation (id, matter_ref, user_ref, feature, model, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    newId(),
+    opts.matterId,
+    opts.userId,
+    opts.feature,
+    opts.model,
+    opts.status,
+    nowIso()
+  );
+  await recordAudit(
     opts.matterId ?? "no-matter",
     "AI_INVOCATION",
     `feature=${opts.feature} model=${opts.model} status=${opts.status}` +
@@ -39,8 +44,9 @@ export function logAiInvocation(opts: {
   );
 }
 
-export function listAiInvocations(matterId: string) {
-  return getDb()
-    .prepare(`SELECT feature, model, status, created_at FROM ai_invocation WHERE matter_ref = ? ORDER BY created_at DESC`)
-    .all(matterId) as { feature: string; model: string; status: string; created_at: string }[];
+export async function listAiInvocations(matterId: string) {
+  return getDb().all<{ feature: string; model: string; status: string; created_at: string }>(
+    `SELECT feature, model, status, created_at FROM ai_invocation WHERE matter_ref = ? ORDER BY created_at DESC`,
+    matterId
+  );
 }

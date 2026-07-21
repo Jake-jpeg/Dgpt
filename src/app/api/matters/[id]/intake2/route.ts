@@ -27,7 +27,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["CLIENT", "STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     const role = authed.account.role;
 
     if (role === "CLIENT" && matter.conflictStatus !== "CLEARED") {
@@ -39,7 +39,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     }
 
     const schema = schemaForMatter(matter);
-    const answers = getMatterAnswers(matter.id);
+    const answers = (await getMatterAnswers(matter.id));
     const audience = role === "CLIENT" ? "CLIENT" : role === "STAFF" ? "STAFF" : "ATTORNEY";
     const items = visibleItems(schema, answers, audience).map((i) => ({
       id: i.id,
@@ -95,15 +95,15 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
     assertCsrf(req);
     const authed = await requireUser(req, ["CLIENT", "STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     const parsed = putSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid answers payload");
-    const result = saveMatterAnswers({
-      matterId: matter.id,
-      actingUserId: authed.account.id,
-      answers: parsed.data.answers.map((a) => ({ questionId: a.questionId, value: a.value ?? null })),
-    });
-    recordAudit(matter.id, "INTAKE2_ANSWERS_SAVED", `count=${result.saved}`, authed.account.id);
+    const result = (await saveMatterAnswers({
+          matterId: matter.id,
+          actingUserId: authed.account.id,
+          answers: parsed.data.answers.map((a) => ({ questionId: a.questionId, value: a.value ?? null })),
+        }));
+    (await recordAudit(matter.id, "INTAKE2_ANSWERS_SAVED", `count=${result.saved}`, authed.account.id));
     return Response.json({ saved: result.saved });
   } catch (e) {
     return errorResponse(e);

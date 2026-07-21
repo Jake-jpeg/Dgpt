@@ -8,11 +8,14 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:pg": "vitest run --config vitest.pg.config.ts"
   },
   "dependencies": {
+    "@types/pg": "^8.20.0",
     "jose": "^6.0.11",
     "next": "^16.0.10",
+    "pg": "^8.22.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "zod": "^3.25.0"

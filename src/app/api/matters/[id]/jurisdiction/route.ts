@@ -39,8 +39,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
-    const answers = getMatterAnswers(matter.id);
+    const matter = (await requireMatterAccess(authed, id));
+    const answers = (await getMatterAnswers(matter.id));
     const signals = jurisdictionSignals(answers);
     return Response.json({
       factsCollected: Object.fromEntries(
@@ -56,7 +56,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         jurisdictionCandidate: matter.jurisdictionCandidate,
         jurisdictionConfirmed: matter.jurisdictionConfirmed,
         jurisdictionConfirmedBy: matter.jurisdictionConfirmedBy
-          ? (getUserById(matter.jurisdictionConfirmedBy)?.email ?? matter.jurisdictionConfirmedBy)
+          ? ((await getUserById(matter.jurisdictionConfirmedBy))?.email ?? matter.jurisdictionConfirmedBy)
           : null,
         jurisdictionConfirmedAt: matter.jurisdictionConfirmedAt,
         matterCategory: matter.matterCategory,
@@ -86,21 +86,21 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     const parsed = postSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid jurisdiction payload");
 
-    const updated = attorneySetJurisdictionAndScope({
-      matterId: matter.id,
-      actingUserId: authed.account.id,
-      ...parsed.data,
-    });
-    recordAudit(
-      matter.id,
-      "JURISDICTION_SCOPE_SET",
-      `jurisdiction=${updated.jurisdictionConfirmed ?? "-"} category=${updated.matterCategory ?? "-"} scope=${updated.scopeStatus}`,
-      authed.account.id
-    );
+    const updated = (await attorneySetJurisdictionAndScope({
+          matterId: matter.id,
+          actingUserId: authed.account.id,
+          ...parsed.data,
+        }));
+    (await recordAudit(
+            matter.id,
+            "JURISDICTION_SCOPE_SET",
+            `jurisdiction=${updated.jurisdictionConfirmed ?? "-"} category=${updated.matterCategory ?? "-"} scope=${updated.scopeStatus}`,
+            authed.account.id
+          ));
     return Response.json({
       matter: {
         id: updated.id,

@@ -163,11 +163,11 @@ function enableAi() {
 }
 
 async function saveClientAnswer(questionId: string, value: unknown) {
-  return saveMatterAnswers({
-    matterId: ctx.matterId,
-    actingUserId: ctx.clientUserId,
-    answers: [{ questionId, value }],
-  });
+  return (await saveMatterAnswers({
+      matterId: ctx.matterId,
+      actingUserId: ctx.clientUserId,
+      answers: [{ questionId, value }],
+    }));
 }
 
 async function uploadTextDoc(cookie: string, filename: string, text: string, title?: string) {
@@ -368,13 +368,13 @@ describe("E3 client-language surface", () => {
 
   it("client view never contains statutes, authority IDs, review metadata, or attorney determinations", async () => {
     await clearMatter(ctx.matterId);
-    attorneySetJurisdictionAndScope({
-      matterId: ctx.matterId,
-      actingUserId: ctx.attorneyUserId,
-      jurisdictionConfirmed: "NJ",
-      matterCategory: "NJ_FM_DIVORCE_UNCONTESTED",
-      scopeStatus: "ACCEPTED",
-    });
+    (await attorneySetJurisdictionAndScope({
+            matterId: ctx.matterId,
+            actingUserId: ctx.attorneyUserId,
+            jurisdictionConfirmed: "NJ",
+            matterCategory: "NJ_FM_DIVORCE_UNCONTESTED",
+            scopeStatus: "ACCEPTED",
+          }));
     freshLimits();
     const res = await intake2Get(
       jsonRequest(`/api/matters/${ctx.matterId}/intake2`, { method: "GET", cookie: clientCookie }),
@@ -495,9 +495,10 @@ describe("E4 AI security", () => {
       runAiAction({ matterId: ctx.matterId, actingUserId: ctx.clientUserId, action: "GENERATE_INTAKE_MEMO" })
     ).rejects.toThrow(/AI_GUARD/);
     expect(mock).not.toHaveBeenCalled();
-    const row = getDb()
-      .prepare(`SELECT status FROM ai_invocation WHERE matter_ref = ? ORDER BY created_at DESC`)
-      .get(ctx.matterId) as { status: string } | undefined;
+    const row = (await getDb().get<{ status: string }>(
+      `SELECT status FROM ai_invocation WHERE matter_ref = ? ORDER BY created_at DESC`,
+      ctx.matterId
+    ));
     expect(row?.status).toBe("DENIED");
   });
 
@@ -540,10 +541,10 @@ describe("E4 AI security", () => {
       "Synthetic injection letter"
     );
     expect(up.status).toBe(201);
-    const doc = listDocumentsForMatter(ctx.matterId)[0];
-    const version = listVersions(doc.id)[0];
+    const doc = (await listDocumentsForMatter(ctx.matterId))[0];
+    const version = (await listVersions(doc.id))[0];
     await extractDocumentText(version.id);
-    const { contextJson, documentVersionIds } = buildMatterContext(ctx.matterId);
+    const { contextJson, documentVersionIds } = (await buildMatterContext(ctx.matterId));
     expect(documentVersionIds.has(version.id)).toBe(true);
     expect(contextJson).toContain("IGNORE ALL PREVIOUS INSTRUCTIONS");
     // The snapshot allowlist rides along so the model can cite ONLY known IDs.
@@ -574,12 +575,12 @@ describe("E4 AI security", () => {
     await saveClientAnswer("shared.identity.client_name", "LOG-SENTINEL-CLIENT-NAME");
     mockResponsesFetch(memoReport({ answerIds: ["shared.identity.client_name"] }));
     await runAiAction({ matterId: ctx.matterId, actingUserId: ctx.attorneyUserId, action: "GENERATE_INTAKE_MEMO" });
-    const rows = getDb().prepare(`SELECT * FROM ai_invocation WHERE matter_ref = ?`).all(ctx.matterId);
+    const rows = (await getDb().all(`SELECT * FROM ai_invocation WHERE matter_ref = ?`, ctx.matterId));
     const dump = JSON.stringify(rows);
     expect(dump).not.toContain("LOG-SENTINEL-CLIENT-NAME");
     expect(dump).toContain(PROMPT_VERSION);
     expect(dump).toContain("resp_synthetic_eval");
-    const audit = getDb().prepare(`SELECT detail FROM audit_event`).all() as { detail: string | null }[];
+    const audit = (await getDb().all<{ detail: string | null }>(`SELECT detail FROM audit_event`));
     expect(JSON.stringify(audit)).not.toContain("LOG-SENTINEL-CLIENT-NAME");
   });
 });
@@ -637,18 +638,20 @@ describe("E5 provenance validation", () => {
     await clearMatter(ctx.matterId);
     enableAi();
     mockResponsesFetch(memoReport({ authorityIds: ["NJ-FAKE-STATUTE-999"] }));
-    const before = listDocumentsForMatter(ctx.matterId).length;
+    const before = (await listDocumentsForMatter(ctx.matterId)).length;
     await expect(
       runAiAction({ matterId: ctx.matterId, actingUserId: ctx.attorneyUserId, action: "GENERATE_INTAKE_MEMO" })
     ).rejects.toThrow(/structured output rejected/);
-    expect(listDocumentsForMatter(ctx.matterId).length).toBe(before);
-    const row = getDb()
-      .prepare(`SELECT status FROM ai_invocation WHERE matter_ref = ? ORDER BY created_at DESC`)
-      .get(ctx.matterId) as { status: string };
+    expect((await listDocumentsForMatter(ctx.matterId)).length).toBe(before);
+    const row = (await getDb().get<{ status: string }>(
+      `SELECT status FROM ai_invocation WHERE matter_ref = ? ORDER BY created_at DESC`,
+      ctx.matterId
+    ))!;
     expect(row.status).toBe("REJECTED_OUTPUT");
-    const audit = getDb()
-      .prepare(`SELECT event FROM audit_event WHERE session_ref = ? ORDER BY created_at DESC`)
-      .all(ctx.matterId) as { event: string }[];
+    const audit = (await getDb().all<{ event: string }>(
+      `SELECT event FROM audit_event WHERE session_ref = ? ORDER BY created_at DESC`,
+      ctx.matterId
+    ));
     expect(audit.some((a) => a.event === "AI_OUTPUT_REJECTED")).toBe(true);
   });
 
@@ -659,7 +662,7 @@ describe("E5 provenance validation", () => {
     await expect(
       runAiAction({ matterId: ctx.matterId, actingUserId: ctx.attorneyUserId, action: "GENERATE_INTAKE_MEMO" })
     ).rejects.toThrow(/AI_GUARD/);
-    expect(listDocumentsForMatter(ctx.matterId).some((d) => d.docKind === "AI_DRAFT")).toBe(false);
+    expect((await listDocumentsForMatter(ctx.matterId)).some((d) => d.docKind === "AI_DRAFT")).toBe(false);
   });
 });
 
@@ -677,8 +680,8 @@ describe("E6 approval & materialization", () => {
       action: "GENERATE_INTAKE_MEMO",
     });
     expect(result.status).toBe("ATTORNEY_REVIEW_REQUIRED");
-    const doc = listDocumentsForMatter(ctx.matterId).find((d) => d.docKind === "AI_DRAFT")!;
-    const version = listVersions(doc.id)[0];
+    const doc = (await listDocumentsForMatter(ctx.matterId)).find((d) => d.docKind === "AI_DRAFT")!;
+    const version = (await listVersions(doc.id))[0];
     expect(version.source).toBe("AI");
 
     // Release without a live approval must be refused by the server.
@@ -722,8 +725,8 @@ describe("E6 approval & materialization", () => {
   it("staff can invoke actions; the artifact still requires attorney review", async () => {
     await clearMatter(ctx.matterId);
     enableAi();
-    const staff = provisionAccount(SYNTH_STAFF);
-    grantMatterAccess(ctx.matterId, staff.id, ctx.attorneyUserId);
+    const staff = (await provisionAccount(SYNTH_STAFF));
+    (await grantMatterAccess(ctx.matterId, staff.id, ctx.attorneyUserId));
     mockResponsesFetch(memoReport({}));
     const result = await runAiAction({
       matterId: ctx.matterId,
@@ -745,19 +748,19 @@ describe("E7 state scenarios & form readiness", () => {
 
   it("jurisdiction unconfirmed → NOT_READY_JURISDICTION_REVIEW; then missing facts dominate", async () => {
     await clearMatter(ctx.matterId);
-    const matter = getMatter(ctx.matterId)!;
+    const matter = (await getMatter(ctx.matterId))!;
     const schema = schemaForMatter(matter);
     const r1 = buildFormReadiness(matter, schema, {}, {});
     expect(r1.status).toBe("NOT_READY_JURISDICTION_REVIEW");
 
-    attorneySetJurisdictionAndScope({
-      matterId: ctx.matterId,
-      actingUserId: ctx.attorneyUserId,
-      jurisdictionConfirmed: "NJ",
-      matterCategory: "NJ_FM_DIVORCE_UNCONTESTED",
-      scopeStatus: "ACCEPTED",
-    });
-    const confirmed = getMatter(ctx.matterId)!;
+    (await attorneySetJurisdictionAndScope({
+            matterId: ctx.matterId,
+            actingUserId: ctx.attorneyUserId,
+            jurisdictionConfirmed: "NJ",
+            matterCategory: "NJ_FM_DIVORCE_UNCONTESTED",
+            scopeStatus: "ACCEPTED",
+          }));
+    const confirmed = (await getMatter(ctx.matterId))!;
     const r2 = buildFormReadiness(confirmed, schemaForMatter(confirmed), {}, {});
     expect(r2.status).toBe("NOT_READY_MISSING_FACTS");
     expect(r2.disclaimer).toMatch(/not a filing-readiness determination/i);
@@ -765,14 +768,14 @@ describe("E7 state scenarios & form readiness", () => {
 
   it("NY matters flag superseded/unverified official-form versions for attorney review", async () => {
     await clearMatter(ctx.matterId);
-    attorneySetJurisdictionAndScope({
-      matterId: ctx.matterId,
-      actingUserId: ctx.attorneyUserId,
-      jurisdictionConfirmed: "NY",
-      matterCategory: "NY_SUPREME_UNCONTESTED",
-      scopeStatus: "ACCEPTED",
-    });
-    const matter = getMatter(ctx.matterId)!;
+    (await attorneySetJurisdictionAndScope({
+            matterId: ctx.matterId,
+            actingUserId: ctx.attorneyUserId,
+            jurisdictionConfirmed: "NY",
+            matterCategory: "NY_SUPREME_UNCONTESTED",
+            scopeStatus: "ACCEPTED",
+          }));
+    const matter = (await getMatter(ctx.matterId))!;
     const report = buildFormReadiness(matter, schemaForMatter(matter), {}, {});
     expect(JSON.stringify(report.reasons)).toMatch(/form version review/i);
   });
@@ -801,8 +804,8 @@ describe("E7 state scenarios & form readiness", () => {
 
   it("STAFF cannot set jurisdiction/category; ATTORNEY can, and the schema re-pins", async () => {
     await clearMatter(ctx.matterId);
-    const staff = provisionAccount(SYNTH_STAFF);
-    grantMatterAccess(ctx.matterId, staff.id, ctx.attorneyUserId);
+    const staff = (await provisionAccount(SYNTH_STAFF));
+    (await grantMatterAccess(ctx.matterId, staff.id, ctx.attorneyUserId));
     freshLimits();
     const staffTry = await jurisdictionPost(
       jsonRequest(`/api/matters/${ctx.matterId}/jurisdiction`, {
@@ -822,7 +825,7 @@ describe("E7 state scenarios & form readiness", () => {
       params({ id: ctx.matterId })
     );
     expect(attorneyTry.status).toBe(200);
-    const matter = getMatter(ctx.matterId)!;
+    const matter = (await getMatter(ctx.matterId))!;
     expect(matter.matterCategory).toBe("NJ_FM_DIVORCE_UNCONTESTED");
     expect(matter.intakeSchemaVersion).toBe(INTAKE_SCHEMA_VERSION);
   });
@@ -846,17 +849,17 @@ describe("E7 state scenarios & form readiness", () => {
       params({ id: ctx.matterId })
     );
     expect(res.status).toBe(201);
-    const doc = listDocumentsForMatter(ctx.matterId)[0];
-    const version = listVersions(doc.id)[0];
-    const staff = provisionAccount(SYNTH_STAFF);
-    grantMatterAccess(ctx.matterId, staff.id, ctx.attorneyUserId);
+    const doc = (await listDocumentsForMatter(ctx.matterId))[0];
+    const version = (await listVersions(doc.id))[0];
+    const staff = (await provisionAccount(SYNTH_STAFF));
+    (await grantMatterAccess(ctx.matterId, staff.id, ctx.attorneyUserId));
     freshLimits();
     const ex = await extractPost(
       jsonRequest(`/api/document-versions/${version.id}/extract`, { cookie: await cookieFor(SYNTH_STAFF) }),
       params({ id: version.id })
     );
     expect(ex.status).toBe(200);
-    const extraction = getExtraction(version.id)!;
+    const extraction = (await getExtraction(version.id))!;
     expect(extraction.status).toBe("UNSUPPORTED");
     expect(extraction.locatorNote).toContain("[INCOMPLETE]");
     expect(extraction.text).toBeNull();

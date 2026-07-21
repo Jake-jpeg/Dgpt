@@ -24,27 +24,27 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     const parsed = schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid payload");
 
-    const target = getUserById(parsed.data.userId);
+    const target = (await getUserById(parsed.data.userId));
     if (!target || !target.active) throw new HttpError(404, "User not found");
     if (target.role === "CLIENT") {
       throw new HttpError(400, "Clients join a matter only through an invitation");
     }
 
     if (parsed.data.action === "GRANT") {
-      grantMatterAccess(matter.id, target.id, authed.account.id);
+      (await grantMatterAccess(matter.id, target.id, authed.account.id));
     } else {
-      revokeMatterAccess(matter.id, target.id);
+      (await revokeMatterAccess(matter.id, target.id));
     }
-    recordAudit(
-      matter.id,
-      parsed.data.action === "GRANT" ? "MATTER_ACCESS_GRANTED" : "MATTER_ACCESS_REVOKED",
-      `user=${target.id}`,
-      authed.account.id
-    );
+    (await recordAudit(
+            matter.id,
+            parsed.data.action === "GRANT" ? "MATTER_ACCESS_GRANTED" : "MATTER_ACCESS_REVOKED",
+            `user=${target.id}`,
+            authed.account.id
+          ));
     return Response.json({ ok: true });
   } catch (e) {
     return errorResponse(e);

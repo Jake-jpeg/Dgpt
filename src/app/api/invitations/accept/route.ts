@@ -47,12 +47,12 @@ export async function POST(req: Request) {
     if (!parsed.success) throw new HttpError(400, NEUTRAL_MESSAGE);
 
     // Existing account, if any. Firm accounts never accept invitations.
-    const existing = findAccountForSession({
-      subject: session.subject,
-      email: session.email,
-      name: session.name,
-      adminBootstrapEmails: adminBootstrapEmails(),
-    });
+    const existing = (await findAccountForSession({
+          subject: session.subject,
+          email: session.email,
+          name: session.name,
+          adminBootstrapEmails: adminBootstrapEmails(),
+        }));
     if (existing && existing.subject !== session.subject) {
       // Email collision with a different stable identity — never silently
       // relink; the firm's manual recovery process handles this.
@@ -66,30 +66,30 @@ export async function POST(req: Request) {
     }
 
     // Validate the token BEFORE any account creation.
-    if (!previewInvitation(parsed.data.token)) {
+    if (!(await previewInvitation(parsed.data.token))) {
       throw new HttpError(400, NEUTRAL_MESSAGE);
     }
 
     const account =
       existing ??
-      provisionClientAccount({
-        subject: session.subject,
-        email: session.email,
-        name: session.name,
-      });
+      (await provisionClientAccount({
+                subject: session.subject,
+                email: session.email,
+                name: session.name,
+              }));
 
-    const accepted = acceptInvitation({
-      rawToken: parsed.data.token,
-      clientUserId: account.id,
-    });
+    const accepted = (await acceptInvitation({
+          rawToken: parsed.data.token,
+          clientUserId: account.id,
+        }));
     if (!accepted) throw new HttpError(400, NEUTRAL_MESSAGE);
 
-    recordAudit(
-      accepted.matterId,
-      "INVITATION_ACCEPTED",
-      `invitation=${accepted.id}`,
-      account.id
-    );
+    (await recordAudit(
+            accepted.matterId,
+            "INVITATION_ACCEPTED",
+            `invitation=${accepted.id}`,
+            account.id
+          ));
     return Response.json({ ok: true, matterId: accepted.matterId });
   } catch (e) {
     return errorResponse(e);

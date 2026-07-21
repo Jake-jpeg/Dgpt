@@ -39,7 +39,7 @@ export async function requireUser(req: Request, roles: Role[]): Promise<AuthedUs
 
   // Providers authenticate; the DATABASE authorizes. A successful Microsoft
   // or Google sign-in with no corresponding app account gets nothing.
-  const account = findAccountForSession({
+  const account = await findAccountForSession({
     subject: session.subject,
     email: session.email,
     name: session.name,
@@ -76,9 +76,12 @@ export const requireAdmin = (req: Request) => requireUser(req, ["ADMIN"]);
  * Load a matter and verify the caller may access it. 404 on both "does not
  * exist" and "not yours" — existence is never leaked.
  */
-export function requireMatterAccess(authed: AuthedUser, matterId: string): MatterRow {
-  const matter = getMatter(matterId);
-  if (!matter || !canAccessMatter(authed.account, matter)) {
+export async function requireMatterAccess(
+  authed: AuthedUser,
+  matterId: string
+): Promise<MatterRow> {
+  const matter = await getMatter(matterId);
+  if (!matter || !(await canAccessMatter(authed.account, matter))) {
     throw new HttpError(404, "Matter not found");
   }
   return matter;

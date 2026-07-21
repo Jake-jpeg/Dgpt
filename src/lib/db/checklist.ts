@@ -25,10 +25,11 @@ const EMPTY: ChecklistState = {
   attorneyReviewDocumentIds: [],
 };
 
-export function getConfigChecklistState(matterId: string): ChecklistState {
-  const r = getDb()
-    .prepare(`SELECT value FROM app_config WHERE key = ?`)
-    .get(KEY(matterId)) as { value: string } | undefined;
+export async function getConfigChecklistState(matterId: string): Promise<ChecklistState> {
+  const r = await getDb().get<{ value: string }>(
+    `SELECT value FROM app_config WHERE key = ?`,
+    KEY(matterId)
+  );
   if (!r) return { ...EMPTY };
   try {
     return { ...EMPTY, ...(JSON.parse(r.value) as Partial<ChecklistState>) };
@@ -37,13 +38,13 @@ export function getConfigChecklistState(matterId: string): ChecklistState {
   }
 }
 
-export function setChecklistOverride(opts: {
+export async function setChecklistOverride(opts: {
   matterId: string;
   documentId: string;
   override: "RECEIVED" | "INCOMPLETE" | "ATTORNEY_WAIVED" | "ATTORNEY_REVIEW_REQUIRED" | "CLEAR";
   actingUserId: string;
-}): void {
-  const state = getConfigChecklistState(opts.matterId);
+}): Promise<void> {
+  const state = await getConfigChecklistState(opts.matterId);
   const remove = (arr: string[]) => arr.filter((d) => d !== opts.documentId);
   state.receivedDocumentIds = remove(state.receivedDocumentIds);
   state.incompleteDocumentIds = remove(state.incompleteDocumentIds);
@@ -53,10 +54,12 @@ export function setChecklistOverride(opts: {
   if (opts.override === "INCOMPLETE") state.incompleteDocumentIds.push(opts.documentId);
   if (opts.override === "ATTORNEY_WAIVED") state.waivedDocumentIds.push(opts.documentId);
   if (opts.override === "ATTORNEY_REVIEW_REQUIRED") state.attorneyReviewDocumentIds.push(opts.documentId);
-  getDb()
-    .prepare(
-      `INSERT INTO app_config (key, value, updated_by, updated_at) VALUES (?, ?, ?, ?)
-       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_by = excluded.updated_by, updated_at = excluded.updated_at`
-    )
-    .run(KEY(opts.matterId), JSON.stringify(state), opts.actingUserId, nowIso());
+  await getDb().run(
+    `INSERT INTO app_config (key, value, updated_by, updated_at) VALUES (?, ?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
+    KEY(opts.matterId),
+    JSON.stringify(state),
+    opts.actingUserId,
+    nowIso()
+  );
 }

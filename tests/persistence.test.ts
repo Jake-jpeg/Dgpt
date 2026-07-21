@@ -25,10 +25,10 @@ beforeEach(async () => {
 });
 
 async function expectFullyPurged(id: string) {
-  expect(countRows("intake_session", id)).toBe(0);
-  expect(countRows("party_identity", id)).toBe(0);
-  expect(countRows("intake_answer", id)).toBe(0);
-  const events = getAuditEvents(id).map((e) => e.event);
+  expect((await countRows("intake_session", id))).toBe(0);
+  expect((await countRows("party_identity", id))).toBe(0);
+  expect((await countRows("intake_answer", id))).toBe(0);
+  const events = (await getAuditEvents(id)).map((e) => e.event);
   expect(events).toContain("SESSION_PURGED");
 }
 
@@ -52,7 +52,7 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
     expect(r.data.card.id).toBe("DV_RESOURCES");
     expect(r.data.card.id).not.toBe("BERGEN_BAR_REFERRAL");
     await expectFullyPurged(id);
-    const events = getAuditEvents(id).map((e) => e.event);
+    const events = (await getAuditEvents(id)).map((e) => e.event);
     expect(events).toContain("SCOPE_OUT_DV");
   });
 
@@ -65,13 +65,13 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
 
     // Same no-retention behavior as a conflict hit, verified at the DB level:
     // no session row, no identity, no answers — the "yes" itself is nowhere.
-    expect(countRows("intake_session", id)).toBe(0);
-    expect(countRows("party_identity", id)).toBe(0);
-    expect(countRows("intake_answer", id)).toBe(0);
+    expect((await countRows("intake_session", id))).toBe(0);
+    expect((await countRows("party_identity", id))).toBe(0);
+    expect((await countRows("intake_answer", id))).toBe(0);
 
     // The surviving audit trail is bare event codes; details carry only
     // card/state identifiers — no free text, no names, no disclosure content.
-    const events = getAuditEvents(id);
+    const events = (await getAuditEvents(id));
     const allowedDetail =
       /^(card=[A-Z_]+|GATE_[A-Z_]+|SCOPE_OUT_[A-Z_]+|initiatedBy=(CLIENT|STAFF|ATTORNEY)|matter=[0-9a-f-]+|\{"result":"(NO_APPARENT_MATCH|POTENTIAL_MATCH)","clientHash":"[0-9a-f]+","adverseHash":"[0-9a-f]+"\})$/;
     for (const e of events) {
@@ -121,7 +121,7 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
     await runBranch(cookie, id, "SETTLED", "AGREED"); // TIER2
     // Persist some legitimate answers first…
     await submitAnswersHttp(cookie, id, TIER2_ANSWERS.slice(0, 5));
-    expect(countRows("intake_answer", id)).toBeGreaterThan(0);
+    expect((await countRows("intake_answer", id))).toBeGreaterThan(0);
     // …then disclose a business interest.
     const r = await submitAnswersHttp(cookie, id, [
       { fieldId: "ed_business_interest", value: true },
@@ -154,15 +154,15 @@ describe("abandoned sessions (retention policy)", () => {
     await runIdentityAndClear(cookie, fresh);
 
     // Backdate the stale session's last activity 30 days.
-    getDbSessionForTest(stale, 30);
+    (await getDbSessionForTest(stale, 30));
 
-    const purged = sweepAbandoned(14);
+    const purged = (await sweepAbandoned(14));
     expect(purged).toContain(stale);
     expect(purged).not.toContain(fresh);
-    expect(countRows("intake_session", stale)).toBe(0);
-    expect(countRows("party_identity", stale)).toBe(0);
-    expect(countRows("intake_session", fresh)).toBe(1);
-    const events = getAuditEvents(stale).map((e) => e.event);
+    expect((await countRows("intake_session", stale))).toBe(0);
+    expect((await countRows("party_identity", stale))).toBe(0);
+    expect((await countRows("intake_session", fresh))).toBe(1);
+    const events = (await getAuditEvents(stale)).map((e) => e.event);
     expect(events).toContain("SESSION_PURGED");
   });
 });

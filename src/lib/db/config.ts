@@ -29,32 +29,36 @@ const DEFAULTS: Record<string, string> = {
   [CONFIG_KEYS.RETENTION_SWEEP_ENABLED]: "true",
 };
 
-export function getConfigValue(key: string): string {
+export async function getConfigValue(key: string): Promise<string> {
   if (!ALLOWED_KEYS.has(key)) throw new Error(`VALIDATION: unknown config key ${key}`);
-  const r = getDb()
-    .prepare(`SELECT value FROM app_config WHERE key = ?`)
-    .get(key) as { value: string } | undefined;
+  const r = await getDb().get<{ value: string }>(`SELECT value FROM app_config WHERE key = ?`, key);
   return r?.value ?? DEFAULTS[key];
 }
 
-export function getConfigNumber(key: string): number {
-  const n = Number(getConfigValue(key));
+export async function getConfigNumber(key: string): Promise<number> {
+  const n = Number(await getConfigValue(key));
   return Number.isFinite(n) && n > 0 ? n : Number(DEFAULTS[key]);
 }
 
-export function setConfigValue(key: string, value: string, updatedBy: string): void {
+export async function setConfigValue(key: string, value: string, updatedBy: string): Promise<void> {
   if (!ALLOWED_KEYS.has(key)) {
     throw new Error(`VALIDATION: '${key}' is not an admin-configurable setting`);
   }
-  getDb()
-    .prepare(
-      `INSERT INTO app_config (key, value, updated_by, updated_at) VALUES (?, ?, ?, ?)
-       ON CONFLICT(key) DO UPDATE SET value = excluded.value,
-         updated_by = excluded.updated_by, updated_at = excluded.updated_at`
-    )
-    .run(key, value, updatedBy, nowIso());
+  await getDb().run(
+    `INSERT INTO app_config (key, value, updated_by, updated_at) VALUES (?, ?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value,
+       updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
+    key,
+    value,
+    updatedBy,
+    nowIso()
+  );
 }
 
-export function listConfig(): { key: string; value: string }[] {
-  return Object.values(CONFIG_KEYS).map((key) => ({ key, value: getConfigValue(key) }));
+export async function listConfig(): Promise<{ key: string; value: string }[]> {
+  const out: { key: string; value: string }[] = [];
+  for (const key of Object.values(CONFIG_KEYS)) {
+    out.push({ key, value: await getConfigValue(key) });
+  }
+  return out;
 }

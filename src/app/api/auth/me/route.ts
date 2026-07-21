@@ -20,12 +20,12 @@ export async function GET(req: Request) {
 
   if (session) {
     identity = { email: session.email, name: session.name };
-    const account = findAccountForSession({
-      subject: session.subject,
-      email: session.email,
-      name: session.name,
-      adminBootstrapEmails: adminBootstrapEmails(),
-    });
+    const account = (await findAccountForSession({
+          subject: session.subject,
+          email: session.email,
+          name: session.name,
+          adminBootstrapEmails: adminBootstrapEmails(),
+        }));
     if (account && account.subject === session.subject) {
       user = {
         role: account.role, // DB role — authoritative
@@ -34,7 +34,7 @@ export async function GET(req: Request) {
         active: account.active,
       };
       if (account.role === "CLIENT") {
-        clientMatterId = listMattersForClient(account.id)[0]?.id ?? null;
+        clientMatterId = (await listMattersForClient(account.id))[0]?.id ?? null;
       }
     }
   }

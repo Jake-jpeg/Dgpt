@@ -128,7 +128,7 @@ describe("definition requests serve approved cards verbatim", () => {
 describe("bot interaction log (UPL defense, PII-minimized)", () => {
   it("logs content IDs and intent codes only — never the user's free text", async () => {
     await ask("what does alimony mean? my name is Secret Q. Person");
-    const log = getBotLog(sessionId);
+    const log = (await getBotLog(sessionId));
     expect(log.length).toBeGreaterThan(0);
     for (const entry of log) {
       expect(entry.content_id).not.toContain("Secret");

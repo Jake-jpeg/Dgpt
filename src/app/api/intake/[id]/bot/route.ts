@@ -18,7 +18,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const user = await requireAnyRole(req);
     const { id } = await ctx.params;
 
-    const session = requireOwnedSession(user, id);
+    const session = (await requireOwnedSession(user, id));
     if (!BOT_ACTIVE_STATES.includes(session.state)) {
       throw new HttpError(409, "The intake assistant is not available at this step");
     }
@@ -28,7 +28,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       .safeParse(await req.json());
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid question");
 
-    return Response.json({ response: respondToUserText(id, parsed.data.text) });
+    return Response.json({ response: (await respondToUserText(id, parsed.data.text)) });
   } catch (e) {
     return errorResponse(e);
   }

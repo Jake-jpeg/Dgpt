@@ -9,7 +9,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const user = await requireAnyRole(req);
     const { id } = await ctx.params;
-    const outcome = submitAnswers(user, id, await req.json());
+    const outcome = (await submitAnswers(user, id, await req.json()));
     return Response.json(outcome, { status: isTerminated(outcome) ? 200 : 200 });
   } catch (e) {
     return errorResponse(e);

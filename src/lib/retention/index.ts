@@ -36,7 +36,7 @@ export interface PurgeReport {
  * anything under legal hold — callers do not get to override.
  */
 export async function purgeMatterContent(matterId: string, reason: string): Promise<PurgeReport> {
-  const matter = getMatter(matterId);
+  const matter = await getMatter(matterId);
   if (!matter) throw new Error("VALIDATION: matter not found");
   if (matter.legalHold) {
     throw new Error("RETENTION_GUARD: matter is under legal hold — purge refused");
@@ -48,13 +48,13 @@ export async function purgeMatterContent(matterId: string, reason: string): Prom
   }
 
   const db = getDb();
-  const sessions = listSessionsByMatter(matterId);
-  for (const s of sessions) purgeSession(s.id, reason);
+  const sessions = await listSessionsByMatter(matterId);
+  for (const s of sessions) await purgeSession(s.id, reason);
 
   let filesDeleted = 0;
-  const docs = listDocumentsForMatter(matterId);
+  const docs = await listDocumentsForMatter(matterId);
   for (const d of docs) {
-    for (const v of listVersions(d.id)) {
+    for (const v of await listVersions(d.id)) {
       try {
         await getFileStorage().delete(v.storageKey);
         filesDeleted++;
@@ -63,10 +63,10 @@ export async function purgeMatterContent(matterId: string, reason: string): Prom
       }
     }
     // ON DELETE CASCADE removes versions, approvals, releases with the doc.
-    db.prepare(`DELETE FROM document WHERE id = ?`).run(d.id);
+    await db.run(`DELETE FROM document WHERE id = ?`, d.id);
   }
 
-  recordAudit(
+  await recordAudit(
     matterId,
     "RETENTION_PURGE",
     `reason=${reason} sessions=${sessions.length} documents=${docs.length}`
@@ -83,28 +83,28 @@ function daysSince(iso: string): number {
   return (Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000);
 }
 
-function sweepEligible(m: MatterRow): boolean {
+async function sweepEligible(m: MatterRow): Promise<boolean> {
   if (m.legalHold) return false;
   if (m.lifecycle === "PROSPECTIVE") {
-    return daysSince(m.lastActivityAt) > getConfigNumber(CONFIG_KEYS.RETENTION_PROSPECTIVE_DAYS);
+    return daysSince(m.lastActivityAt) > (await getConfigNumber(CONFIG_KEYS.RETENTION_PROSPECTIVE_DAYS));
   }
   if (m.lifecycle === "ABANDONED") {
-    return daysSince(m.lastActivityAt) > getConfigNumber(CONFIG_KEYS.RETENTION_ABANDONED_DAYS);
+    return daysSince(m.lastActivityAt) > (await getConfigNumber(CONFIG_KEYS.RETENTION_ABANDONED_DAYS));
   }
   return false;
 }
 
 /** The automated sweep (cron via /api/admin/purge). */
 export async function sweepMatters(): Promise<PurgeReport[]> {
-  if (getConfigValue(CONFIG_KEYS.RETENTION_SWEEP_ENABLED) !== "true") return [];
+  if ((await getConfigValue(CONFIG_KEYS.RETENTION_SWEEP_ENABLED)) !== "true") return [];
   const db = getDb();
-  const rows = db
-    .prepare(`SELECT id FROM matter WHERE lifecycle IN ('PROSPECTIVE','ABANDONED') AND legal_hold = 0`)
-    .all() as { id: string }[];
+  const rows = await db.all<{ id: string }>(
+    `SELECT id FROM matter WHERE lifecycle IN ('PROSPECTIVE','ABANDONED') AND legal_hold = 0`
+  );
   const reports: PurgeReport[] = [];
   for (const { id } of rows) {
-    const m = getMatter(id)!;
-    if (!sweepEligible(m)) continue;
+    const m = (await getMatter(id))!;
+    if (!(await sweepEligible(m))) continue;
     reports.push(await purgeMatterContent(id, `RETENTION_SWEEP_${m.lifecycle}`));
   }
   return reports;

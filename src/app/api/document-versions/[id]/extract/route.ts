@@ -17,10 +17,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const version = getVersion(id);
+    const version = (await getVersion(id));
     if (!version) throw new HttpError(404, "Not found");
-    const doc = getDocument(version.documentId)!;
-    const matter = requireMatterAccess(authed, doc.matterId);
+    const doc = (await getDocument(version.documentId))!;
+    const matter = (await requireMatterAccess(authed, doc.matterId));
     return Response.json({
       preCallSummary: {
         documentTitle: doc.title,
@@ -31,7 +31,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         requestedAnalysis: "Local bounded text extraction (no external call from this action)",
         warning: "INTERNAL USE ONLY — extracted text becomes available to internal AI actions as untrusted data.",
       },
-      extraction: getExtraction(version.id),
+      extraction: (await getExtraction(version.id)),
     });
   } catch (e) {
     return errorResponse(e);
@@ -44,12 +44,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const version = getVersion(id);
+    const version = (await getVersion(id));
     if (!version) throw new HttpError(404, "Not found");
-    const doc = getDocument(version.documentId)!;
-    const matter = requireMatterAccess(authed, doc.matterId);
+    const doc = (await getDocument(version.documentId))!;
+    const matter = (await requireMatterAccess(authed, doc.matterId));
     const extraction = await extractDocumentText(version.id);
-    recordAudit(matter.id, "DOCUMENT_EXTRACTED", `version=${version.id} status=${extraction.status}`, authed.account.id);
+    (await recordAudit(matter.id, "DOCUMENT_EXTRACTED", `version=${version.id} status=${extraction.status}`, authed.account.id));
     return Response.json({ extraction });
   } catch (e) {
     return errorResponse(e);

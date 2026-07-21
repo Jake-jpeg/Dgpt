@@ -12,19 +12,21 @@ export async function GET(req: Request) {
     assertRateLimit(req, "intake");
     const user = await requireRole(req, "ATTORNEY");
 
-    const ready = listSessionsByState("READY_FOR_REVIEW").map((s) => ({
-      id: s.id,
-      tier: s.tier,
-      county: s.county,
-      initiatedBy: s.initiatedBy,
-      qdroFlag: s.qdroFlag,
-      attorneyFlags: s.attorneyFlags,
-      updatedAt: s.updatedAt,
-      clientName: getIdentity(s.id)?.clientParty.fullLegalName ?? "(unknown)",
-    }));
+    const ready = await Promise.all(
+      ((await listSessionsByState("READY_FOR_REVIEW")).map(async (s) => ({
+                id: s.id,
+                tier: s.tier,
+                county: s.county,
+                initiatedBy: s.initiatedBy,
+                qdroFlag: s.qdroFlag,
+                attorneyFlags: s.attorneyFlags,
+                updatedAt: s.updatedAt,
+                clientName: (await getIdentity(s.id))?.clientParty.fullLegalName ?? "(unknown)",
+              })))
+    );
 
     // The attorney's own in-progress (attorney-initiated) intakes.
-    const mine = listSessionsByOwner(user.subject)
+    const mine = (await listSessionsByOwner(user.subject))
       .filter((s) => s.state !== "READY_FOR_REVIEW")
       .map((s) => ({ id: s.id, state: s.state, tier: s.tier, updatedAt: s.updatedAt }));
 

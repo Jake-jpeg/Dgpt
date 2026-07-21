@@ -41,9 +41,9 @@ export async function requireAnyRole(req: Request): Promise<SessionUser> {
 /** Best-effort access-denial audit (never blocks the response). */
 function auditDenial(status: number, message: string): void {
   import("@/lib/db/repo")
-    .then(({ recordAudit }) => {
-      recordAudit("access", "ACCESS_DENIED", `status=${status} reason=${message.slice(0, 120)}`);
-    })
+    .then(async ({ recordAudit }) =>
+      (await recordAudit("access", "ACCESS_DENIED", `status=${status} reason=${message.slice(0, 120)}`))
+    )
     .catch(() => {
       /* auditing must never turn a denial into a 500 */
     });

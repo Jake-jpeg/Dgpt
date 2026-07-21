@@ -7,7 +7,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const user = await requireAnyRole(req);
     const { id } = await ctx.params;
-    return Response.json(sessionView(user, id));
+    return Response.json((await sessionView(user, id)));
   } catch (e) {
     return errorResponse(e);
   }

@@ -6,6 +6,9 @@ import os from "node:os";
 import path from "node:path";
 
 process.env.DATABASE_PATH = ":memory:";
+// The suite always runs on in-memory SQLite: a DATABASE_URL inherited from
+// the host shell must never point tests at a real Postgres.
+delete process.env.DATABASE_URL;
 // Tests must never inherit ambient provider config from the host shell.
 delete process.env.ANTHROPIC_BASE_URL;
 delete process.env.ANTHROPIC_API_KEY;

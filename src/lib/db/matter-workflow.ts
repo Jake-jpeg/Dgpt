@@ -28,26 +28,31 @@ export interface AccommodationRow {
   createdAt: string;
 }
 
-export function recordAccommodation(opts: {
+export async function recordAccommodation(opts: {
   matterId: string;
   method: AccommodationMethod;
   note?: string;
   recordedBy: string;
-}): AccommodationRow {
+}): Promise<AccommodationRow> {
   const id = newId();
-  getDb()
-    .prepare(
-      `INSERT INTO accommodation (id, matter_id, method, note, recorded_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    )
-    .run(id, opts.matterId, opts.method, opts.note ?? null, opts.recordedBy, nowIso());
-  return listAccommodations(opts.matterId).find((a) => a.id === id)!;
+  await getDb().run(
+    `INSERT INTO accommodation (id, matter_id, method, note, recorded_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    id,
+    opts.matterId,
+    opts.method,
+    opts.note ?? null,
+    opts.recordedBy,
+    nowIso()
+  );
+  return (await listAccommodations(opts.matterId)).find((a) => a.id === id)!;
 }
 
-export function listAccommodations(matterId: string): AccommodationRow[] {
-  const rows = getDb()
-    .prepare(`SELECT * FROM accommodation WHERE matter_id = ? ORDER BY created_at DESC`)
-    .all(matterId) as Record<string, unknown>[];
+export async function listAccommodations(matterId: string): Promise<AccommodationRow[]> {
+  const rows = await getDb().all(
+    `SELECT * FROM accommodation WHERE matter_id = ? ORDER BY created_at DESC`,
+    matterId
+  );
   return rows.map((r) => ({
     id: r.id as string,
     matterId: r.matter_id as string,
@@ -80,32 +85,42 @@ function rowToAssistance(r: Record<string, unknown>): AssistanceRequestRow {
   };
 }
 
-export function createAssistanceRequest(matterId: string, requestedBy: string): AssistanceRequestRow {
+export async function createAssistanceRequest(
+  matterId: string,
+  requestedBy: string
+): Promise<AssistanceRequestRow> {
   const id = newId();
   const t = nowIso();
-  getDb()
-    .prepare(
-      `INSERT INTO assistance_request (id, matter_id, requested_by, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?)`
-    )
-    .run(id, matterId, requestedBy, t, t);
-  return listAssistanceRequests(matterId).find((a) => a.id === id)!;
+  await getDb().run(
+    `INSERT INTO assistance_request (id, matter_id, requested_by, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    id,
+    matterId,
+    requestedBy,
+    t,
+    t
+  );
+  return (await listAssistanceRequests(matterId)).find((a) => a.id === id)!;
 }
 
-export function listAssistanceRequests(matterId: string): AssistanceRequestRow[] {
-  const rows = getDb()
-    .prepare(`SELECT * FROM assistance_request WHERE matter_id = ? ORDER BY created_at DESC`)
-    .all(matterId) as Record<string, unknown>[];
+export async function listAssistanceRequests(matterId: string): Promise<AssistanceRequestRow[]> {
+  const rows = await getDb().all(
+    `SELECT * FROM assistance_request WHERE matter_id = ? ORDER BY created_at DESC`,
+    matterId
+  );
   return rows.map(rowToAssistance);
 }
 
-export function setAssistanceStatus(
+export async function setAssistanceStatus(
   id: string,
   status: "ACKNOWLEDGED" | "RESOLVED"
-): void {
-  getDb()
-    .prepare(`UPDATE assistance_request SET status = ?, updated_at = ? WHERE id = ?`)
-    .run(status, nowIso(), id);
+): Promise<void> {
+  await getDb().run(
+    `UPDATE assistance_request SET status = ?, updated_at = ? WHERE id = ?`,
+    status,
+    nowIso(),
+    id
+  );
 }
 
 // ── Missing-information requests ─────────────────────────────────────
@@ -134,39 +149,41 @@ function rowToInfoRequest(r: Record<string, unknown>): InfoRequestRow {
   };
 }
 
-export function createInfoRequest(opts: {
+export async function createInfoRequest(opts: {
   matterId: string;
   label: string;
   internalNote?: string;
   createdBy: string;
-}): InfoRequestRow {
+}): Promise<InfoRequestRow> {
   const id = newId();
   const t = nowIso();
-  getDb()
-    .prepare(
-      `INSERT INTO info_request (id, matter_id, label, internal_note, status, created_by, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'OPEN', ?, ?, ?)`
-    )
-    .run(id, opts.matterId, opts.label, opts.internalNote ?? null, opts.createdBy, t, t);
-  return listInfoRequests(opts.matterId).find((i) => i.id === id)!;
+  await getDb().run(
+    `INSERT INTO info_request (id, matter_id, label, internal_note, status, created_by, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 'OPEN', ?, ?, ?)`,
+    id,
+    opts.matterId,
+    opts.label,
+    opts.internalNote ?? null,
+    opts.createdBy,
+    t,
+    t
+  );
+  return (await listInfoRequests(opts.matterId)).find((i) => i.id === id)!;
 }
 
-export function listInfoRequests(matterId: string): InfoRequestRow[] {
-  const rows = getDb()
-    .prepare(`SELECT * FROM info_request WHERE matter_id = ? ORDER BY created_at DESC`)
-    .all(matterId) as Record<string, unknown>[];
+export async function listInfoRequests(matterId: string): Promise<InfoRequestRow[]> {
+  const rows = await getDb().all(
+    `SELECT * FROM info_request WHERE matter_id = ? ORDER BY created_at DESC`,
+    matterId
+  );
   return rows.map(rowToInfoRequest);
 }
 
-export function resolveInfoRequest(id: string): void {
-  getDb()
-    .prepare(`UPDATE info_request SET status = 'RESOLVED', updated_at = ? WHERE id = ?`)
-    .run(nowIso(), id);
+export async function resolveInfoRequest(id: string): Promise<void> {
+  await getDb().run(`UPDATE info_request SET status = 'RESOLVED', updated_at = ? WHERE id = ?`, nowIso(), id);
 }
 
-export function getInfoRequest(id: string): InfoRequestRow | null {
-  const r = getDb()
-    .prepare(`SELECT * FROM info_request WHERE id = ?`)
-    .get(id) as Record<string, unknown> | undefined;
+export async function getInfoRequest(id: string): Promise<InfoRequestRow | null> {
+  const r = await getDb().get(`SELECT * FROM info_request WHERE id = ?`, id);
   return r ? rowToInfoRequest(r) : null;
 }

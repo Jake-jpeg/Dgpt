@@ -19,17 +19,19 @@ export async function GET(req: Request) {
     assertRateLimit(req, "intake");
     await requireAdmin(req);
     return Response.json({
-      users: listUsers().map((u) => ({
-        id: u.id,
-        email: u.email,
-        name: u.name,
-        role: u.role,
-        active: u.active,
-        createdAt: u.createdAt,
-        // Read-only hint for the console: a row with any case-history
-        // reference can be deactivated but never deleted.
-        deletable: countUserReferences(u) === 0,
-      })),
+      users: await Promise.all(
+        ((await listUsers()).map(async (u) => ({
+                    id: u.id,
+                    email: u.email,
+                    name: u.name,
+                    role: u.role,
+                    active: u.active,
+                    createdAt: u.createdAt,
+                    // Read-only hint for the console: a row with any case-history
+                    // reference can be deactivated but never deleted.
+                    deletable: (await countUserReferences(u)) === 0,
+                  })))
+      ),
     });
   } catch (e) {
     return errorResponse(e);
@@ -60,16 +62,16 @@ export async function POST(req: Request) {
       // Client accounts are created exclusively by invitation acceptance.
       throw new HttpError(400, "Client accounts are created by invitation only, not here");
     }
-    if (getUserByEmail(parsed.data.email)) {
+    if ((await getUserByEmail(parsed.data.email))) {
       throw new HttpError(409, "A user with this email already exists");
     }
-    const user = createUser(parsed.data);
-    recordAudit(
-      user.id,
-      "USER_CREATED",
-      JSON.stringify({ role: user.role }),
-      account.id
-    );
+    const user = (await createUser(parsed.data));
+    (await recordAudit(
+            user.id,
+            "USER_CREATED",
+            JSON.stringify({ role: user.role }),
+            account.id
+          ));
     return Response.json(
       { user: { id: user.id, email: user.email, role: user.role, active: user.active } },
       { status: 201 }

@@ -12,22 +12,22 @@ export function payloadFingerprint(payload: RenderPayload): string {
   return createHash("sha256").update(stable).digest("hex").slice(0, 16);
 }
 
-export function auditFormDataConfirmed(opts: {
+export async function auditFormDataConfirmed(opts: {
   matterId: string;
   userId: string;
   state: string;
   form: string;
   payload: RenderPayload;
-}): void {
-  recordAudit(
-    opts.matterId,
-    "FORM_DATA_CONFIRMED",
-    `state=${opts.state} form=${opts.form} fields=${Object.keys(opts.payload).length} fingerprint=${payloadFingerprint(opts.payload)}`,
-    opts.userId
-  );
+}): Promise<void> {
+  (await recordAudit(
+        opts.matterId,
+        "FORM_DATA_CONFIRMED",
+        `state=${opts.state} form=${opts.form} fields=${Object.keys(opts.payload).length} fingerprint=${payloadFingerprint(opts.payload)}`,
+        opts.userId
+      ));
 }
 
-export function auditPdfRendered(opts: {
+export async function auditPdfRendered(opts: {
   matterId: string;
   userId: string;
   state: string;
@@ -37,11 +37,11 @@ export function auditPdfRendered(opts: {
   sizeBytes: number;
   latencyMs: number;
   retried: boolean;
-}): void {
-  recordAudit(
-    opts.matterId,
-    "PDF_RENDERED",
-    `state=${opts.state} form=${opts.form} version=${opts.versionId} sha=${opts.sha256.slice(0, 16)} bytes=${opts.sizeBytes} latencyMs=${opts.latencyMs}${opts.retried ? " retried=1" : ""}`,
-    opts.userId
-  );
+}): Promise<void> {
+  (await recordAudit(
+        opts.matterId,
+        "PDF_RENDERED",
+        `state=${opts.state} form=${opts.form} version=${opts.versionId} sha=${opts.sha256.slice(0, 16)} bytes=${opts.sizeBytes} latencyMs=${opts.latencyMs}${opts.retried ? " retried=1" : ""}`,
+        opts.userId
+      ));
 }

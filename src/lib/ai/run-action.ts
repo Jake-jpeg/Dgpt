@@ -36,7 +36,7 @@ function aiEnabled(): boolean {
   return process.env.AI_FEATURES_ENABLED === "true" && Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
-function logInvocation(opts: {
+async function logInvocation(opts: {
   matterId: string;
   userId: string;
   action: AiAction;
@@ -46,62 +46,65 @@ function logInvocation(opts: {
   latencyMs?: number | null;
   tokensIn?: number | null;
   tokensOut?: number | null;
-}): void {
-  getDb()
-    .prepare(
-      `INSERT INTO ai_invocation (id, matter_ref, user_ref, feature, model, status, response_id, prompt_version, latency_ms, tokens_in, tokens_out, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(
-      newId(),
-      opts.matterId,
-      opts.userId,
-      opts.action,
-      opts.model,
-      opts.status,
-      opts.responseId ?? null,
-      PROMPT_VERSION,
-      opts.latencyMs ?? null,
-      opts.tokensIn ?? null,
-      opts.tokensOut ?? null,
-      nowIso()
-    );
-  recordAudit(
+}): Promise<void> {
+  await getDb().run(
+    `INSERT INTO ai_invocation (id, matter_ref, user_ref, feature, model, status, response_id, prompt_version, latency_ms, tokens_in, tokens_out, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    newId(),
     opts.matterId,
-    "AI_INVOCATION",
-    `feature=${opts.action} model=${opts.model} status=${opts.status} promptVersion=${PROMPT_VERSION}${opts.responseId ? ` responseId=${opts.responseId}` : ""}`,
-    opts.userId
+    opts.userId,
+    opts.action,
+    opts.model,
+    opts.status,
+    opts.responseId ?? null,
+    PROMPT_VERSION,
+    opts.latencyMs ?? null,
+    opts.tokensIn ?? null,
+    opts.tokensOut ?? null,
+    nowIso()
   );
+  (await recordAudit(
+        opts.matterId,
+        "AI_INVOCATION",
+        `feature=${opts.action} model=${opts.model} status=${opts.status} promptVersion=${PROMPT_VERSION}${opts.responseId ? ` responseId=${opts.responseId}` : ""}`,
+        opts.userId
+      ));
 }
 
 /** Assemble the matter context the model may see (all IDs are citable). */
-export function buildMatterContext(matterId: string): {
+export async function buildMatterContext(matterId: string): Promise<{
   contextJson: string;
   answerIds: Set<string>;
   documentVersionIds: Set<string>;
-} {
-  const matter = getMatter(matterId);
+}> {
+  const matter = (await getMatter(matterId));
   if (!matter) throw new Error("VALIDATION: matter not found");
   const schema = schemaForMatter(matter);
-  const answers = getMatterAnswers(matterId);
+  const answers = (await getMatterAnswers(matterId));
   const prompts = new Map(schema.items.map((i) => [i.id, i.prompt]));
 
-  const documents = listDocumentsForMatter(matterId).flatMap((d) =>
-    listVersions(d.id).map((v) => {
-      const ex = getExtraction(v.id);
-      return {
-        documentVersionId: v.id,
-        title: d.title,
-        kind: d.docKind,
-        versionNo: v.versionNo,
-        status: v.status,
-        filename: v.originalFilename,
-        extraction: ex
-          ? { status: ex.status, locator: ex.locatorNote, text: ex.text?.slice(0, 6000) ?? null }
-          : null,
-      };
-    })
-  );
+  const documents = (
+    await Promise.all(
+      ((await listDocumentsForMatter(matterId)).map(async (d) =>
+                Promise.all(
+                  ((await listVersions(d.id)).map(async (v) => {
+                                        const ex = await getExtraction(v.id);
+                                        return {
+                                          documentVersionId: v.id,
+                                          title: d.title,
+                                          kind: d.docKind,
+                                          versionNo: v.versionNo,
+                                          status: v.status,
+                                          filename: v.originalFilename,
+                                          extraction: ex
+                                            ? { status: ex.status, locator: ex.locatorNote, text: ex.text?.slice(0, 6000) ?? null }
+                                            : null,
+                                        };
+                                      }))
+                )
+              ))
+    )
+  ).flat();
 
   const context = {
     matter: {
@@ -118,7 +121,7 @@ export function buildMatterContext(matterId: string): {
       value,
     })),
     missingRequired: missingRequired(schema, answers).map((i) => ({ questionId: i.id, question: i.prompt })),
-    checklist: deriveChecklist(schema, answers, getConfigChecklistState(matterId)).map((e) => ({
+    checklist: deriveChecklist(schema, answers, (await getConfigChecklistState(matterId))).map((e) => ({
       documentId: e.documentId,
       title: e.title,
       status: e.status,
@@ -155,17 +158,17 @@ export async function runAiAction(opts: {
     throw new Error("VALIDATION: unknown AI action");
   }
   const model = aiModel();
-  const actor = getUserById(opts.actingUserId);
+  const actor = (await getUserById(opts.actingUserId));
   if (!actor || !actor.active || (actor.role !== "STAFF" && actor.role !== "ATTORNEY")) {
-    logInvocation({ matterId: opts.matterId, userId: opts.actingUserId, action: opts.action, model, status: "DENIED" });
+    await logInvocation({ matterId: opts.matterId, userId: opts.actingUserId, action: opts.action, model, status: "DENIED" });
     throw new Error("AI_GUARD: only STAFF or ATTORNEY may invoke internal AI features");
   }
   if (!aiEnabled()) {
-    logInvocation({ matterId: opts.matterId, userId: actor.id, action: opts.action, model, status: "DISABLED" });
+    await logInvocation({ matterId: opts.matterId, userId: actor.id, action: opts.action, model, status: "DISABLED" });
     throw new AiDisabledError();
   }
 
-  const { contextJson, answerIds, documentVersionIds } = buildMatterContext(opts.matterId);
+  const { contextJson, answerIds, documentVersionIds } = await buildMatterContext(opts.matterId);
   const kind = ACTION_KIND[opts.action];
 
   let call;
@@ -179,7 +182,7 @@ export async function runAiAction(opts: {
       matterId: opts.matterId,
     });
   } catch (e) {
-    logInvocation({ matterId: opts.matterId, userId: actor.id, action: opts.action, model, status: "ERROR" });
+    await logInvocation({ matterId: opts.matterId, userId: actor.id, action: opts.action, model, status: "ERROR" });
     if (e instanceof AiConfigError) throw e;
     throw e instanceof Error ? e : new Error("AI_GUARD: provider request failed");
   }
@@ -187,7 +190,7 @@ export async function runAiAction(opts: {
   const { report, problems } = validateAiReport(kind, call.parsed, { answerIds, documentVersionIds });
   if (!report) {
     // Unknown citation / bad shape / bad provenance: reject, never save.
-    logInvocation({
+    await logInvocation({
       matterId: opts.matterId,
       userId: actor.id,
       action: opts.action,
@@ -198,36 +201,36 @@ export async function runAiAction(opts: {
       tokensIn: call.tokensIn,
       tokensOut: call.tokensOut,
     });
-    recordAudit(
-      opts.matterId,
-      "AI_OUTPUT_REJECTED",
-      `feature=${opts.action} problems=${problems.map((p) => p.code).join(",")}`,
-      actor.id
-    );
+    (await recordAudit(
+            opts.matterId,
+            "AI_OUTPUT_REJECTED",
+            `feature=${opts.action} problems=${problems.map((p) => p.code).join(",")}`,
+            actor.id
+          ));
     throw new Error(`AI_GUARD: structured output rejected (${problems[0]?.code}: ${problems[0]?.detail?.slice(0, 140)})`);
   }
 
   // Materialize as internal work product — ATTORNEY_REVIEW_REQUIRED, always.
   const bytes = new TextEncoder().encode(JSON.stringify(report, null, 2));
   const stored = await getFileStorage().put(bytes);
-  const doc = createDocument({
-    matterId: opts.matterId,
-    title: ACTION_TITLES[opts.action],
-    docKind: "AI_DRAFT",
-    createdBy: actor.id,
-  });
-  const version = addDocumentVersion({
-    documentId: doc.id,
-    storageKey: stored.storageKey,
-    sha256: stored.sha256,
-    mime: "application/json",
-    sizeBytes: stored.sizeBytes,
-    source: "AI",
-    createdBy: actor.id,
-    initialStatus: "ATTORNEY_REVIEW_REQUIRED",
-  });
+  const doc = (await createDocument({
+      matterId: opts.matterId,
+      title: ACTION_TITLES[opts.action],
+      docKind: "AI_DRAFT",
+      createdBy: actor.id,
+    }));
+  const version = (await addDocumentVersion({
+      documentId: doc.id,
+      storageKey: stored.storageKey,
+      sha256: stored.sha256,
+      mime: "application/json",
+      sizeBytes: stored.sizeBytes,
+      source: "AI",
+      createdBy: actor.id,
+      initialStatus: "ATTORNEY_REVIEW_REQUIRED",
+    }));
 
-  logInvocation({
+  await logInvocation({
     matterId: opts.matterId,
     userId: actor.id,
     action: opts.action,

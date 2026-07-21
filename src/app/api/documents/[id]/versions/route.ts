@@ -17,9 +17,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const doc = getDocument(id);
+    const doc = (await getDocument(id));
     if (!doc) throw new HttpError(404, "Document not found");
-    const matter = requireMatterAccess(authed, doc.matterId);
+    const matter = (await requireMatterAccess(authed, doc.matterId));
 
     const form = await req.formData().catch(() => null);
     const file = form?.get("file");
@@ -31,23 +31,23 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertUploadAllowed(mime, bytes.byteLength);
 
     const stored = await getFileStorage().put(bytes);
-    const version = addDocumentVersion({
-      documentId: doc.id,
-      storageKey: stored.storageKey,
-      sha256: stored.sha256,
-      mime,
-      sizeBytes: stored.sizeBytes,
-      originalFilename: sanitizeDisplayFilename(file.name ?? doc.title),
-      source: "INTERNAL",
-      createdBy: authed.account.id,
-      initialStatus: "ATTORNEY_REVIEW_REQUIRED",
-    });
-    recordAudit(
-      matter.id,
-      "DOCUMENT_REVISED",
-      `document=${doc.id} version=${version.id} sha256=${stored.sha256}`,
-      authed.account.id
-    );
+    const version = (await addDocumentVersion({
+          documentId: doc.id,
+          storageKey: stored.storageKey,
+          sha256: stored.sha256,
+          mime,
+          sizeBytes: stored.sizeBytes,
+          originalFilename: sanitizeDisplayFilename(file.name ?? doc.title),
+          source: "INTERNAL",
+          createdBy: authed.account.id,
+          initialStatus: "ATTORNEY_REVIEW_REQUIRED",
+        }));
+    (await recordAudit(
+            matter.id,
+            "DOCUMENT_REVISED",
+            `document=${doc.id} version=${version.id} sha256=${stored.sha256}`,
+            authed.account.id
+          ));
     return Response.json(
       { version: { id: version.id, versionNo: version.versionNo, status: version.status } },
       { status: 201 }

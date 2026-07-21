@@ -24,43 +24,41 @@ export function consentCaptureIpUaEnabled(): boolean {
   return process.env.CONSENT_CAPTURE_IP_UA === "true";
 }
 
-export function recordDisclosureAck(opts: {
+export async function recordDisclosureAck(opts: {
   matterRef: string;
   userRef: string;
   version: string;
   ip?: string | null;
   userAgent?: string | null;
-}): DisclosureAckRow {
+}): Promise<DisclosureAckRow> {
   const id = newId();
   const capture = consentCaptureIpUaEnabled();
-  getDb()
-    .prepare(
-      `INSERT INTO disclosure_ack (id, matter_ref, user_ref, version, acknowledged_at, ip, user_agent)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(matter_ref, user_ref, version) DO NOTHING`
-    )
-    .run(
-      id,
-      opts.matterRef,
-      opts.userRef,
-      opts.version,
-      nowIso(),
-      capture ? opts.ip ?? null : null,
-      capture ? opts.userAgent ?? null : null
-    );
-  return getAck(opts.matterRef, opts.userRef, opts.version)!;
+  await getDb().run(
+    `INSERT INTO disclosure_ack (id, matter_ref, user_ref, version, acknowledged_at, ip, user_agent)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(matter_ref, user_ref, version) DO NOTHING`,
+    id,
+    opts.matterRef,
+    opts.userRef,
+    opts.version,
+    nowIso(),
+    capture ? opts.ip ?? null : null,
+    capture ? opts.userAgent ?? null : null
+  );
+  return (await getAck(opts.matterRef, opts.userRef, opts.version))!;
 }
 
-export function getAck(
+export async function getAck(
   matterRef: string,
   userRef: string,
   version: string
-): DisclosureAckRow | null {
-  const r = getDb()
-    .prepare(
-      `SELECT * FROM disclosure_ack WHERE matter_ref = ? AND user_ref = ? AND version = ?`
-    )
-    .get(matterRef, userRef, version) as Record<string, unknown> | undefined;
+): Promise<DisclosureAckRow | null> {
+  const r = await getDb().get(
+    `SELECT * FROM disclosure_ack WHERE matter_ref = ? AND user_ref = ? AND version = ?`,
+    matterRef,
+    userRef,
+    version
+  );
   if (!r) return null;
   return {
     id: r.id as string,
@@ -73,6 +71,10 @@ export function getAck(
   };
 }
 
-export function hasAcknowledged(matterRef: string, userRef: string, version: string): boolean {
-  return Boolean(getAck(matterRef, userRef, version));
+export async function hasAcknowledged(
+  matterRef: string,
+  userRef: string,
+  version: string
+): Promise<boolean> {
+  return Boolean(await getAck(matterRef, userRef, version));
 }

@@ -17,12 +17,12 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["CLIENT", "STAFF", "ATTORNEY", "ADMIN"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
 
     if (authed.account.role === "CLIENT") {
       // Plain-language view only: open requested items and the help option.
       // No internal notes, no conflict machinery, no unreleased work product.
-      const openRequests = listInfoRequests(matter.id)
+      const openRequests = (await listInfoRequests(matter.id))
         .filter((r) => r.status === "OPEN")
         .map((r) => ({ id: r.id, label: r.label, createdAt: r.createdAt }));
       return Response.json({
@@ -49,7 +49,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         clientUserId: matter.clientUserId,
         createdAt: matter.createdAt,
         updatedAt: matter.updatedAt,
-        sessions: listSessionsByMatter(matter.id).map((s) => ({
+        sessions: (await listSessionsByMatter(matter.id)).map((s) => ({
           id: s.id,
           state: s.state,
           tier: s.tier,

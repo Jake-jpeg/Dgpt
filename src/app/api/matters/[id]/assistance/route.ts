@@ -24,9 +24,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["CLIENT"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
-    const request = createAssistanceRequest(matter.id, authed.account.id);
-    recordAudit(matter.id, "ASSISTANCE_REQUESTED", `request=${request.id}`, authed.account.id);
+    const matter = (await requireMatterAccess(authed, id));
+    const request = (await createAssistanceRequest(matter.id, authed.account.id));
+    (await recordAudit(matter.id, "ASSISTANCE_REQUESTED", `request=${request.id}`, authed.account.id));
     return Response.json(
       {
         ok: true,
@@ -45,8 +45,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
-    return Response.json({ requests: listAssistanceRequests(matter.id) });
+    const matter = (await requireMatterAccess(authed, id));
+    return Response.json({ requests: (await listAssistanceRequests(matter.id)) });
   } catch (e) {
     return errorResponse(e);
   }
@@ -63,13 +63,13 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     assertCsrf(req);
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     const parsed = patchSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid payload");
-    const target = listAssistanceRequests(matter.id).find((r) => r.id === parsed.data.requestId);
+    const target = (await listAssistanceRequests(matter.id)).find((r) => r.id === parsed.data.requestId);
     if (!target) throw new HttpError(404, "Request not found");
-    setAssistanceStatus(target.id, parsed.data.status);
-    recordAudit(matter.id, "ASSISTANCE_STATUS", `request=${target.id} status=${parsed.data.status}`, authed.account.id);
+    (await setAssistanceStatus(target.id, parsed.data.status));
+    (await recordAudit(matter.id, "ASSISTANCE_STATUS", `request=${target.id} status=${parsed.data.status}`, authed.account.id));
     return Response.json({ ok: true });
   } catch (e) {
     return errorResponse(e);

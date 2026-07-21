@@ -16,7 +16,9 @@ let pdfCache: { at: number; value: "disabled" | "ok" | "unreachable" } | null = 
 export async function GET() {
   let db = "ok";
   try {
-    getDb().prepare("SELECT 1").get();
+    // A REAL round-trip: on Postgres this crosses the network to the managed
+    // database, so db:"ok" means production persistence is actually up.
+    await getDb().get("SELECT 1 AS one");
   } catch {
     db = "error";
   }
@@ -29,6 +31,7 @@ export async function GET() {
     syntheticDemoOnly: process.env.SYNTHETIC_DEMO_ONLY === "true",
     ephemeralStorage: syntheticEphemeralStorageActive(),
     db,
+    dbEngine: getDb().dialect,
     aiConfigured: process.env.AI_FEATURES_ENABLED === "true" && Boolean(process.env.ANTHROPIC_API_KEY),
     pdfService: pdfCache.value,
   };

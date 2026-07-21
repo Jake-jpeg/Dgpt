@@ -13,20 +13,23 @@ export async function GET(req: Request) {
   try {
     assertRateLimit(req, "intake");
     const { account } = await requireUser(req, ["ATTORNEY"]);
-    const pending = listMattersForGrantee(account.id)
-      .filter((m) => (SCREEN_STATUSES as readonly string[]).includes(m.conflictStatus))
-      .map((m) => {
-        const latest = listConflictSubmissionsForMatter(m.id)[0] ?? null;
-        return {
-          matterId: m.id,
-          label: m.label,
-          conflictStatus: m.conflictStatus,
-          submittedAt: latest?.createdAt ?? null,
-          screenResult: latest?.screenResult ?? null,
-          clientParty: latest?.clientParty ?? null,
-          adverseParty: latest?.adverseParty ?? null,
-        };
-      });
+    const granted = (await listMattersForGrantee(account.id)).filter((m) =>
+      (SCREEN_STATUSES as readonly string[]).includes(m.conflictStatus)
+    );
+    const pending = await Promise.all(
+      (granted.map(async (m) => {
+                const latest = (await listConflictSubmissionsForMatter(m.id))[0] ?? null;
+                return {
+                  matterId: m.id,
+                  label: m.label,
+                  conflictStatus: m.conflictStatus,
+                  submittedAt: latest?.createdAt ?? null,
+                  screenResult: latest?.screenResult ?? null,
+                  clientParty: latest?.clientParty ?? null,
+                  adverseParty: latest?.adverseParty ?? null,
+                };
+              }))
+    );
     return Response.json({ pending });
   } catch (e) {
     return errorResponse(e);

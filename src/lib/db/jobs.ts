@@ -64,44 +64,48 @@ function rowToJob(r: Record<string, unknown>): JobRow {
   };
 }
 
-export function createJob(opts: {
+export async function createJob(opts: {
   kind: JobKind;
   requestedBy: string;
   matterId?: string | null;
   sessionId?: string | null;
-}): JobRow {
+}): Promise<JobRow> {
   if (!(JOB_KINDS as readonly string[]).includes(opts.kind)) {
     throw new Error("VALIDATION: unknown job kind");
   }
   const id = newId();
   const t = nowIso();
-  getDb()
-    .prepare(
-      `INSERT INTO ai_job (id, kind, matter_ref, session_ref, requested_by, status, result, error, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'QUEUED', NULL, NULL, ?, ?)`
-    )
-    .run(id, opts.kind, opts.matterId ?? null, opts.sessionId ?? null, opts.requestedBy, t, t);
-  return getJob(id)!;
+  await getDb().run(
+    `INSERT INTO ai_job (id, kind, matter_ref, session_ref, requested_by, status, result, error, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 'QUEUED', NULL, NULL, ?, ?)`,
+    id,
+    opts.kind,
+    opts.matterId ?? null,
+    opts.sessionId ?? null,
+    opts.requestedBy,
+    t,
+    t
+  );
+  return (await getJob(id))!;
 }
 
-export function getJob(id: string): JobRow | null {
-  const r = getDb().prepare(`SELECT * FROM ai_job WHERE id = ?`).get(id) as
-    | Record<string, unknown>
-    | undefined;
+export async function getJob(id: string): Promise<JobRow | null> {
+  const r = await getDb().get(`SELECT * FROM ai_job WHERE id = ?`, id);
   return r ? rowToJob(r) : null;
 }
 
-export function markJobRunning(id: string): void {
-  getDb()
-    .prepare(`UPDATE ai_job SET status = 'RUNNING', updated_at = ? WHERE id = ?`)
-    .run(nowIso(), id);
+export async function markJobRunning(id: string): Promise<void> {
+  await getDb().run(`UPDATE ai_job SET status = 'RUNNING', updated_at = ? WHERE id = ?`, nowIso(), id);
 }
 
 /** Terminal success. `result` must contain ids/metadata only. */
-export function completeJob(id: string, result: Record<string, unknown>): void {
-  getDb()
-    .prepare(`UPDATE ai_job SET status = 'DONE', result = ?, error = NULL, updated_at = ? WHERE id = ?`)
-    .run(JSON.stringify(result), nowIso(), id);
+export async function completeJob(id: string, result: Record<string, unknown>): Promise<void> {
+  await getDb().run(
+    `UPDATE ai_job SET status = 'DONE', result = ?, error = NULL, updated_at = ? WHERE id = ?`,
+    JSON.stringify(result),
+    nowIso(),
+    id
+  );
 }
 
 /**
@@ -109,32 +113,35 @@ export function completeJob(id: string, result: Record<string, unknown>): void {
  * must pass something already safe to show (guard messages, status codes) —
  * never a raw provider body or a stack.
  */
-export function failJob(id: string, message: string): void {
-  getDb()
-    .prepare(`UPDATE ai_job SET status = 'FAILED', error = ?, updated_at = ? WHERE id = ?`)
-    .run(message.slice(0, 300), nowIso(), id);
+export async function failJob(id: string, message: string): Promise<void> {
+  await getDb().run(
+    `UPDATE ai_job SET status = 'FAILED', error = ?, updated_at = ? WHERE id = ?`,
+    message.slice(0, 300),
+    nowIso(),
+    id
+  );
 }
 
 /**
  * Fail jobs abandoned by a died/restarted process so pollers terminate.
  * Returns the number reaped.
  */
-export function reapStaleJobs(now: number = Date.now()): number {
+export async function reapStaleJobs(now: number = Date.now()): Promise<number> {
   const cutoff = new Date(now - JOB_STALE_MS).toISOString();
-  const stale = getDb()
-    .prepare(
-      `SELECT id FROM ai_job WHERE status IN ('QUEUED','RUNNING') AND updated_at < ?`
-    )
-    .all(cutoff) as { id: string }[];
+  const stale = await getDb().all<{ id: string }>(
+    `SELECT id FROM ai_job WHERE status IN ('QUEUED','RUNNING') AND updated_at < ?`,
+    cutoff
+  );
   for (const s of stale) {
-    failJob(s.id, "AI_GUARD: the job did not complete (the server restarted or timed out)");
+    await failJob(s.id, "AI_GUARD: the job did not complete (the server restarted or timed out)");
   }
   return stale.length;
 }
 
-export function listJobsForMatter(matterId: string): JobRow[] {
-  const rows = getDb()
-    .prepare(`SELECT * FROM ai_job WHERE matter_ref = ? ORDER BY created_at DESC`)
-    .all(matterId) as Record<string, unknown>[];
+export async function listJobsForMatter(matterId: string): Promise<JobRow[]> {
+  const rows = await getDb().all(
+    `SELECT * FROM ai_job WHERE matter_ref = ? ORDER BY created_at DESC`,
+    matterId
+  );
   return rows.map(rowToJob);
 }

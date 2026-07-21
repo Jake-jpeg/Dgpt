@@ -13,13 +13,13 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     const schema = schemaForMatter(matter);
     const report = buildFormReadiness(
       matter,
       schema,
-      getMatterAnswers(matter.id),
-      getConfigChecklistState(matter.id)
+      (await getMatterAnswers(matter.id)),
+      (await getConfigChecklistState(matter.id))
     );
     return Response.json({ report });
   } catch (e) {

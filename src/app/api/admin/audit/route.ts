@@ -17,23 +17,21 @@ export async function GET(req: Request) {
     const ref = url.searchParams.get("ref")?.trim();
     const limit = Math.min(Number(url.searchParams.get("limit") ?? "200") || 200, 1000);
 
-    const rows = (
-      ref
-        ? getDb()
-            .prepare(
-              `SELECT session_ref, event, detail, actor, created_at FROM audit_event
-               WHERE session_ref = ? ORDER BY rowid DESC LIMIT ?`
-            )
-            .all(ref, limit)
-        : getDb()
-            .prepare(
-              `SELECT session_ref, event, detail, actor, created_at FROM audit_event
-               ORDER BY rowid DESC LIMIT ?`
-            )
-            .all(limit)
-    ) as { session_ref: string; event: string; detail: string | null; actor: string | null; created_at: string }[];
+    type AuditRow = { session_ref: string; event: string; detail: string | null; actor: string | null; created_at: string };
+    const rows = ref
+      ? await getDb().all<AuditRow>(
+          `SELECT session_ref, event, detail, actor, created_at FROM audit_event
+           WHERE session_ref = ? ORDER BY rowid DESC LIMIT ?`,
+          ref,
+          limit
+        )
+      : await getDb().all<AuditRow>(
+          `SELECT session_ref, event, detail, actor, created_at FROM audit_event
+           ORDER BY rowid DESC LIMIT ?`,
+          limit
+        );
 
-    const firstBrokenId = verifyAuditChain();
+    const firstBrokenId = (await verifyAuditChain());
     return Response.json({
       chainIntact: firstBrokenId === null,
       firstBrokenId,

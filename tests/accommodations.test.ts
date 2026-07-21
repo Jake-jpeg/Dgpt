@@ -54,7 +54,7 @@ describe("assistance requests", () => {
       params({ id: ctx.matterId })
     );
     expect(res.status).toBe(201);
-    const rows = listAssistanceRequests(ctx.matterId);
+    const rows = (await listAssistanceRequests(ctx.matterId));
     expect(rows.length).toBe(1);
     expect(JSON.stringify(rows)).not.toContain("disability"); // nowhere to store it
     // The client-facing option is visible on the matter view.

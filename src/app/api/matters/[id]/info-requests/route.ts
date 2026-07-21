@@ -23,8 +23,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["CLIENT", "STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
-    const all = listInfoRequests(matter.id);
+    const matter = (await requireMatterAccess(authed, id));
+    const all = (await listInfoRequests(matter.id));
     if (authed.account.role === "CLIENT") {
       return Response.json({
         requests: all
@@ -49,16 +49,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     const parsed = createSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid info-request payload");
-    const row = createInfoRequest({
-      matterId: matter.id,
-      label: parsed.data.label,
-      internalNote: parsed.data.internalNote,
-      createdBy: authed.account.id,
-    });
-    recordAudit(matter.id, "INFO_REQUEST_CREATED", `request=${row.id}`, authed.account.id);
+    const row = (await createInfoRequest({
+          matterId: matter.id,
+          label: parsed.data.label,
+          internalNote: parsed.data.internalNote,
+          createdBy: authed.account.id,
+        }));
+    (await recordAudit(matter.id, "INFO_REQUEST_CREATED", `request=${row.id}`, authed.account.id));
     return Response.json({ request: row }, { status: 201 });
   } catch (e) {
     return errorResponse(e);
@@ -73,13 +73,13 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     assertCsrf(req);
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     const parsed = patchSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid payload");
-    const target = getInfoRequest(parsed.data.requestId);
+    const target = (await getInfoRequest(parsed.data.requestId));
     if (!target || target.matterId !== matter.id) throw new HttpError(404, "Request not found");
-    resolveInfoRequest(target.id);
-    recordAudit(matter.id, "INFO_REQUEST_RESOLVED", `request=${target.id}`, authed.account.id);
+    (await resolveInfoRequest(target.id));
+    (await recordAudit(matter.id, "INFO_REQUEST_RESOLVED", `request=${target.id}`, authed.account.id));
     return Response.json({ ok: true });
   } catch (e) {
     return errorResponse(e);

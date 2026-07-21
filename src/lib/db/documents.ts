@@ -135,34 +135,38 @@ function rowToApproval(r: Record<string, unknown>): DocumentApprovalRow {
 
 // ── Documents + versions ─────────────────────────────────────────────
 
-export function createDocument(opts: {
+export async function createDocument(opts: {
   matterId: string;
   title: string;
   docKind: DocumentRow["docKind"];
   createdBy: string;
-}): DocumentRow {
+}): Promise<DocumentRow> {
   const id = newId();
   const t = nowIso();
-  getDb()
-    .prepare(
-      `INSERT INTO document (id, matter_id, title, doc_kind, created_by, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(id, opts.matterId, opts.title, opts.docKind, opts.createdBy, t, t);
-  return getDocument(id)!;
+  await getDb().run(
+    `INSERT INTO document (id, matter_id, title, doc_kind, created_by, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    id,
+    opts.matterId,
+    opts.title,
+    opts.docKind,
+    opts.createdBy,
+    t,
+    t
+  );
+  return (await getDocument(id))!;
 }
 
-export function getDocument(id: string): DocumentRow | null {
-  const r = getDb()
-    .prepare(`SELECT * FROM document WHERE id = ?`)
-    .get(id) as Record<string, unknown> | undefined;
+export async function getDocument(id: string): Promise<DocumentRow | null> {
+  const r = await getDb().get(`SELECT * FROM document WHERE id = ?`, id);
   return r ? rowToDocument(r) : null;
 }
 
-export function listDocumentsForMatter(matterId: string): DocumentRow[] {
-  const rows = getDb()
-    .prepare(`SELECT * FROM document WHERE matter_id = ? ORDER BY updated_at DESC`)
-    .all(matterId) as Record<string, unknown>[];
+export async function listDocumentsForMatter(matterId: string): Promise<DocumentRow[]> {
+  const rows = await getDb().all(
+    `SELECT * FROM document WHERE matter_id = ? ORDER BY updated_at DESC`,
+    matterId
+  );
   return rows.map(rowToDocument);
 }
 
@@ -172,7 +176,7 @@ export function listDocumentsForMatter(matterId: string): DocumentRow[] {
  * prior non-terminal versions become SUPERSEDED, which kills any pending
  * approval path for them (release checks live status AND hash).
  */
-export function addDocumentVersion(opts: {
+export async function addDocumentVersion(opts: {
   documentId: string;
   storageKey: string;
   sha256: string;
@@ -182,30 +186,30 @@ export function addDocumentVersion(opts: {
   source: DocumentVersionRow["source"];
   createdBy: string;
   initialStatus?: "DRAFT" | "ATTORNEY_REVIEW_REQUIRED";
-}): DocumentVersionRow {
+}): Promise<DocumentVersionRow> {
   const status = opts.initialStatus ?? "DRAFT";
   if (status !== "DRAFT" && status !== "ATTORNEY_REVIEW_REQUIRED") {
     throw new Error("DOCUMENT_GUARD: a new version must begin unapproved");
   }
   const db = getDb();
-  const doc = getDocument(opts.documentId);
+  const doc = await getDocument(opts.documentId);
   if (!doc) throw new Error("VALIDATION: document not found");
 
-  const prev = listVersions(opts.documentId);
+  const prev = await listVersions(opts.documentId);
   const versionNo = (prev[0]?.versionNo ?? 0) + 1;
   // Supersede prior non-terminal versions — approvals never carry forward.
-  db.prepare(
+  await db.run(
     `UPDATE document_version SET status = 'SUPERSEDED'
-     WHERE document_id = ? AND status NOT IN ('RELEASED','WITHDRAWN','SUPERSEDED')`
-  ).run(opts.documentId);
+     WHERE document_id = ? AND status NOT IN ('RELEASED','WITHDRAWN','SUPERSEDED')`,
+    opts.documentId
+  );
 
   const id = newId();
-  db.prepare(
+  await db.run(
     `INSERT INTO document_version
      (id, document_id, version_no, status, storage_key, sha256, mime, size_bytes,
       original_filename, source, created_by, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     opts.documentId,
     versionNo,
@@ -219,59 +223,56 @@ export function addDocumentVersion(opts: {
     opts.createdBy,
     nowIso()
   );
-  db.prepare(`UPDATE document SET updated_at = ? WHERE id = ?`).run(nowIso(), opts.documentId);
-  return getVersion(id)!;
+  await db.run(`UPDATE document SET updated_at = ? WHERE id = ?`, nowIso(), opts.documentId);
+  return (await getVersion(id))!;
 }
 
-export function getVersion(id: string): DocumentVersionRow | null {
-  const r = getDb()
-    .prepare(`SELECT * FROM document_version WHERE id = ?`)
-    .get(id) as Record<string, unknown> | undefined;
+export async function getVersion(id: string): Promise<DocumentVersionRow | null> {
+  const r = await getDb().get(`SELECT * FROM document_version WHERE id = ?`, id);
   return r ? rowToVersion(r) : null;
 }
 
-export function listVersions(documentId: string): DocumentVersionRow[] {
-  const rows = getDb()
-    .prepare(`SELECT * FROM document_version WHERE document_id = ? ORDER BY version_no DESC`)
-    .all(documentId) as Record<string, unknown>[];
+export async function listVersions(documentId: string): Promise<DocumentVersionRow[]> {
+  const rows = await getDb().all(
+    `SELECT * FROM document_version WHERE document_id = ? ORDER BY version_no DESC`,
+    documentId
+  );
   return rows.map(rowToVersion);
 }
 
 /** ATTORNEY-only working statuses (never an approval): request changes / withdraw. */
-export function setVersionWorkingStatus(opts: {
+export async function setVersionWorkingStatus(opts: {
   versionId: string;
   actingUserId: string;
   status: "CHANGES_REQUESTED" | "WITHDRAWN" | "ATTORNEY_REVIEW_REQUIRED";
-}): DocumentVersionRow {
-  const actor = getUserById(opts.actingUserId);
+}): Promise<DocumentVersionRow> {
+  const actor = await getUserById(opts.actingUserId);
   if (!actor || !actor.active || actor.role !== "ATTORNEY") {
     throw new Error("DOCUMENT_GUARD: only an active ATTORNEY may set review statuses");
   }
-  const v = getVersion(opts.versionId);
+  const v = await getVersion(opts.versionId);
   if (!v) throw new Error("VALIDATION: version not found");
   if (v.status === "RELEASED") {
     throw new Error("DOCUMENT_GUARD: a released version's record is immutable");
   }
-  getDb()
-    .prepare(`UPDATE document_version SET status = ? WHERE id = ?`)
-    .run(opts.status, opts.versionId);
-  return getVersion(opts.versionId)!;
+  await getDb().run(`UPDATE document_version SET status = ? WHERE id = ?`, opts.status, opts.versionId);
+  return (await getVersion(opts.versionId))!;
 }
 
 // ── Approval (attorney-only, version-exact, hash-bound) ──────────────
 
-export function approveVersion(opts: {
+export async function approveVersion(opts: {
   versionId: string;
   actingUserId: string;
   approvalType: ApprovalType;
   destination: ReleaseDestination;
   note?: string;
-}): DocumentApprovalRow {
-  const actor = getUserById(opts.actingUserId);
+}): Promise<DocumentApprovalRow> {
+  const actor = await getUserById(opts.actingUserId);
   if (!actor || !actor.active || actor.role !== "ATTORNEY") {
     throw new Error("DOCUMENT_GUARD: only an active ATTORNEY may approve a document version");
   }
-  const v = getVersion(opts.versionId);
+  const v = await getVersion(opts.versionId);
   if (!v) throw new Error("VALIDATION: version not found");
   if (!["DRAFT", "ATTORNEY_REVIEW_REQUIRED", "CHANGES_REQUESTED"].includes(v.status)) {
     throw new Error(`DOCUMENT_GUARD: version in status ${v.status} cannot be approved`);
@@ -285,59 +286,69 @@ export function approveVersion(opts: {
   }
 
   const id = newId();
-  getDb()
-    .prepare(
-      `INSERT INTO document_approval
-       (id, document_version_id, sha256, approved_by, approval_type, destination, note, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(id, v.id, v.sha256, actor.id, opts.approvalType, opts.destination, opts.note ?? null, nowIso());
-  getDb()
-    .prepare(`UPDATE document_version SET status = ? WHERE id = ?`)
-    .run(APPROVAL_STATUS[opts.approvalType], v.id);
-  return getApproval(id)!;
+  await getDb().run(
+    `INSERT INTO document_approval
+     (id, document_version_id, sha256, approved_by, approval_type, destination, note, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    id,
+    v.id,
+    v.sha256,
+    actor.id,
+    opts.approvalType,
+    opts.destination,
+    opts.note ?? null,
+    nowIso()
+  );
+  await getDb().run(
+    `UPDATE document_version SET status = ? WHERE id = ?`,
+    APPROVAL_STATUS[opts.approvalType],
+    v.id
+  );
+  return (await getApproval(id))!;
 }
 
-export function getApproval(id: string): DocumentApprovalRow | null {
-  const r = getDb()
-    .prepare(`SELECT * FROM document_approval WHERE id = ?`)
-    .get(id) as Record<string, unknown> | undefined;
+export async function getApproval(id: string): Promise<DocumentApprovalRow | null> {
+  const r = await getDb().get(`SELECT * FROM document_approval WHERE id = ?`, id);
   return r ? rowToApproval(r) : null;
 }
 
-export function listApprovalsForVersion(versionId: string): DocumentApprovalRow[] {
-  const rows = getDb()
-    .prepare(
-      `SELECT * FROM document_approval WHERE document_version_id = ? ORDER BY created_at DESC`
-    )
-    .all(versionId) as Record<string, unknown>[];
+export async function listApprovalsForVersion(versionId: string): Promise<DocumentApprovalRow[]> {
+  const rows = await getDb().all(
+    `SELECT * FROM document_approval WHERE document_version_id = ? ORDER BY created_at DESC`,
+    versionId
+  );
   return rows.map(rowToApproval);
 }
 
-export function revokeApproval(opts: { approvalId: string; actingUserId: string }): void {
-  const actor = getUserById(opts.actingUserId);
+export async function revokeApproval(opts: {
+  approvalId: string;
+  actingUserId: string;
+}): Promise<void> {
+  const actor = await getUserById(opts.actingUserId);
   if (!actor || !actor.active || actor.role !== "ATTORNEY") {
     throw new Error("DOCUMENT_GUARD: only an active ATTORNEY may revoke an approval");
   }
-  getDb()
-    .prepare(`UPDATE document_approval SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL`)
-    .run(nowIso(), opts.approvalId);
+  await getDb().run(
+    `UPDATE document_approval SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL`,
+    nowIso(),
+    opts.approvalId
+  );
 }
 
 // ── Release (attorney-only; verifies everything again) ───────────────
 
-export function releaseVersion(opts: {
+export async function releaseVersion(opts: {
   versionId: string;
   actingUserId: string;
   destination: ReleaseDestination;
   /** Fresh SHA-256 of the ACTUAL stored bytes, computed by the caller. */
   contentSha256: string;
-}): DocumentReleaseRow {
-  const actor = getUserById(opts.actingUserId);
+}): Promise<DocumentReleaseRow> {
+  const actor = await getUserById(opts.actingUserId);
   if (!actor || !actor.active || actor.role !== "ATTORNEY") {
     throw new Error("DOCUMENT_GUARD: only an active ATTORNEY may release a document version");
   }
-  const v = getVersion(opts.versionId);
+  const v = await getVersion(opts.versionId);
   if (!v) throw new Error("VALIDATION: version not found");
 
   const expectedStatus: DocumentVersionStatus =
@@ -352,7 +363,7 @@ export function releaseVersion(opts: {
     );
   }
 
-  const approval = listApprovalsForVersion(v.id).find(
+  const approval = (await listApprovalsForVersion(v.id)).find(
     (a) =>
       !a.revokedAt &&
       a.destination === opts.destination &&
@@ -365,20 +376,24 @@ export function releaseVersion(opts: {
     throw new Error("DOCUMENT_GUARD: stored content hash does not match the approved version");
   }
 
-  const doc = getDocument(v.documentId)!;
+  const doc = (await getDocument(v.documentId))!;
   const id = newId();
-  getDb()
-    .prepare(
-      `INSERT INTO document_release
-       (id, document_version_id, approval_id, matter_id, sha256, destination, released_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(id, v.id, approval.id, doc.matterId, v.sha256, opts.destination, actor.id, nowIso());
-  getDb().prepare(`UPDATE document_version SET status = 'RELEASED' WHERE id = ?`).run(v.id);
+  await getDb().run(
+    `INSERT INTO document_release
+     (id, document_version_id, approval_id, matter_id, sha256, destination, released_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    id,
+    v.id,
+    approval.id,
+    doc.matterId,
+    v.sha256,
+    opts.destination,
+    actor.id,
+    nowIso()
+  );
+  await getDb().run(`UPDATE document_version SET status = 'RELEASED' WHERE id = ?`, v.id);
 
-  const r = getDb()
-    .prepare(`SELECT * FROM document_release WHERE id = ?`)
-    .get(id) as Record<string, unknown>;
+  const r = (await getDb().get(`SELECT * FROM document_release WHERE id = ?`, id))!;
   return {
     id: r.id as string,
     documentVersionId: r.document_version_id as string,
@@ -392,33 +407,37 @@ export function releaseVersion(opts: {
 }
 
 /** Client-visible set: ONLY versions released to the client portal. */
-export function listReleasedForMatter(matterId: string): {
-  document: DocumentRow;
-  version: DocumentVersionRow;
-  releasedAt: string;
-}[] {
-  const rows = getDb()
-    .prepare(
-      `SELECT dv.id AS version_id, d.id AS doc_id, dr.created_at AS released_at
-       FROM document_release dr
-       JOIN document_version dv ON dv.id = dr.document_version_id
-       JOIN document d ON d.id = dv.document_id
-       WHERE dr.matter_id = ? AND dr.destination = 'CLIENT_PORTAL'
-       ORDER BY dr.created_at DESC`
-    )
-    .all(matterId) as { version_id: string; doc_id: string; released_at: string }[];
-  return rows.map((r) => ({
-    document: getDocument(r.doc_id)!,
-    version: getVersion(r.version_id)!,
-    releasedAt: r.released_at,
-  }));
+export async function listReleasedForMatter(matterId: string): Promise<
+  {
+    document: DocumentRow;
+    version: DocumentVersionRow;
+    releasedAt: string;
+  }[]
+> {
+  const rows = await getDb().all<{ version_id: string; doc_id: string; released_at: string }>(
+    `SELECT dv.id AS version_id, d.id AS doc_id, dr.created_at AS released_at
+     FROM document_release dr
+     JOIN document_version dv ON dv.id = dr.document_version_id
+     JOIN document d ON d.id = dv.document_id
+     WHERE dr.matter_id = ? AND dr.destination = 'CLIENT_PORTAL'
+     ORDER BY dr.created_at DESC`,
+    matterId
+  );
+  const out: { document: DocumentRow; version: DocumentVersionRow; releasedAt: string }[] = [];
+  for (const r of rows) {
+    out.push({
+      document: (await getDocument(r.doc_id))!,
+      version: (await getVersion(r.version_id))!,
+      releasedAt: r.released_at,
+    });
+  }
+  return out;
 }
 
-export function isVersionReleasedToClient(versionId: string): boolean {
-  const r = getDb()
-    .prepare(
-      `SELECT 1 x FROM document_release WHERE document_version_id = ? AND destination = 'CLIENT_PORTAL'`
-    )
-    .get(versionId);
+export async function isVersionReleasedToClient(versionId: string): Promise<boolean> {
+  const r = await getDb().get(
+    `SELECT 1 x FROM document_release WHERE document_version_id = ? AND destination = 'CLIENT_PORTAL'`,
+    versionId
+  );
   return Boolean(r);
 }

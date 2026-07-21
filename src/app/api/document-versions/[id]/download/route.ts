@@ -23,26 +23,26 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["CLIENT", "STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const version = getVersion(id);
+    const version = (await getVersion(id));
     if (!version) throw new HttpError(404, "Not found");
-    const doc = getDocument(version.documentId)!;
-    const matter = requireMatterAccess(authed, doc.matterId);
+    const doc = (await getDocument(version.documentId))!;
+    const matter = (await requireMatterAccess(authed, doc.matterId));
 
     if (authed.account.role === "CLIENT") {
       const isOwnUpload =
         doc.docKind === "CLIENT_UPLOAD" && doc.createdBy === authed.account.id;
-      if (!isVersionReleasedToClient(version.id) && !isOwnUpload) {
+      if (!(await isVersionReleasedToClient(version.id)) && !isOwnUpload) {
         throw new HttpError(404, "Not found"); // unreleased work is invisible
       }
     }
 
     const bytes = await getFileStorage().get(version.storageKey);
-    recordAudit(
-      matter.id,
-      "DOCUMENT_DOWNLOADED",
-      `version=${version.id}`,
-      authed.account.id
-    );
+    (await recordAudit(
+            matter.id,
+            "DOCUMENT_DOWNLOADED",
+            `version=${version.id}`,
+            authed.account.id
+          ));
     return new Response(Buffer.from(bytes), {
       status: 200,
       headers: {

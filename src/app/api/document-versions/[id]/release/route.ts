@@ -24,28 +24,28 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["ATTORNEY"]);
     const { id } = await ctx.params;
-    const version = getVersion(id);
+    const version = (await getVersion(id));
     if (!version) throw new HttpError(404, "Not found");
-    const doc = getDocument(version.documentId)!;
-    const matter = requireMatterAccess(authed, doc.matterId);
+    const doc = (await getDocument(version.documentId))!;
+    const matter = (await requireMatterAccess(authed, doc.matterId));
 
     const parsed = schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid release payload");
 
     // Fresh hash of the actual bytes on disk — content integrity at release.
     const bytes = await getFileStorage().get(version.storageKey);
-    const release = releaseVersion({
-      versionId: version.id,
-      actingUserId: authed.account.id,
-      destination: parsed.data.destination,
-      contentSha256: sha256Hex(bytes),
-    });
-    recordAudit(
-      matter.id,
-      "DOCUMENT_RELEASED",
-      `version=${version.id} destination=${release.destination} sha256=${release.sha256}`,
-      authed.account.id
-    );
+    const release = (await releaseVersion({
+          versionId: version.id,
+          actingUserId: authed.account.id,
+          destination: parsed.data.destination,
+          contentSha256: sha256Hex(bytes),
+        }));
+    (await recordAudit(
+            matter.id,
+            "DOCUMENT_RELEASED",
+            `version=${version.id} destination=${release.destination} sha256=${release.sha256}`,
+            authed.account.id
+          ));
     return Response.json({
       release: {
         id: release.id,

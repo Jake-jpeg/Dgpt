@@ -10,7 +10,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const user = await requireAnyRole(req);
     const { id } = await ctx.params;
-    const result = completeIntake(user, id);
+    const result = (await completeIntake(user, id));
     return Response.json({
       ...result,
       copy: { readyForReview: getProcessCopy("READY_FOR_REVIEW") },

@@ -26,10 +26,11 @@ export interface ExtractionRow {
   createdAt: string;
 }
 
-export function getExtraction(versionId: string): ExtractionRow | null {
-  const r = getDb()
-    .prepare(`SELECT * FROM document_extraction WHERE document_version_id = ?`)
-    .get(versionId) as Record<string, unknown> | undefined;
+export async function getExtraction(versionId: string): Promise<ExtractionRow | null> {
+  const r = await getDb().get(
+    `SELECT * FROM document_extraction WHERE document_version_id = ?`,
+    versionId
+  );
   if (!r) return null;
   return {
     documentVersionId: r.document_version_id as string,
@@ -40,15 +41,23 @@ export function getExtraction(versionId: string): ExtractionRow | null {
   };
 }
 
-function saveExtraction(versionId: string, status: ExtractionRow["status"], text: string | null, note: string | null): ExtractionRow {
-  getDb()
-    .prepare(
-      `INSERT INTO document_extraction (document_version_id, status, text, locator_note, created_at)
-       VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(document_version_id) DO UPDATE SET status=excluded.status, text=excluded.text, locator_note=excluded.locator_note, created_at=excluded.created_at`
-    )
-    .run(versionId, status, text, note, nowIso());
-  return getExtraction(versionId)!;
+async function saveExtraction(
+  versionId: string,
+  status: ExtractionRow["status"],
+  text: string | null,
+  note: string | null
+): Promise<ExtractionRow> {
+  await getDb().run(
+    `INSERT INTO document_extraction (document_version_id, status, text, locator_note, created_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(document_version_id) DO UPDATE SET status=excluded.status, text=excluded.text, locator_note=excluded.locator_note, created_at=excluded.created_at`,
+    versionId,
+    status,
+    text,
+    note,
+    nowIso()
+  );
+  return (await getExtraction(versionId))!;
 }
 
 /** Minimal PDF text extraction for uncompressed streams (synthetic PDFs). */
@@ -79,7 +88,7 @@ function extractPdfText(bytes: Uint8Array): { text: string; note: string } | nul
 
 /** Explicit extraction action (staff/attorney routes call this). */
 export async function extractDocumentText(versionId: string): Promise<ExtractionRow> {
-  const version = getVersion(versionId);
+  const version = (await getVersion(versionId));
   if (!version) throw new Error("VALIDATION: version not found");
   try {
     const bytes = await getFileStorage().get(version.storageKey);

@@ -39,45 +39,51 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["CLIENT", "STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
 
     if (authed.account.role === "CLIENT") {
-      const released = listReleasedForMatter(matter.id).map((r) => ({
+      const released = (await listReleasedForMatter(matter.id)).map((r) => ({
         documentId: r.document.id,
         versionId: r.version.id,
         title: r.document.title,
         releasedAt: r.releasedAt,
       }));
-      const uploads = listDocumentsForMatter(matter.id)
+      const uploads = (await listDocumentsForMatter(matter.id))
         .filter((d) => d.docKind === "CLIENT_UPLOAD" && d.createdBy === authed.account.id)
         .map((d) => ({ documentId: d.id, title: d.title, uploadedAt: d.createdAt }));
       return Response.json({ released, uploads });
     }
 
     return Response.json({
-      documents: listDocumentsForMatter(matter.id).map((d) => ({
-        ...d,
-        versions: listVersions(d.id).map((v) => ({
-          id: v.id,
-          versionNo: v.versionNo,
-          status: v.status,
-          sha256: v.sha256,
-          mime: v.mime,
-          sizeBytes: v.sizeBytes,
-          originalFilename: v.originalFilename,
-          source: v.source, // "AI" flags AI-generated/unreviewed provenance
-          createdAt: v.createdAt,
-          approvals: listApprovalsForVersion(v.id).map((a) => ({
-            id: a.id,
-            approvalType: a.approvalType,
-            destination: a.destination,
-            sha256: a.sha256,
-            approvedBy: getUserById(a.approvedBy)?.email ?? a.approvedBy,
-            revoked: Boolean(a.revokedAt),
-            createdAt: a.createdAt,
-          })),
-        })),
-      })),
+      documents: await Promise.all(
+        ((await listDocumentsForMatter(matter.id)).map(async (d) => ({
+                    ...d,
+                    versions: await Promise.all(
+                      ((await listVersions(d.id)).map(async (v) => ({
+                                                id: v.id,
+                                                versionNo: v.versionNo,
+                                                status: v.status,
+                                                sha256: v.sha256,
+                                                mime: v.mime,
+                                                sizeBytes: v.sizeBytes,
+                                                originalFilename: v.originalFilename,
+                                                source: v.source, // "AI" flags AI-generated/unreviewed provenance
+                                                createdAt: v.createdAt,
+                                                approvals: await Promise.all(
+                                                  ((await listApprovalsForVersion(v.id)).map(async (a) => ({
+                                                                                                        id: a.id,
+                                                                                                        approvalType: a.approvalType,
+                                                                                                        destination: a.destination,
+                                                                                                        sha256: a.sha256,
+                                                                                                        approvedBy: (await getUserById(a.approvedBy))?.email ?? a.approvedBy,
+                                                                                                        revoked: Boolean(a.revokedAt),
+                                                                                                        createdAt: a.createdAt,
+                                                                                                      })))
+                                                ),
+                                              })))
+                    ),
+                  })))
+      ),
     });
   } catch (e) {
     return errorResponse(e);
@@ -90,7 +96,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["CLIENT", "STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
 
     if (authed.account.role === "CLIENT" && matter.conflictStatus !== "CLEARED") {
       throw new HttpError(409, "Document upload becomes available after the firm completes its review");
@@ -107,29 +113,29 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertUploadAllowed(mime, bytes.byteLength);
 
     const stored = await getFileStorage().put(bytes);
-    const doc = createDocument({
-      matterId: matter.id,
-      title,
-      docKind: authed.account.role === "CLIENT" ? "CLIENT_UPLOAD" : "GENERAL",
-      createdBy: authed.account.id,
-    });
-    const version = addDocumentVersion({
-      documentId: doc.id,
-      storageKey: stored.storageKey,
-      sha256: stored.sha256,
-      mime,
-      sizeBytes: stored.sizeBytes,
-      originalFilename: sanitizeDisplayFilename(file.name ?? title),
-      source: "UPLOAD",
-      createdBy: authed.account.id,
-      initialStatus: "DRAFT",
-    });
-    recordAudit(
-      matter.id,
-      "DOCUMENT_UPLOADED",
-      `document=${doc.id} version=${version.id} sha256=${stored.sha256}`,
-      authed.account.id
-    );
+    const doc = (await createDocument({
+          matterId: matter.id,
+          title,
+          docKind: authed.account.role === "CLIENT" ? "CLIENT_UPLOAD" : "GENERAL",
+          createdBy: authed.account.id,
+        }));
+    const version = (await addDocumentVersion({
+          documentId: doc.id,
+          storageKey: stored.storageKey,
+          sha256: stored.sha256,
+          mime,
+          sizeBytes: stored.sizeBytes,
+          originalFilename: sanitizeDisplayFilename(file.name ?? title),
+          source: "UPLOAD",
+          createdBy: authed.account.id,
+          initialStatus: "DRAFT",
+        }));
+    (await recordAudit(
+            matter.id,
+            "DOCUMENT_UPLOADED",
+            `document=${doc.id} version=${version.id} sha256=${stored.sha256}`,
+            authed.account.id
+          ));
     return Response.json(
       {
         document: { id: doc.id, title: doc.title },

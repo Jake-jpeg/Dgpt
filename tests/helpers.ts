@@ -92,19 +92,19 @@ import { getSession } from "@/lib/db/repo";
  * admin would create them, then bound to the synthetic session subject as
  * a first login would.
  */
-export function provisionAccount(user: SessionUser) {
-  if (!getUserBySubject(user.subject) && !getUserByEmail(user.email)) {
-    createUser({ email: user.email, role: user.role, name: user.name });
+export async function provisionAccount(user: SessionUser) {
+  if (!(await getUserBySubject(user.subject)) && !(await getUserByEmail(user.email))) {
+    (await createUser({ email: user.email, role: user.role, name: user.name }));
   }
-  const account = findAccountForSession({
-    subject: user.subject,
-    email: user.email,
-    name: user.name,
-    adminBootstrapEmails: (process.env.ADMIN_EMAILS ?? "")
-      .split(",")
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean),
-  });
+  const account = (await findAccountForSession({
+      subject: user.subject,
+      email: user.email,
+      name: user.name,
+      adminBootstrapEmails: (process.env.ADMIN_EMAILS ?? "")
+        .split(",")
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
+    }));
   if (!account) throw new Error(`provisionAccount failed for ${user.email}`);
   return account;
 }
@@ -123,11 +123,11 @@ export interface MatterContext {
 export async function setupClientWithMatter(
   client: SessionUser = SYNTH_CLIENT
 ): Promise<MatterContext> {
-  const attorney = provisionAccount(SYNTH_ATTORNEY);
-  const clientAccount = provisionAccount(client);
-  const matter = createMatter({ label: `Synthetic Matter (${client.email})`, createdBy: attorney.id });
-  grantMatterAccess(matter.id, attorney.id, attorney.id);
-  const { rawToken } = createInvitation({ matterId: matter.id, createdBy: attorney.id });
+  const attorney = (await provisionAccount(SYNTH_ATTORNEY));
+  const clientAccount = (await provisionAccount(client));
+  const matter = (await createMatter({ label: `Synthetic Matter (${client.email})`, createdBy: attorney.id }));
+  (await grantMatterAccess(matter.id, attorney.id, attorney.id));
+  const { rawToken } = (await createInvitation({ matterId: matter.id, createdBy: attorney.id }));
   freshLimits();
   const res = await acceptRoute(
     jsonRequest("/api/invitations/accept", {
@@ -136,11 +136,11 @@ export async function setupClientWithMatter(
     })
   );
   if (res.status !== 200) throw new Error(`invitation accept failed: ${res.status}`);
-  recordDisclosureAck({
-    matterRef: matter.id,
-    userRef: clientAccount.id,
-    version: DISCLOSURE_VERSION,
-  });
+  (await recordDisclosureAck({
+        matterRef: matter.id,
+        userRef: clientAccount.id,
+        version: DISCLOSURE_VERSION,
+      }));
   return { matterId: matter.id, clientUserId: clientAccount.id, attorneyUserId: attorney.id };
 }
 
@@ -198,16 +198,16 @@ export async function startSession(cookie: string): Promise<string> {
   if (!user) throw new Error("startSession: invalid synthetic cookie");
   let matterId: string;
   if (user.role === "CLIENT") {
-    const account = provisionAccount(user);
-    const mine = listMattersForClient(account.id);
+    const account = (await provisionAccount(user));
+    const mine = (await listMattersForClient(account.id));
     matterId = mine[0]?.id ?? (await setupClientWithMatter(user)).matterId;
   } else {
-    const account = provisionAccount(user);
-    const m = createMatter({
-      label: `Synthetic ${account.role}-initiated Matter`,
-      createdBy: account.id,
-    });
-    grantMatterAccess(m.id, account.id, account.id);
+    const account = (await provisionAccount(user));
+    const m = (await createMatter({
+          label: `Synthetic ${account.role}-initiated Matter`,
+          createdBy: account.id,
+        }));
+    (await grantMatterAccess(m.id, account.id, account.id));
     matterId = m.id;
   }
   freshLimits();
@@ -235,7 +235,7 @@ export async function runIdentityAndClear(
   identity: unknown = CLEAN_IDENTITY
 ) {
   const r = await runIdentity(cookie, id, identity);
-  const matterId = getSession(id)?.matterId;
+  const matterId = (await getSession(id))?.matterId;
   if (!matterId) throw new Error("runIdentityAndClear: session has no matter");
   await clearMatter(matterId);
   return r;
@@ -260,7 +260,7 @@ export async function runToTierBranch(cookie: string, id: string): Promise<void>
   if (idres.data.result !== "PENDING_REVIEW") {
     throw new Error(`expected screening to pend review, got ${JSON.stringify(idres.data)}`);
   }
-  const matterId = getSession(id)?.matterId;
+  const matterId = (await getSession(id))?.matterId;
   if (!matterId) throw new Error("session has no matter");
   await clearMatter(matterId);
   for (const answer of [true, "Bergen", false, false, "FULLY_AGREE"]) {

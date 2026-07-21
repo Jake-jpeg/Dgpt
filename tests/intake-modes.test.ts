@@ -48,7 +48,7 @@ describe("mode (a): client-initiated intake → attorney review", () => {
     expect(done.data.state).toBe("READY_FOR_REVIEW");
 
     // The conflict wall was actually passed through (audited).
-    const events = getAuditEvents(id).map((e) => e.event);
+    const events = (await getAuditEvents(id)).map((e) => e.event);
     expect(events).toContain("CONFLICT_SCREEN_RUN");
     expect(events).toContain("CONFLICT_CLEARED_BY_ATTORNEY");
     expect(events).toContain("READY_FOR_REVIEW");
@@ -150,7 +150,7 @@ describe("mode (b): attorney-initiated intake — same wall, same gate", () => {
     expect(r.data.result).toBe("PENDING_REVIEW");
     const { getSession } = await import("@/lib/db/repo");
     const { getMatter } = await import("@/lib/db/matters");
-    expect(getMatter(getSession(id)!.matterId!)!.conflictStatus).toBe("POTENTIAL_MATCH");
+    expect((await getMatter((await getSession(id))!.matterId!))!.conflictStatus).toBe("POTENTIAL_MATCH");
   });
 
   it("attorney cannot skip the scope gate on their own intake", async () => {

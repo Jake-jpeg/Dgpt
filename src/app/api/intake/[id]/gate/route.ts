@@ -17,7 +17,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const parsed = z.object({ answer: z.unknown() }).safeParse(await req.json());
     if (!parsed.success) throw new HttpError(400, "VALIDATION: missing answer");
 
-    const outcome = answerGate(user, id, parsed.data.answer);
+    const outcome = (await answerGate(user, id, parsed.data.answer));
     if (isTerminated(outcome)) return Response.json(outcome);
 
     return Response.json({

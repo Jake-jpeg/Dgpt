@@ -10,12 +10,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const user = await requireAnyRole(req);
     const { id } = await ctx.params;
-    const outcome = answerBranch(user, id, await req.json());
+    const outcome = (await answerBranch(user, id, await req.json()));
     if (isTerminated(outcome)) return Response.json(outcome);
     return Response.json({
       tier: outcome.tier,
       copy: { intake: getProcessCopy("INTAKE_EXPLAINER") },
-      view: sessionView(user, id),
+      view: (await sessionView(user, id)),
     });
   } catch (e) {
     return errorResponse(e);

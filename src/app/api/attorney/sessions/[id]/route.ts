@@ -20,7 +20,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     await requireRole(req, "ATTORNEY");
     const { id } = await ctx.params;
 
-    const s = getSession(id);
+    const s = (await getSession(id));
     if (!s) throw new HttpError(404, "Session not found");
     // The attorney reviews completed intakes; in-progress client sessions are
     // not readable until the client finishes (handoff happens at
@@ -30,7 +30,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       throw new HttpError(409, "This intake is not ready for review yet");
     }
 
-    const answers = getAnswers(id);
+    const answers = (await getAnswers(id));
     const sections = s.tier
       ? sectionsForTier(s.tier).map((sec) => ({
           id: sec.id,
@@ -53,14 +53,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         createdAt: s.createdAt,
         updatedAt: s.updatedAt,
       },
-      identity: getIdentity(id),
+      identity: (await getIdentity(id)),
       sections,
       branch: {
         branch_assets: answers["branch_assets"] ?? null,
         branch_alimony: answers["branch_alimony"] ?? null,
       },
-      audit: getAuditEvents(id),
-      botLog: getBotLog(id),
+      audit: (await getAuditEvents(id)),
+      botLog: (await getBotLog(id)),
       // Stage-2 affordance is rendered in the UI but disabled and wired to
       // nothing — there is deliberately NO drafting endpoint in Stage 1.
       stage2: { draftingAvailable: false },

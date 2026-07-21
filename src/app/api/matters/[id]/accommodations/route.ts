@@ -26,16 +26,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     const parsed = schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid accommodation payload");
-    const row = recordAccommodation({
-      matterId: matter.id,
-      method: parsed.data.method,
-      note: parsed.data.note,
-      recordedBy: authed.account.id,
-    });
-    recordAudit(matter.id, "ACCOMMODATION_RECORDED", `method=${row.method}`, authed.account.id);
+    const row = (await recordAccommodation({
+          matterId: matter.id,
+          method: parsed.data.method,
+          note: parsed.data.note,
+          recordedBy: authed.account.id,
+        }));
+    (await recordAudit(matter.id, "ACCOMMODATION_RECORDED", `method=${row.method}`, authed.account.id));
     return Response.json({ accommodation: row }, { status: 201 });
   } catch (e) {
     return errorResponse(e);
@@ -47,8 +47,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
-    return Response.json({ accommodations: listAccommodations(matter.id) });
+    const matter = (await requireMatterAccess(authed, id));
+    return Response.json({ accommodations: (await listAccommodations(matter.id)) });
   } catch (e) {
     return errorResponse(e);
   }

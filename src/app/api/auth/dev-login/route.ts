@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       email,
       name,
     });
-    recordAudit("auth", "AUTH_LOGIN", `mode=test subjectHash=${hashNameForAudit(email)}`);
+    (await recordAudit("auth", "AUTH_LOGIN", `mode=test subjectHash=${hashNameForAudit(email)}`));
     return new Response(JSON.stringify({ ok: true, role }), {
       status: 200,
       headers: {

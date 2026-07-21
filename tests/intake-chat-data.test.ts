@@ -38,69 +38,69 @@ async function newSession(): Promise<string> {
 describe("intake_chat_message — append-only ordered transcript", () => {
   it("allocates seq per session and returns messages in order", async () => {
     const sessionId = await newSession();
-    appendChatMessage({ sessionId, role: "ASSISTANT", content: "Hello." });
-    appendChatMessage({ sessionId, role: "CLIENT", content: "안녕하세요", lang: "ko" });
-    appendSystemEvent(sessionId, "gate GATE_DV passed");
+    (await appendChatMessage({ sessionId, role: "ASSISTANT", content: "Hello." }));
+    (await appendChatMessage({ sessionId, role: "CLIENT", content: "안녕하세요", lang: "ko" }));
+    (await appendSystemEvent(sessionId, "gate GATE_DV passed"));
 
-    const all = listChatMessages(sessionId);
+    const all = (await listChatMessages(sessionId));
     expect(all.map((m) => m.seq)).toEqual([1, 2, 3]);
     expect(all.map((m) => m.role)).toEqual(["ASSISTANT", "CLIENT", "SYSTEM_EVENT"]);
     expect(all[1].lang).toBe("ko");
     expect(all[1].content).toBe("안녕하세요");
     // A system marker is always recorded in English.
     expect(all[2].lang).toBe("en");
-    expect(countChatMessages(sessionId)).toBe(3);
+    expect((await countChatMessages(sessionId))).toBe(3);
   });
 
   it("keeps sequences independent per session", async () => {
     const a = await newSession();
-    appendChatMessage({ sessionId: a, role: "CLIENT", content: "first" });
-    expect(listChatMessages(a)[0].seq).toBe(1);
+    (await appendChatMessage({ sessionId: a, role: "CLIENT", content: "first" }));
+    expect((await listChatMessages(a))[0].seq).toBe(1);
   });
 
   it("refuses unknown roles, unsupported languages, and oversized turns", async () => {
     const sessionId = await newSession();
-    expect(() =>
+    await expect(
       appendChatMessage({ sessionId, role: "ATTORNEY" as never, content: "x" })
-    ).toThrow(/unknown chat role/);
-    expect(() =>
+    ).rejects.toThrow(/unknown chat role/);
+    await expect(
       appendChatMessage({ sessionId, role: "CLIENT", content: "x", lang: "fr" as never })
-    ).toThrow(/unsupported language/);
-    expect(() =>
+    ).rejects.toThrow(/unsupported language/);
+    await expect(
       appendChatMessage({
         sessionId,
         role: "CLIENT",
         content: "x".repeat(MAX_CHAT_MESSAGE_CHARS + 1),
-      })
-    ).toThrow(/too long/);
+        })
+    ).rejects.toThrow(/too long/);
   });
 
   it("CASCADEs with the session, so retention purges it for free", async () => {
     const sessionId = await newSession();
-    appendChatMessage({ sessionId, role: "CLIENT", content: "confidential" });
-    expect(countChatMessages(sessionId)).toBe(1);
+    (await appendChatMessage({ sessionId, role: "CLIENT", content: "confidential" }));
+    expect((await countChatMessages(sessionId))).toBe(1);
 
-    getDb().prepare(`DELETE FROM intake_session WHERE id = ?`).run(sessionId);
-    expect(countChatMessages(sessionId)).toBe(0);
+    await getDb().run(`DELETE FROM intake_session WHERE id = ?`, sessionId);
+    expect((await countChatMessages(sessionId))).toBe(0);
   });
 });
 
 describe("ai_job — start work, return an id, poll to completion", () => {
   it("moves QUEUED → RUNNING → DONE and carries ids only", async () => {
     const ctx = await setupClientWithMatter();
-    const job = createJob({
-      kind: "AI_ACTION",
-      requestedBy: ctx.attorneyUserId,
-      matterId: ctx.matterId,
-    });
+    const job = (await createJob({
+          kind: "AI_ACTION",
+          requestedBy: ctx.attorneyUserId,
+          matterId: ctx.matterId,
+        }));
     expect(job.status).toBe("QUEUED");
     expect(job.result).toBeNull();
 
-    markJobRunning(job.id);
-    expect(getJob(job.id)!.status).toBe("RUNNING");
+    (await markJobRunning(job.id));
+    expect((await getJob(job.id))!.status).toBe("RUNNING");
 
-    completeJob(job.id, { documentId: "doc-1", versionId: "ver-1", model: "claude-opus-4-8" });
-    const done = getJob(job.id)!;
+    (await completeJob(job.id, { documentId: "doc-1", versionId: "ver-1", model: "claude-opus-4-8" }));
+    const done = (await getJob(job.id))!;
     expect(done.status).toBe("DONE");
     expect(done.result).toEqual({
       documentId: "doc-1",
@@ -112,50 +112,50 @@ describe("ai_job — start work, return an id, poll to completion", () => {
 
   it("records a failure message without a stack, and truncates it", async () => {
     const ctx = await setupClientWithMatter();
-    const job = createJob({ kind: "AI_ACTION", requestedBy: ctx.attorneyUserId });
-    failJob(job.id, "AI_GUARD: provider request invalid (HTTP 400)");
-    const failed = getJob(job.id)!;
+    const job = (await createJob({ kind: "AI_ACTION", requestedBy: ctx.attorneyUserId }));
+    (await failJob(job.id, "AI_GUARD: provider request invalid (HTTP 400)"));
+    const failed = (await getJob(job.id))!;
     expect(failed.status).toBe("FAILED");
     expect(failed.error).toBe("AI_GUARD: provider request invalid (HTTP 400)");
 
-    const long = createJob({ kind: "AI_ACTION", requestedBy: ctx.attorneyUserId });
-    failJob(long.id, "x".repeat(1000));
-    expect(getJob(long.id)!.error!.length).toBe(300);
+    const long = (await createJob({ kind: "AI_ACTION", requestedBy: ctx.attorneyUserId }));
+    (await failJob(long.id, "x".repeat(1000)));
+    expect((await getJob(long.id))!.error!.length).toBe(300);
   });
 
   it("reaps abandoned jobs so a poller always terminates", async () => {
     const ctx = await setupClientWithMatter();
-    const job = createJob({ kind: "AI_ACTION", requestedBy: ctx.attorneyUserId });
-    markJobRunning(job.id);
+    const job = (await createJob({ kind: "AI_ACTION", requestedBy: ctx.attorneyUserId }));
+    (await markJobRunning(job.id));
 
     // Nothing is stale yet.
-    expect(reapStaleJobs()).toBe(0);
-    expect(getJob(job.id)!.status).toBe("RUNNING");
+    expect((await reapStaleJobs())).toBe(0);
+    expect((await getJob(job.id))!.status).toBe("RUNNING");
 
     // Far enough in the future that the job has clearly been abandoned.
-    const reaped = reapStaleJobs(Date.now() + JOB_STALE_MS * 2);
+    const reaped = (await reapStaleJobs(Date.now() + JOB_STALE_MS * 2));
     expect(reaped).toBeGreaterThanOrEqual(1);
-    const dead = getJob(job.id)!;
+    const dead = (await getJob(job.id))!;
     expect(dead.status).toBe("FAILED");
     expect(dead.error).toMatch(/did not complete/);
   });
 
   it("does not reap jobs that already reached a terminal state", async () => {
     const ctx = await setupClientWithMatter();
-    const job = createJob({ kind: "AI_ACTION", requestedBy: ctx.attorneyUserId });
-    completeJob(job.id, { documentId: "doc-2" });
-    reapStaleJobs(Date.now() + JOB_STALE_MS * 2);
-    expect(getJob(job.id)!.status).toBe("DONE");
+    const job = (await createJob({ kind: "AI_ACTION", requestedBy: ctx.attorneyUserId }));
+    (await completeJob(job.id, { documentId: "doc-2" }));
+    (await reapStaleJobs(Date.now() + JOB_STALE_MS * 2));
+    expect((await getJob(job.id))!.status).toBe("DONE");
   });
 
   it("refuses an unknown job kind and lists jobs newest-first per matter", async () => {
     const ctx = await setupClientWithMatter();
-    expect(() =>
+    await expect(
       createJob({ kind: "MINE_BITCOIN" as never, requestedBy: ctx.attorneyUserId })
-    ).toThrow(/unknown job kind/);
+    ).rejects.toThrow(/unknown job kind/);
 
-    createJob({ kind: "AI_ACTION", requestedBy: ctx.attorneyUserId, matterId: ctx.matterId });
-    const mine = listJobsForMatter(ctx.matterId);
+    (await createJob({ kind: "AI_ACTION", requestedBy: ctx.attorneyUserId, matterId: ctx.matterId }));
+    const mine = (await listJobsForMatter(ctx.matterId));
     expect(mine.length).toBeGreaterThanOrEqual(1);
     for (const j of mine) expect(j.matterRef).toBe(ctx.matterId);
   });

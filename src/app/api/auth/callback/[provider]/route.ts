@@ -44,12 +44,12 @@ export async function GET(
     // Look up (never create) the account for this stable identity. The one
     // narrow exception inside findAccountForSession is ADMIN_EMAILS
     // bootstrap/recovery.
-    const account = findAccountForSession({
-      subject: identity.subject,
-      email: identity.email,
-      name: identity.name,
-      adminBootstrapEmails: adminBootstrapEmails(),
-    });
+    const account = (await findAccountForSession({
+          subject: identity.subject,
+          email: identity.email,
+          name: identity.name,
+          adminBootstrapEmails: adminBootstrapEmails(),
+        }));
     const boundAccount =
       account && account.subject === identity.subject ? account : null;
 
@@ -71,11 +71,11 @@ export async function GET(
       email: identity.email,
       name: identity.name,
     });
-    recordAudit(
-      "auth",
-      "AUTH_LOGIN",
-      `provider=${provider} account=${boundAccount ? boundAccount.role : "none"} subjectHash=${hashNameForAudit(identity.email)}`
-    );
+    (await recordAudit(
+            "auth",
+            "AUTH_LOGIN",
+            `provider=${provider} account=${boundAccount ? boundAccount.role : "none"} subjectHash=${hashNameForAudit(identity.email)}`
+          ));
     const headers = new Headers({ Location: dest });
     headers.append("Set-Cookie", sessionCookieHeader(token));
     headers.append("Set-Cookie", `${OAUTH_TX_COOKIE}=; Path=/; HttpOnly; Max-Age=0`);

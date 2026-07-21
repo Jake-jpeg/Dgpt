@@ -53,43 +53,48 @@ export function inviteTtlHours(): number {
 }
 
 /** Returns the raw token EXACTLY ONCE — it is never stored or logged. */
-export function createInvitation(opts: {
+export async function createInvitation(opts: {
   matterId: string;
   createdBy: string;
   ttlHours?: number;
-}): { invitation: InvitationRow; rawToken: string } {
+}): Promise<{ invitation: InvitationRow; rawToken: string }> {
   const raw = randomBytes(32).toString("base64url");
   const id = newId();
   const t = nowIso();
   const ttl = opts.ttlHours ?? inviteTtlHours();
   const expires = new Date(Date.now() + ttl * 60 * 60 * 1000).toISOString();
-  getDb()
-    .prepare(
-      `INSERT INTO invitation (id, matter_id, token_hash, expires_at, created_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    )
-    .run(id, opts.matterId, hashInviteToken(raw), expires, opts.createdBy, t);
-  return { invitation: getInvitation(id)!, rawToken: raw };
+  await getDb().run(
+    `INSERT INTO invitation (id, matter_id, token_hash, expires_at, created_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    id,
+    opts.matterId,
+    hashInviteToken(raw),
+    expires,
+    opts.createdBy,
+    t
+  );
+  return { invitation: (await getInvitation(id))!, rawToken: raw };
 }
 
-export function getInvitation(id: string): InvitationRow | null {
-  const r = getDb()
-    .prepare(`SELECT * FROM invitation WHERE id = ?`)
-    .get(id) as Record<string, unknown> | undefined;
+export async function getInvitation(id: string): Promise<InvitationRow | null> {
+  const r = await getDb().get(`SELECT * FROM invitation WHERE id = ?`, id);
   return r ? rowToInvitation(r) : null;
 }
 
-export function listInvitationsForMatter(matterId: string): InvitationRow[] {
-  const rows = getDb()
-    .prepare(`SELECT * FROM invitation WHERE matter_id = ? ORDER BY created_at DESC`)
-    .all(matterId) as Record<string, unknown>[];
+export async function listInvitationsForMatter(matterId: string): Promise<InvitationRow[]> {
+  const rows = await getDb().all(
+    `SELECT * FROM invitation WHERE matter_id = ? ORDER BY created_at DESC`,
+    matterId
+  );
   return rows.map(rowToInvitation);
 }
 
-export function revokeInvitation(id: string): void {
-  getDb()
-    .prepare(`UPDATE invitation SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL`)
-    .run(nowIso(), id);
+export async function revokeInvitation(id: string): Promise<void> {
+  await getDb().run(
+    `UPDATE invitation SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL`,
+    nowIso(),
+    id
+  );
 }
 
 /**
@@ -98,15 +103,16 @@ export function revokeInvitation(id: string): void {
  * for EVERY failure mode — callers must not distinguish. Used by the accept
  * flow so that no account is ever created for an invalid token.
  */
-export function previewInvitation(rawToken: string): InvitationRow | null {
-  const r = getDb()
-    .prepare(`SELECT * FROM invitation WHERE token_hash = ?`)
-    .get(hashInviteToken(rawToken)) as Record<string, unknown> | undefined;
+export async function previewInvitation(rawToken: string): Promise<InvitationRow | null> {
+  const r = await getDb().get(
+    `SELECT * FROM invitation WHERE token_hash = ?`,
+    hashInviteToken(rawToken)
+  );
   if (!r) return null;
   const inv = rowToInvitation(r);
   if (inv.revokedAt || inv.usedAt) return null;
   if (new Date(inv.expiresAt).getTime() <= Date.now()) return null;
-  if (!getMatter(inv.matterId)) return null;
+  if (!(await getMatter(inv.matterId))) return null;
   return inv;
 }
 
@@ -115,24 +121,25 @@ export function previewInvitation(rawToken: string): InvitationRow | null {
  * invitation, or null for EVERY failure mode (unknown, expired, revoked,
  * already used, matter unavailable) — callers must not distinguish.
  */
-export function acceptInvitation(opts: {
+export async function acceptInvitation(opts: {
   rawToken: string;
   clientUserId: string;
-}): InvitationRow | null {
+}): Promise<InvitationRow | null> {
   const db = getDb();
-  const inv = previewInvitation(opts.rawToken);
+  const inv = await previewInvitation(opts.rawToken);
   if (!inv) return null;
 
-  const matter = getMatter(inv.matterId)!;
+  const matter = (await getMatter(inv.matterId))!;
   // A matter is one client's engagement: an invitation cannot rebind a
   // matter that already belongs to a different client account.
   if (matter.clientUserId && matter.clientUserId !== opts.clientUserId) return null;
 
-  db.prepare(`UPDATE invitation SET used_at = ?, used_by_user_id = ? WHERE id = ?`).run(
+  await db.run(
+    `UPDATE invitation SET used_at = ?, used_by_user_id = ? WHERE id = ?`,
     nowIso(),
     opts.clientUserId,
     inv.id
   );
-  bindClientToMatter(inv.matterId, opts.clientUserId);
+  await bindClientToMatter(inv.matterId, opts.clientUserId);
   return getInvitation(inv.id);
 }

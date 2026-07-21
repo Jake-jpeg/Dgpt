@@ -24,10 +24,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["CLIENT", "STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     const schema = schemaForMatter(matter);
-    const answers = getMatterAnswers(matter.id);
-    const state = getConfigChecklistState(matter.id);
+    const answers = (await getMatterAnswers(matter.id));
+    const state = (await getConfigChecklistState(matter.id));
     const entries = deriveChecklist(schema, answers, state);
 
     if (authed.account.role === "CLIENT") {
@@ -54,19 +54,19 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     assertCsrf(req);
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     const parsed = patchSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid checklist payload");
     if (parsed.data.override === "ATTORNEY_WAIVED" && authed.account.role !== "ATTORNEY") {
       throw new HttpError(403, "Waiving a checklist item is an attorney determination");
     }
-    setChecklistOverride({
-      matterId: matter.id,
-      documentId: parsed.data.documentId,
-      override: parsed.data.override,
-      actingUserId: authed.account.id,
-    });
-    recordAudit(matter.id, "CHECKLIST_OVERRIDE", `doc=${parsed.data.documentId} override=${parsed.data.override}`, authed.account.id);
+    (await setChecklistOverride({
+            matterId: matter.id,
+            documentId: parsed.data.documentId,
+            override: parsed.data.override,
+            actingUserId: authed.account.id,
+          }));
+    (await recordAudit(matter.id, "CHECKLIST_OVERRIDE", `doc=${parsed.data.documentId} override=${parsed.data.override}`, authed.account.id));
     return Response.json({ ok: true });
   } catch (e) {
     return errorResponse(e);

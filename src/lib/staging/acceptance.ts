@@ -39,12 +39,12 @@ const PERSONAS = {
 
 type PersonaKey = keyof typeof PERSONAS;
 
-function provision(key: PersonaKey) {
+async function provision(key: PersonaKey) {
   const p = PERSONAS[key];
-  if (!getUserByEmail(p.email)) {
-    createUser({ email: p.email, role: p.role, name: p.name });
+  if (!(await getUserByEmail(p.email))) {
+    await createUser({ email: p.email, role: p.role, name: p.name });
   }
-  const account = findAccountForSession({
+  const account = await findAccountForSession({
     subject: p.subject,
     email: p.email,
     name: p.name,
@@ -229,10 +229,10 @@ async function setupMatter(
   const clientName = which === "nj" ? "Avery Stagingperson" : "Quinn Stagingperson";
   const otherName = which === "nj" ? "Blake Stagingperson" : "Reese Stagingperson";
 
-  provision("attorney");
-  const staffAccount = provision("staff");
-  provision("admin");
-  provision(clientKey);
+  await provision("attorney");
+  const staffAccount = await provision("staff");
+  await provision("admin");
+  await provision(clientKey);
 
   const attorney = await cookieFor("attorney");
   const client = await cookieFor(clientKey);
@@ -396,12 +396,13 @@ async function aiStep(origin: string, matterId: string, action: string): Promise
   // Pull invocation metadata (tokens/latency) from the metadata-only ledger.
   let ledger: Record<string, unknown> | null = null;
   try {
-    ledger = getDb()
-      .prepare(
+    ledger =
+      (await getDb().get(
         `SELECT model, status, response_id, prompt_version, latency_ms, tokens_in, tokens_out
-         FROM ai_invocation WHERE matter_ref = ? AND feature = ? ORDER BY created_at DESC LIMIT 1`
-      )
-      .get(matterId, action) as Record<string, unknown> | null;
+         FROM ai_invocation WHERE matter_ref = ? AND feature = ? ORDER BY created_at DESC LIMIT 1`,
+        matterId,
+        action
+      )) ?? null;
   } catch {
     ledger = null;
   }

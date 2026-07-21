@@ -53,7 +53,7 @@ describe("conflict wall — bypass attempts fail server-side", () => {
     await runIdentity(cookie, id);
     const r = await runGate(cookie, id, true);
     expect(r.status).toBe(409);
-    expect(getSession(id)?.state).toBe("CONFLICT_REVIEW_PENDING");
+    expect((await getSession(id))?.state).toBe("CONFLICT_REVIEW_PENDING");
   });
 
   it("rejects tier-branch and substantive answers before clearance", async () => {
@@ -65,7 +65,7 @@ describe("conflict wall — bypass attempts fail server-side", () => {
       { fieldId: "marriage_date", value: "2015-06-20" },
     ]);
     expect(ra.status).toBe(409);
-    expect(countRows("intake_answer", id)).toBe(0);
+    expect((await countRows("intake_answer", id))).toBe(0);
   });
 
   it("rejects completing an intake straight from PRE_GATE", async () => {
@@ -80,7 +80,9 @@ describe("conflict wall — bypass attempts fail server-side", () => {
   it("persistence layer itself refuses substantive writes without attorney clearance", async () => {
     const id = await startSession(cookie);
     await runIdentity(cookie, id);
-    expect(() => insertAnswer(id, "marriage_date", "2015-06-20")).toThrowError(
+    await expect(
+      insertAnswer(id, "marriage_date", "2015-06-20")
+    ).rejects.toThrowError(
       /PERSISTENCE_GUARD/
     );
   });
@@ -88,13 +90,13 @@ describe("conflict wall — bypass attempts fail server-side", () => {
   it("cannot skip ahead in the gate sequence (server owns gate order)", async () => {
     const id = await startSession(cookie);
     await runIdentity(cookie, id);
-    const matterId = getSession(id)!.matterId!;
+    const matterId = (await getSession(id))!.matterId!;
     await clearMatter(matterId);
     // Session is now at GATE_RESIDENCY. Try to answer with a county (the
     // GATE_VENUE payload) — rejected as malformed; state does not advance.
     const r = await runGate(cookie, id, "Bergen");
     expect(r.status).toBe(400);
-    expect(getSession(id)?.state).toBe("GATE_RESIDENCY");
+    expect((await getSession(id))?.state).toBe("GATE_RESIDENCY");
   });
 });
 
@@ -104,9 +106,9 @@ describe("automated screening never clears, never declines", () => {
     const r = await runIdentity(cookie, id);
     expect(r.status).toBe(200);
     expect(r.data.result).toBe("PENDING_REVIEW");
-    const matter = getMatter(getSession(id)!.matterId!)!;
+    const matter = (await getMatter((await getSession(id))!.matterId!))!;
     expect(matter.conflictStatus).toBe("NO_APPARENT_MATCH"); // not CLEARED
-    expect(getSession(id)!.conflictClear).toBe(false);
+    expect((await getSession(id))!.conflictClear).toBe(false);
   });
 
   it("a potential match pends review with the SAME neutral client message", async () => {
@@ -131,7 +133,7 @@ describe("automated screening never clears, never declines", () => {
     expect(raw).not.toMatch(/POTENTIAL_MATCH|NO_APPARENT_MATCH|match|score/);
 
     // Internally distinguished for the attorney.
-    expect(getMatter(getSession(hitId)!.matterId!)!.conflictStatus).toBe("POTENTIAL_MATCH");
+    expect((await getMatter((await getSession(hitId))!.matterId!))!.conflictStatus).toBe("POTENTIAL_MATCH");
   });
 
   it("prior/maiden names also trigger the screen (tiebreaker matching)", async () => {
@@ -140,16 +142,16 @@ describe("automated screening never clears, never declines", () => {
       clientParty: { fullLegalName: "Totally Cleanname", priorNames: ["Sylvia Placeholder"] },
       adverseParty: { fullLegalName: "Also Cleanname", priorNames: [] },
     });
-    expect(getMatter(getSession(id)!.matterId!)!.conflictStatus).toBe("POTENTIAL_MATCH");
+    expect((await getMatter((await getSession(id))!.matterId!))!.conflictStatus).toBe("POTENTIAL_MATCH");
   });
 
   it("screen results are audited with hashed names, never plaintext", async () => {
     const id = await startSession(cookie);
     await runIdentity(cookie, id, HIT_IDENTITY);
-    const events = getAuditEvents(id).map((e) => e.event);
+    const events = (await getAuditEvents(id)).map((e) => e.event);
     expect(events).toContain("CONFLICT_SCREEN_RUN");
     expect(events).toContain("CONFLICT_SCREEN_RESULT");
-    const result = getAuditEvents(id).find((e) => e.event === "CONFLICT_SCREEN_RESULT");
+    const result = (await getAuditEvents(id)).find((e) => e.event === "CONFLICT_SCREEN_RESULT");
     expect(result!.detail!.toLowerCase()).not.toContain("fictionberg");
     expect(result!.detail!.toLowerCase()).not.toContain("syntheticperson");
   });
@@ -159,7 +161,7 @@ describe("attorney-only dispositions", () => {
   it("only ATTORNEY may clear: STAFF and ADMIN get 403 from the route", async () => {
     const id = await startSession(cookie);
     await runIdentity(cookie, id);
-    const matterId = getSession(id)!.matterId!;
+    const matterId = (await getSession(id))!.matterId!;
 
     for (const [role, email] of [
       ["STAFF", "staffer@example.test"],
@@ -171,9 +173,9 @@ describe("attorney-only dispositions", () => {
         email,
         name: role,
       };
-      const account = provisionAccount(user);
+      const account = (await provisionAccount(user));
       const { setUserRole } = await import("@/lib/db/users");
-      setUserRole(account.id, role);
+      (await setUserRole(account.id, role));
       freshLimits();
       const res = await conflictRoute(
         jsonRequest(`/api/matters/${matterId}/conflict`, {
@@ -183,19 +185,19 @@ describe("attorney-only dispositions", () => {
         params({ id: matterId })
       );
       expect([403, 404]).toContain(res.status); // role-refused (or no grant)
-      expect(getMatter(matterId)!.conflictStatus).not.toBe("CLEARED");
+      expect((await getMatter(matterId))!.conflictStatus).not.toBe("CLEARED");
     }
   });
 
   it("attorney CLEARED unblocks the parked session and intake proceeds", async () => {
     const id = await startSession(cookie);
     await runIdentity(cookie, id);
-    const matterId = getSession(id)!.matterId!;
+    const matterId = (await getSession(id))!.matterId!;
     await clearMatter(matterId);
 
-    expect(getMatter(matterId)!.conflictStatus).toBe("CLEARED");
-    expect(getSession(id)!.state).toBe("GATE_RESIDENCY");
-    expect(getSession(id)!.conflictClear).toBe(true);
+    expect((await getMatter(matterId))!.conflictStatus).toBe("CLEARED");
+    expect((await getSession(id))!.state).toBe("GATE_RESIDENCY");
+    expect((await getSession(id))!.conflictClear).toBe(true);
     const r = await runGate(cookie, id, true);
     expect(r.status).toBe(200);
   });
@@ -203,30 +205,30 @@ describe("attorney-only dispositions", () => {
   it("attorney DECLINED purges session content but retains conflict history", async () => {
     const id = await startSession(cookie);
     await runIdentity(cookie, id, HIT_IDENTITY);
-    const matterId = getSession(id)!.matterId!;
+    const matterId = (await getSession(id))!.matterId!;
 
     const r = await setConflictDisposition(matterId, "DECLINED");
     expect(r.status).toBe(200);
 
     // Session + identity + answers gone.
-    expect(countRows("intake_session", id)).toBe(0);
-    expect(countRows("party_identity", id)).toBe(0);
-    expect(countRows("intake_answer", id)).toBe(0);
+    expect((await countRows("intake_session", id))).toBe(0);
+    expect((await countRows("party_identity", id))).toBe(0);
+    expect((await countRows("intake_answer", id))).toBe(0);
 
     // Retained: the conflict submission (future conflict checks) + audit.
-    const subs = listConflictSubmissionsForMatter(matterId);
+    const subs = (await listConflictSubmissionsForMatter(matterId));
     expect(subs.length).toBe(1);
     expect(subs[0].disposition).toBe("DECLINED");
     expect(subs[0].adverseParty.fullLegalName).toBe("Harold Fictionberg");
-    expect(getMatter(matterId)!.conflictStatus).toBe("DECLINED");
-    expect(getMatter(matterId)!.lifecycle).toBe("DECLINED");
-    expect(getAuditEvents(id).map((e) => e.event)).toContain("SESSION_PURGED");
+    expect((await getMatter(matterId))!.conflictStatus).toBe("DECLINED");
+    expect((await getMatter(matterId))!.lifecycle).toBe("DECLINED");
+    expect((await getAuditEvents(id)).map((e) => e.event)).toContain("SESSION_PURGED");
   });
 
   it("a declined client's session is gone; the matter view stays neutral", async () => {
     const id = await startSession(cookie);
     await runIdentity(cookie, id, HIT_IDENTITY);
-    const matterId = getSession(id)!.matterId!;
+    const matterId = (await getSession(id))!.matterId!;
     await setConflictDisposition(matterId, "DECLINED");
 
     const res = await viewRoute(
@@ -254,8 +256,8 @@ describe("attorney-only dispositions", () => {
       story: "here is my whole situation…",
     });
     expect(r.data.result).toBe("PENDING_REVIEW");
-    expect(countRows("intake_answer", id)).toBe(0);
-    const subs = listConflictSubmissionsForMatter(getSession(id)!.matterId!);
+    expect((await countRows("intake_answer", id))).toBe(0);
+    const subs = (await listConflictSubmissionsForMatter((await getSession(id))!.matterId!));
     expect(JSON.stringify(subs)).not.toContain("000-00-0000");
   });
 });

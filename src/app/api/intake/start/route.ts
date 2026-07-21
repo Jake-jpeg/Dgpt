@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
     let matterId: string;
     if (account.role === "CLIENT") {
-      const mine = listMattersForClient(account.id);
+      const mine = (await listMattersForClient(account.id));
       const matter = requestedMatterId
         ? mine.find((m) => m.id === requestedMatterId)
         : mine[0];
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
           "An invitation from the firm is required before intake can begin"
         );
       }
-      if (!hasAcknowledged(matter.id, account.id, getDisclosure().version)) {
+      if (!(await hasAcknowledged(matter.id, account.id, getDisclosure().version))) {
         throw new HttpError(
           409,
           "Please review and acknowledge the disclosure before continuing"
@@ -55,13 +55,13 @@ export async function POST(req: Request) {
       if (!requestedMatterId) {
         throw new HttpError(400, "VALIDATION: matterId is required");
       }
-      matterId = requireMatterAccess(authed, requestedMatterId).id;
+      matterId = (await requireMatterAccess(authed, requestedMatterId)).id;
     }
 
-    const session = startIntake(
-      { ...authed.session, role: account.role },
-      matterId
-    );
+    const session = (await startIntake(
+          { ...authed.session, role: account.role },
+          matterId
+        ));
     return Response.json({
       session: { id: session.id, state: session.state },
       copy: {

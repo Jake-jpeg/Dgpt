@@ -27,15 +27,15 @@ import { DISCLOSURE_VERSION } from "@/config/disclosure";
 
 let clientCookie: string;
 
-function newInvite(ttlHours?: number) {
-  const attorney = provisionAccount(SYNTH_ATTORNEY);
-  const matter = createMatter({ label: "Invite Matter", createdBy: attorney.id });
-  grantMatterAccess(matter.id, attorney.id, attorney.id);
-  const { invitation, rawToken } = createInvitation({
-    matterId: matter.id,
-    createdBy: attorney.id,
-    ttlHours,
-  });
+async function newInvite(ttlHours?: number) {
+  const attorney = (await provisionAccount(SYNTH_ATTORNEY));
+  const matter = (await createMatter({ label: "Invite Matter", createdBy: attorney.id }));
+  (await grantMatterAccess(matter.id, attorney.id, attorney.id));
+  const { invitation, rawToken } = (await createInvitation({
+      matterId: matter.id,
+      createdBy: attorney.id,
+      ttlHours,
+    }));
   return { matter, invitation, rawToken, attorney };
 }
 
@@ -51,7 +51,7 @@ beforeEach(async () => {
   resetDbForTests();
   freshLimits();
   clientCookie = await cookieFor(SYNTH_CLIENT);
-  provisionAccount(SYNTH_CLIENT);
+  (await provisionAccount(SYNTH_CLIENT));
 });
 
 describe("public registration is disabled", () => {
@@ -82,12 +82,12 @@ describe("public registration is disabled", () => {
 
 describe("invitation lifecycle — one neutral failure for every mode", () => {
   it("valid invitation binds the authenticated client to the matter", async () => {
-    const { matter, rawToken } = newInvite();
+    const { matter, rawToken } = (await newInvite());
     const ok = await accept(rawToken);
     expect(ok.status).toBe(200);
     expect(ok.data.matterId).toBe(matter.id);
-    const client = provisionAccount(SYNTH_CLIENT);
-    expect(getMatter(matter.id)!.clientUserId).toBe(client.id);
+    const client = (await provisionAccount(SYNTH_CLIENT));
+    expect((await getMatter(matter.id))!.clientUserId).toBe(client.id);
   });
 
   it("invalid, expired, revoked, and used tokens return identical neutral responses", async () => {
@@ -97,19 +97,21 @@ describe("invitation lifecycle — one neutral failure for every mode", () => {
     responses.push(await accept("totally-invalid-token-thats-long-enough"));
 
     // expired: backdate expires_at directly
-    const expired = newInvite();
-    getDb()
-      .prepare(`UPDATE invitation SET expires_at = ? WHERE id = ?`)
-      .run(new Date(Date.now() - 60_000).toISOString(), expired.invitation.id);
+    const expired = (await newInvite());
+    await getDb().run(
+      `UPDATE invitation SET expires_at = ? WHERE id = ?`,
+      new Date(Date.now() - 60_000).toISOString(),
+      expired.invitation.id
+    );
     responses.push(await accept(expired.rawToken));
 
     // revoked
-    const revoked = newInvite();
-    revokeInvitation(revoked.invitation.id);
+    const revoked = (await newInvite());
+    (await revokeInvitation(revoked.invitation.id));
     responses.push(await accept(revoked.rawToken));
 
     // used (accepted once by this client, then replayed)
-    const used = newInvite();
+    const used = (await newInvite());
     const first = await accept(used.rawToken);
     expect(first.status).toBe(200);
     responses.push(await accept(used.rawToken));
@@ -122,10 +124,8 @@ describe("invitation lifecycle — one neutral failure for every mode", () => {
   });
 
   it("raw tokens are never stored — only hashes", async () => {
-    const { rawToken } = newInvite();
-    const rows = getDb().prepare(`SELECT token_hash FROM invitation`).all() as {
-      token_hash: string;
-    }[];
+    const { rawToken } = (await newInvite());
+    const rows = (await getDb().all<{ token_hash: string }>(`SELECT token_hash FROM invitation`));
     expect(rows.length).toBeGreaterThan(0);
     for (const r of rows) {
       expect(r.token_hash).not.toBe(rawToken);
@@ -134,10 +134,10 @@ describe("invitation lifecycle — one neutral failure for every mode", () => {
   });
 
   it("an invitation cannot rebind a matter that belongs to another client", async () => {
-    const { rawToken, matter, attorney } = newInvite();
+    const { rawToken, matter, attorney } = (await newInvite());
     await accept(rawToken);
     // Second invitation on the same matter, different client.
-    const { rawToken: second } = createInvitation({ matterId: matter.id, createdBy: attorney.id });
+    const { rawToken: second } = (await createInvitation({ matterId: matter.id, createdBy: attorney.id }));
     const other = await cookieFor({
       subject: "devstub|client:intruder@example.test",
       role: "CLIENT",
@@ -146,12 +146,12 @@ describe("invitation lifecycle — one neutral failure for every mode", () => {
     });
     const res = await accept(second, other);
     expect(res.status).toBe(400); // same neutral failure
-    const client = provisionAccount(SYNTH_CLIENT);
-    expect(getMatter(matter.id)!.clientUserId).toBe(client.id); // unchanged
+    const client = (await provisionAccount(SYNTH_CLIENT));
+    expect((await getMatter(matter.id))!.clientUserId).toBe(client.id); // unchanged
   });
 
   it("only staff/attorney with a grant can mint invitations", async () => {
-    const { matter } = newInvite();
+    const { matter } = (await newInvite());
     freshLimits();
     const res = await invitationsPost(
       jsonRequest(`/api/matters/${matter.id}/invitations`, { cookie: clientCookie, body: {} }),
@@ -163,7 +163,7 @@ describe("invitation lifecycle — one neutral failure for every mode", () => {
 
 describe("disclosure before intake", () => {
   it("accepted client still cannot start intake until acknowledging the CURRENT disclosure", async () => {
-    const { matter, rawToken } = newInvite();
+    const { matter, rawToken } = (await newInvite());
     await accept(rawToken);
 
     freshLimits();
@@ -205,9 +205,10 @@ describe("disclosure before intake", () => {
       params({ id: matter.id })
     );
     expect(ok.status).toBe(200);
-    const ack = getDb()
-      .prepare(`SELECT ip, user_agent FROM disclosure_ack WHERE matter_ref = ?`)
-      .get(matter.id) as { ip: string | null; user_agent: string | null };
+    const ack = (await getDb().get<{ ip: string | null; user_agent: string | null }>(
+      `SELECT ip, user_agent FROM disclosure_ack WHERE matter_ref = ?`,
+      matter.id
+    ))!;
     expect(ack.ip).toBeNull();
     expect(ack.user_agent).toBeNull();
 

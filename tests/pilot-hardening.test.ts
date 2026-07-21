@@ -200,7 +200,7 @@ describe("OAuth: provider authenticates, database authorizes", () => {
     const res = await mattersGet(jsonRequest("/api/matters", { method: "GET", cookie }));
     expect(res.status).toBe(403);
     expect((await res.json()).error).toContain("not linked to an authorized account");
-    expect(getUserByEmail("attorney@example.test")).toBeNull(); // nothing created
+    expect((await getUserByEmail("attorney@example.test"))).toBeNull(); // nothing created
   });
 
   it("Google sign-in without a valid invitation is denied and creates nothing", async () => {
@@ -212,7 +212,7 @@ describe("OAuth: provider authenticates, database authorizes", () => {
     });
     const res = await mattersGet(jsonRequest("/api/matters", { method: "GET", cookie }));
     expect(res.status).toBe(403);
-    expect(getUserByEmail("freshclient@example.test")).toBeNull();
+    expect((await getUserByEmail("freshclient@example.test"))).toBeNull();
 
     // /api/auth/me reports identity but no user.
     freshLimits();
@@ -236,13 +236,13 @@ describe("OAuth: provider authenticates, database authorizes", () => {
       })
     );
     expect(res.status).toBe(400);
-    expect(getUserByEmail("neverclient@example.test")).toBeNull();
+    expect((await getUserByEmail("neverclient@example.test"))).toBeNull();
   });
 
   it("a valid invitation binds the stable identity and creates the CLIENT account", async () => {
     const ctx = await setupClientWithMatter(); // uses the real accept route
     expect(ctx.matterId).toBeTruthy();
-    const account = getUserByEmail(SYNTH_CLIENT.email);
+    const account = (await getUserByEmail(SYNTH_CLIENT.email));
     expect(account?.role).toBe("CLIENT");
     expect(account?.subject).toBe(SYNTH_CLIENT.subject);
   });
@@ -268,7 +268,7 @@ describe("OAuth: provider authenticates, database authorizes", () => {
       email: "relinkadmin@example.test",
       name: "Relink Admin",
     };
-    provisionAccount(admin);
+    (await provisionAccount(admin));
     freshLimits();
     const res = await userPatch(
       jsonRequest(`/api/admin/users/${ctx.clientUserId}`, {
@@ -280,9 +280,9 @@ describe("OAuth: provider authenticates, database authorizes", () => {
     );
     expect(res.status).toBe(200);
     const { getUserById } = await import("@/lib/db/users");
-    expect(getUserById(ctx.clientUserId)!.subject).toBeNull();
+    expect((await getUserById(ctx.clientUserId))!.subject).toBeNull();
     const { getAuditEvents } = await import("@/lib/db/repo");
-    expect(getAuditEvents(ctx.clientUserId).map((e) => e.event)).toContain(
+    expect((await getAuditEvents(ctx.clientUserId)).map((e) => e.event)).toContain(
       "USER_RELINK_AUTHORIZED"
     );
   });
@@ -297,7 +297,7 @@ describe("OAuth: provider authenticates, database authorizes", () => {
     );
     expect(before.status).toBe(200);
 
-    setUserActive(ctx.clientUserId, false);
+    (await setUserActive(ctx.clientUserId, false));
     freshLimits();
     const after = await matterGet(
       jsonRequest(`/api/matters/${ctx.matterId}`, { method: "GET", cookie }),
@@ -356,12 +356,12 @@ describe("development login shutdown outside local", () => {
 
 describe("firm accounts (regression)", () => {
   it("a pre-created ATTORNEY account binds by email at first login and works", async () => {
-    createUser({ email: SYNTH_ATTORNEY.email, role: "ATTORNEY" });
-    const account = findAccountForSession({
-      subject: SYNTH_ATTORNEY.subject,
-      email: SYNTH_ATTORNEY.email,
-      adminBootstrapEmails: [],
-    });
+    (await createUser({ email: SYNTH_ATTORNEY.email, role: "ATTORNEY" }));
+    const account = (await findAccountForSession({
+          subject: SYNTH_ATTORNEY.subject,
+          email: SYNTH_ATTORNEY.email,
+          adminBootstrapEmails: [],
+        }));
     expect(account?.role).toBe("ATTORNEY");
     expect(account?.subject).toBe(SYNTH_ATTORNEY.subject);
     freshLimits();

@@ -34,10 +34,11 @@ function matterSummary(m: MatterRow) {
 }
 
 /** Working-list row for STAFF/ATTORNEY with a grant on the matter. */
-function firmMatterRow(m: MatterRow) {
-  const client = m.clientUserId ? getUserById(m.clientUserId) : null;
-  const latestSession = listSessionsByMatter(m.id)[0] ?? null;
-  const versions = listDocumentsForMatter(m.id).flatMap((d) => listVersions(d.id));
+async function firmMatterRow(m: MatterRow) {
+  const client = m.clientUserId ? (await getUserById(m.clientUserId)) : null;
+  const latestSession = (await listSessionsByMatter(m.id))[0] ?? null;
+  const docs = await listDocumentsForMatter(m.id);
+  const versions = (await Promise.all((await docs.map((d) => listVersions(d.id))))).flat();
   const awaitingReview = versions.filter((v) =>
     ["ATTORNEY_REVIEW_REQUIRED", "DRAFT", "CHANGES_REQUESTED"].includes(v.status)
   ).length;
@@ -57,7 +58,7 @@ export async function GET(req: Request) {
     const { account } = authed;
     let matters: MatterRow[];
     if (account.role === "CLIENT") {
-      matters = listMattersForClient(account.id);
+      matters = (await listMattersForClient(account.id));
       // Clients get plain-language status only — internal conflict machinery
       // is summarized by the matter view endpoint, not enumerated here.
       return Response.json({
@@ -65,11 +66,11 @@ export async function GET(req: Request) {
       });
     } else if (account.role === "ADMIN") {
       // Management view: labels + status only, no matter content.
-      matters = listAllMatters();
+      matters = (await listAllMatters());
       return Response.json({ matters: matters.map(matterSummary) });
     } else {
-      matters = listMattersForGrantee(account.id);
-      return Response.json({ matters: matters.map(firmMatterRow) });
+      matters = (await listMattersForGrantee(account.id));
+      return Response.json({ matters: await Promise.all((await matters.map(firmMatterRow))) });
     }
   } catch (e) {
     return errorResponse(e);
@@ -87,10 +88,10 @@ export async function POST(req: Request) {
     const { account } = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const parsed = createSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid matter payload");
-    const matter = createMatter({ label: parsed.data.label, createdBy: account.id });
+    const matter = (await createMatter({ label: parsed.data.label, createdBy: account.id }));
     // The creator works this matter: grant access at creation.
-    grantMatterAccess(matter.id, account.id, account.id);
-    recordAudit(matter.id, "MATTER_CREATED", undefined, account.id);
+    (await grantMatterAccess(matter.id, account.id, account.id));
+    (await recordAudit(matter.id, "MATTER_CREATED", undefined, account.id));
     return Response.json({ matter: matterSummary(matter) }, { status: 201 });
   } catch (e) {
     return errorResponse(e);

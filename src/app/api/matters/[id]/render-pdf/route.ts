@@ -36,7 +36,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
     return Response.json({
       enabled: pdfServiceEnabled(),
       jurisdictionConfirmed: matter.jurisdictionConfirmed,
@@ -57,7 +57,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     assertCsrf(req);
     const authed = await requireUser(req, ["ATTORNEY"]);
     const { id } = await ctx.params;
-    const matter = requireMatterAccess(authed, id);
+    const matter = (await requireMatterAccess(authed, id));
 
     const parsed = schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid render request");
@@ -84,8 +84,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
     // Deterministic mapping from SAVED answers — the attorney's request is
     // the confirmation of this data (fingerprint audited).
-    const payload = buildRenderPayload(state, form, matter, getMatterAnswers(matter.id));
-    auditFormDataConfirmed({ matterId: matter.id, userId: authed.account.id, state, form, payload });
+    const payload = buildRenderPayload(state, form, matter, (await getMatterAnswers(matter.id)));
+    (await auditFormDataConfirmed({ matterId: matter.id, userId: authed.account.id, state, form, payload }));
 
     const result = await renderPdf({ state, form, payload });
 
@@ -100,34 +100,34 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       process.env.APP_STAGE === "staging"
         ? " — SYNTHETIC STAGING DOCUMENT (attorney review required)"
         : " — attorney review required";
-    const doc = createDocument({
-      matterId: matter.id,
-      title: `${renderLabel(state, form)}${stageMarker}`,
-      docKind: "RENDERED_FORM",
-      createdBy: authed.account.id,
-    });
-    const version = addDocumentVersion({
-      documentId: doc.id,
-      storageKey: stored.storageKey,
-      sha256: stored.sha256,
-      mime: "application/pdf",
-      sizeBytes: stored.sizeBytes,
-      originalFilename: result.filename,
-      source: "INTERNAL",
-      createdBy: authed.account.id,
-      initialStatus: "ATTORNEY_REVIEW_REQUIRED",
-    });
-    auditPdfRendered({
-      matterId: matter.id,
-      userId: authed.account.id,
-      state,
-      form,
-      versionId: version.id,
-      sha256: stored.sha256,
-      sizeBytes: stored.sizeBytes,
-      latencyMs: result.latencyMs,
-      retried: result.retried,
-    });
+    const doc = (await createDocument({
+          matterId: matter.id,
+          title: `${renderLabel(state, form)}${stageMarker}`,
+          docKind: "RENDERED_FORM",
+          createdBy: authed.account.id,
+        }));
+    const version = (await addDocumentVersion({
+          documentId: doc.id,
+          storageKey: stored.storageKey,
+          sha256: stored.sha256,
+          mime: "application/pdf",
+          sizeBytes: stored.sizeBytes,
+          originalFilename: result.filename,
+          source: "INTERNAL",
+          createdBy: authed.account.id,
+          initialStatus: "ATTORNEY_REVIEW_REQUIRED",
+        }));
+    (await auditPdfRendered({
+            matterId: matter.id,
+            userId: authed.account.id,
+            state,
+            form,
+            versionId: version.id,
+            sha256: stored.sha256,
+            sizeBytes: stored.sizeBytes,
+            latencyMs: result.latencyMs,
+            retried: result.retried,
+          }));
 
     return Response.json(
       {

@@ -33,7 +33,7 @@ let adminCookie: string;
 beforeEach(async () => {
   resetDbForTests();
   freshLimits();
-  provisionAccount(SYNTH_ADMIN);
+  (await provisionAccount(SYNTH_ADMIN));
   adminCookie = await cookieFor(SYNTH_ADMIN);
 });
 
@@ -66,18 +66,18 @@ describe("admin create-user: CLIENT is closed", () => {
 
 describe("admin delete-user: guarded by zero references", () => {
   it("hard-deletes a reference-free row and audits the deletion (metadata only)", async () => {
-    const victim = createUser({ email: "clean@example.test", role: "STAFF" });
+    const victim = (await createUser({ email: "clean@example.test", role: "STAFF" }));
     freshLimits();
     const res = await deleteUserRoute(
       jsonRequest(`/api/admin/users/${victim.id}`, { method: "DELETE", cookie: adminCookie }),
       params({ id: victim.id })
     );
     expect(res.status).toBe(200);
-    expect(getUserById(victim.id)).toBeNull();
+    expect((await getUserById(victim.id))).toBeNull();
 
-    const audit = getDb()
-      .prepare(`SELECT event, detail FROM audit_event WHERE event = 'USER_DELETED'`)
-      .all() as { event: string; detail: string | null }[];
+    const audit = (await getDb().all<{ event: string; detail: string | null }>(
+      `SELECT event, detail FROM audit_event WHERE event = 'USER_DELETED'`
+    ));
     expect(audit).toHaveLength(1);
     // Metadata only: email + role, never a subject/token.
     expect(audit[0].detail).toContain("clean@example.test");
@@ -98,7 +98,7 @@ describe("admin delete-user: guarded by zero references", () => {
     expect(res.status).toBe(409);
     const data = await res.json();
     expect(String(data.error)).toMatch(/case history — deactivate instead/i);
-    expect(getUserById(ctx.attorneyUserId)).not.toBeNull();
+    expect((await getUserById(ctx.attorneyUserId))).not.toBeNull();
 
     // The bound client is referenced too (client_user_id).
     freshLimits();
@@ -110,11 +110,11 @@ describe("admin delete-user: guarded by zero references", () => {
       params({ id: ctx.clientUserId })
     );
     expect(clientRes.status).toBe(409);
-    expect(getUserById(ctx.clientUserId)).not.toBeNull();
+    expect((await getUserById(ctx.clientUserId))).not.toBeNull();
   });
 
   it("marks referenced rows non-deletable and clean rows deletable in the list", async () => {
-    const clean = createUser({ email: "clean2@example.test", role: "STAFF" });
+    const clean = (await createUser({ email: "clean2@example.test", role: "STAFF" }));
     const ctx = await setupClientWithMatter();
     freshLimits();
     const res = await listUsersRoute(
@@ -129,13 +129,13 @@ describe("admin delete-user: guarded by zero references", () => {
   });
 
   it("a non-admin cannot delete", async () => {
-    const victim = createUser({ email: "clean3@example.test", role: "STAFF" });
-    const attorney = provisionAccount({
-      subject: "devstub|attorney:attorney@example.test",
-      role: "ATTORNEY",
-      email: "attorney@example.test",
-      name: "A",
-    });
+    const victim = (await createUser({ email: "clean3@example.test", role: "STAFF" }));
+    const attorney = (await provisionAccount({
+          subject: "devstub|attorney:attorney@example.test",
+          role: "ATTORNEY",
+          email: "attorney@example.test",
+          name: "A",
+        }));
     void attorney;
     const attorneyCookie = await cookieFor({
       subject: "devstub|attorney:attorney@example.test",
@@ -149,6 +149,6 @@ describe("admin delete-user: guarded by zero references", () => {
       params({ id: victim.id })
     );
     expect(res.status).toBe(403);
-    expect(getUserById(victim.id)).not.toBeNull();
+    expect((await getUserById(victim.id))).not.toBeNull();
   });
 });
