@@ -185,6 +185,7 @@ CREATE TABLE IF NOT EXISTS invitation (
   id              TEXT PRIMARY KEY,
   matter_id       TEXT NOT NULL REFERENCES matter(id) ON DELETE CASCADE,
   token_hash      TEXT NOT NULL UNIQUE,      -- SHA-256(raw token)
+  target_email    TEXT NOT NULL DEFAULT '',  -- lowercased; only this account may accept
   expires_at      TEXT NOT NULL,
   revoked_at      TEXT,
   used_at         TEXT,
@@ -441,7 +442,9 @@ const MIGRATIONS = [
   `ALTER TABLE audit_event ADD COLUMN actor TEXT`,
   `ALTER TABLE audit_event ADD COLUMN prev_hash TEXT`,
   `ALTER TABLE audit_event ADD COLUMN hash TEXT`,
-  // 2026-07-21 EXTERNAL conflict posture (open signup): existing Postgres
+  // 2026-07-21 email-bound invitations: the address the link is locked to.
+  `ALTER TABLE invitation ADD COLUMN target_email TEXT NOT NULL DEFAULT ''`,
+  // 2026-07-21 EXTERNAL conflict posture (firm runs conflicts externally):
   // databases must widen the CHECK. Postgres-only syntax — on SQLite these
   // fail and are skipped (fresh SQLite DBs get the new CHECK from the DDL).
   `ALTER TABLE matter DROP CONSTRAINT IF EXISTS matter_conflict_status_check`,

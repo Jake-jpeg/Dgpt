@@ -84,9 +84,9 @@ export default function PortalEntry() {
           <div className="panel">
             <h2>Clients</h2>
             <p className="panel-sub">
-              Sign in with the email account you already use — Google (Gmail)
-              or Microsoft (Outlook.com or Hotmail email addresses). Your
-              secure intake workspace is created the first time you sign in.
+              Access is by invitation from the firm. Open the invitation link
+              the firm sent you, then sign in with the email account it was
+              sent to — Google (Gmail) or Microsoft (Outlook.com or Hotmail).
             </p>
             <div className="flex flex-wrap gap-3">
               {me?.providers.google ? (

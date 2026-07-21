@@ -18,9 +18,9 @@
  *   - Microsoft (entra) is firm-only: an authenticated Microsoft identity
  *     that does not resolve to an active firm account is refused outright —
  *     Microsoft authentication alone confers nothing.
- *   - Google is the client path: a CLIENT account lands on their matter.
- *     OPEN SIGNUP (2026-07-21): a brand-new Google identity is provisioned a
- *     CLIENT account by the callback before this decision runs.
+ *   - Google is the client path: an accepted-invitation CLIENT account lands on
+ *     their matter. INVITE-ONLY (2026-07-21): a brand-new Google identity with
+ *     no account is sent to the invitation page — signing in alone is nothing.
  *   - Microsoft personal accounts (msa — Outlook.com / Hotmail) behave
  *     exactly like the Google client path, with one extra rule: they are
  *     CLIENTS ONLY. A firm-role account arriving on msa is refused and told
@@ -83,6 +83,8 @@ export function decideLoginDestination(opts: {
     throw new HttpError(403, ENTRA_GENERIC_REFUSAL);
   }
 
-  // Google/MSA client path — open signup provisions the account upstream.
-  return "/portal/matter";
+  // Google/MSA client path. An accepted invitation has already provisioned
+  // the CLIENT account (callback), so a bound account goes to their matter;
+  // no account means the invite wasn't accepted → the invitation page.
+  return boundAccount ? "/portal/matter" : "/invite";
 }

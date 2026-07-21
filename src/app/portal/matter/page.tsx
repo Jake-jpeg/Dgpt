@@ -141,11 +141,15 @@ export default function ClientMatterPage() {
 
       {!loading && !me?.user && me?.identity && (
         <div className="panel">
-          <h2>Setting up your workspace</h2>
+          <h2>An invitation is needed</h2>
           <p className="panel-sub">
-            You are signed in as {me.identity.email}. If this page does not
-            refresh into your workspace, sign out and sign back in.
+            You are signed in as {me.identity.email}, but this account isn&apos;t
+            linked to a matter yet. Open the invitation link the firm sent you
+            (and sign in with the email it was addressed to), or contact the firm.
           </p>
+          <Link className="btn btn-quiet mt-2" href="/invite">
+            About invitations
+          </Link>
         </div>
       )}
 
@@ -155,10 +159,10 @@ export default function ClientMatterPage() {
 
       {!loading && me?.user?.role === "CLIENT" && !matterId && (
         <div className="panel">
-          <h2>Preparing your workspace</h2>
+          <h2>No matter linked yet</h2>
           <p className="panel-sub">
-            Your workspace is created automatically when you sign in. If it
-            does not appear, sign out, sign back in, or contact the firm.
+            Your account isn&apos;t linked to a matter. If the firm sent you an
+            invitation link, open it now; otherwise please contact the firm.
           </p>
         </div>
       )}

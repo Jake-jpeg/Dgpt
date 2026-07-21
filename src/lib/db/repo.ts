@@ -198,7 +198,7 @@ export async function insertAnswer(
   }
   if (s.matterId) {
     // A matter-linked session requires the matter to be past conflicts:
-    // either the attorney-set CLEARED disposition, or EXTERNAL (open signup —
+    // either the attorney-set CLEARED disposition, or EXTERNAL (invite accept —
     // the firm runs conflicts in its own system before directing the client
     // here). Automated screening can produce neither.
     const m = await getDb().get<{ conflict_status: string }>(

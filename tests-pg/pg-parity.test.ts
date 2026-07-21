@@ -192,7 +192,7 @@ describe("invitations end-to-end on postgres", () => {
   it("mint → preview → accept binds the client; replay is refused neutrally", async () => {
     const attorney = await createUser({ email: "attorney@example.test", role: "ATTORNEY" });
     const m = await createMatter({ label: "PG-INV", createdBy: attorney.id });
-    const { rawToken } = await createInvitation({ matterId: m.id, createdBy: attorney.id });
+    const { rawToken } = await createInvitation({ matterId: m.id, createdBy: attorney.id, targetEmail: "invitee@example.test" });
 
     expect(await previewInvitation(rawToken)).not.toBeNull();
     const client = await findAccountForSession({
@@ -203,11 +203,13 @@ describe("invitations end-to-end on postgres", () => {
     expect(client).toBeNull(); // providers authenticate; the DB authorizes
 
     const clientRow = await createUser({ email: "invitee@example.test", role: "CLIENT" });
-    const accepted = await acceptInvitation({ rawToken, clientUserId: clientRow.id });
+    // Email must match the bound target — a mismatch is refused.
+    expect(await acceptInvitation({ rawToken, clientUserId: clientRow.id, email: "someone.else@example.test" })).toBeNull();
+    const accepted = await acceptInvitation({ rawToken, clientUserId: clientRow.id, email: "invitee@example.test" });
     expect(accepted?.usedByUserId).toBe(clientRow.id);
     expect((await getMatter(m.id))?.clientUserId).toBe(clientRow.id);
 
-    expect(await acceptInvitation({ rawToken, clientUserId: clientRow.id })).toBeNull();
+    expect(await acceptInvitation({ rawToken, clientUserId: clientRow.id, email: "invitee@example.test" })).toBeNull();
   });
 });
 

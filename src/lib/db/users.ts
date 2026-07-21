@@ -101,7 +101,8 @@ export async function createUser(opts: {
  *     ADMIN role at first login;
  *  4. otherwise NULL here. Firm accounts must be admin-created; CLIENT
  *     accounts are created at login by the OAuth callback via
- *     `provisionClientAccount` (open signup, 2026-07-21 directive).
+ *     `provisionClientAccount`, called only from invitation acceptance
+ *     (invite-only, 2026-07-21 directive).
  */
 /**
  * OPEN CLIENT SIGNUP (2026-07-21 directive): a brand-new Google/MSA identity

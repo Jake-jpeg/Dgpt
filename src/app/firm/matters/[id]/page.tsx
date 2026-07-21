@@ -259,6 +259,9 @@ export default function FirmMatterDetail() {
             </div>
           </div>
 
+          {/* ── Invite the client ────────────────────────────────── */}
+          <InvitationsPanel matterId={matterId} />
+
           {/* ── Matter status & lifecycle ────────────────────────── */}
           <AccordionPanel
             title="Matter status & lifecycle"
@@ -695,6 +698,160 @@ export default function FirmMatterDetail() {
         </>
       )}
     </Shell>
+  );
+}
+
+/**
+ * Invite the client — email-bound, single-use, frictionless. The attorney
+ * enters the client's email; the returned link works ONLY for that account,
+ * exactly once. The raw link is shown once at creation (never stored).
+ */
+interface InviteRow {
+  id: string;
+  email: string;
+  expiresAt: string;
+  revoked: boolean;
+  used: boolean;
+  createdAt: string;
+}
+
+function InvitationsPanel({ matterId }: { matterId: string }) {
+  const [invites, setInvites] = useState<InviteRow[]>([]);
+  const [email, setEmail] = useState("");
+  const [link, setLink] = useState<string | null>(null);
+  const [linkFor, setLinkFor] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const r = (await api.get(`/api/matters/${matterId}/invitations`)) as { invitations: InviteRow[] };
+      setInvites(r.invitations);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not load invitations");
+    }
+  }, [matterId]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
+
+  const open = invites.filter((i) => !i.used && !i.revoked);
+
+  async function create() {
+    setBusy(true);
+    setErr(null);
+    setLink(null);
+    try {
+      const r = (await api.post(`/api/matters/${matterId}/invitations`, { email: email.trim() })) as {
+        link: string;
+        invitation: { email: string };
+      };
+      setLink(r.link);
+      setLinkFor(r.invitation.email);
+      setEmail("");
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not create the invitation");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <AccordionPanel
+      title="Invite the client"
+      defaultOpen
+      summary={open.length > 0 ? `${open.length} active` : invites.length > 0 ? "none active" : "none yet"}
+    >
+      <p className="panel-sub">
+        Enter the client&apos;s email. The link you get works <strong>only</strong>{" "}
+        for that Google or Outlook account, and can be used <strong>once</strong> —
+        a forwarded or leaked link is useless to anyone else. Send it to the
+        client however you like.
+      </p>
+      {err && <div className="notice notice-warn mb-3 text-sm">{err}</div>}
+
+      <div className="flex flex-wrap items-end gap-2">
+        <input
+          className="text-input flex-1"
+          type="email"
+          placeholder="client@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          maxLength={200}
+        />
+        <button
+          className="btn btn-primary"
+          disabled={busy || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())}
+          onClick={create}
+        >
+          Create invitation
+        </button>
+      </div>
+
+      {link && (
+        <div className="notice notice-info mt-3">
+          <p className="font-semibold">Invitation link for {linkFor} — copy it now (shown once):</p>
+          <p className="mono break-all">{link}</p>
+          <button
+            className="btn btn-quiet mt-2"
+            onClick={() => navigator.clipboard?.writeText(link)}
+          >
+            Copy link
+          </button>
+        </div>
+      )}
+
+      {invites.length > 0 && (
+        <table className="tbl mt-4">
+          <thead>
+            <tr>
+              <th>Client email</th>
+              <th>Created</th>
+              <th>Expires</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {invites.map((i) => (
+              <tr key={i.id}>
+                <td>{i.email}</td>
+                <td>{fmtWhen(i.createdAt)}</td>
+                <td>{fmtWhen(i.expiresAt)}</td>
+                <td>
+                  <StatusBadge value={i.used ? "ACCEPTED" : i.revoked ? "REVOKED" : "ACTIVE"} />
+                </td>
+                <td>
+                  {!i.used && !i.revoked && (
+                    <button
+                      className="btn btn-danger"
+                      style={{ padding: "4px 12px", fontSize: ".8rem" }}
+                      disabled={busy}
+                      onClick={async () => {
+                        setBusy(true);
+                        try {
+                          await api.post(`/api/invitations/${i.id}/revoke`);
+                          await load();
+                        } catch (e) {
+                          setErr(e instanceof Error ? e.message : "Revoke failed");
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                    >
+                      Revoke
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </AccordionPanel>
   );
 }
 

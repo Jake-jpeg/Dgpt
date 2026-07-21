@@ -78,7 +78,7 @@ describe("decideLoginDestination — Google as a firm login", () => {
     ).toThrow(/not active/);
   });
 
-  it("keeps the client path: Google CLIENT → /portal/matter (open signup: account provisioned upstream)", () => {
+  it("keeps the client path: Google CLIENT → /portal/matter; no account → /invite (invite-only)", () => {
     expect(
       decideLoginDestination({
         provider: "google",
@@ -92,7 +92,7 @@ describe("decideLoginDestination — Google as a firm login", () => {
         boundAccount: null,
         attorneyAllowlist: ALLOW,
       })
-    ).toBe("/portal/matter");
+    ).toBe("/invite");
   });
 });
 
