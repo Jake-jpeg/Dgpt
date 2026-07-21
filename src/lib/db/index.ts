@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS matter (
                          CHECK (lifecycle IN ('PROSPECTIVE','ENGAGED','ABANDONED','DECLINED','CLOSED')),
   conflict_status        TEXT NOT NULL DEFAULT 'NOT_STARTED'
                          CHECK (conflict_status IN (
-                           'NOT_STARTED','NO_APPARENT_MATCH','POTENTIAL_MATCH',
+                           'NOT_STARTED','EXTERNAL','NO_APPARENT_MATCH','POTENTIAL_MATCH',
                            'NEEDS_MORE_INFORMATION','PENDING_ATTORNEY_REVIEW',
                            'CLEARED','DECLINED')),
   conflict_status_set_by TEXT,
@@ -441,6 +441,13 @@ const MIGRATIONS = [
   `ALTER TABLE audit_event ADD COLUMN actor TEXT`,
   `ALTER TABLE audit_event ADD COLUMN prev_hash TEXT`,
   `ALTER TABLE audit_event ADD COLUMN hash TEXT`,
+  // 2026-07-21 EXTERNAL conflict posture (open signup): existing Postgres
+  // databases must widen the CHECK. Postgres-only syntax — on SQLite these
+  // fail and are skipped (fresh SQLite DBs get the new CHECK from the DDL).
+  `ALTER TABLE matter DROP CONSTRAINT IF EXISTS matter_conflict_status_check`,
+  `ALTER TABLE matter ADD CONSTRAINT matter_conflict_status_check CHECK (conflict_status IN (
+     'NOT_STARTED','EXTERNAL','NO_APPARENT_MATCH','POTENTIAL_MATCH',
+     'NEEDS_MORE_INFORMATION','PENDING_ATTORNEY_REVIEW','CLEARED','DECLINED'))`,
 ];
 
 let _engine: Db | null = null;

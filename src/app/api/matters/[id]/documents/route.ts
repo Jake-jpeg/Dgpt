@@ -98,7 +98,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const { id } = await ctx.params;
     const matter = (await requireMatterAccess(authed, id));
 
-    if (authed.account.role === "CLIENT" && matter.conflictStatus !== "CLEARED") {
+    if (authed.account.role === "CLIENT" && matter.conflictStatus !== "CLEARED" && matter.conflictStatus !== "EXTERNAL") {
       throw new HttpError(409, "Document upload becomes available after the firm completes its review");
     }
 

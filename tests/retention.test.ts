@@ -28,7 +28,10 @@ import type { SessionUser } from "@/lib/auth/session";
 let clientCookie: string;
 
 async function matterWithContent(): Promise<{ matterId: string; sessionId: string }> {
-  const sessionId = await startSession(clientCookie);
+  // Legacy-wall fixture: the retention rules pin what survives a purge of a
+  // matter that went through the (now-dormant) screening step.
+  const { startPregateSession } = await import("./helpers");
+  const sessionId = await startPregateSession(clientCookie);
   await runIdentity(clientCookie, sessionId);
   const matterId = (await getSession(sessionId))!.matterId!;
   return { matterId, sessionId };

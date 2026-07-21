@@ -4,7 +4,8 @@
  *  - stage-aware status copy + landing footer language
  *  - OAuth invariants: provider authenticates, DATABASE authorizes
  *  - wrong-tenant / multi-tenant-authority denial
- *  - invitation-first Google flow (sign-in creates nothing)
+ *  - a bare Google session cookie confers nothing (accounts are created
+ *    only by the OAuth callback's provisioning step)
  *  - development login is LOCAL-ONLY
  *  - deactivation blocks the next protected request
  */
@@ -38,7 +39,6 @@ import { GET as meGet } from "@/app/api/auth/me/route";
 import { POST as devLogin } from "@/app/api/auth/dev-login/route";
 import { GET as mattersGet } from "@/app/api/matters/route";
 import { GET as matterGet } from "@/app/api/matters/[id]/route";
-import { POST as acceptRoute } from "@/app/api/invitations/accept/route";
 import { PATCH as userPatch } from "@/app/api/admin/users/[id]/route";
 
 function walkSrc(dir: string, out: string[] = []): string[] {
@@ -203,7 +203,7 @@ describe("OAuth: provider authenticates, database authorizes", () => {
     expect((await getUserByEmail("attorney@example.test"))).toBeNull(); // nothing created
   });
 
-  it("Google sign-in without a valid invitation is denied and creates nothing", async () => {
+  it("a Google session cookie whose subject has no account is denied and creates nothing", async () => {
     const cookie = await cookieFor({
       subject: "google|fresh-sub-123",
       role: "CLIENT",
@@ -222,25 +222,8 @@ describe("OAuth: provider authenticates, database authorizes", () => {
     expect(body.identity.email).toBe("freshclient@example.test");
   });
 
-  it("an invalid invitation creates NO account (validated before provisioning)", async () => {
-    const cookie = await cookieFor({
-      subject: "google|fresh-sub-456",
-      role: "CLIENT",
-      email: "neverclient@example.test",
-      name: "Never Client",
-    });
-    const res = await acceptRoute(
-      jsonRequest("/api/invitations/accept", {
-        cookie,
-        body: { token: "definitely-not-a-real-invitation-token" },
-      })
-    );
-    expect(res.status).toBe(400);
-    expect((await getUserByEmail("neverclient@example.test"))).toBeNull();
-  });
-
-  it("a valid invitation binds the stable identity and creates the CLIENT account", async () => {
-    const ctx = await setupClientWithMatter(); // uses the real accept route
+  it("client onboarding binds the stable identity and creates the CLIENT account", async () => {
+    const ctx = await setupClientWithMatter();
     expect(ctx.matterId).toBeTruthy();
     const account = (await getUserByEmail(SYNTH_CLIENT.email));
     expect(account?.role).toBe("CLIENT");

@@ -38,9 +38,9 @@ export default function PortalEntry() {
       });
       const who = (await api.get("/api/auth/me")) as { user: Me | null };
       refresh();
-      // Providers authenticate; the DB authorizes. An identity with no
-      // account yet belongs on the invitation page.
-      router.push(who.user ? HOME[who.user.role] : "/invite");
+      // Providers authenticate; the DB authorizes. Open signup: a client
+      // account is provisioned at login, so there is always a home.
+      router.push(who.user ? HOME[who.user.role] : "/portal/matter");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Sign-in failed");
     } finally {
@@ -68,14 +68,13 @@ export default function PortalEntry() {
 
       {!user && me?.identity && (
         <div className="panel">
-          <h2>Signed in — invitation needed</h2>
+          <h2>Almost there</h2>
           <p className="panel-sub">
-            You are signed in as {me.identity.email}, but this sign-in is not
-            linked to an account yet. Clients continue by entering the firm&apos;s
-            invitation; firm personnel should contact the administrator.
+            You are signed in as {me.identity.email}. Continue to your intake
+            workspace; firm personnel should contact the administrator.
           </p>
-          <button className="btn btn-primary" onClick={() => router.push("/invite")}>
-            Enter my invitation
+          <button className="btn btn-primary" onClick={() => router.push("/portal/matter")}>
+            Continue
           </button>
         </div>
       )}
@@ -85,10 +84,9 @@ export default function PortalEntry() {
           <div className="panel">
             <h2>Clients</h2>
             <p className="panel-sub">
-              Access is by firm invitation only. Sign in with the email account
-              you already use — Google (Gmail) or Microsoft (Outlook.com or
-              Hotmail email addresses) — then enter the invitation the firm
-              sent you.
+              Sign in with the email account you already use — Google (Gmail)
+              or Microsoft (Outlook.com or Hotmail email addresses). Your
+              secure intake workspace is created the first time you sign in.
             </p>
             <div className="flex flex-wrap gap-3">
               {me?.providers.google ? (

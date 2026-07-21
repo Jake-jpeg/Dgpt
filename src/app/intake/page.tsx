@@ -509,17 +509,9 @@ export default function IntakePage() {
           >
             Begin intake
           </button>
-          {err && (err.includes("invitation") || err.includes("disclosure")) && (
+          {err && err.includes("disclosure") && (
             <p className="mt-3 text-sm text-slate-600">
-              {err.includes("invitation") ? (
-                <>
-                  Portal access starts with a firm invitation —{" "}
-                  <Link href="/invite" className="text-blue-700 underline">
-                    enter your invitation
-                  </Link>
-                  .
-                </>
-              ) : (
+              {(
                 <>
                   Please review the disclosure on{" "}
                   <Link href="/portal/matter" className="text-blue-700 underline">

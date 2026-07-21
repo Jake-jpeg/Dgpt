@@ -57,19 +57,23 @@ export async function createSession(opts: {
   ownerSubject: string;
   initialState: MachineState;
   matterId?: string;
+  /** Open-signup flow: the firm runs conflicts in its own system, so a
+   *  session may be born past the (retired) in-app conflict wall. */
+  conflictClear?: boolean;
 }): Promise<SessionRow> {
   const db = getDb();
   const id = newId();
   const t = nowIso();
   await db.run(
     `INSERT INTO intake_session
-     (id, state, initiated_by, owner_subject, matter_id, created_at, updated_at, last_activity_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, state, initiated_by, owner_subject, matter_id, conflict_clear, created_at, updated_at, last_activity_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     opts.initialState,
     opts.initiatedBy,
     opts.ownerSubject,
     opts.matterId ?? null,
+    opts.conflictClear ? 1 : 0,
     t,
     t,
     t
@@ -193,14 +197,15 @@ export async function insertAnswer(
     );
   }
   if (s.matterId) {
-    // 2.0: a matter-linked session additionally requires the matter itself to
-    // hold an ATTORNEY-set CLEARED disposition — automated screening cannot
-    // produce it (see src/lib/db/matters.ts).
+    // A matter-linked session requires the matter to be past conflicts:
+    // either the attorney-set CLEARED disposition, or EXTERNAL (open signup —
+    // the firm runs conflicts in its own system before directing the client
+    // here). Automated screening can produce neither.
     const m = await getDb().get<{ conflict_status: string }>(
       `SELECT conflict_status FROM matter WHERE id = ?`,
       s.matterId
     );
-    if (!m || m.conflict_status !== "CLEARED") {
+    if (!m || (m.conflict_status !== "CLEARED" && m.conflict_status !== "EXTERNAL")) {
       throw new Error(
         "PERSISTENCE_GUARD: refusing to persist substantive data before the matter is CLEARED by an attorney"
       );

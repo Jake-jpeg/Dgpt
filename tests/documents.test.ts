@@ -89,7 +89,11 @@ beforeEach(async () => {
 });
 
 describe("uploads", () => {
-  it("client upload works after clearance; blocked before", async () => {
+  it("client upload works once past conflicts; blocked on a NOT_STARTED matter", async () => {
+    // Open-signup matters carry EXTERNAL from birth; rewind this one to the
+    // legacy NOT_STARTED posture to pin the guard.
+    const { getDb } = await import("@/lib/db/index");
+    await getDb().run(`UPDATE matter SET conflict_status = 'NOT_STARTED' WHERE id = ?`, ctx.matterId);
     const mkReq = () => {
       const form = new FormData();
       form.set("file", new File([bytesOf("synthetic pdf bytes")], "cert.pdf", { type: "application/pdf" }));

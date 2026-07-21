@@ -26,6 +26,10 @@ export type MatterLifecycle =
 
 export type ConflictStatus =
   | "NOT_STARTED"
+  /** 2026-07-21: conflicts are run in the FIRM'S OWN SYSTEM before the
+   *  client is directed here. EXTERNAL records that posture; it is set only
+   *  at matter self-open and is NOT the attorney-only CLEARED disposition. */
+  | "EXTERNAL"
   | "NO_APPARENT_MATCH"
   | "POTENTIAL_MATCH"
   | "NEEDS_MORE_INFORMATION"
@@ -273,10 +277,25 @@ export async function attorneySetConflictDisposition(opts: {
   return (await getMatter(opts.matterId))!;
 }
 
-/** Client-blocking check used by intake + persistence guards. */
+/** Client-blocking check used by intake + persistence guards. EXTERNAL
+ *  (conflicts run in the firm's own system) passes alongside the
+ *  attorney-set CLEARED. */
 export async function matterConflictCleared(matterId: string): Promise<boolean> {
   const m = await getMatter(matterId);
-  return Boolean(m && m.conflictStatus === "CLEARED");
+  return Boolean(m && (m.conflictStatus === "CLEARED" || m.conflictStatus === "EXTERNAL"));
+}
+
+/** Open-signup matters record the external-conflicts posture at creation. */
+export async function markConflictsExternal(matterId: string): Promise<void> {
+  const t = nowIso();
+  await getDb().run(
+    `UPDATE matter SET conflict_status = 'EXTERNAL', conflict_status_set_by = 'FIRM_EXTERNAL_SYSTEM',
+     conflict_status_set_at = ?, updated_at = ?, last_activity_at = ? WHERE id = ? AND conflict_status = 'NOT_STARTED'`,
+    t,
+    t,
+    t,
+    matterId
+  );
 }
 
 // ── Lifecycle + legal hold ────────────────────────────────────────────

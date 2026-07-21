@@ -20,16 +20,22 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const matter = (await requireMatterAccess(authed, id));
 
     if (authed.account.role === "CLIENT") {
-      // Plain-language view only: open requested items and the help option.
-      // No internal notes, no conflict machinery, no unreleased work product.
+      // Plain-language view only: open requested items and the client's own
+      // intake session (the chat rides it). No internal notes, no conflict
+      // machinery, no unreleased work product.
       const openRequests = (await listInfoRequests(matter.id))
         .filter((r) => r.status === "OPEN")
         .map((r) => ({ id: r.id, label: r.label, createdAt: r.createdAt }));
+      const ownSession = (await listSessionsByMatter(matter.id)).find(
+        (s) => s.ownerSubject === authed.account.subject
+      );
       return Response.json({
         matter: {
           id: matter.id,
           status: clientMatterStatus(matter),
-          canProceed: matter.conflictStatus === "CLEARED",
+          canProceed:
+            matter.conflictStatus === "CLEARED" || matter.conflictStatus === "EXTERNAL",
+          intakeSessionId: ownSession?.id ?? null,
           requestedItems: openRequests,
           helpAvailable: true,
           helpLabel: "I need help completing this intake.",

@@ -87,11 +87,7 @@ function StagingBanner() {
 const NAV: Record<Me["role"], { href: string; label: string }[]> = {
   CLIENT: [{ href: "/portal/matter", label: "My matter" }],
   STAFF: [{ href: "/firm", label: "Matters" }],
-  ATTORNEY: [
-    { href: "/firm", label: "Matters" },
-    { href: "/firm/conflicts", label: "Conflict review" },
-    { href: "/attorney", label: "Intake review" },
-  ],
+  ATTORNEY: [{ href: "/firm", label: "Matters" }],
   ADMIN: [{ href: "/admin", label: "Administration" }],
 };
 

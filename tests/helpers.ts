@@ -78,11 +78,9 @@ import {
   getUserByEmail,
   getUserBySubject,
 } from "@/lib/db/users";
-import { createMatter, grantMatterAccess } from "@/lib/db/matters";
-import { createInvitation } from "@/lib/db/invitations";
+import { createMatter, grantMatterAccess, bindClientToMatter, markConflictsExternal } from "@/lib/db/matters";
 import { recordDisclosureAck } from "@/lib/db/disclosure";
 import { DISCLOSURE_VERSION } from "@/config/disclosure";
-import { POST as acceptRoute } from "@/app/api/invitations/accept/route";
 import { POST as conflictRoute } from "@/app/api/matters/[id]/conflict/route";
 import { getSession } from "@/lib/db/repo";
 
@@ -116,9 +114,10 @@ export interface MatterContext {
 }
 
 /**
- * Full 2.0 onboarding for a synthetic client: attorney account, matter,
- * invitation created → accepted through the real route → disclosure
- * acknowledged. Leaves the matter's conflict status untouched (NOT_STARTED).
+ * Full onboarding for a synthetic client (open-signup era): attorney
+ * account, matter, client bound directly (as the login callback binds a
+ * self-signed-up client), disclosure acknowledged. Leaves the matter's
+ * conflict status untouched (NOT_STARTED).
  */
 export async function setupClientWithMatter(
   client: SessionUser = SYNTH_CLIENT
@@ -127,15 +126,8 @@ export async function setupClientWithMatter(
   const clientAccount = (await provisionAccount(client));
   const matter = (await createMatter({ label: `Synthetic Matter (${client.email})`, createdBy: attorney.id }));
   (await grantMatterAccess(matter.id, attorney.id, attorney.id));
-  const { rawToken } = (await createInvitation({ matterId: matter.id, createdBy: attorney.id }));
-  freshLimits();
-  const res = await acceptRoute(
-    jsonRequest("/api/invitations/accept", {
-      cookie: await cookieFor(client),
-      body: { token: rawToken },
-    })
-  );
-  if (res.status !== 200) throw new Error(`invitation accept failed: ${res.status}`);
+  (await bindClientToMatter(matter.id, clientAccount.id));
+  (await markConflictsExternal(matter.id));
   (await recordDisclosureAck({
         matterRef: matter.id,
         userRef: clientAccount.id,
@@ -208,6 +200,7 @@ export async function startSession(cookie: string): Promise<string> {
           createdBy: account.id,
         }));
     (await grantMatterAccess(m.id, account.id, account.id));
+    (await markConflictsExternal(m.id));
     matterId = m.id;
   }
   freshLimits();
@@ -219,6 +212,46 @@ export async function startSession(cookie: string): Promise<string> {
   return data.session.id;
 }
 
+/**
+ * LEGACY-WALL FIXTURE. The live flow retired the in-app conflict wall
+ * (open signup, 2026-07-21): real sessions are born at GATE_RESIDENCY with
+ * the matter marked EXTERNAL. The wall MACHINERY still exists dormant —
+ * screening, attorney-only dispositions, purge-on-decline — and its
+ * guarantees stay pinned by tests. This builds the legacy state directly:
+ * a NOT_STARTED matter and a PRE_GATE session, exactly as the old flow
+ * produced them.
+ */
+export async function startPregateSession(cookie: string): Promise<string> {
+  const token = cookie.split("=").slice(1).join("=");
+  const user = await verifySessionToken(token);
+  if (!user) throw new Error("startPregateSession: invalid synthetic cookie");
+  const account = (await provisionAccount(user));
+  const attorney = (await provisionAccount(SYNTH_ATTORNEY));
+  const matter = (await createMatter({
+        label: `Legacy-wall fixture (${account.email})`,
+        createdBy: attorney.id,
+      }));
+  (await grantMatterAccess(matter.id, attorney.id, attorney.id));
+  if (user.role === "CLIENT") {
+    (await bindClientToMatter(matter.id, account.id));
+  } else {
+    (await grantMatterAccess(matter.id, account.id, attorney.id));
+  }
+  (await recordDisclosureAck({
+        matterRef: matter.id,
+        userRef: account.id,
+        version: DISCLOSURE_VERSION,
+      }));
+  const { createSession } = await import("@/lib/db/repo");
+  const sess = (await createSession({
+        initiatedBy: user.role === "CLIENT" ? "CLIENT" : "ATTORNEY",
+        ownerSubject: user.subject,
+        initialState: "PRE_GATE",
+        matterId: matter.id,
+      }));
+  return sess.id;
+}
+
 export async function runIdentity(cookie: string, id: string, identity: unknown = CLEAN_IDENTITY) {
   freshLimits();
   const res = await identityRoute(
@@ -228,17 +261,21 @@ export async function runIdentity(cookie: string, id: string, identity: unknown 
   return { status: res.status, data: await res.json() };
 }
 
-/** Identity + automated screen + attorney CLEARED, in one step. */
+/**
+ * COMPAT SHIM (wall retired 2026-07-21): sessions are now born past the
+ * conflict wall at GATE_RESIDENCY, so there is no identity/clearance step to
+ * run. Kept so older flow tests read unchanged; simply asserts the session
+ * is where the new flow puts it.
+ */
 export async function runIdentityAndClear(
-  cookie: string,
+  _cookie: string,
   id: string,
-  identity: unknown = CLEAN_IDENTITY
+  _identity: unknown = CLEAN_IDENTITY
 ) {
-  const r = await runIdentity(cookie, id, identity);
-  const matterId = (await getSession(id))?.matterId;
-  if (!matterId) throw new Error("runIdentityAndClear: session has no matter");
-  await clearMatter(matterId);
-  return r;
+  const s = await getSession(id);
+  if (!s) throw new Error("runIdentityAndClear: no session");
+  if (!s.conflictClear) throw new Error("expected session born past the retired wall");
+  return { status: 200, data: { result: "BORN_CLEAR" } };
 }
 
 export async function runGate(cookie: string, id: string, answer: unknown) {
@@ -251,19 +288,12 @@ export async function runGate(cookie: string, id: string, answer: unknown) {
 }
 
 /**
- * Drive a session through identity → automated screen → ATTORNEY clearance →
- * all five gates with in-scope answers. (2.0: nothing proceeds past the
- * screen without the attorney's CLEARED disposition.)
+ * Drive a session through all gates with in-scope answers (2-year NY
+ * residency passes the cascade in one step). Wall retired 2026-07-21:
+ * sessions are born at GATE_RESIDENCY.
  */
 export async function runToTierBranch(cookie: string, id: string): Promise<void> {
-  const idres = await runIdentity(cookie, id);
-  if (idres.data.result !== "PENDING_REVIEW") {
-    throw new Error(`expected screening to pend review, got ${JSON.stringify(idres.data)}`);
-  }
-  const matterId = (await getSession(id))?.matterId;
-  if (!matterId) throw new Error("session has no matter");
-  await clearMatter(matterId);
-  for (const answer of [true, "Bergen", false, false, "FULLY_AGREE"]) {
+  for (const answer of [true, "Kings", false, false, "FULLY_AGREE"]) {
     const r = await runGate(cookie, id, answer);
     if (r.data.status === "TERMINATED") throw new Error("unexpected gate trip");
   }
@@ -304,15 +334,15 @@ export async function completeHttp(cookie: string, id: string) {
 }
 
 export const TIER1_ANSWERS: { fieldId: string; value: unknown }[] = [
-  { fieldId: "grounds_basis", value: "IRRECONCILABLE_6MO" },
+  { fieldId: "grounds_basis", value: "IRRETRIEVABLE_6MO" },
   { fieldId: "grounds_date", value: "2025-01-15" },
   { fieldId: "marriage_date", value: "2015-06-20" },
-  { fieldId: "marriage_place", value: "Hackensack, New Jersey" },
+  { fieldId: "marriage_place", value: "Brooklyn, New York" },
   { fieldId: "ceremony_type", value: "CIVIL" },
-  { fieldId: "client_address", value: "1 Synthetic Way, Testville NJ 07000" },
+  { fieldId: "client_address", value: "1 Synthetic Way, Testville NY 11200" },
   { fieldId: "client_phone", value: "555-000-0000" },
   { fieldId: "client_email", value: "testclient@example.test" },
-  { fieldId: "spouse_address", value: "2 Synthetic Way, Testville NJ 07000" },
+  { fieldId: "spouse_address", value: "2 Synthetic Way, Testville NY 11200" },
   { fieldId: "separation_date", value: "2025-01-15" },
   { fieldId: "living_arrangement", value: "SEPARATE_RESIDENCES" },
   { fieldId: "children_confirm_none", value: true },
@@ -323,15 +353,15 @@ export const TIER1_ANSWERS: { fieldId: string; value: unknown }[] = [
 ];
 
 export const TIER2_ANSWERS: { fieldId: string; value: unknown }[] = [
-  { fieldId: "grounds_basis", value: "IRRECONCILABLE_6MO" },
+  { fieldId: "grounds_basis", value: "IRRETRIEVABLE_6MO" },
   { fieldId: "grounds_date", value: "2025-01-15" },
   { fieldId: "marriage_date", value: "2010-06-20" },
-  { fieldId: "marriage_place", value: "Paramus, New Jersey" },
+  { fieldId: "marriage_place", value: "Albany, New York" },
   { fieldId: "ceremony_type", value: "RELIGIOUS" },
-  { fieldId: "client_address", value: "1 Synthetic Way, Testville NJ 07000" },
+  { fieldId: "client_address", value: "1 Synthetic Way, Testville NY 11200" },
   { fieldId: "client_phone", value: "555-000-0001" },
   { fieldId: "client_email", value: "testclient@example.test" },
-  { fieldId: "spouse_address", value: "2 Synthetic Way, Testville NJ 07000" },
+  { fieldId: "spouse_address", value: "2 Synthetic Way, Testville NY 11200" },
   { fieldId: "separation_date", value: "2025-02-01" },
   { fieldId: "living_arrangement", value: "SAME_RESIDENCE" },
   { fieldId: "children_confirm_none", value: true },

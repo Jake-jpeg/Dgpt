@@ -27,13 +27,6 @@ interface MatterDetail {
   updatedAt: string;
   sessions: { id: string; state: string; tier: string | null; updatedAt: string }[];
 }
-interface Invitation {
-  id: string;
-  expiresAt: string;
-  revoked: boolean;
-  used: boolean;
-  createdAt: string;
-}
 interface Approval {
   id: string;
   approvalType: string;
@@ -62,54 +55,12 @@ interface Doc {
   createdAt: string;
   versions: Version[];
 }
-interface InfoRequest {
-  id: string;
-  label: string;
-  internalNote: string | null;
-  status: string;
-  createdAt: string;
-}
-interface Assistance {
-  id: string;
-  status: string;
-  createdAt: string;
-}
-interface Accommodation {
-  id: string;
-  method: string;
-  note: string | null;
-  createdAt: string;
-}
-interface Note {
-  id: string;
-  kind: string;
-  body: string;
-  status: string;
-  createdAt: string;
-}
-interface Submission {
-  id: string;
-  screenResult: string;
-  createdAt: string;
-  disposition: string | null;
-  clientParty: { fullLegalName: string; priorNames: string[] };
-  adverseParty: { fullLegalName: string; priorNames: string[] };
-}
 interface AuditEvent {
   ref: string;
   event: string;
   detail: string | null;
   at: string;
 }
-
-const ACCOMMODATION_OPTIONS = [
-  ["TELEPHONE", "Telephone intake"],
-  ["VIDEO", "Video intake"],
-  ["IN_PERSON", "In-person intake"],
-  ["PAPER", "Paper intake"],
-  ["ASSISTED_PORTAL", "Assisted portal intake"],
-  ["OTHER_APPROVED", "Other attorney-approved method"],
-] as const;
 
 export default function FirmMatterDetail() {
   const params = useParams<{ id: string }>();
@@ -120,13 +71,7 @@ export default function FirmMatterDetail() {
   const isAttorney = role === "ATTORNEY";
 
   const [matter, setMatter] = useState<MatterDetail | null>(null);
-  const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [docs, setDocs] = useState<Doc[]>([]);
-  const [infoReqs, setInfoReqs] = useState<InfoRequest[]>([]);
-  const [assists, setAssists] = useState<Assistance[]>([]);
-  const [accoms, setAccoms] = useState<Accommodation[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [subs, setSubs] = useState<Submission[]>([]);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
   // Jurisdiction confirmation drives one triage item; undefined = not loaded.
   const [jurisConfirmed, setJurisConfirmed] = useState<string | null | undefined>(undefined);
@@ -139,12 +84,6 @@ export default function FirmMatterDetail() {
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [newToken, setNewToken] = useState<string | null>(null);
-  const [newInfoLabel, setNewInfoLabel] = useState("");
-  const [newNote, setNewNote] = useState("");
-  const [noteKind, setNoteKind] = useState<"NOTE" | "ESCALATION">("NOTE");
-  const [accomMethod, setAccomMethod] = useState("TELEPHONE");
-  const [accomNote, setAccomNote] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState("");
   const [revisionFor, setRevisionFor] = useState<string | null>(null);
@@ -160,25 +99,9 @@ export default function FirmMatterDetail() {
     try {
       const m = (await api.get(`/api/matters/${matterId}`)) as { matter: MatterDetail };
       setMatter(m.matter);
-      const [inv, d, ir, as_, ac, nt] = await Promise.all([
-        api.get(`/api/matters/${matterId}/invitations`),
-        api.get(`/api/matters/${matterId}/documents`),
-        api.get(`/api/matters/${matterId}/info-requests`),
-        api.get(`/api/matters/${matterId}/assistance`),
-        api.get(`/api/matters/${matterId}/accommodations`),
-        api.get(`/api/matters/${matterId}/notes`),
-      ]);
-      setInvitations((inv as { invitations: Invitation[] }).invitations);
+      const d = await api.get(`/api/matters/${matterId}/documents`);
       setDocs((d as unknown as { documents: Doc[] }).documents);
-      setInfoReqs((ir as { requests: InfoRequest[] }).requests);
-      setAssists((as_ as { requests: Assistance[] }).requests);
-      setAccoms((ac as { accommodations: Accommodation[] }).accommodations);
-      setNotes((nt as { notes: Note[] }).notes);
       if (role === "ATTORNEY") {
-        const c = (await api.get(`/api/matters/${matterId}/conflict`)) as {
-          submissions: Submission[];
-        };
-        setSubs(c.submissions);
         const a = (await api.get(`/api/matters/${matterId}/audit`)) as {
           events: AuditEvent[];
         };
@@ -215,27 +138,12 @@ export default function FirmMatterDetail() {
     }
   }
 
-  const createInvitation = () =>
-    act(async () => {
-      const res = await api.post(`/api/matters/${matterId}/invitations`, {});
-      setNewToken(String(res.token));
-    });
-
-  const inviteUrl = newToken
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/invite?token=${newToken}`
-    : null;
-
   // ── Triage derivations (all from already-loaded data; no extra calls) ──
   const allVersions = docs.flatMap((d) => d.versions.map((v) => ({ v, doc: d })));
   const unapproved = allVersions.filter(({ v }) =>
     ["DRAFT", "ATTORNEY_REVIEW_REQUIRED", "CHANGES_REQUESTED"].includes(v.status)
   );
   const unapprovedAi = unapproved.filter(({ v }) => v.source === "AI");
-  const openInfoReqs = infoReqs.filter((r) => r.status === "OPEN");
-  const openAssists = assists.filter((a) => a.status !== "RESOLVED");
-  const escalations = notes.filter((n) => n.kind === "ESCALATION");
-  const openInvites = invitations.filter((i) => !i.used && !i.revoked);
-  const pendingConflicts = subs.filter((s) => !s.disposition);
   const readySessions = (matter?.sessions ?? []).filter((s) => s.state === "READY_FOR_REVIEW");
 
   // "Needs your attention" — exactly the items awaiting attorney action.
@@ -249,14 +157,6 @@ export default function FirmMatterDetail() {
     href?: string;
   }[] = [];
   if (isAttorney) {
-    for (const s of pendingConflicts) {
-      attention.push({
-        key: `conflict-${s.id}`,
-        text: "Conflict submission awaiting your disposition",
-        href: "/firm/conflicts",
-        link: "Review",
-      });
-    }
     if (jurisConfirmed === null) {
       attention.push({
         key: "jurisdiction",
@@ -268,9 +168,9 @@ export default function FirmMatterDetail() {
     for (const s of readySessions) {
       attention.push({
         key: `ready-${s.id}`,
-        text: "Intake session is ready for your review",
-        href: `/attorney/session/${s.id}`,
-        link: "Open review",
+        text: "Client intake is complete — transcript and answers ready for your review",
+        panel: "transcript",
+        link: "Open transcript",
       });
     }
   }
@@ -280,22 +180,6 @@ export default function FirmMatterDetail() {
       text: `AI draft "${doc.title}" (v${v.versionNo}) awaits attorney review`,
       panel: "documents",
       link: "Open documents",
-    });
-  }
-  for (const n of escalations) {
-    attention.push({
-      key: `esc-${n.id}`,
-      text: "Escalation flagged for attorney attention",
-      panel: "requests",
-      link: "Open requests",
-    });
-  }
-  for (const a of openAssists) {
-    attention.push({
-      key: `assist-${a.id}`,
-      text: "Client help request is open",
-      panel: "requests",
-      link: "Open requests",
     });
   }
 
@@ -314,31 +198,7 @@ export default function FirmMatterDetail() {
       sub: unapproved.length ? "unapproved versions" : "all reviewed",
       alert: unapproved.length > 0,
     },
-    {
-      label: "Open requests",
-      value: String(openInfoReqs.length),
-      sub: "missing-info",
-    },
-    {
-      label: "Flags / escalations",
-      value: String(escalations.length + openAssists.length),
-      sub: "need attention",
-      alert: escalations.length + openAssists.length > 0,
-    },
-    {
-      label: "Invitations",
-      value: String(openInvites.length),
-      sub: openInvites.length ? "open" : "none open",
-    },
   ];
-  if (isAttorney) {
-    chips.push({
-      label: "Conflict",
-      value: pendingConflicts.length > 0 ? String(pendingConflicts.length) : "clear",
-      sub: pendingConflicts.length > 0 ? "pending disposition" : matter?.conflictStatus.toLowerCase(),
-      alert: pendingConflicts.length > 0,
-    });
-  }
 
   return (
     <Shell title={matter ? matter.label : "Matter"}>
@@ -354,7 +214,6 @@ export default function FirmMatterDetail() {
           <div className="panel board">
             <div className="board-head">
               <p className="board-title">{matter.label}</p>
-              <StatusBadge value={matter.conflictStatus} />
               <StatusBadge value={matter.lifecycle} />
               {matter.legalHold && <span className="badge badge-stop">LEGAL HOLD</span>}
             </div>
@@ -425,12 +284,7 @@ export default function FirmMatterDetail() {
                       <td>{fmtWhen(s.updatedAt)}</td>
                       <td>
                         {s.state === "READY_FOR_REVIEW" && isAttorney && (
-                          <Link
-                            className="text-sm text-[#1f4ca8] hover:underline"
-                            href={`/attorney/session/${s.id}`}
-                          >
-                            Open intake review
-                          </Link>
+                          <span className="text-sm text-slate-500">complete — see transcript &amp; documents</span>
                         )}
                       </td>
                     </tr>
@@ -471,128 +325,6 @@ export default function FirmMatterDetail() {
                   {matter.legalHold ? "Release legal hold" : "Place legal hold"}
                 </button>
               </div>
-            )}
-          </AccordionPanel>
-
-          {/* ── Conflict (attorney) ──────────────────────────────── */}
-          {isAttorney && (
-            <AccordionPanel
-              title="Conflict screening"
-              summary={
-                subs.length === 0
-                  ? "No submissions"
-                  : pendingConflicts.length > 0
-                    ? `${pendingConflicts.length} pending disposition`
-                    : `${subs.length} submission(s), all dispositioned`
-              }
-            >
-              <p className="panel-sub">
-                Internal record — never shown to the client. Dispositions are an
-                attorney determination; use the{" "}
-                <Link href="/firm/conflicts" className="text-[#1f4ca8] hover:underline">
-                  conflict review queue
-                </Link>{" "}
-                for pending items.
-              </p>
-              {subs.length === 0 ? (
-                <p className="text-sm text-slate-500">No conflict submissions yet.</p>
-              ) : (
-                <table className="tbl">
-                  <thead>
-                    <tr>
-                      <th>Submitted</th>
-                      <th>Prospective client</th>
-                      <th>Adverse party</th>
-                      <th>Screen</th>
-                      <th>Disposition</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {subs.map((s) => (
-                      <tr key={s.id}>
-                        <td>{fmtWhen(s.createdAt)}</td>
-                        <td>{s.clientParty.fullLegalName}</td>
-                        <td>{s.adverseParty.fullLegalName}</td>
-                        <td><StatusBadge value={s.screenResult} /></td>
-                        <td>{s.disposition ? <StatusBadge value={s.disposition} /> : "pending"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </AccordionPanel>
-          )}
-
-          {/* ── Invitations ──────────────────────────────────────── */}
-          <AccordionPanel
-            title="Invitations"
-            summary={
-              openInvites.length > 0
-                ? `${openInvites.length} open`
-                : invitations.length > 0
-                  ? `${invitations.length} total, none open`
-                  : "None yet"
-            }
-          >
-            <p className="panel-sub">
-              Single-use, expiring. The code is shown ONCE at creation — copy the
-              local URL and convey it to the client through an appropriate channel.
-            </p>
-            <button className="btn btn-primary" onClick={createInvitation} disabled={busy}>
-              Create invitation
-            </button>
-            {newToken && inviteUrl && (
-              <div className="notice notice-info mt-3">
-                <p className="font-semibold">One-time invitation URL (local):</p>
-                <p className="mono break-all">{inviteUrl}</p>
-                <button
-                  className="btn btn-quiet mt-2"
-                  onClick={() => navigator.clipboard?.writeText(inviteUrl)}
-                >
-                  Copy URL
-                </button>
-              </div>
-            )}
-            {invitations.length > 0 && (
-              <table className="tbl mt-4">
-                <thead>
-                  <tr>
-                    <th>Created</th>
-                    <th>Expires</th>
-                    <th>Status</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invitations.map((i) => (
-                    <tr key={i.id}>
-                      <td>{fmtWhen(i.createdAt)}</td>
-                      <td>{fmtWhen(i.expiresAt)}</td>
-                      <td>
-                        <StatusBadge
-                          value={i.used ? "USED" : i.revoked ? "REVOKED" : "OPEN"}
-                        />
-                      </td>
-                      <td>
-                        {!i.used && !i.revoked && (
-                          <button
-                            className="btn btn-danger"
-                            style={{ padding: "4px 12px", fontSize: ".8rem" }}
-                            disabled={busy}
-                            onClick={() =>
-                              act(async () => {
-                                await api.post(`/api/invitations/${i.id}/revoke`);
-                              }, "Invitation revoked.")
-                            }
-                          >
-                            Revoke
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             )}
           </AccordionPanel>
 
@@ -925,201 +657,6 @@ export default function FirmMatterDetail() {
             onArtifactCreated={load}
             openSignal={openSignal}
           />
-
-          {/* ── Requests, accommodations, notes ─────────────────── */}
-          <AccordionPanel
-            panelId="requests"
-            openSignal={openSignal}
-            title="Requests & assistance"
-            summary={
-              openInfoReqs.length + openAssists.length + escalations.length > 0
-                ? `${openInfoReqs.length} open request(s), ${openAssists.length} help, ${escalations.length} escalation(s)`
-                : "Nothing open"
-            }
-          >
-            <div className="grid gap-6 lg:grid-cols-2">
-              <div>
-                <p className="field-label">Missing-information requests</p>
-                <div className="flex items-end gap-2">
-                  <input
-                    className="text-input"
-                    placeholder="e.g. A copy of your marriage certificate"
-                    value={newInfoLabel}
-                    onChange={(e) => setNewInfoLabel(e.target.value)}
-                    maxLength={300}
-                  />
-                  <button
-                    className="btn btn-primary"
-                    disabled={busy || !newInfoLabel.trim()}
-                    onClick={() =>
-                      act(async () => {
-                        await api.post(`/api/matters/${matterId}/info-requests`, {
-                          label: newInfoLabel.trim(),
-                        });
-                        setNewInfoLabel("");
-                      })
-                    }
-                  >
-                    Request
-                  </button>
-                </div>
-                <ul className="mt-3 space-y-2 text-sm">
-                  {infoReqs.map((r) => (
-                    <li key={r.id} className="flex items-center gap-2">
-                      <StatusBadge value={r.status} />
-                      <span className="mr-auto">{r.label}</span>
-                      {r.status === "OPEN" && (
-                        <button
-                          className="btn btn-quiet"
-                          style={{ padding: "2px 10px", fontSize: ".75rem" }}
-                          disabled={busy}
-                          onClick={() =>
-                            act(async () => {
-                              await api.patch(`/api/matters/${matterId}/info-requests`, {
-                                requestId: r.id,
-                              });
-                            })
-                          }
-                        >
-                          Resolve
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-
-                <p className="field-label mt-5">Client help requests</p>
-                {assists.length === 0 ? (
-                  <p className="text-sm text-slate-500">None.</p>
-                ) : (
-                  <ul className="space-y-2 text-sm">
-                    {assists.map((a) => (
-                      <li key={a.id} className="flex items-center gap-2">
-                        <StatusBadge value={a.status} />
-                        <span className="mr-auto">requested {fmtWhen(a.createdAt)}</span>
-                        {a.status !== "RESOLVED" && (
-                          <button
-                            className="btn btn-quiet"
-                            style={{ padding: "2px 10px", fontSize: ".75rem" }}
-                            disabled={busy}
-                            onClick={() =>
-                              act(async () => {
-                                await api.patch(`/api/matters/${matterId}/assistance`, {
-                                  requestId: a.id,
-                                  status: a.status === "OPEN" ? "ACKNOWLEDGED" : "RESOLVED",
-                                });
-                              })
-                            }
-                          >
-                            {a.status === "OPEN" ? "Acknowledge" : "Resolve"}
-                          </button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <div>
-                <p className="field-label">Record an accommodation</p>
-                <div className="flex flex-wrap items-end gap-2">
-                  <select
-                    className="text-input"
-                    style={{ width: "auto" }}
-                    value={accomMethod}
-                    onChange={(e) => setAccomMethod(e.target.value)}
-                  >
-                    {ACCOMMODATION_OPTIONS.map(([v, l]) => (
-                      <option key={v} value={v}>
-                        {l}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    className="text-input flex-1"
-                    placeholder="note (optional)"
-                    value={accomNote}
-                    onChange={(e) => setAccomNote(e.target.value)}
-                    maxLength={2000}
-                  />
-                  <button
-                    className="btn btn-primary"
-                    disabled={busy}
-                    onClick={() =>
-                      act(async () => {
-                        await api.post(`/api/matters/${matterId}/accommodations`, {
-                          method: accomMethod,
-                          note: accomNote.trim() || undefined,
-                        });
-                        setAccomNote("");
-                      })
-                    }
-                  >
-                    Record
-                  </button>
-                </div>
-                <ul className="mt-3 space-y-1 text-sm">
-                  {accoms.map((a) => (
-                    <li key={a.id}>
-                      <span className="badge">{a.method.replaceAll("_", " ")}</span>{" "}
-                      {a.note ?? ""}{" "}
-                      <span className="text-xs text-slate-500">{fmtWhen(a.createdAt)}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <p className="field-label mt-5">Internal notes &amp; escalations</p>
-                <p className="text-xs text-slate-500">
-                  Internal work product — never visible to the client.
-                </p>
-                <div className="mt-1 flex flex-wrap items-end gap-2">
-                  <select
-                    className="text-input"
-                    style={{ width: "auto" }}
-                    value={noteKind}
-                    onChange={(e) => setNoteKind(e.target.value as "NOTE" | "ESCALATION")}
-                  >
-                    <option value="NOTE">Note</option>
-                    <option value="ESCALATION">Escalate to attorney</option>
-                  </select>
-                  <input
-                    className="text-input flex-1"
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                    maxLength={8000}
-                  />
-                  <button
-                    className="btn btn-primary"
-                    disabled={busy || !newNote.trim()}
-                    onClick={() =>
-                      act(async () => {
-                        await api.post(`/api/matters/${matterId}/notes`, {
-                          kind: noteKind,
-                          body: newNote.trim(),
-                        });
-                        setNewNote("");
-                      })
-                    }
-                  >
-                    Add
-                  </button>
-                </div>
-                <ul className="mt-3 space-y-2 text-sm">
-                  {notes.map((n) => (
-                    <li key={n.id}>
-                      <span
-                        className={n.kind === "ESCALATION" ? "badge badge-warn" : "badge"}
-                      >
-                        {n.kind}
-                      </span>{" "}
-                      {n.body}{" "}
-                      <span className="text-xs text-slate-500">{fmtWhen(n.createdAt)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </AccordionPanel>
 
           {/* ── Audit (attorney) ─────────────────────────────────── */}
           {isAttorney && (

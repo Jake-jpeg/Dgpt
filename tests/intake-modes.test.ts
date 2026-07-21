@@ -47,10 +47,10 @@ describe("mode (a): client-initiated intake → attorney review", () => {
     expect(done.status).toBe(200);
     expect(done.data.state).toBe("READY_FOR_REVIEW");
 
-    // The conflict wall was actually passed through (audited).
+    // The retired wall never blocked this path (open signup: conflicts run
+    // in the firm's own system); the machine milestones are still audited.
     const events = (await getAuditEvents(id)).map((e) => e.event);
-    expect(events).toContain("CONFLICT_SCREEN_RUN");
-    expect(events).toContain("CONFLICT_CLEARED_BY_ATTORNEY");
+    expect(events).toContain("SESSION_STARTED");
     expect(events).toContain("READY_FOR_REVIEW");
 
     // Attorney sees it.
@@ -71,9 +71,12 @@ describe("mode (a): client-initiated intake → attorney review", () => {
     expect(detailRes.status).toBe(200);
     const detail = await detailRes.json();
     expect(detail.session.tier).toBe("TIER1");
-    expect(detail.identity.clientParty.fullLegalName).toBe("Casey Syntheticperson");
+    // Party identity now arrives through the intake itself (the PRE_GATE
+    // identity/conflict step is retired), so the packet carries no separate
+    // identity block for flow-created sessions.
+    expect(detail.identity).toBeNull();
     expect(detail.sections.length).toBeGreaterThan(3);
-    expect(detail.audit.map((a: { event: string }) => a.event)).toContain("CONFLICT_CLEARED_BY_ATTORNEY");
+    expect(detail.audit.map((a: { event: string }) => a.event)).toContain("GATE_PASSED");
   });
 
   it("incomplete intake cannot be completed", async () => {
@@ -113,7 +116,7 @@ describe("mode (a): client-initiated intake → attorney review", () => {
   });
 });
 
-describe("mode (b): attorney-initiated intake — same wall, same gate", () => {
+describe("mode (b): attorney-initiated intake — same gate, no privileged path", () => {
   it("attorney runs a Tier 2 intake for an existing client, QDRO flagged, ready for review", async () => {
     const attorneyCookie = await cookieFor(SYNTH_ATTORNEY);
     const id = await startSession(attorneyCookie);
@@ -137,26 +140,24 @@ describe("mode (b): attorney-initiated intake — same wall, same gate", () => {
     // QDRO-needed = in scope, flagged, intake continued to completion.
     expect(detail.session.qdroFlag).toBe(true);
     expect(detail.session.attorneyFlags).toContain("QDRO_NEEDED");
-    // The wall was audited for the attorney path too.
-    expect(detail.audit.map((a: { event: string }) => a.event)).toContain("CONFLICT_SCREEN_RUN");
   });
 
-  it("attorney-initiated sessions hit the conflict wall exactly like client ones", async () => {
+  it("attorney-initiated sessions start past the retired wall, same as client ones", async () => {
     const attorneyCookie = await cookieFor(SYNTH_ATTORNEY);
     const id = await startSession(attorneyCookie);
-    const r = await runIdentity(attorneyCookie, id, HIT_IDENTITY);
-    // Same wall: the screen pends attorney review even for attorney-initiated
-    // sessions — no privileged path, no automated clearance.
-    expect(r.data.result).toBe("PENDING_REVIEW");
     const { getSession } = await import("@/lib/db/repo");
-    const { getMatter } = await import("@/lib/db/matters");
-    expect((await getMatter((await getSession(id))!.matterId!))!.conflictStatus).toBe("POTENTIAL_MATCH");
+    const s = (await getSession(id))!;
+    // Open signup: the firm runs conflicts in its own system. Sessions are
+    // born at the first scope gate; the identity/screen step no longer runs.
+    expect(s.state).toBe("GATE_RESIDENCY");
+    expect(s.conflictClear).toBe(true);
+    const r = await runIdentity(attorneyCookie, id, HIT_IDENTITY);
+    expect(r.status).toBe(409); // no PRE_GATE step exists in this flow
   });
 
   it("attorney cannot skip the scope gate on their own intake", async () => {
     const attorneyCookie = await cookieFor(SYNTH_ATTORNEY);
     const id = await startSession(attorneyCookie);
-    await runIdentity(attorneyCookie, id);
     // Straight to answers without the gates → rejected.
     const r = await submitAnswersHttp(attorneyCookie, id, [
       { fieldId: "marriage_date", value: "2010-01-01" },
@@ -206,19 +207,8 @@ describe("criterion 7: Stage-2 drafting is stubbed and wired to nothing", () => 
     expect(intakeOffenders).toEqual([]);
   });
 
-  it("the review UI renders the Stage-2 button disabled", () => {
-    const page = fs.readFileSync(
-      path.join(__dirname, "..", "src", "app", "attorney", "session", "[id]", "page.tsx"),
-      "utf8"
-    );
-    // The affordance exists…
-    expect(page).toContain("Generate MSA draft (Stage 2)");
-    // …is disabled…
-    expect(page).toMatch(/<button\s[^>]*disabled/);
-    // …and has no click handler wired to it.
-    expect(page).not.toMatch(/Generate MSA draft[\s\S]{0,200}onClick/);
-    expect(page.slice(0, page.indexOf("Generate MSA draft"))).not.toMatch(
-      /onClick[^\n]*draft/i
-    );
+  it("the retired intake-review UI is gone (its drafting surface went with it)", () => {
+    const gone = path.join(__dirname, "..", "src", "app", "attorney");
+    expect(fs.existsSync(gone)).toBe(false);
   });
 });

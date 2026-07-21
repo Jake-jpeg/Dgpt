@@ -22,10 +22,11 @@ import {
 import { attorneyEmailAllowlist, adminBootstrapEmails } from "@/lib/env";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertRateLimit } from "@/lib/security/rate-limit";
-import { findAccountForSession } from "@/lib/db/users";
+import { findAccountForSession, provisionClientAccount } from "@/lib/db/users";
 import { decideLoginDestination } from "@/lib/auth/authorize-login";
-import { recordAudit } from "@/lib/db/repo";
+import { recordAudit, createSession, listSessionsByMatter } from "@/lib/db/repo";
 import { hashNameForAudit } from "@/lib/security/audit-hash";
+import { createMatter, listMattersForClient, bindClientToMatter, markConflictsExternal } from "@/lib/db/matters";
 
 export async function GET(
   req: Request,
@@ -50,8 +51,51 @@ export async function GET(
           name: identity.name,
           adminBootstrapEmails: adminBootstrapEmails(),
         }));
-    const boundAccount =
+    let boundAccount =
       account && account.subject === identity.subject ? account : null;
+
+    // OPEN CLIENT SIGNUP (2026-07-21 directive): a new Google/MSA identity
+    // becomes a CLIENT account right here — minimum data only (subject,
+    // email, name). Entra stays firm-only; firm roles still come exclusively
+    // from the database + ADMIN_EMAILS / ATTORNEY_EMAILS.
+    if (!boundAccount && (provider === "google" || provider === "msa")) {
+      boundAccount = (await provisionClientAccount({
+            subject: identity.subject,
+            email: identity.email,
+            name: identity.name,
+          }));
+      (await recordAudit(
+              "auth",
+              "CLIENT_SELF_SIGNUP",
+              `provider=${provider} subjectHash=${hashNameForAudit(identity.email)}`
+            ));
+    }
+
+    // A CLIENT always has a matter to land on: create + bind on first login,
+    // and open the intake session that carries the AI conversation. The
+    // firm's own system handles conflicts; nothing blocks the intake here.
+    if (boundAccount && boundAccount.role === "CLIENT") {
+      let matters = (await listMattersForClient(boundAccount.id));
+      if (matters.length === 0) {
+        const label = `${boundAccount.name || boundAccount.email} — intake`;
+        const m = (await createMatter({ label, createdBy: boundAccount.id }));
+        (await bindClientToMatter(m.id, boundAccount.id));
+        (await markConflictsExternal(m.id));
+        (await recordAudit(m.id, "MATTER_SELF_OPENED", `subjectHash=${hashNameForAudit(identity.email)}`));
+        matters = [m];
+      }
+      const existingSessions = (await listSessionsByMatter(matters[0].id));
+      if (existingSessions.length === 0) {
+        const sess = (await createSession({
+              initiatedBy: "CLIENT",
+              ownerSubject: identity.subject,
+              initialState: "GATE_RESIDENCY",
+              matterId: matters[0].id,
+              conflictClear: true,
+            }));
+        (await recordAudit(sess.id, "SESSION_STARTED", `initiatedBy=CLIENT`));
+      }
+    }
 
     // Providers authenticate; the DB authorizes. A firm-role account is a
     // firm login on EITHER provider (Microsoft, or a Google Workspace firm

@@ -141,14 +141,11 @@ export default function ClientMatterPage() {
 
       {!loading && !me?.user && me?.identity && (
         <div className="panel">
-          <h2>Invitation needed</h2>
+          <h2>Setting up your workspace</h2>
           <p className="panel-sub">
-            You are signed in as {me.identity.email}, but portal access begins
-            with an invitation from the firm.
+            You are signed in as {me.identity.email}. If this page does not
+            refresh into your workspace, sign out and sign back in.
           </p>
-          <Link className="btn btn-primary" href="/invite">
-            Enter my invitation
-          </Link>
         </div>
       )}
 
@@ -158,14 +155,11 @@ export default function ClientMatterPage() {
 
       {!loading && me?.user?.role === "CLIENT" && !matterId && (
         <div className="panel">
-          <h2>No matter linked yet</h2>
+          <h2>Preparing your workspace</h2>
           <p className="panel-sub">
-            Portal access begins with an invitation from the firm. If you have
-            one, enter it now; if not, please contact the firm.
+            Your workspace is created automatically when you sign in. If it
+            does not appear, sign out, sign back in, or contact the firm.
           </p>
-          <Link className="btn btn-primary" href="/invite">
-            Enter my invitation
-          </Link>
         </div>
       )}
 
@@ -177,10 +171,7 @@ export default function ClientMatterPage() {
             {ackDone && matter.canProceed && (
               <div className="mt-3 flex flex-wrap gap-3">
                 <Link className="btn btn-primary" href="/portal/intake">
-                  Continue my questionnaire
-                </Link>
-                <Link className="btn btn-quiet" href="/intake">
-                  Original intake session
+                  Continue my intake
                 </Link>
               </div>
             )}

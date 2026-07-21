@@ -1,17 +1,20 @@
 /**
- * ACCEPTANCE CRITERION 1 (2.0 form): the conflict wall cannot be bypassed.
+ * DORMANT CONFLICT-WALL MACHINERY (wall retired from the live flow
+ * 2026-07-21 — open signup; the firm runs conflicts in its own system, and
+ * matters self-open with conflict posture EXTERNAL).
  *
- * Automated screening can only park a matter for review — it can never
- * CLEAR or DECLINE. Substantive intake stays blocked until an ATTORNEY
- * records a CLEARED disposition; STAFF/ADMIN attempts fail structurally.
- * The client sees one neutral message for every screen outcome and never
- * the internal result.
+ * The machinery itself remains and its guarantees stay pinned here, built
+ * on legacy-state fixtures (NOT_STARTED matter + PRE_GATE session):
+ * automated screening can only park a matter for review — never CLEAR or
+ * DECLINE; STAFF/ADMIN disposition attempts fail structurally; a declined
+ * matter purges substance and retains conflict history; the client-facing
+ * surface stays neutral.
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   cookieFor,
   SYNTH_CLIENT,
-  startSession,
+  startPregateSession,
   runIdentity,
   runGate,
   runBranch,
@@ -43,13 +46,13 @@ beforeEach(async () => {
 
 describe("conflict wall — bypass attempts fail server-side", () => {
   it("rejects gate answers before screening has even run", async () => {
-    const id = await startSession(cookie);
+    const id = await startPregateSession(cookie);
     const r = await runGate(cookie, id, true);
     expect(r.status).toBe(409);
   });
 
   it("rejects gate answers AFTER screening but BEFORE attorney clearance", async () => {
-    const id = await startSession(cookie);
+    const id = await startPregateSession(cookie);
     await runIdentity(cookie, id);
     const r = await runGate(cookie, id, true);
     expect(r.status).toBe(409);
@@ -57,7 +60,7 @@ describe("conflict wall — bypass attempts fail server-side", () => {
   });
 
   it("rejects tier-branch and substantive answers before clearance", async () => {
-    const id = await startSession(cookie);
+    const id = await startPregateSession(cookie);
     await runIdentity(cookie, id);
     const rb = await runBranch(cookie, id, "NONE", "NONE");
     expect(rb.status).toBe(409);
@@ -69,7 +72,7 @@ describe("conflict wall — bypass attempts fail server-side", () => {
   });
 
   it("rejects completing an intake straight from PRE_GATE", async () => {
-    const id = await startSession(cookie);
+    const id = await startPregateSession(cookie);
     const res = await completeRoute(
       jsonRequest(`/api/intake/${id}/complete`, { cookie }),
       params({ id })
@@ -78,7 +81,7 @@ describe("conflict wall — bypass attempts fail server-side", () => {
   });
 
   it("persistence layer itself refuses substantive writes without attorney clearance", async () => {
-    const id = await startSession(cookie);
+    const id = await startPregateSession(cookie);
     await runIdentity(cookie, id);
     await expect(
       insertAnswer(id, "marriage_date", "2015-06-20")
@@ -88,13 +91,13 @@ describe("conflict wall — bypass attempts fail server-side", () => {
   });
 
   it("cannot skip ahead in the gate sequence (server owns gate order)", async () => {
-    const id = await startSession(cookie);
+    const id = await startPregateSession(cookie);
     await runIdentity(cookie, id);
     const matterId = (await getSession(id))!.matterId!;
     await clearMatter(matterId);
     // Session is now at GATE_RESIDENCY. Try to answer with a county (the
     // GATE_VENUE payload) — rejected as malformed; state does not advance.
-    const r = await runGate(cookie, id, "Bergen");
+    const r = await runGate(cookie, id, "Kings");
     expect(r.status).toBe(400);
     expect((await getSession(id))?.state).toBe("GATE_RESIDENCY");
   });
@@ -102,7 +105,7 @@ describe("conflict wall — bypass attempts fail server-side", () => {
 
 describe("automated screening never clears, never declines", () => {
   it("a clean screen still pends attorney review (NO_APPARENT_MATCH)", async () => {
-    const id = await startSession(cookie);
+    const id = await startPregateSession(cookie);
     const r = await runIdentity(cookie, id);
     expect(r.status).toBe(200);
     expect(r.data.result).toBe("PENDING_REVIEW");
@@ -112,7 +115,7 @@ describe("automated screening never clears, never declines", () => {
   });
 
   it("a potential match pends review with the SAME neutral client message", async () => {
-    const cleanId = await startSession(cookie);
+    const cleanId = await startPregateSession(cookie);
     const clean = await runIdentity(cookie, cleanId);
 
     const hitCookie = await cookieFor({
@@ -121,7 +124,7 @@ describe("automated screening never clears, never declines", () => {
       email: "hitclient@example.test",
       name: "Hit Client",
     } satisfies SessionUser);
-    const hitId = await startSession(hitCookie);
+    const hitId = await startPregateSession(hitCookie);
     const hit = await runIdentity(hitCookie, hitId, HIT_IDENTITY);
 
     // Identical externally: status, result, and message.
@@ -137,7 +140,7 @@ describe("automated screening never clears, never declines", () => {
   });
 
   it("prior/maiden names also trigger the screen (tiebreaker matching)", async () => {
-    const id = await startSession(cookie);
+    const id = await startPregateSession(cookie);
     await runIdentity(cookie, id, {
       clientParty: { fullLegalName: "Totally Cleanname", priorNames: ["Sylvia Placeholder"] },
       adverseParty: { fullLegalName: "Also Cleanname", priorNames: [] },
@@ -146,7 +149,7 @@ describe("automated screening never clears, never declines", () => {
   });
 
   it("screen results are audited with hashed names, never plaintext", async () => {
-    const id = await startSession(cookie);
+    const id = await startPregateSession(cookie);
     await runIdentity(cookie, id, HIT_IDENTITY);
     const events = (await getAuditEvents(id)).map((e) => e.event);
     expect(events).toContain("CONFLICT_SCREEN_RUN");
@@ -159,7 +162,7 @@ describe("automated screening never clears, never declines", () => {
 
 describe("attorney-only dispositions", () => {
   it("only ATTORNEY may clear: STAFF and ADMIN get 403 from the route", async () => {
-    const id = await startSession(cookie);
+    const id = await startPregateSession(cookie);
     await runIdentity(cookie, id);
     const matterId = (await getSession(id))!.matterId!;
 
@@ -190,7 +193,7 @@ describe("attorney-only dispositions", () => {
   });
 
   it("attorney CLEARED unblocks the parked session and intake proceeds", async () => {
-    const id = await startSession(cookie);
+    const id = await startPregateSession(cookie);
     await runIdentity(cookie, id);
     const matterId = (await getSession(id))!.matterId!;
     await clearMatter(matterId);
@@ -203,7 +206,7 @@ describe("attorney-only dispositions", () => {
   });
 
   it("attorney DECLINED purges session content but retains conflict history", async () => {
-    const id = await startSession(cookie);
+    const id = await startPregateSession(cookie);
     await runIdentity(cookie, id, HIT_IDENTITY);
     const matterId = (await getSession(id))!.matterId!;
 
@@ -226,7 +229,7 @@ describe("attorney-only dispositions", () => {
   });
 
   it("a declined client's session is gone; the matter view stays neutral", async () => {
-    const id = await startSession(cookie);
+    const id = await startPregateSession(cookie);
     await runIdentity(cookie, id, HIT_IDENTITY);
     const matterId = (await getSession(id))!.matterId!;
     await setConflictDisposition(matterId, "DECLINED");
@@ -248,7 +251,7 @@ describe("attorney-only dispositions", () => {
   });
 
   it("identity capture collects names only — extra fields are ignored, never stored", async () => {
-    const id = await startSession(cookie);
+    const id = await startPregateSession(cookie);
     const r = await runIdentity(cookie, id, {
       clientParty: { fullLegalName: "Casey Syntheticperson", priorNames: [] },
       adverseParty: { fullLegalName: "Jordan Syntheticperson", priorNames: [] },

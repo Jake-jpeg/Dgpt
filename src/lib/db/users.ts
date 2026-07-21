@@ -99,11 +99,57 @@ export async function createUser(opts: {
  *     subject check refuses it; nothing silently relinks on email alone;
  *  3. ADMIN_EMAILS bootstrap/recovery ONLY: a listed email may provision the
  *     ADMIN role at first login;
- *  4. otherwise NULL. Successful Microsoft or Google authentication creates
- *     NOTHING: firm accounts must be admin-created, and client accounts are
- *     created exclusively by invitation acceptance
- *     (`provisionClientAccount`).
+ *  4. otherwise NULL here. Firm accounts must be admin-created; CLIENT
+ *     accounts are created at login by the OAuth callback via
+ *     `provisionClientAccount` (open signup, 2026-07-21 directive).
  */
+/**
+ * OPEN CLIENT SIGNUP (2026-07-21 directive): a brand-new Google/MSA identity
+ * becomes a CLIENT account at LOGIN TIME — the firm directs clients to the
+ * site and runs conflicts in its own system. Only the absolute minimum is
+ * stored: provider subject, email, display name. Called ONLY from the OAuth
+ * callback for the client providers; per-request authorization never creates
+ * accounts, and Microsoft Entra remains firm-only.
+ */
+export async function provisionClientAccount(opts: {
+  subject: string;
+  email: string;
+  name?: string;
+}): Promise<UserRow> {
+  const db = getDb();
+  const email = opts.email.trim().toLowerCase();
+  const existing = await getUserBySubject(opts.subject);
+  if (existing) return existing;
+  const byEmail = email ? await getUserByEmail(email) : null;
+  if (byEmail) {
+    if (byEmail.subject && byEmail.subject !== opts.subject) {
+      // Same email, different identity subject — never silently rebind.
+      throw new Error("ACCOUNT_CONFLICT: this email is linked to a different sign-in identity");
+    }
+    await db.run(
+      `UPDATE app_user SET subject = ?, name = ?, updated_at = ? WHERE id = ?`,
+      opts.subject,
+      opts.name || byEmail.name,
+      nowIso(),
+      byEmail.id
+    );
+    return (await getUserById(byEmail.id))!;
+  }
+  const id = newId();
+  const t = nowIso();
+  await db.run(
+    `INSERT INTO app_user (id, subject, email, name, role, active, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 'CLIENT', 1, ?, ?)`,
+    id,
+    opts.subject,
+    email,
+    opts.name ?? "",
+    t,
+    t
+  );
+  return (await getUserById(id))!;
+}
+
 export async function findAccountForSession(opts: {
   subject: string;
   email: string;
@@ -148,33 +194,6 @@ export async function findAccountForSession(opts: {
   }
 
   return null;
-}
-
-/**
- * THE ONLY code path that creates a CLIENT account from a session identity —
- * called exclusively by invitation acceptance after the token validates.
- * A generic Google sign-in never reaches this.
- */
-export async function provisionClientAccount(opts: {
-  subject: string;
-  email: string;
-  name?: string;
-}): Promise<UserRow> {
-  const existing = await getUserBySubject(opts.subject);
-  if (existing) return existing;
-  const id = newId();
-  const t = nowIso();
-  await getDb().run(
-    `INSERT INTO app_user (id, subject, email, name, role, active, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'CLIENT', 1, ?, ?)`,
-    id,
-    opts.subject,
-    opts.email.trim().toLowerCase(),
-    opts.name ?? "",
-    t,
-    t
-  );
-  return (await getUserById(id))!;
 }
 
 /**

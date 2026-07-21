@@ -55,7 +55,7 @@ describe("decideLoginDestination — msa is the client door", () => {
         boundAccount: null,
         attorneyAllowlist: ALLOW,
       })
-    ).toBe("/invite");
+    ).toBe("/portal/matter");
   });
 
   it("REFUSES a firm-role account arriving on a personal Microsoft account", () => {

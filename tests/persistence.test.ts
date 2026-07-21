@@ -33,24 +33,43 @@ async function expectFullyPurged(id: string) {
 }
 
 describe("out-of-scope sessions leave no substantive data (DB level)", () => {
-  it("residency trip → attorney-flag card, purged", async () => {
+  it("residency cascade never terminates: no/no path flags for attorney review and continues", async () => {
     const id = await startSession(cookie);
     await runIdentityAndClear(cookie, id);
-    const r = await runGate(cookie, id, false); // not a 12-month NJ resident
-    expect(r.data.status).toBe("TERMINATED");
-    expect(r.data.card.id).toBe("RESIDENCY_ATTORNEY_FLAG");
-    await expectFullyPurged(id);
+    const r1 = await runGate(cookie, id, false); // 2-year: no
+    expect(r1.data.state).toBe("GATE_RESIDENCY_1YR");
+    const r2 = await runGate(cookie, id, false); // 1-year: no → flag + continue
+    expect(r2.data.state).toBe("GATE_VENUE");
+    const { getSession } = await import("@/lib/db/repo");
+    const sess = await getSession(id);
+    expect(sess?.attorneyFlags).toContain("RESIDENCY_ATTORNEY_REVIEW");
+    const events = (await getAuditEvents(id)).map((e) => e.event);
+    expect(events).toContain("GATE_FLAGGED_FOR_ATTORNEY");
+    // The session is alive — venue is next, nothing was purged.
+    expect((await countRows("intake_session", id))).toBe(1);
+  });
+
+  it("residency cascade: 1-year yes + NY nexus yes → clean pass, no flag", async () => {
+    const id = await startSession(cookie);
+    await runIdentityAndClear(cookie, id);
+    await runGate(cookie, id, false); // 2-year: no
+    const r2 = await runGate(cookie, id, true); // 1-year: yes
+    expect(r2.data.state).toBe("GATE_RESIDENCY_NEXUS");
+    const r3 = await runGate(cookie, id, true); // married in NY / lived as spouses: yes
+    expect(r3.data.state).toBe("GATE_VENUE");
+    const { getSession } = await import("@/lib/db/repo");
+    expect((await getSession(id))?.attorneyFlags ?? []).not.toContain("RESIDENCY_ATTORNEY_REVIEW");
   });
 
   it("DV trip → DV-resource card (distinct from bar referral), purged", async () => {
     const id = await startSession(cookie);
     await runIdentityAndClear(cookie, id);
     await runGate(cookie, id, true); // residency ok
-    await runGate(cookie, id, "Bergen"); // venue
+    await runGate(cookie, id, "Kings"); // venue
     const r = await runGate(cookie, id, true); // DV: yes
     expect(r.data.status).toBe("TERMINATED");
     expect(r.data.card.id).toBe("DV_RESOURCES");
-    expect(r.data.card.id).not.toBe("BERGEN_BAR_REFERRAL");
+    expect(r.data.card.id).not.toBe("NY_BAR_REFERRAL");
     await expectFullyPurged(id);
     const events = (await getAuditEvents(id)).map((e) => e.event);
     expect(events).toContain("SCOPE_OUT_DV");
@@ -60,7 +79,7 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
     const id = await startSession(cookie);
     await runIdentityAndClear(cookie, id);
     await runGate(cookie, id, true);
-    await runGate(cookie, id, "Bergen");
+    await runGate(cookie, id, "Kings");
     await runGate(cookie, id, true); // DV disclosure
 
     // Same no-retention behavior as a conflict hit, verified at the DB level:
@@ -84,25 +103,25 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
     const id = await startSession(cookie);
     await runIdentityAndClear(cookie, id);
     await runGate(cookie, id, true);
-    await runGate(cookie, id, "Bergen");
+    await runGate(cookie, id, "Kings");
     await runGate(cookie, id, false); // no DV
     const r = await runGate(cookie, id, true); // children: yes
     expect(r.data.status).toBe("TERMINATED");
-    expect(r.data.card.id).toBe("BERGEN_BAR_REFERRAL");
+    expect(r.data.card.id).toBe("NY_BAR_REFERRAL");
     await expectFullyPurged(id);
   });
 
-  it("complexity trip (any non-'fully agree') → Bergen Bar card, purged", async () => {
+  it("complexity trip (any non-'fully agree') → NY bar-referral card, purged", async () => {
     for (const answer of ["SOME_UNCERTAINTY", "DISAGREEMENT", "NEED_VALUATION"]) {
       const id = await startSession(cookie);
       await runIdentityAndClear(cookie, id);
       await runGate(cookie, id, true);
-      await runGate(cookie, id, "Bergen");
+      await runGate(cookie, id, "Kings");
       await runGate(cookie, id, false);
       await runGate(cookie, id, false);
       const r = await runGate(cookie, id, answer);
       expect(r.data.status).toBe("TERMINATED");
-      expect(r.data.card.id).toBe("BERGEN_BAR_REFERRAL");
+      expect(r.data.card.id).toBe("NY_BAR_REFERRAL");
       await expectFullyPurged(id);
     }
   });
@@ -127,7 +146,7 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
       { fieldId: "ed_business_interest", value: true },
     ]);
     expect(r.data.status).toBe("TERMINATED");
-    expect(r.data.card.id).toBe("BERGEN_BAR_REFERRAL");
+    expect(r.data.card.id).toBe("NY_BAR_REFERRAL");
     await expectFullyPurged(id);
   });
 
