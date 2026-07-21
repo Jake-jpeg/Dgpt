@@ -91,8 +91,6 @@ export function reportSchema(kind: string) {
 }
 
 export type AiReport = z.infer<ReturnType<typeof reportSchema>>;
-export type FactualAssertion = z.infer<typeof factualAssertion>;
-export type LegalProposition = z.infer<typeof legalProposition>;
 
 // Named schemas (directive-required names)
 export const AttorneyIntakeMemo = reportSchema("AttorneyIntakeMemo");
@@ -228,20 +226,4 @@ export function validateAiReport(
     }
   }
   return problems.length > 0 ? { problems } : { report, problems: [] };
-}
-
-/** supportStatus → visible internal flag. */
-export function flagForSupportStatus(s: (typeof SUPPORT_STATUSES)[number]): string {
-  switch (s) {
-    case "NOT_FOUND":
-      return "[not found]";
-    case "INFERRED":
-      return "[inferred]";
-    case "CONFLICTING":
-      return "[TREATMENT?]";
-    case "ATTORNEY_CONFIRMATION_REQUIRED":
-      return "[needs cite check]";
-    default:
-      return "";
-  }
 }

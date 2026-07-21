@@ -38,8 +38,8 @@ export default function PortalEntry() {
       });
       const who = (await api.get("/api/auth/me")) as { user: Me | null };
       refresh();
-      // Providers authenticate; the DB authorizes. Open signup: a client
-      // account is provisioned at login, so there is always a home.
+      // Providers authenticate; the DB authorizes. Invite-only: a client
+      // account exists only after invitation acceptance, so route by role.
       router.push(who.user ? HOME[who.user.role] : "/portal/matter");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Sign-in failed");

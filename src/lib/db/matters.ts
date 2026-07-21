@@ -47,9 +47,6 @@ export const SCREEN_STATUSES = [
 
 export type ScreenStatus = (typeof SCREEN_STATUSES)[number];
 
-/** Attorney-only terminal dispositions. */
-export const TERMINAL_CONFLICT_STATUSES = ["CLEARED", "DECLINED"] as const;
-
 export interface MatterRow {
   id: string;
   label: string;
@@ -123,11 +120,6 @@ export async function createMatter(opts: { label: string; createdBy: string }): 
 export async function getMatter(id: string): Promise<MatterRow | null> {
   const r = await getDb().get(`SELECT * FROM matter WHERE id = ?`, id);
   return r ? rowToMatter(r) : null;
-}
-
-export async function touchMatter(id: string): Promise<void> {
-  const t = nowIso();
-  await getDb().run(`UPDATE matter SET last_activity_at = ?, updated_at = ? WHERE id = ?`, t, t, id);
 }
 
 export async function listAllMatters(): Promise<MatterRow[]> {
@@ -295,7 +287,7 @@ export async function matterConflictCleared(matterId: string): Promise<boolean> 
   return Boolean(m && (m.conflictStatus === "CLEARED" || m.conflictStatus === "EXTERNAL"));
 }
 
-/** Open-signup matters record the external-conflicts posture at creation. */
+/** Invitation acceptance records the firm's external-conflicts posture on the matter. */
 export async function markConflictsExternal(matterId: string): Promise<void> {
   const t = nowIso();
   await getDb().run(

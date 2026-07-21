@@ -328,7 +328,7 @@ CREATE TABLE IF NOT EXISTS document_release (
   created_at          TEXT NOT NULL
 );
 
--- ── P. Schema-driven intake answers (2.0 NJ/NY engine) ──────────────
+-- ── P. Schema-driven intake answers (2.0 NY intake engine) ──────────────
 CREATE TABLE IF NOT EXISTS matter_intake_answer (
   matter_id   TEXT NOT NULL,
   question_id TEXT NOT NULL,

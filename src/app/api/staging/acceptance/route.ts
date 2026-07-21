@@ -14,7 +14,7 @@ import { appStage } from "@/config/stage";
 import { runAcceptanceStep } from "@/lib/staging/acceptance";
 
 const schema = z.object({
-  step: z.enum(["nj-setup", "ny-setup", "ai", "render", "approve-release", "negative"]),
+  step: z.enum(["ny-setup", "ai", "render", "approve-release", "negative"]),
   params: z.record(z.string(), z.string()).default({}),
 });
 

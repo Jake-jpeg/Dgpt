@@ -105,12 +105,11 @@ export async function createUser(opts: {
  *     (invite-only, 2026-07-21 directive).
  */
 /**
- * OPEN CLIENT SIGNUP (2026-07-21 directive): a brand-new Google/MSA identity
- * becomes a CLIENT account at LOGIN TIME — the firm directs clients to the
- * site and runs conflicts in its own system. Only the absolute minimum is
- * stored: provider subject, email, display name. Called ONLY from the OAuth
- * callback for the client providers; per-request authorization never creates
- * accounts, and Microsoft Entra remains firm-only.
+ * INVITE-ONLY CLIENT PROVISIONING (2026-07-21 directive): a Google/MSA identity
+ * becomes a CLIENT account only when consuming an email-bound invitation. Only
+ * the absolute minimum is stored: provider subject, email, display name. Called
+ * ONLY from invitation acceptance (`onboardInvitedClient`); per-request
+ * authorization never creates accounts, and Microsoft Entra remains firm-only.
  */
 export async function provisionClientAccount(opts: {
   subject: string;

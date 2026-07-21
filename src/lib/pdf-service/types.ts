@@ -9,7 +9,6 @@ export const ALLOWED_RENDERS = [
 ] as const;
 
 export type AllowedRender = (typeof ALLOWED_RENDERS)[number];
-export type RenderState = AllowedRender["state"];
 
 export function isAllowedRender(state: string, form: string): boolean {
   return ALLOWED_RENDERS.some((r) => r.state === state && r.form === form);

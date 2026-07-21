@@ -73,9 +73,6 @@ export function messagesUrl(): string {
 export function aiModel(): string {
   return envOptional("ANTHROPIC_MODEL") ?? DEFAULT_ANTHROPIC_MODEL;
 }
-export function aiReviewModel(): string {
-  return envOptional("ANTHROPIC_REVIEW_MODEL") ?? aiModel();
-}
 export function aiTimeoutMs(): number {
   const n = Number(process.env.AI_REQUEST_TIMEOUT_MS ?? "60000");
   return Number.isFinite(n) && n > 1000 ? n : 60000;

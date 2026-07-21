@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Client questionnaire (B11) — the schema-driven NJ/NY intake experience.
+ * Client questionnaire (B11) — the schema-driven NY intake experience.
  *
  * Everything a client sees here is a plain-language FACT question from the
  * versioned intake schema. The server decides which items are visible

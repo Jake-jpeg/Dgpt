@@ -94,9 +94,9 @@ export const SECTIONS: SectionDef[] = [
         label: "What is the basis for the divorce?",
         type: "select",
         required: true,
-        // [ATTORNEY REVIEW REQUIRED — NY] Options redrafted from NJ grounds to
-        // NY DRL § 170 for the uncontested flow. "Something else / not sure"
-        // stays in scope but is flagged for the attorney (see tiers.ts routing).
+        // [ATTORNEY REVIEW REQUIRED — NY] Options track NY DRL § 170 for the
+        // uncontested flow. "Something else / not sure" stays in scope but is
+        // flagged for the attorney (see tiers.ts routing).
         options: [
           {
             value: "IRRETRIEVABLE_6MO",

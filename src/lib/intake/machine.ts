@@ -68,17 +68,6 @@ export const BOT_ACTIVE_STATES: MachineState[] = [
   "INTAKE",
 ];
 
-/** The fixed order of scope-gate steps; the server, not the client, decides which is next. */
-export const GATE_SEQUENCE: MachineState[] = [
-  "GATE_RESIDENCY",
-  "GATE_RESIDENCY_1YR",
-  "GATE_RESIDENCY_NEXUS",
-  "GATE_VENUE",
-  "GATE_DV",
-  "GATE_CHILDREN",
-  "GATE_COMPLEXITY",
-];
-
 const ALLOWED_TRANSITIONS: Record<MachineState, MachineState[]> = {
   // 2.0: automated screening NEVER clears a session into the gates. Identity
   // capture parks the session in CONFLICT_REVIEW_PENDING; only an attorney's

@@ -46,7 +46,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const parsed = schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid AI request");
 
-    // ── NJ/NY structured actions (Responses API + provenance) ─────────
+    // ── NY structured actions (Responses API + provenance) ─────────
     if ((AI_ACTIONS as readonly string[]).includes(parsed.data.feature)) {
       const result = await runAiAction({
         matterId: matter.id,

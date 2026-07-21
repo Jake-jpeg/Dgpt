@@ -21,7 +21,6 @@
 import { getCard, type StaticCard } from "@/config/cards";
 import { getTermById } from "@/config/glossary";
 import { getProcessCopy } from "@/config/process-copy";
-import { getClarification } from "@/config/clarifications";
 import { getClassifier } from "./classifier";
 import { logBotInteraction } from "@/lib/db/repo";
 
@@ -39,11 +38,6 @@ export function staticCardResponse(id: Parameters<typeof getCard>[0]): BotRespon
   return { kind: "STATIC_CARD", id, card: getCard(id) };
 }
 
-export function clarificationResponse(id: string): BotResponse {
-  const c = getClarification(id);
-  if (!c) throw new Error(`CONFIG: unknown clarification ${id}`);
-  return { kind: "CLARIFICATION", id: c.id, text: c.text };
-}
 
 /**
  * Handle free text typed at the bot. Classify → look up → serve. The user's

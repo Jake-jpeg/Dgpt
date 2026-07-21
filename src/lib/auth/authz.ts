@@ -66,10 +66,7 @@ export async function requireUser(req: Request, roles: Role[]): Promise<AuthedUs
   return { session, account };
 }
 
-/** Convenience wrappers that read as policy. */
-export const requireClient = (req: Request) => requireUser(req, ["CLIENT"]);
-export const requireStaffOrAttorney = (req: Request) => requireUser(req, ["STAFF", "ATTORNEY"]);
-export const requireAttorney = (req: Request) => requireUser(req, ["ATTORNEY"]);
+/** Convenience wrapper that reads as policy. */
 export const requireAdmin = (req: Request) => requireUser(req, ["ADMIN"]);
 
 /**

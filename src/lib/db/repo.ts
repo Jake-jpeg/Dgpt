@@ -57,7 +57,7 @@ export async function createSession(opts: {
   ownerSubject: string;
   initialState: MachineState;
   matterId?: string;
-  /** Open-signup flow: the firm runs conflicts in its own system, so a
+  /** Invited-client flow: the firm runs conflicts in its own system, so a
    *  session may be born past the (retired) in-app conflict wall. */
   conflictClear?: boolean;
 }): Promise<SessionRow> {

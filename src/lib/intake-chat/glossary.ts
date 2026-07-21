@@ -71,21 +71,6 @@ export function glossarySliceFor(text: string, limit = 4): GlossaryHit[] {
   return [...hits.values()].slice(0, limit).map(toHit);
 }
 
-/** Render the slice for the prompt. Empty string when there is nothing
- *  approved to inject — the assistant then falls back to plain language. */
-export function renderGlossarySlice(hits: GlossaryHit[]): string {
-  if (hits.length === 0) return "";
-  const lines = hits.map(
-    (h) =>
-      `- ${h.term}: ${h.definition}` +
-      (h.koDefinition ? `\n  (Korean, approved): ${h.koDefinition}` : "")
-  );
-  return `APPROVED DEFINITIONS — use these VERBATIM if the client asks what one of
-these terms means. You may translate the framing into Korean, but do not
-rewrite, expand, or apply them to the client's own facts:
-${lines.join("\n")}`;
-}
-
 /** True while any term is still an unwritten placeholder. */
 export function glossaryNeedsAttorneyContent(): boolean {
   return GLOSSARY.some((e) => !isSupplied(e));

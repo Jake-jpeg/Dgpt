@@ -1,5 +1,5 @@
 /**
- * Shared family-law factual intake core (NJ + NY). FACTS ONLY: nothing here
+ * Shared family-law factual intake core (NY-only product). FACTS ONLY: nothing here
  * asks the client to reach a legal conclusion; judgment items live at the
  * end as attorney_determination records (never client-visible).
  *

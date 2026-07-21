@@ -43,10 +43,3 @@ export async function logAiInvocation(opts: {
     opts.userId
   );
 }
-
-export async function listAiInvocations(matterId: string) {
-  return getDb().all<{ feature: string; model: string; status: string; created_at: string }>(
-    `SELECT feature, model, status, created_at FROM ai_invocation WHERE matter_ref = ? ORDER BY created_at DESC`,
-    matterId
-  );
-}

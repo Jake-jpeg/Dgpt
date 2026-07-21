@@ -20,7 +20,7 @@ export async function register() {
       );
     }
 
-    // NJ/NY legal-content governance: refuse the local-only unapproved-content
+    // NY legal-content governance: refuse the local-only unapproved-content
     // override outside APP_STAGE=local, and surface snapshot warnings loudly.
     const { assertLegalContentFlagsValid, legalContentWarnings } = await import(
       "@/lib/legal/authority"

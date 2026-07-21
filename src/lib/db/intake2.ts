@@ -52,21 +52,6 @@ export async function getMatterAnswers(matterId: string): Promise<AnswerMap> {
   return out;
 }
 
-export async function getAnswerHistory(matterId: string, questionId?: string) {
-  const db = getDb();
-  const rows = questionId
-    ? await db.all<{ question_id: string; value: string; changed_at: string; changed_by: string }>(
-        `SELECT question_id, value, changed_at, changed_by FROM matter_intake_answer_history WHERE matter_id = ? AND question_id = ? ORDER BY changed_at ASC`,
-        matterId,
-        questionId
-      )
-    : await db.all<{ question_id: string; value: string; changed_at: string; changed_by: string }>(
-        `SELECT question_id, value, changed_at, changed_by FROM matter_intake_answer_history WHERE matter_id = ? ORDER BY changed_at ASC`,
-        matterId
-      );
-  return rows.map((r) => ({ questionId: r.question_id, value: JSON.parse(r.value), changedAt: r.changed_at, changedBy: r.changed_by }));
-}
-
 /**
  * Persist answers. THE guard for substantive schema-driven intake:
  * refuses without an attorney-CLEARED matter; refuses unknown questions;

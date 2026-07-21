@@ -74,7 +74,7 @@ export const CARDS = {
   },
 
   /** Served on complexity/disagreement/valuation trips and the deferred custody tier. */
-  // [ATTORNEY REVIEW REQUIRED — NY] Redrafted from the NJ bar-referral card.
+  // [ATTORNEY REVIEW REQUIRED — NY] NY bar-referral card copy pending counsel sign-off.
   NY_BAR_REFERRAL: {
     id: "NY_BAR_REFERRAL",
     title: "Your matter needs more than this intake can offer",
