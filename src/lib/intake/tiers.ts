@@ -5,13 +5,13 @@
  *   NONE + NONE            → TIER1 (adds the explicit no-assets / no-alimony
  *                            confirmations to the intake)
  *   settled/agreed answers → TIER2 (ED capture + maintenance capture)
- *   any dispute/uncertainty → OUT → Bergen Bar referral card
+ *   any dispute/uncertainty → OUT → NY bar-referral card
  *
  * Routing rules on Tier-2 answers:
  *   QDRO-needed            → IN SCOPE: flag for attorney, continue.
  *   valuation needed /
  *   business interest /
- *   disagreement/unsure    → OUT → Bergen Bar referral card.
+ *   disagreement/unsure    → OUT → NY bar-referral card.
  */
 import type { CardId } from "@/config/cards";
 
@@ -52,7 +52,7 @@ export function evaluateBranch(assets: string, alimony: string): BranchOutcome {
     throw new Error("VALIDATION: invalid branch answer");
   }
   if (assets === "UNSURE" || alimony === "UNSURE") {
-    return { outcome: "OUT", card: "BERGEN_BAR_REFERRAL", auditEvent: "SCOPE_OUT_BRANCH_UNSURE" };
+    return { outcome: "OUT", card: "NY_BAR_REFERRAL", auditEvent: "SCOPE_OUT_BRANCH_UNSURE" };
   }
   if (assets === "NONE" && alimony === "NONE") return { outcome: "TIER1" };
   return { outcome: "TIER2" };
@@ -86,12 +86,12 @@ export function routeAnswer(fieldId: string, value: unknown): AnswerRouting {
     case "ed_business_interest":
       // Business interest → out (needs valuation / individual attention).
       return value === true
-        ? { outcome: "OUT", card: "BERGEN_BAR_REFERRAL", auditEvent: "SCOPE_OUT_BUSINESS" }
+        ? { outcome: "OUT", card: "NY_BAR_REFERRAL", auditEvent: "SCOPE_OUT_BUSINESS" }
         : { outcome: "CONTINUE" };
 
     case "ed_valuation_needed":
       return value === true
-        ? { outcome: "OUT", card: "BERGEN_BAR_REFERRAL", auditEvent: "SCOPE_OUT_VALUATION" }
+        ? { outcome: "OUT", card: "NY_BAR_REFERRAL", auditEvent: "SCOPE_OUT_VALUATION" }
         : { outcome: "CONTINUE" };
 
     case "ed_retirement_accounts": {
@@ -103,7 +103,7 @@ export function routeAnswer(fieldId: string, value: unknown): AnswerRouting {
         if (a.division === "UNSURE") {
           return {
             outcome: "OUT",
-            card: "BERGEN_BAR_REFERRAL",
+            card: "NY_BAR_REFERRAL",
             auditEvent: "SCOPE_OUT_RETIREMENT_DISAGREEMENT",
           };
         }

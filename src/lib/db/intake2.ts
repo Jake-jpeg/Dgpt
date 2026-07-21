@@ -23,8 +23,8 @@ import { SHARED_DOCUMENTS, SHARED_ITEMS, SHARED_SECTIONS } from "@/config/intake
 export function sharedCoreSchema(): IntakeSchema {
   return {
     id: `SHARED_CORE@${INTAKE_SCHEMA_VERSION}`,
-    category: "NJ_FM_DIVORCE_UNCONTESTED", // placeholder category; not used pre-confirmation
-    jurisdiction: "NJ",
+    category: "NY_SUPREME_UNCONTESTED", // placeholder category; not used pre-confirmation
+    jurisdiction: "NY",
     version: INTAKE_SCHEMA_VERSION,
     effectiveDate: "2026-07-12",
     reviewStatus: "COUNSEL_REVIEW_REQUIRED",
@@ -79,7 +79,7 @@ export async function saveMatterAnswers(opts: {
 }): Promise<{ saved: number }> {
   const matter = await getMatter(opts.matterId);
   if (!matter) throw new Error("PERSISTENCE_GUARD: matter not found");
-  if (matter.conflictStatus !== "CLEARED") {
+  if (matter.conflictStatus !== "CLEARED" && matter.conflictStatus !== "EXTERNAL") {
     throw new Error(
       "PERSISTENCE_GUARD: refusing to persist substantive intake before the matter is CLEARED by an attorney"
     );
@@ -153,7 +153,7 @@ export type ScopeStatus = (typeof SCOPE_STATUSES)[number];
 export async function attorneySetJurisdictionAndScope(opts: {
   matterId: string;
   actingUserId: string;
-  jurisdictionConfirmed?: "NJ" | "NY" | null;
+  jurisdictionConfirmed?: "NY" | null;
   matterCategory?: MatterCategory | null;
   scopeStatus?: ScopeStatus;
   scopeNotes?: string;

@@ -65,17 +65,19 @@ export async function requireOwnedSession(user: SessionUser, sessionId: string):
 }
 
 export async function startIntake(user: SessionUser, matterId?: string): Promise<SessionRow> {
-  // Both intake modes pass through the same wall: client-initiated and
-  // staff/attorney-initiated sessions start in PRE_GATE, no exceptions.
   // ADMIN does not perform intake (least privilege).
   if (user.role === "ADMIN") {
     throw new HttpError(403, "Admins do not perform intake");
   }
+  // 2026-07-21 directive: the in-app conflict wall is retired — the firm
+  // runs conflicts in its own system before directing the client here.
+  // Sessions are born at the first scope gate.
   const s = (await createSession({
       initiatedBy: user.role,
       ownerSubject: user.subject,
-      initialState: "PRE_GATE",
+      initialState: "GATE_RESIDENCY",
       matterId,
+      conflictClear: true,
     }));
   (await recordAudit(s.id, "SESSION_STARTED", `initiatedBy=${user.role}`));
   return s;
@@ -235,6 +237,12 @@ export async function answerGate(
         state: evaluation.next,
         ...(evaluation.persist?.county ? { county: evaluation.persist.county } : {}),
       }));
+  // NY cascade / venue flags: attorney review, session continues. Flags ride
+  // the existing attorney-flag store; the audit trail records each raise.
+  for (const flag of evaluation.reviewFlags ?? []) {
+    (await addAttorneyFlag(sessionId, flag));
+    (await recordAudit(sessionId, "GATE_FLAGGED_FOR_ATTORNEY", `${s.state}:${flag}`));
+  }
   (await recordAudit(sessionId, "GATE_PASSED", s.state));
   return { next: evaluation.next };
 }
@@ -273,7 +281,7 @@ export async function answerBranch(
  * Submit a batch of substantive answers for the session's tier. Every field
  * is validated against attorney config; routing rules may flag for the
  * attorney (QDRO → continue) or trip out (valuation / business /
- * disagreement → Bergen Bar card + purge).
+ * disagreement → NY bar-referral card + purge).
  */
 export async function submitAnswers(
   user: SessionUser,

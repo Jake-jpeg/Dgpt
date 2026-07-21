@@ -23,8 +23,8 @@ and factual. Read this whole file before editing anything. Last updated:
 
 ## 1. What this is
 
-A gated, dual-login intake web app for a solo New Jersey family-law practice
-(Jake Kim, attorney, NJ/NY). It runs a structured intake for **uncontested NJ
+A dual-login intake web app for a solo New York matrimonial practice
+(Jake Kim, attorney, NY). It runs a structured intake for **uncontested NY
 divorces** and hands a completed, conflict-cleared intake package to the
 attorney for review. It is **not a chatbot and not a legal-advice tool** —
 the "bot" is a deterministic state machine plus retrieval over
@@ -129,7 +129,7 @@ src/
     process-copy.ts                scripted process + "why we ask" copy
     clarifications.ts              fixed clarification questions
     gate-questions.ts              the 5 scope-gate questions, fixed order
-    intake-fields.ts               Tier1/Tier2 sections+fields (NJ counties, retirement tree)
+    intake-fields.ts               Tier1/Tier2 sections+fields (NY counties, retirement tree)
     synthetic/conflict-matchlist.json  synthetic conflict names (stub data source)
   lib/
     env.ts                         env accessors (read at call time)

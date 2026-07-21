@@ -5,8 +5,6 @@
  * the endpoint, not the state, not the form, not the filename.
  */
 export const ALLOWED_RENDERS = [
-  { state: "nj", form: "verification", label: "NJ Certification of Verification and Non-Collusion" },
-  { state: "nj", form: "complaint", label: "NJ Complaint for Divorce" },
   { state: "ny", form: "ud1", label: "NY UD-1 Summons with Notice" },
 ] as const;
 

@@ -128,7 +128,7 @@ export async function buildMatterContext(matterId: string): Promise<{
     })),
     documents,
     allowedLegalAuthoritySnapshot: listAuthorities(
-      (matter.jurisdictionConfirmed as "NJ" | "NY" | null) ?? undefined
+      (matter.jurisdictionConfirmed as "NY" | null) ?? undefined
     ).map((a) => ({ id: a.id, section: a.section, proposition: a.proposition, status: a.status, jurisdiction: a.jurisdiction })),
   };
 

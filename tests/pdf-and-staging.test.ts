@@ -21,7 +21,7 @@ import {
 } from "./helpers";
 import { getMatter } from "@/lib/db/matters";
 import { saveMatterAnswers, attorneySetJurisdictionAndScope } from "@/lib/db/intake2";
-import { buildRenderPayload, buildNjVerificationPayload } from "@/lib/pdf-service/mappings";
+import { buildRenderPayload, buildNyUd1Payload } from "@/lib/pdf-service/mappings";
 import { renderPdf, pdfServiceEnabled } from "@/lib/pdf-service/client";
 import { PdfServiceError } from "@/lib/pdf-service/types";
 import { listDocumentsForMatter, listVersions } from "@/lib/db/documents";
@@ -43,7 +43,7 @@ function mockRlFetch(status = 200, body: BodyInit = PDF_BYTES, headers: Record<s
       status,
       headers: {
         "content-type": "application/pdf",
-        "content-disposition": 'attachment; filename="NJ_VERIFICATION_Avery.pdf"',
+        "content-disposition": 'attachment; filename="NY_UD1_Avery.pdf"',
         ...headers,
       },
     })
@@ -58,14 +58,14 @@ function enablePdfService() {
   process.env.PDF_SERVICE_TOKEN = "synthetic-service-token-never-real";
 }
 
-const NJ_MAPPING_ANSWERS = [
+const NY_MAPPING_ANSWERS = [
   { questionId: "shared.identity.client_name", value: "Avery Stagingperson" },
   { questionId: "shared.identity.other_name", value: "Blake Stagingperson" },
-  { questionId: "shared.identity.client_address", value: { line1: "12 Synthetic Way", city: "Edgewater", state: "NJ", zip: "07024" } },
+  { questionId: "shared.identity.client_address", value: { line1: "12 Synthetic Way", city: "Brooklyn", state: "NY", zip: "11201" } },
   { questionId: "shared.relationship.status_kind", value: "MARRIAGE" },
   { questionId: "shared.relationship.marriage_date", value: "2015-06-15" },
-  { questionId: "shared.relationship.marriage_state", value: "NJ" },
-  { questionId: "nj.case.county", value: "BERGEN" },
+  { questionId: "shared.relationship.marriage_state", value: "NY" },
+  { questionId: "ny.case.county", value: "KINGS" },
 ];
 
 beforeEach(async () => {
@@ -90,35 +90,36 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function njReadyMatter() {
+async function nyReadyMatter() {
   await clearMatter(ctx.matterId);
   (await attorneySetJurisdictionAndScope({
         matterId: ctx.matterId,
         actingUserId: ctx.attorneyUserId,
-        jurisdictionConfirmed: "NJ",
-        matterCategory: "NJ_FM_DIVORCE_CONTESTED",
+        jurisdictionConfirmed: "NY",
+        matterCategory: "NY_SUPREME_CONTESTED",
         scopeStatus: "ACCEPTED",
       }));
-  (await saveMatterAnswers({ matterId: ctx.matterId, actingUserId: ctx.clientUserId, answers: NJ_MAPPING_ANSWERS }));
+  (await saveMatterAnswers({ matterId: ctx.matterId, actingUserId: ctx.clientUserId, answers: NY_MAPPING_ANSWERS }));
   return (await getMatter(ctx.matterId))!;
 }
 
 describe("deterministic mappings", () => {
   it("same answers always produce the identical payload; county is title-cased", async () => {
-    const matter = await njReadyMatter();
-    const answers = Object.fromEntries(NJ_MAPPING_ANSWERS.map((a) => [a.questionId, a.value]));
-    const p1 = buildNjVerificationPayload(matter, answers);
-    const p2 = buildNjVerificationPayload(matter, answers);
+    const matter = await nyReadyMatter();
+    const answers = Object.fromEntries(NY_MAPPING_ANSWERS.map((a) => [a.questionId, a.value]));
+    const p1 = buildNyUd1Payload(matter, answers);
+    const p2 = buildNyUd1Payload(matter, answers);
     expect(p1).toEqual(p2);
-    expect(p1.filingCounty).toBe("Bergen");
-    expect(p1.plaintiffAddress).toBe("12 Synthetic Way, Edgewater, NJ 07024");
-    expect(p1.docketNumber).toBe(""); // pre-filing: never invented
+    expect(p1.filingCounty).toBe("Kings");
+    expect(p1.plaintiffAddress).toBe("12 Synthetic Way, Brooklyn, NY 11201");
+    expect(p1.dateFiled).toBe(""); // court-stamped: never invented
   });
 
   it("missing critical facts throw VALIDATION — nothing is invented", async () => {
-    const matter = await njReadyMatter();
-    expect(() => buildRenderPayload("nj", "verification", matter, {})).toThrow(/VALIDATION/);
-    expect(() => buildRenderPayload("nj", "nonsense", matter, {})).toThrow(/unsupported/);
+    const matter = await nyReadyMatter();
+    expect(() => buildRenderPayload("ny", "ud1", matter, {})).toThrow(/VALIDATION/);
+    expect(() => buildRenderPayload("ny", "nonsense", matter, {})).toThrow(/unsupported/);
+    expect(() => buildRenderPayload("nj", "verification", matter, {})).toThrow(/unsupported/);
   });
 });
 
@@ -126,11 +127,11 @@ describe("RL client contract", () => {
   it("sends the bearer token server-to-server and validates the PDF magic", async () => {
     enablePdfService();
     const mock = mockRlFetch();
-    const result = await renderPdf({ state: "nj", form: "verification", payload: { plaintiffName: "A" } });
+    const result = await renderPdf({ state: "ny", form: "ud1", payload: { plaintiffName: "A" } });
     expect(result.sha256).toHaveLength(64);
-    expect(result.filename).toBe("NJ_VERIFICATION_Avery.pdf");
+    expect(result.filename).toBe("NY_UD1_Avery.pdf");
     const [url, init] = mock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(String(url)).toBe("http://rl.test/generate/nj/verification");
+    expect(String(url)).toBe("http://rl.test/generate/ny/ud1");
     expect((init.headers as Record<string, string>).authorization).toBe("Bearer synthetic-service-token-never-real");
   });
 
@@ -138,33 +139,33 @@ describe("RL client contract", () => {
     enablePdfService();
     const unauth = vi.fn(async () => new Response("{}", { status: 401 }));
     vi.stubGlobal("fetch", unauth);
-    await expect(renderPdf({ state: "nj", form: "verification", payload: {} })).rejects.toBeInstanceOf(PdfServiceError);
+    await expect(renderPdf({ state: "ny", form: "ud1", payload: {} })).rejects.toBeInstanceOf(PdfServiceError);
     expect(unauth).toHaveBeenCalledTimes(1);
 
     const flaky = vi.fn(async () => new Response("{}", { status: 500 }));
     vi.stubGlobal("fetch", flaky);
-    await expect(renderPdf({ state: "nj", form: "verification", payload: {} })).rejects.toBeInstanceOf(PdfServiceError);
+    await expect(renderPdf({ state: "ny", form: "ud1", payload: {} })).rejects.toBeInstanceOf(PdfServiceError);
     expect(flaky).toHaveBeenCalledTimes(2);
   });
 
   it("a non-PDF body is rejected even with a 200", async () => {
     enablePdfService();
     mockRlFetch(200, JSON.stringify({ nope: true }), { "content-type": "application/json" });
-    await expect(renderPdf({ state: "nj", form: "verification", payload: {} })).rejects.toThrow(/non-PDF/);
+    await expect(renderPdf({ state: "ny", form: "ud1", payload: {} })).rejects.toThrow(/non-PDF/);
   });
 
   it("disabled service refuses locally without any fetch", async () => {
     const mock = vi.fn();
     vi.stubGlobal("fetch", mock);
     expect(pdfServiceEnabled()).toBe(false);
-    await expect(renderPdf({ state: "nj", form: "verification", payload: {} })).rejects.toThrow(/not configured/);
+    await expect(renderPdf({ state: "ny", form: "ud1", payload: {} })).rejects.toThrow(/not configured/);
     expect(mock).not.toHaveBeenCalled();
   });
 });
 
 describe("render route lifecycle", () => {
   it("CLIENT and STAFF cannot render; ATTORNEY renders ATTORNEY_REVIEW_REQUIRED; client cannot see it; release refused pre-approval", async () => {
-    const matter = await njReadyMatter();
+    const matter = await nyReadyMatter();
     enablePdfService();
     mockRlFetch();
 
@@ -172,7 +173,7 @@ describe("render route lifecycle", () => {
     const clientTry = await renderPost(
       jsonRequest(`/api/matters/${matter.id}/render-pdf`, {
         cookie: clientCookie,
-        body: { state: "nj", form: "verification", confirmFormData: true },
+        body: { state: "ny", form: "ud1", confirmFormData: true },
       }),
       params({ id: matter.id })
     );
@@ -182,7 +183,7 @@ describe("render route lifecycle", () => {
     const res = await renderPost(
       jsonRequest(`/api/matters/${matter.id}/render-pdf`, {
         cookie: attorneyCookie,
-        body: { state: "nj", form: "verification", confirmFormData: true },
+        body: { state: "ny", form: "ud1", confirmFormData: true },
       }),
       params({ id: matter.id })
     );
@@ -202,7 +203,7 @@ describe("render route lifecycle", () => {
     const stagingRes = await renderPost(
       jsonRequest(`/api/matters/${matter.id}/render-pdf`, {
         cookie: attorneyCookie,
-        body: { state: "nj", form: "verification", confirmFormData: true },
+        body: { state: "ny", form: "ud1", confirmFormData: true },
       }),
       params({ id: matter.id })
     );
@@ -237,8 +238,9 @@ describe("render route lifecycle", () => {
     expect(rel.status).toBeGreaterThanOrEqual(400);
   });
 
-  it("jurisdiction mismatch is refused (NY form on an NJ matter)", async () => {
-    const matter = await njReadyMatter();
+  it("jurisdiction mismatch is refused (NY form before NY is confirmed)", async () => {
+    await clearMatter(ctx.matterId);
+    const matter = (await getMatter(ctx.matterId))!;
     enablePdfService();
     mockRlFetch();
     freshLimits();
@@ -253,12 +255,12 @@ describe("render route lifecycle", () => {
   });
 
   it("service disabled ⇒ 503 and the manual workflow is unaffected", async () => {
-    const matter = await njReadyMatter();
+    const matter = await nyReadyMatter();
     freshLimits();
     const res = await renderPost(
       jsonRequest(`/api/matters/${matter.id}/render-pdf`, {
         cookie: attorneyCookie,
-        body: { state: "nj", form: "verification", confirmFormData: true },
+        body: { state: "ny", form: "ud1", confirmFormData: true },
       }),
       params({ id: matter.id })
     );
@@ -266,7 +268,7 @@ describe("render route lifecycle", () => {
   });
 
   it("allowlist inspection GET is staff/attorney only", async () => {
-    const matter = await njReadyMatter();
+    const matter = await nyReadyMatter();
     freshLimits();
     const res = await renderGet(
       jsonRequest(`/api/matters/${matter.id}/render-pdf`, { method: "GET", cookie: clientCookie }),
@@ -322,11 +324,11 @@ describe("health + acceptance gating", () => {
         body: JSON.stringify(body),
       });
     process.env.APP_STAGE = "local";
-    expect((await acceptancePost(req({ step: "nj-setup" }))).status).toBe(404);
+    expect((await acceptancePost(req({ step: "ny-setup" }))).status).toBe(404);
 
     process.env.APP_STAGE = "staging";
     process.env.SYNTHETIC_DEMO_ONLY = "true";
     process.env.ADMIN_SECRET = "synthetic-admin-secret";
-    expect((await acceptancePost(req({ step: "nj-setup" }))).status).toBe(401);
+    expect((await acceptancePost(req({ step: "ny-setup" }))).status).toBe(401);
   });
 });

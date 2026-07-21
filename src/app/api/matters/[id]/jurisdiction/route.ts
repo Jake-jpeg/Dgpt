@@ -49,7 +49,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       signals: {
         ...signals,
         note: signals.multiJurisdiction
-          ? "MULTI-JURISDICTION REVIEW REQUIRED — facts implicate both New Jersey and New York."
+          ? "MULTI-JURISDICTION REVIEW REQUIRED — facts implicate a state other than New York."
           : "Deterministic residence-history signal only. Confirmation is an attorney determination; nothing is auto-selected from an address.",
       },
       attorneyDetermination: {
@@ -72,7 +72,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
 
 const postSchema = z.object({
   jurisdictionCandidate: z.string().trim().max(60).optional(),
-  jurisdictionConfirmed: z.enum(["NJ", "NY"]).nullable().optional(),
+  jurisdictionConfirmed: z.enum(["NY"]).nullable().optional(),
   matterCategory: z.enum(MATTER_CATEGORIES).nullable().optional(),
   scopeStatus: z
     .enum(["UNREVIEWED", "UNDER_REVIEW", "ACCEPTED", "DECLINED", "MULTI_JURISDICTION_REVIEW_REQUIRED"])

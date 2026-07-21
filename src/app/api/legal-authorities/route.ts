@@ -21,7 +21,7 @@ export async function GET(req: Request) {
     await requireUser(req, ["STAFF", "ATTORNEY"]);
     const url = new URL(req.url);
     const j = url.searchParams.get("jurisdiction");
-    const jurisdiction = j === "NJ" || j === "NY" ? j : undefined;
+    const jurisdiction = j === "NY" ? j : undefined;
     return Response.json({
       snapshot: {
         version: legalContentVersion(),

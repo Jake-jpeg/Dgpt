@@ -188,7 +188,7 @@ async function main() {
   ok("7b. attorney clears the matter", clear.status === 200 && clear.data.conflictStatus === "CLEARED");
 
   // ── 8. Client completes intake ─────────────────────────────────────
-  for (const answer of [true, "Bergen", false, false, "FULLY_AGREE"]) {
+  for (const answer of [true, "Kings", false, false, "FULLY_AGREE"]) {
     const g = await call(client, "POST", `/api/intake/${sessionId}/gate`, { answer });
     if (g.status !== 200) {
       ok(`8a. gate answer ${JSON.stringify(answer)}`, false, `HTTP ${g.status}`);
@@ -200,15 +200,15 @@ async function main() {
   });
   ok("8a. gates + tier branch (TIER1)", branch.status === 200 && branch.data.tier === "TIER1");
   const TIER1 = [
-    ["grounds_basis", "IRRECONCILABLE_6MO"],
+    ["grounds_basis", "IRRETRIEVABLE_6MO"],
     ["grounds_date", "2025-01-15"],
     ["marriage_date", "2015-06-20"],
-    ["marriage_place", "Hackensack, New Jersey"],
+    ["marriage_place", "Brooklyn, New York"],
     ["ceremony_type", "CIVIL"],
-    ["client_address", "1 Synthetic Way, Testville NJ 07000"],
+    ["client_address", "1 Synthetic Way, Testville NY 11200"],
     ["client_phone", "555-000-0000"],
     ["client_email", "client@example.test"],
-    ["spouse_address", "2 Synthetic Way, Testville NJ 07000"],
+    ["spouse_address", "2 Synthetic Way, Testville NY 11200"],
     ["separation_date", "2025-01-15"],
     ["living_arrangement", "SEPARATE_RESIDENCES"],
     ["children_confirm_none", true],

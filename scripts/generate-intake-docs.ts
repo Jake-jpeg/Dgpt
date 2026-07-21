@@ -1,9 +1,9 @@
 /**
- * B17 — Generate the NJ/NY intake documentation FROM the shipped config so
+ * B17 — Generate the NY intake documentation FROM the shipped config so
  * the docs can never drift from the code. Run with:
  *   npx vite-node scripts/generate-intake-docs.ts
- * Outputs: docs/intake/NJ-INTAKE-MAP.md, NY-INTAKE-MAP.md,
- *          NJ-NY-FORM-MAPPINGS.md, NJ-NY-DOCUMENT-CHECKLISTS.md
+ * Outputs: docs/intake/NY-INTAKE-MAP.md, NY-FORM-MAPPINGS.md,
+ *          NY-DOCUMENT-CHECKLISTS.md
  */
 import { writeFileSync, mkdirSync } from "node:fs";
 import { getSchemaForCategory, INTAKE_SCHEMA_VERSION } from "../src/config/intake/schemas";
@@ -43,9 +43,9 @@ function authorityCell(i: IntakeItem): string {
     .join("; ");
 }
 
-function stateMap(state: "NJ" | "NY"): string {
+function stateMap(state: "NY"): string {
   const categories = MATTER_CATEGORIES.filter((c) => c.startsWith(state + "_"));
-  let out = HEADER(`${state === "NJ" ? "New Jersey" : "New York"} Intake Map`);
+  let out = HEADER("New York Intake Map");
   for (const category of categories) {
     const schema: IntakeSchema = getSchemaForCategory(category);
     const stateItems = schema.items.filter((i) => !i.id.startsWith("shared."));
@@ -68,11 +68,10 @@ function stateMap(state: "NJ" | "NY"): string {
   return out;
 }
 
-writeFileSync("docs/intake/NJ-INTAKE-MAP.md", stateMap("NJ"));
 writeFileSync("docs/intake/NY-INTAKE-MAP.md", stateMap("NY"));
 
 /* form mappings */
-let forms = HEADER("NJ/NY Official Form-Family Mappings (facts → form fields)");
+let forms = HEADER("NY Official Form-Family Mappings (facts → form fields)");
 forms += `
 No court form is generated or filed by this system. These mappings power the
 attorney-only form-readiness report: they say which collected FACT feeds
@@ -101,10 +100,10 @@ for (const [form, entries] of [...byForm.entries()].sort((a, b) => a[0].localeCo
     forms += `| ${e.field} | \`${e.item.id}\` | ${e.item.type} |\n`;
   }
 }
-writeFileSync("docs/intake/NJ-NY-FORM-MAPPINGS.md", forms);
+writeFileSync("docs/intake/NY-FORM-MAPPINGS.md", forms);
 
 /* checklists */
-let checks = HEADER("NJ/NY Deterministic Document Checklists");
+let checks = HEADER("NY Deterministic Document Checklists");
 checks += `
 The checklist is derived from the versioned schema + the client's factual
 answers by \`deriveChecklist\` — never by a model. Clients see plain-language
@@ -131,10 +130,10 @@ for (const category of MATTER_CATEGORIES) {
     checks += `| ${d.title} | ${t ? "triggered by " + t.join("; ") : "baseline for this workflow"} |\n`;
   }
 }
-writeFileSync("docs/intake/NJ-NY-DOCUMENT-CHECKLISTS.md", checks);
+writeFileSync("docs/intake/NY-DOCUMENT-CHECKLISTS.md", checks);
 
 /* legal review queue */
-let queue = HEADER("NJ/NY Legal Review Queue (counsel action list)");
+let queue = HEADER("NY Legal Review Queue (counsel action list)");
 queue += `
 Everything below awaits a HUMAN counsel decision. Nothing in the runtime
 snapshot ships APPROVED; approving, retiring, or superseding a record goes
@@ -166,6 +165,6 @@ local proof. Items marked [COUNSEL REVIEW REQUIRED] in prompts/help text
 - County/part practice variations are explicitly OUT OF SCOPE of this build
   and must be handled by the attorney per matter.
 `;
-writeFileSync("docs/intake/NJ-NY-LEGAL-REVIEW-QUEUE.md", queue);
+writeFileSync("docs/intake/NY-LEGAL-REVIEW-QUEUE.md", queue);
 
 console.log("Generated docs/intake/*.md from schema version", INTAKE_SCHEMA_VERSION);

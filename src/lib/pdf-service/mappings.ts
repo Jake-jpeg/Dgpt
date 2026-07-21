@@ -21,7 +21,7 @@ interface AddressValue {
   zip?: string;
 }
 
-/** "12 Synthetic Way, Edgewater, NJ 07024" from the structured answer. */
+/** "12 Synthetic Way, Buffalo, NY 14201" from the structured answer. */
 function combinedAddress(v: unknown): string {
   if (!v || typeof v !== "object") return "";
   const a = v as AddressValue;
@@ -29,7 +29,7 @@ function combinedAddress(v: unknown): string {
   return parts.filter(Boolean).join(", ");
 }
 
-/** "BERGEN" (stored option value) → "Bergen" (RL display form). */
+/** "KINGS" (stored option value) → "Kings" (RL display form). */
 function titleCaseCounty(v: unknown): string {
   const s = str(v);
   if (!s) return "";
@@ -59,30 +59,6 @@ function baseFields(answers: AnswerMap): RenderPayload {
   };
 }
 
-export function buildNjVerificationPayload(matter: MatterRow, answers: AnswerMap): RenderPayload {
-  const payload: RenderPayload = {
-    ...baseFields(answers),
-    filingCounty: titleCaseCounty(answers["nj.case.county"]),
-    docketNumber: "", // pre-filing: intentionally blank
-  };
-  required(payload, ["plaintiffName", "defendantName", "plaintiffAddress", "filingCounty"]);
-  return payload;
-}
-
-export function buildNjComplaintPayload(matter: MatterRow, answers: AnswerMap): RenderPayload {
-  const ceremony = str(answers["shared.relationship.ceremony_type"]).toLowerCase();
-  const payload: RenderPayload = {
-    ...baseFields(answers),
-    defendantAddress: "", // adverse-party address is attorney-entered at form prep
-    filingCounty: titleCaseCounty(answers["nj.case.county"]),
-    docketNumber: "",
-    ceremonyType: ceremony === "religious" ? "religious" : "civil",
-    residencyParty: "plaintiff",
-  };
-  required(payload, ["plaintiffName", "defendantName", "plaintiffAddress", "filingCounty", "marriageDate"]);
-  return payload;
-}
-
 export function buildNyUd1Payload(matter: MatterRow, answers: AnswerMap): RenderPayload {
   const addr = combinedAddress(answers["shared.identity.client_address"]);
   const payload: RenderPayload = {
@@ -103,8 +79,6 @@ export function buildRenderPayload(
   matter: MatterRow,
   answers: AnswerMap
 ): RenderPayload {
-  if (state === "nj" && form === "verification") return buildNjVerificationPayload(matter, answers);
-  if (state === "nj" && form === "complaint") return buildNjComplaintPayload(matter, answers);
   if (state === "ny" && form === "ud1") return buildNyUd1Payload(matter, answers);
   throw new Error("VALIDATION: unsupported state/form pair");
 }

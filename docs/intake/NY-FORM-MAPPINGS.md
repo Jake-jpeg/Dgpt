@@ -1,4 +1,4 @@
-# NJ/NY Official Form-Family Mappings (facts → form fields)
+# NY Official Form-Family Mappings (facts → form fields)
 
 Generated from the shipped intake configuration (schema version
 `2026.07.1`) by `scripts/generate-intake-docs.ts` — do not
@@ -14,16 +14,6 @@ is missing before preparing the official form outside this system. County/
 part-specific variations are NOT captured. Nothing here is "ready to file";
 filing readiness is a separate attorney exact-version approval.
 
-
-## NJ-CIS (Appendix V)
-
-| Form field | Fed by item | Type |
-|---|---|---|
-| Part A — Case Information | `nj.cis.part_a_case` | short_text |
-| Part C — Income Information | `nj.cis.income_confirm` | yes_no |
-| Part D — Monthly Expenses (Schedule A/B/C) | `nj.cis.budget_confirm` | yes_no |
-| Part E — Balance Sheet (Assets & Liabilities) | `nj.cis.assets_confirm` | yes_no |
-| Part B — Insurance Coverage | `nj.cis.insurance_detail` | long_text |
 
 ## NY Statement of Net Worth (UCS Rev. 1/1/24)
 

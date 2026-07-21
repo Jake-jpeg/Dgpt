@@ -25,7 +25,7 @@ import { pdfServiceEnabled, renderPdf } from "@/lib/pdf-service/client";
 import { auditFormDataConfirmed, auditPdfRendered } from "@/lib/pdf-service/audit";
 
 const schema = z.object({
-  state: z.enum(["nj", "ny"]),
+  state: z.enum(["ny"]),
   form: z.string().trim().min(1).max(40),
   confirmFormData: z.literal(true),
 });
@@ -72,7 +72,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         "JURISDICTION_GUARD: confirm the matter's jurisdiction (attorney determination) before rendering that state's forms"
       );
     }
-    if (matter.conflictStatus !== "CLEARED") {
+    if (matter.conflictStatus !== "CLEARED" && matter.conflictStatus !== "EXTERNAL") {
       throw new HttpError(409, "CONFLICT_GUARD: matter is not cleared");
     }
     if (!pdfServiceEnabled()) {

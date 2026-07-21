@@ -61,7 +61,7 @@ const factualAssertion = z.object({
 const legalProposition = z.object({
   proposition: z.string().min(1).max(2000),
   legalAuthorityIds: z.array(z.string()).min(1).max(20),
-  jurisdiction: z.enum(["NJ", "NY", "GENERAL"]),
+  jurisdiction: z.enum(["NY", "GENERAL"]),
   authorityReviewStatus: z.string().max(80),
   attorneyReviewRequired: z.boolean(),
 });
@@ -143,7 +143,7 @@ export function reportJsonSchema(kind: string) {
           properties: {
             proposition: str(2000),
             legalAuthorityIds: { type: "array", items: { type: "string" } },
-            jurisdiction: { type: "string", enum: ["NJ", "NY", "GENERAL"] },
+            jurisdiction: { type: "string", enum: ["NY", "GENERAL"] },
             authorityReviewStatus: str(80),
             attorneyReviewRequired: { type: "boolean" },
           },

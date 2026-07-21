@@ -10,7 +10,7 @@
  *   node scripts/staging-acceptance.mjs [--out docs/evidence/online-staging/acceptance.json]
  *
  * Live-call budget: the "ai" steps are the ONLY steps that spend OpenAI
- * calls (one per step). This orchestrator runs exactly four: NJ memo, NJ
+ * calls (one per step). This orchestrator runs exactly four: NY memo, NY
  * inconsistency, NY form-readiness narrative, NY jurisdiction summary.
  * The secret is read from env and NEVER printed.
  */
@@ -78,21 +78,21 @@ async function main() {
     process.exit(1);
   }
 
-  // A. New Jersey
-  const nj = await step("nj-setup");
-  const njMatter = nj?.data?.matterId;
-  let njMemo = null;
-  let njIncon = null;
-  if (njMatter) {
-    njMemo = await ai(njMatter, "GENERATE_INTAKE_MEMO");
-    njIncon = await ai(njMatter, "GENERATE_INCONSISTENCY_REPORT");
-    const render = await step("render", { matterId: njMatter, state: "nj", form: "verification" });
+  // A. New York
+  const ny = await step("ny-setup");
+  const nyMatter = ny?.data?.matterId;
+  let nyMemo = null;
+  let nyIncon = null;
+  if (nyMatter) {
+    nyMemo = await ai(nyMatter, "GENERATE_INTAKE_MEMO");
+    nyIncon = await ai(nyMatter, "GENERATE_INCONSISTENCY_REPORT");
+    const render = await step("render", { matterId: nyMatter, state: "ny", form: "ud1" });
     if (render?.data?.versionId) {
       await step("approve-release", {
-        matterId: njMatter,
+        matterId: nyMatter,
         versionId: String(render.data.versionId),
         documentId: String(render.data.documentId),
-        clientKey: "clientNj",
+        clientKey: "clientNy",
       });
     }
   }
@@ -114,11 +114,11 @@ async function main() {
     }
   }
 
-  // C. Negative battery (uses the NJ matter + its unreleased AI artifact).
-  if (njMatter) {
+  // C. Negative battery (uses the NY matter + its unreleased AI artifact).
+  if (nyMatter) {
     await step("negative", {
-      matterId: njMatter,
-      aiVersionId: String(njMemo?.data?.versionId ?? njIncon?.data?.versionId ?? ""),
+      matterId: nyMatter,
+      aiVersionId: String(nyMemo?.data?.versionId ?? nyIncon?.data?.versionId ?? ""),
     });
   }
 

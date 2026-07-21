@@ -62,14 +62,38 @@ describe("criterion 6: attorney-controlled config", () => {
 });
 
 describe("scope gate unit behavior", () => {
-  it("residency: no → out with attorney-flag card (adultery exception never auto-resolved)", () => {
-    const r = evaluateGate("GATE_RESIDENCY", false);
-    expect(r).toMatchObject({ outcome: "OUT", card: "RESIDENCY_ATTORNEY_FLAG" });
+  it("residency cascade: 2-year yes passes straight to venue", () => {
+    expect(evaluateGate("GATE_RESIDENCY", true)).toMatchObject({ outcome: "PASS", next: "GATE_VENUE" });
   });
-  it("venue: county captured, never disqualifies", () => {
-    const r = evaluateGate("GATE_VENUE", "Bergen");
-    expect(r).toMatchObject({ outcome: "PASS", persist: { county: "Bergen" } });
-    expect(() => evaluateGate("GATE_VENUE", "Kings")).toThrow(/VALIDATION/);
+  it("residency cascade: 2-year no continues to the 1-year question — never out", () => {
+    const r = evaluateGate("GATE_RESIDENCY", false);
+    expect(r).toMatchObject({ outcome: "PASS", next: "GATE_RESIDENCY_1YR" });
+    expect((r as { reviewFlags?: string[] }).reviewFlags).toBeUndefined();
+  });
+  it("residency cascade: 1-year no → flag for attorney review, intake continues", () => {
+    const r = evaluateGate("GATE_RESIDENCY_1YR", false);
+    expect(r).toMatchObject({ outcome: "PASS", next: "GATE_VENUE", reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"] });
+  });
+  it("residency cascade: 1-year yes → NY-nexus question", () => {
+    expect(evaluateGate("GATE_RESIDENCY_1YR", true)).toMatchObject({ outcome: "PASS", next: "GATE_RESIDENCY_NEXUS" });
+  });
+  it("residency cascade: nexus yes passes clean; nexus no flags and continues", () => {
+    const yes = evaluateGate("GATE_RESIDENCY_NEXUS", true);
+    expect(yes).toMatchObject({ outcome: "PASS", next: "GATE_VENUE" });
+    expect((yes as { reviewFlags?: string[] }).reviewFlags).toBeUndefined();
+    expect(evaluateGate("GATE_RESIDENCY_NEXUS", false)).toMatchObject({
+      outcome: "PASS", next: "GATE_VENUE", reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"],
+    });
+  });
+  it("venue: NY county captured, never disqualifies; NJ counties are unknown", () => {
+    const r = evaluateGate("GATE_VENUE", "Kings");
+    expect(r).toMatchObject({ outcome: "PASS", persist: { county: "Kings" } });
+    expect(() => evaluateGate("GATE_VENUE", "Bergen")).toThrow(/VALIDATION/);
+  });
+  it("venue: 'not sure' flags for the attorney and continues — venue is never a rejection", () => {
+    expect(evaluateGate("GATE_VENUE", "UNSURE")).toMatchObject({
+      outcome: "PASS", next: "GATE_DV", reviewFlags: ["VENUE_UNSURE"],
+    });
   });
   it("DV: any yes → hard out with the DV card", () => {
     expect(evaluateGate("GATE_DV", true)).toMatchObject({ outcome: "OUT", card: "DV_RESOURCES" });

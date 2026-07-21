@@ -64,7 +64,7 @@ export function buildFormReadiness(
     reasons.push(`${determinations.length} attorney determination(s) unresolved.`);
   }
 
-  const jurisdiction = matter.jurisdictionConfirmed as "NJ" | "NY" | null;
+  const jurisdiction = matter.jurisdictionConfirmed as "NY" | null;
   const staleForms = listAuthorities(jurisdiction ?? undefined).filter(
     (a) =>
       a.status === "SUPERSEDED" ||

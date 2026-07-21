@@ -27,22 +27,10 @@ export const CARDS = {
       "entered has been retained.",
     resources: [
       {
-        label: "Bergen County Bar Association Lawyer Referral Service",
-        value: "[ATTORNEY TO SUPPLY — phone / URL]",
+        label: "New York State Bar Association Lawyer Referral and Information Service",
+        value: "1-800-342-3661 · nysba.org",
       },
     ],
-  },
-
-  /** Served when residency requirement is not met. Not auto-resolved — attorney reviews offline. */
-  RESIDENCY_ATTORNEY_FLAG: {
-    id: "RESIDENCY_ATTORNEY_FLAG",
-    title: "This intake can't continue online",
-    body:
-      "[ATTORNEY TO SUPPLY] New Jersey divorce filings generally require that at " +
-      "least one spouse has been a bona fide New Jersey resident for the 12 " +
-      "consecutive months before filing. Based on your answer, we can't continue " +
-      "this online intake. Limited exceptions exist that only the attorney can " +
-      "evaluate — please contact the office to discuss your situation.",
   },
 
   /**
@@ -63,10 +51,10 @@ export const CARDS = {
     body:
       "Because domestic violence can affect how a divorce should be handled, " +
       "this needs a person, not an automated intake. Please contact " +
-      "[ATTORNEY TO SUPPLY — FIRM NAME / PHONE] directly, or reach the " +
-      "Domestic Violence / Victim's unit at your county courthouse — every " +
-      "New Jersey courthouse has one, and they can help regardless of whether " +
-      "the matter is past or current. This intake will not continue here.",
+      "[ATTORNEY TO SUPPLY — FIRM NAME / PHONE] directly, or ask for the " +
+      "Safe Passage / domestic-violence resources at your New York county " +
+      "courthouse — they can help regardless of whether the matter is past " +
+      "or current. This intake will not continue here.",
     resources: [
       {
         label: "Contact the firm",
@@ -75,28 +63,31 @@ export const CARDS = {
       {
         label: "Domestic Violence / Victim's unit",
         value:
-          "At your county courthouse — every New Jersey courthouse has one (past or current matters)",
+          "Ask at your New York county courthouse (past or current matters)",
       },
       {
         label: "If you are in immediate danger",
-        value: "Call 911 · NJ Domestic Violence Hotline (24/7): 1-800-572-7233 (1-800-572-SAFE)",
+        value:
+          "Call 911 · NYS Domestic & Sexual Violence Hotline (24/7): 800-942-6906 · Text: 844-997-2121",
       },
     ],
   },
 
   /** Served on complexity/disagreement/valuation trips and the deferred custody tier. */
-  BERGEN_BAR_REFERRAL: {
-    id: "BERGEN_BAR_REFERRAL",
+  // [ATTORNEY REVIEW REQUIRED — NY] Redrafted from the NJ bar-referral card.
+  NY_BAR_REFERRAL: {
+    id: "NY_BAR_REFERRAL",
     title: "Your matter needs more than this intake can offer",
     body:
-      "[ATTORNEY TO SUPPLY] This online intake only handles fully uncontested " +
-      "matters where everything is already agreed. Based on your answers, your " +
-      "situation needs individual legal attention. The Bergen County Bar " +
-      "Association's Lawyer Referral Service can connect you with an attorney.",
+      "This online intake only handles fully uncontested matters where " +
+      "everything is already agreed. Based on your answers, your situation " +
+      "needs individual legal attention. The New York State Bar Association's " +
+      "Lawyer Referral and Information Service can connect you with an attorney " +
+      "in your county.",
     resources: [
       {
-        label: "Bergen County Bar Association Lawyer Referral Service",
-        value: "[ATTORNEY TO SUPPLY — phone / URL]",
+        label: "New York State Bar Association Lawyer Referral and Information Service",
+        value: "1-800-342-3661 · nysba.org",
       },
     ],
   },

@@ -32,7 +32,7 @@ function reportFor(kind, jurisdiction) {
       {
         proposition: "Statutory grounds govern dissolution in this jurisdiction. (mock)",
         legalAuthorityIds: [authority],
-        jurisdiction: jurisdiction === "NY" ? "NY" : "NJ",
+        jurisdiction: "NY",
         authorityReviewStatus: "COUNSEL_REVIEW_REQUIRED",
         attorneyReviewRequired: true,
       },
@@ -51,7 +51,7 @@ const server = http.createServer((req, res) => {
   req.on("data", (c) => (body += c));
   req.on("end", () => {
     let kind = "AttorneyIntakeMemo";
-    let jurisdiction = "NJ";
+    let jurisdiction = "NY";
     try {
       const parsed = JSON.parse(body);
       kind = parsed?.text?.format?.name ?? kind;

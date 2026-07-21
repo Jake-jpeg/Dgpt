@@ -3,7 +3,7 @@
  *
  * LAW SNAPSHOT RULE: the running application NEVER browses the web for
  * client legal analysis. All legal references resolve against this local,
- * dated snapshot (src/config/legal-authority/{nj,ny}/records.json), governed
+ * dated snapshot (src/config/legal-authority/ny/records.json), governed
  * by docs/legal-authority/LEGAL-CONTENT-CHANGE-CONTROL.md.
  *
  * Guards:
@@ -17,7 +17,6 @@
  *    outside APP_STAGE=local (src/instrumentation.ts).
  *  - Stale/unversioned/superseded content produces attorney/admin warnings.
  */
-import njSnapshot from "@/config/legal-authority/nj/records.json";
 import nySnapshot from "@/config/legal-authority/ny/records.json";
 import { isLocalStage, appStage } from "@/config/stage";
 
@@ -30,7 +29,7 @@ export type AuthorityStatus =
 
 export interface AuthorityRecord {
   id: string;
-  jurisdiction: "NJ" | "NY";
+  jurisdiction: "NY";
   topic: string;
   proposition: string;
   authorityType: string;
@@ -49,14 +48,11 @@ interface Snapshot {
   records: AuthorityRecord[];
 }
 
-const ALL: AuthorityRecord[] = [
-  ...(njSnapshot as Snapshot).records,
-  ...(nySnapshot as Snapshot).records,
-];
+const ALL: AuthorityRecord[] = [...(nySnapshot as Snapshot).records];
 
 const BY_ID = new Map(ALL.map((r) => [r.id, r]));
 
-export function listAuthorities(jurisdiction?: "NJ" | "NY"): AuthorityRecord[] {
+export function listAuthorities(jurisdiction?: "NY"): AuthorityRecord[] {
   return jurisdiction ? ALL.filter((r) => r.jurisdiction === jurisdiction) : [...ALL];
 }
 

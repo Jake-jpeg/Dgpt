@@ -7,18 +7,10 @@
  * `attorney_determination` records and are never client-visible.
  */
 
-export type Jurisdiction = "SHARED" | "NJ" | "NY";
+export type Jurisdiction = "SHARED" | "NY";
 
 export const MATTER_CATEGORIES = [
-  // New Jersey local-proof categories
-  "NJ_FM_DIVORCE_UNCONTESTED",
-  "NJ_FM_DIVORCE_CONTESTED",
-  "NJ_FM_POST_JUDGMENT",
-  "NJ_FD_CUSTODY_PARENTING",
-  "NJ_FD_SUPPORT_PARENTAGE",
-  "NJ_UCCJEA_INTERSTATE",
-  "NJ_EMERGENCY_OR_DV_ESCALATION",
-  // New York local-proof categories
+  // New York categories — DivorceGPT is a New York product.
   "NY_SUPREME_UNCONTESTED_JOINT",
   "NY_SUPREME_UNCONTESTED",
   "NY_SUPREME_CONTESTED",
@@ -113,10 +105,10 @@ export interface DocumentCatalogItem {
 }
 
 export interface IntakeSchema {
-  /** e.g. "NJ_FM_DIVORCE_UNCONTESTED@2026.07.1" */
+  /** e.g. "NY_SUPREME_UNCONTESTED@2026.07.1" */
   id: string;
   category: MatterCategory;
-  jurisdiction: "NJ" | "NY";
+  jurisdiction: "NY";
   version: string;
   effectiveDate: string;
   reviewStatus: ReviewStatus;

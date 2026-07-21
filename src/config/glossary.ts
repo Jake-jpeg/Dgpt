@@ -36,14 +36,14 @@ export const GLOSSARY: GlossaryTerm[] = [
     term: "Uncontested divorce",
     aliases: ["uncontested", "uncontested divorce"],
     definition:
-      "[ATTORNEY TO SUPPLY — plain-English definition of an uncontested divorce in NJ.]",
+      "[ATTORNEY TO SUPPLY — plain-English definition of an uncontested divorce in New York.]",
   },
   {
-    id: "TERM_IRRECONCILABLE",
-    term: "Irreconcilable differences",
-    aliases: ["irreconcilable differences", "irreconcilable"],
+    id: "TERM_IRRETRIEVABLE",
+    term: "Irretrievable breakdown",
+    aliases: ["irretrievable breakdown", "irretrievably broken", "no-fault"],
     definition:
-      "[ATTORNEY TO SUPPLY — plain-English definition of irreconcilable differences as a ground for divorce in NJ.]",
+      "[ATTORNEY TO SUPPLY — plain-English definition of irretrievable breakdown as the New York no-fault ground for divorce.]",
   },
   {
     id: "TERM_EQUITABLE_DISTRIBUTION",
@@ -67,11 +67,11 @@ export const GLOSSARY: GlossaryTerm[] = [
       "[ATTORNEY TO SUPPLY — plain-English definition of a Qualified Domestic Relations Order and when one is needed to divide a retirement account.]",
   },
   {
-    id: "TERM_CIS",
-    term: "Case Information Statement (CIS)",
-    aliases: ["cis", "case information statement"],
+    id: "TERM_SNW",
+    term: "Statement of Net Worth",
+    aliases: ["statement of net worth", "net worth statement", "snw"],
     definition:
-      "[ATTORNEY TO SUPPLY — plain-English definition of the NJ Case Information Statement.]",
+      "[ATTORNEY TO SUPPLY — plain-English definition of the New York Statement of Net Worth.]",
   },
   {
     id: "TERM_VENUE",

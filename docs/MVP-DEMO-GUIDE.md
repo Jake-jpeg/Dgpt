@@ -73,7 +73,7 @@ Steps (use a normal window + a private window, or sign out between roles):
    (Sign in as staff or admin to confirm they get no clearance controls and
    the API refuses them.)
 8. **Client** window → **My matter** → status is active → **Continue my
-   intake** → answer the five scope questions (Yes / Bergen / No / No /
+   intake** → answer the scope questions (Yes / Kings / No / No /
    “We agree on everything”), the two tier questions (no assets / no
    alimony), fill the required fields, **Save progress** whenever you like →
    **Submit for attorney review**.

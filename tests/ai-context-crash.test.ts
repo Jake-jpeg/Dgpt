@@ -38,7 +38,7 @@ function valueFor(item: IntakeItem): unknown {
     case "multi_select":
       return item.options?.length ? [item.options[0].value] : [];
     case "address":
-      return { line1: "1 Synthetic Way", city: "Testville", state: "NJ", zip: "07000" };
+      return { line1: "1 Synthetic Way", city: "Testville", state: "NY", zip: "11200" };
     case "person":
       return { fullLegalName: "Casey Syntheticperson" };
     case "entity":
@@ -51,7 +51,7 @@ function valueFor(item: IntakeItem): unknown {
     case "repeat_employer":
     case "repeat_income":
     case "repeat_insurance":
-      return [{ state: "NJ", label: "Synthetic row", amount: 1 }];
+      return [{ state: "NY", label: "Synthetic row", amount: 1 }];
     default:
       return "Synthetic answer";
   }
@@ -64,8 +64,8 @@ async function matterWithFullClientState(): Promise<string> {
   (await attorneySetJurisdictionAndScope({
         matterId: ctx.matterId,
         actingUserId: ctx.attorneyUserId,
-        jurisdictionConfirmed: "NJ",
-        matterCategory: "NJ_FM_DIVORCE_UNCONTESTED",
+        jurisdictionConfirmed: "NY",
+        matterCategory: "NY_SUPREME_UNCONTESTED",
         scopeStatus: "ACCEPTED",
       }));
 
@@ -122,7 +122,7 @@ describe("buildMatterContext on a matter with full client intake state", () => {
     const matterId = await matterWithFullClientState();
     const { contextJson, answerIds, documentVersionIds } = (await buildMatterContext(matterId));
     const parsed = JSON.parse(contextJson);
-    expect(parsed.matter.category).toBe("NJ_FM_DIVORCE_UNCONTESTED");
+    expect(parsed.matter.category).toBe("NY_SUPREME_UNCONTESTED");
     expect(parsed.intakeAnswers.length).toBeGreaterThan(0);
     expect(Array.isArray(parsed.checklist)).toBe(true);
     expect(answerIds.size).toBeGreaterThan(0);

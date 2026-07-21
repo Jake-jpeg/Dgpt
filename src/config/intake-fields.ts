@@ -50,11 +50,18 @@ export interface SectionDef {
   fields: FieldDef[];
 }
 
-export const NJ_COUNTIES = [
-  "Atlantic", "Bergen", "Burlington", "Camden", "Cape May", "Cumberland",
-  "Essex", "Gloucester", "Hudson", "Hunterdon", "Mercer", "Middlesex",
-  "Monmouth", "Morris", "Ocean", "Passaic", "Salem", "Somerset", "Sussex",
-  "Union", "Warren",
+/** All 62 New York counties. Venue is collect-only — the attorney's call, never a client-facing rejection. */
+export const NY_COUNTIES = [
+  "Albany", "Allegany", "Bronx", "Broome", "Cattaraugus", "Cayuga",
+  "Chautauqua", "Chemung", "Chenango", "Clinton", "Columbia", "Cortland",
+  "Delaware", "Dutchess", "Erie", "Essex", "Franklin", "Fulton", "Genesee",
+  "Greene", "Hamilton", "Herkimer", "Jefferson", "Kings", "Lewis",
+  "Livingston", "Madison", "Monroe", "Montgomery", "Nassau", "New York",
+  "Niagara", "Oneida", "Onondaga", "Ontario", "Orange", "Orleans", "Oswego",
+  "Otsego", "Putnam", "Queens", "Rensselaer", "Richmond", "Rockland",
+  "St. Lawrence", "Saratoga", "Schenectady", "Schoharie", "Schuyler",
+  "Seneca", "Steuben", "Suffolk", "Sullivan", "Tioga", "Tompkins", "Ulster",
+  "Warren", "Washington", "Wayne", "Westchester", "Wyoming", "Yates",
 ] as const;
 
 /** Retirement clarification tree — the account types the intake distinguishes. */
@@ -87,15 +94,19 @@ export const SECTIONS: SectionDef[] = [
         label: "What is the basis for the divorce?",
         type: "select",
         required: true,
+        // [ATTORNEY REVIEW REQUIRED — NY] Options redrafted from NJ grounds to
+        // NY DRL § 170 for the uncontested flow. "Something else / not sure"
+        // stays in scope but is flagged for the attorney (see tiers.ts routing).
         options: [
           {
-            value: "IRRECONCILABLE_6MO",
+            value: "IRRETRIEVABLE_6MO",
             label:
-              "Irreconcilable differences for at least 6 months, with no reasonable prospect of reconciliation",
+              "The marriage has broken down irretrievably for a period of at least 6 months",
           },
           {
-            value: "SEPARATION_18MO",
-            label: "Living separate and apart for at least 18 consecutive months",
+            value: "SEPARATION_AGREEMENT_1YR",
+            label:
+              "We have lived apart for at least 1 year under a written separation agreement",
           },
           { value: "OTHER_UNSURE", label: "Something else / I'm not sure" },
         ],
@@ -103,7 +114,7 @@ export const SECTIONS: SectionDef[] = [
       {
         id: "grounds_date",
         label:
-          "Approximately when did the irreconcilable differences begin (or the separation start)?",
+          "Approximately when did the breakdown of the marriage begin (or the separation start)?",
         type: "date",
         required: true,
       },

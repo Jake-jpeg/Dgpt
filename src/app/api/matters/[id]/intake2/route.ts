@@ -1,5 +1,5 @@
 /**
- * Schema-driven NJ/NY intake.
+ * Schema-driven NY intake.
  *
  * GET — role-shaped view: sections, visible items (client sees CLIENT items
  *       only — no statutes, no internal source records, no attorney
@@ -30,7 +30,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const matter = (await requireMatterAccess(authed, id));
     const role = authed.account.role;
 
-    if (role === "CLIENT" && matter.conflictStatus !== "CLEARED") {
+    if (role === "CLIENT" && matter.conflictStatus !== "CLEARED" && matter.conflictStatus !== "EXTERNAL") {
       return Response.json({
         status:
           "Your information has been submitted for review. The firm will contact you regarding the next step.",
@@ -61,7 +61,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       available: true,
       workflowAssigned: Boolean(matter.matterCategory),
       workflowMessage: matter.matterCategory
-        ? `Your attorney has assigned this matter to the ${matter.matterCategory.startsWith("NJ_") ? "New Jersey" : "New York"} intake workflow.`
+        ? `Your attorney has assigned this matter to the New York intake workflow.`
         : "The firm is reviewing which workflow applies. Please answer the residence and case-history questions so your attorney can determine the appropriate jurisdiction and process.",
       schema: {
         id: schema.id,

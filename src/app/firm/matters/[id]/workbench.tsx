@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * NJ/NY lawyer workbench (B10) — STAFF/ATTORNEY panels mounted inside the
+ * NY lawyer workbench (B10) — STAFF/ATTORNEY panels mounted inside the
  * firm matter view. Everything here is INTERNAL work product; nothing in
  * this file renders for clients, and hiding is convenience only — every
  * mutation calls a protected API that re-checks the CURRENT role and the
@@ -20,8 +20,8 @@ import { api, fmtWhen } from "@/lib/ui/client-api";
 interface JurisdictionView {
   factsCollected: Record<string, unknown>;
   signals: {
-    njImplicated: boolean;
     nyImplicated: boolean;
+    otherStates: string[];
     multiJurisdiction: boolean;
     note: string;
   };
@@ -217,7 +217,7 @@ export default function Workbench({
   return (
     <>
       <JurisdictionPanel matterId={matterId} isAttorney={isAttorney} openSignal={openSignal} />
-      <IntakeReviewPanel matterId={matterId} />
+      <IntakeTranscriptPanel matterId={matterId} openSignal={openSignal} />
       <ChecklistPanel matterId={matterId} isAttorney={isAttorney} />
       {isAttorney && <FormReadinessPanel matterId={matterId} />}
       <LegalSourcesPanel />
@@ -281,7 +281,7 @@ function JurisdictionPanel({
     >
       {view.signals.multiJurisdiction && (
         <div className="notice notice-warn mb-3 font-semibold">
-          MULTI-JURISDICTION REVIEW REQUIRED — facts implicate both New Jersey and New York.
+          MULTI-JURISDICTION REVIEW REQUIRED — facts implicate a state other than New York.
         </div>
       )}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -298,9 +298,9 @@ function JurisdictionPanel({
             </tbody>
           </table>
           <p className="mt-2 text-xs text-slate-500">
-            Signals — NJ: {view.signals.njImplicated ? "implicated" : "none"} · NY:{" "}
-            {view.signals.nyImplicated ? "implicated" : "none"}
-            {view.signals.multiJurisdiction && <> · multi-jurisdiction</>}
+            Signals — NY: {view.signals.nyImplicated ? "implicated" : "none"} · other states:{" "}
+            {view.signals.otherStates.length > 0 ? view.signals.otherStates.join(", ") : "none"}
+            {view.signals.multiJurisdiction && <> · attorney review required</>}
           </p>
           <p className="mt-1 text-xs text-slate-500">{view.signals.note}</p>
         </div>
@@ -342,7 +342,6 @@ function JurisdictionPanel({
                   <span className="field-label">State</span>
                   <select className="text-input" style={{ width: "auto" }} value={confirmed} onChange={(e) => { setConfirmed(e.target.value); setCategory(""); }}>
                     <option value="">— not confirmed —</option>
-                    <option value="NJ">New Jersey</option>
                     <option value="NY">New York</option>
                   </select>
                 </label>
@@ -376,7 +375,7 @@ function JurisdictionPanel({
                   setErr(null);
                   try {
                     await api.post(`/api/matters/${matterId}/jurisdiction`, {
-                      jurisdictionConfirmed: confirmed === "NJ" || confirmed === "NY" ? confirmed : null,
+                      jurisdictionConfirmed: confirmed === "NY" ? confirmed : null,
                       matterCategory: category || null,
                       scopeStatus: scope,
                       scopeNotes: notes || undefined,
@@ -406,13 +405,6 @@ function JurisdictionPanel({
 }
 
 const AI_CATEGORY_LIST = [
-  "NJ_FM_DIVORCE_UNCONTESTED",
-  "NJ_FM_DIVORCE_CONTESTED",
-  "NJ_FM_POST_JUDGMENT",
-  "NJ_FD_CUSTODY_PARENTING",
-  "NJ_FD_SUPPORT_PARENTAGE",
-  "NJ_UCCJEA_INTERSTATE",
-  "NJ_EMERGENCY_OR_DV_ESCALATION",
   "NY_SUPREME_UNCONTESTED_JOINT",
   "NY_SUPREME_UNCONTESTED",
   "NY_SUPREME_CONTESTED",
@@ -431,111 +423,93 @@ function formatAnswer(v: unknown): string {
   return String(v);
 }
 
-/* ── intake review ────────────────────────────────────────────────── */
+/* ── intake transcript (read-only; spec §2.5) ─────────────────────── */
 
-function IntakeReviewPanel({ matterId }: { matterId: string }) {
-  const [view, setView] = useState<IntakeView | null>(null);
+interface TranscriptMsg {
+  id: string;
+  role: "CLIENT" | "ASSISTANT" | "SYSTEM_EVENT";
+  content: string;
+  lang: string;
+  createdAt: string;
+}
+
+function IntakeTranscriptPanel({
+  matterId,
+  openSignal,
+}: {
+  matterId: string;
+  openSignal?: PanelOpenSignal | null;
+}) {
+  const [msgs, setMsgs] = useState<TranscriptMsg[] | null>(null);
+  const [state, setState] = useState<string>("");
   const [err, setErr] = useState<string | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
 
   useEffect(() => {
-     
-    api
-      .get(`/api/matters/${matterId}/intake2`)
-      .then((v) => setView(v as unknown as IntakeView))
-      .catch((e) => setErr(e instanceof Error ? e.message : "load failed"));
+    (async () => {
+      try {
+        const m = (await api.get(`/api/matters/${matterId}`)) as unknown as {
+          matter: { sessions?: { id: string }[] };
+        };
+        const sid = m.matter.sessions?.[0]?.id;
+        if (!sid) {
+          setMsgs([]);
+          return;
+        }
+        const v = (await api.get(`/api/intake-chat/${sid}`)) as unknown as {
+          transcript: TranscriptMsg[];
+          state: string;
+        };
+        setMsgs(v.transcript);
+        setState(v.state);
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : "load failed");
+      }
+    })();
   }, [matterId]);
 
-  if (err) return <Panel title="Intake review">{<p className="text-sm text-red-700">{err}</p>}</Panel>;
-  if (!view || !view.available) return null;
-
-  const bySection = new Map<string, IntakeItemView[]>();
-  for (const item of view.items) {
-    const list = bySection.get(item.section) ?? [];
-    list.push(item);
-    bySection.set(item.section, list);
-  }
-  const progressFor = (sectionId: string) => view.progress.find((p) => p.sectionId === sectionId);
+  if (err) return <Panel title="Intake transcript">{<p className="text-sm text-red-700">{err}</p>}</Panel>;
 
   return (
     <Panel
-      title={`Intake review — schema ${view.schema.id} v${view.schema.version}`}
-      sub="Attorney/staff view: includes internal items, authority mappings, and attorney determinations the client never sees. Facts are collected as facts; conclusions stay with the attorney."
+      title="Intake transcript"
+      panelId="transcript"
+      openSignal={openSignal}
+      sub="The client's AI-conducted intake conversation, read-only and chronological. Grey rows are machine events written by the server — gates, recorded answers, stops. The conversation collects facts; every legal determination stays with you."
       summary={
-        view.missingRequired.length > 0
-          ? `${view.missingRequired.length} required item${view.missingRequired.length === 1 ? "" : "s"} open`
-          : "All required items answered"
+        msgs === null
+          ? "loading…"
+          : msgs.length === 0
+            ? "No conversation yet"
+            : `${msgs.filter((m) => m.role !== "SYSTEM_EVENT").length} message(s)${state === "READY_FOR_REVIEW" ? " · intake complete" : ""}`
       }
     >
-      {view.missingRequired.length > 0 && (
-        <div className="notice notice-warn mb-3 text-sm">
-          {view.missingRequired.length} required item(s) unanswered:{" "}
-          {view.missingRequired.slice(0, 6).map((m) => m.prompt).join(" · ")}
-          {view.missingRequired.length > 6 && " · …"}
-        </div>
+      {msgs !== null && msgs.length === 0 && (
+        <p className="text-sm text-slate-500">The client has not started the conversation.</p>
       )}
-      <div className="space-y-2">
-        {view.schema.sections
-          .filter((s) => (bySection.get(s.id) ?? []).length > 0)
-          .map((s) => {
-            const items = bySection.get(s.id)!;
-            const prog = progressFor(s.id);
-            const expanded = open === s.id;
-            return (
-              <div key={s.id} className="rounded-lg border border-[var(--line)]">
-                <button
-                  className="flex w-full items-center gap-3 p-3 text-left"
-                  onClick={() => setOpen(expanded ? null : s.id)}
-                  aria-expanded={expanded}
-                >
-                  <span className="mr-auto font-semibold">{s.title}</span>
-                  {prog && (
-                    <span className="text-xs text-slate-500">
-                      {prog.answered}/{prog.total} answered
-                      {prog.missingRequired > 0 && (
-                        <span className="ml-1 text-amber-700">· {prog.missingRequired} required open</span>
-                      )}
-                    </span>
-                  )}
-                  <span aria-hidden>{expanded ? "▾" : "▸"}</span>
-                </button>
-                {expanded && (
-                  <table className="tbl mx-3 mb-3">
-                    <tbody>
-                      {items.map((i) => (
-                        <tr key={i.id}>
-                          <td className="w-1/2 align-top">
-                            <span className={i.type === "attorney_determination" ? "font-semibold text-[#7c3aed]" : ""}>
-                              {i.prompt}
-                            </span>
-                            <div className="mt-1 flex flex-wrap gap-1 text-xs">
-                              {i.required && <span className="badge">required</span>}
-                              {i.sensitive && <span className="badge badge-warn">sensitive</span>}
-                              {i.audience && i.audience !== "CLIENT" && (
-                                <span className="badge">{i.audience}</span>
-                              )}
-                              {(i.authorityIds ?? []).map((a) => (
-                                <span key={a} className="badge mono" title="internal authority mapping">
-                                  {a}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="align-top text-sm">
-                            {view.answers[i.id] === undefined ? (
-                              <span className="text-slate-400">— unanswered</span>
-                            ) : (
-                              formatAnswer(view.answers[i.id])
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+      <div className="max-h-[28rem] space-y-2 overflow-y-auto">
+        {(msgs ?? []).map((m) =>
+          m.role === "SYSTEM_EVENT" ? (
+            <p key={m.id} className="text-xs text-slate-400">
+              ⚙ {m.content}
+            </p>
+          ) : (
+            <div key={m.id} className={m.role === "CLIENT" ? "flex justify-end" : "flex justify-start"}>
+              <div
+                className={
+                  m.role === "CLIENT"
+                    ? "max-w-[80%] whitespace-pre-wrap rounded bg-[#eef4fb] px-3 py-2 text-sm"
+                    : "max-w-[80%] whitespace-pre-wrap rounded bg-slate-100 px-3 py-2 text-sm"
+                }
+              >
+                <span className="mr-2 text-[.65rem] font-semibold uppercase text-slate-500">
+                  {m.role === "CLIENT" ? "Client" : "Assistant"}
+                  {m.lang === "ko" ? " · KO" : ""}
+                </span>
+                {m.content}
               </div>
-            );
-          })}
+            </div>
+          )
+        )}
       </div>
     </Panel>
   );
@@ -781,7 +755,7 @@ function LegalSourcesPanel() {
         </div>
       )}
       <div className="mb-2 flex gap-2">
-        {["", "NJ", "NY"].map((j) => (
+        {["", "NY"].map((j) => (
           <button
             key={j || "ALL"}
             className={filter === j ? "btn btn-primary" : "btn btn-quiet"}

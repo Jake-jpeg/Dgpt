@@ -7,7 +7,6 @@
 import type { IntakeItem, IntakeSchema, MatterCategory } from "@/lib/intake2/types";
 import { MATTER_CATEGORIES } from "@/lib/intake2/types";
 import { SHARED_DOCUMENTS, SHARED_ITEMS, SHARED_SECTIONS } from "../shared/core";
-import { NJ_DOCUMENTS, NJ_ITEMS, NJ_SECTIONS } from "../nj/items";
 import { NY_DOCUMENTS, NY_ITEMS, NY_SECTIONS } from "../ny/items";
 
 export const INTAKE_SCHEMA_VERSION = "2026.07.1";
@@ -18,10 +17,10 @@ function itemsForCategory(items: IntakeItem[], category: MatterCategory): Intake
 }
 
 function buildSchema(category: MatterCategory): IntakeSchema {
-  const jurisdiction = category.startsWith("NJ_") ? "NJ" : "NY";
-  const stateItems = jurisdiction === "NJ" ? NJ_ITEMS : NY_ITEMS;
-  const stateSections = jurisdiction === "NJ" ? NJ_SECTIONS : NY_SECTIONS;
-  const stateDocs = jurisdiction === "NJ" ? NJ_DOCUMENTS : NY_DOCUMENTS;
+  const jurisdiction = "NY";
+  const stateItems = NY_ITEMS;
+  const stateSections = NY_SECTIONS;
+  const stateDocs = NY_DOCUMENTS;
   return {
     id: `${category}@${INTAKE_SCHEMA_VERSION}`,
     category,

@@ -168,8 +168,10 @@ export function deriveChecklist(
  * only tells the ATTORNEY that review must consider both states.
  */
 export function jurisdictionSignals(answers: AnswerMap): {
-  njImplicated: boolean;
   nyImplicated: boolean;
+  /** Normalized non-NY state tokens found in residence/marriage/children facts. */
+  otherStates: string[];
+  /** True when facts implicate any state other than New York — attorney review. */
   multiJurisdiction: boolean;
 } {
   const states = new Set<string>();
@@ -189,7 +191,10 @@ export function jurisdictionSignals(answers: AnswerMap): {
   if (typeof marriageState === "string" && marriageState.trim()) {
     states.add(marriageState.trim().toUpperCase());
   }
-  const nj = states.has("NJ") || states.has("NEW JERSEY");
-  const ny = states.has("NY") || states.has("NEW YORK");
-  return { njImplicated: nj, nyImplicated: ny, multiJurisdiction: nj && ny };
+  const NY_TOKENS = new Set(["NY", "NEW YORK"]);
+  const ny = [...states].some((t) => NY_TOKENS.has(t));
+  const otherStates = [...states].filter((t) => !NY_TOKENS.has(t)).sort();
+  // DivorceGPT is a New York product: ANY non-NY state in the facts is an
+  // attorney-review signal. Nothing is auto-selected from an address.
+  return { nyImplicated: ny, otherStates, multiJurisdiction: otherStates.length > 0 };
 }

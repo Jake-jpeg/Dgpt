@@ -20,9 +20,9 @@
  *        │                        GATE_DV ──any DV──► (DV-resource card, purged)
  *        │                              │ none
  *        │                        GATE_CHILDREN ──children──► (custody tier deferred:
- *        │                              │ none                Bergen Bar card, purged)
+ *        │                              │ none                NY bar-referral card, purged)
  *        │                        GATE_COMPLEXITY ──disagree/unsure/valuation──►
- *        │                              │ fully agree          (Bergen Bar card, purged)
+ *        │                              │ fully agree          (NY bar-referral card, purged)
  *        │                        TIER_BRANCH (assets? alimony?)
  *        │                              │
  *        │              ┌───────────────┴────────────────┐
@@ -39,6 +39,8 @@ export const MACHINE_STATES = [
   "PRE_GATE",
   "CONFLICT_REVIEW_PENDING",
   "GATE_RESIDENCY",
+  "GATE_RESIDENCY_1YR",
+  "GATE_RESIDENCY_NEXUS",
   "GATE_VENUE",
   "GATE_DV",
   "GATE_CHILDREN",
@@ -56,6 +58,8 @@ export const ANSWER_WRITABLE_STATES: MachineState[] = ["TIER_BRANCH", "INTAKE"];
 /** States in which the constrained bot will respond at all. */
 export const BOT_ACTIVE_STATES: MachineState[] = [
   "GATE_RESIDENCY",
+  "GATE_RESIDENCY_1YR",
+  "GATE_RESIDENCY_NEXUS",
   "GATE_VENUE",
   "GATE_DV",
   "GATE_CHILDREN",
@@ -67,6 +71,8 @@ export const BOT_ACTIVE_STATES: MachineState[] = [
 /** The fixed order of scope-gate steps; the server, not the client, decides which is next. */
 export const GATE_SEQUENCE: MachineState[] = [
   "GATE_RESIDENCY",
+  "GATE_RESIDENCY_1YR",
+  "GATE_RESIDENCY_NEXUS",
   "GATE_VENUE",
   "GATE_DV",
   "GATE_CHILDREN",
@@ -79,12 +85,20 @@ const ALLOWED_TRANSITIONS: Record<MachineState, MachineState[]> = {
   // CLEARED disposition on the matter moves it forward.
   PRE_GATE: ["CONFLICT_REVIEW_PENDING"],
   CONFLICT_REVIEW_PENDING: ["GATE_RESIDENCY"],
-  GATE_RESIDENCY: ["GATE_VENUE"],
+  // NY residency cascade (DRL § 230): the 2-year path passes straight to
+  // venue; otherwise the 1-year question, then the NY-nexus question. No
+  // residency answer ever terminates — failures flag for attorney review.
+  GATE_RESIDENCY: ["GATE_VENUE", "GATE_RESIDENCY_1YR"],
+  GATE_RESIDENCY_1YR: ["GATE_VENUE", "GATE_RESIDENCY_NEXUS"],
+  GATE_RESIDENCY_NEXUS: ["GATE_VENUE"],
   GATE_VENUE: ["GATE_DV"],
   GATE_DV: ["GATE_CHILDREN"],
   GATE_CHILDREN: ["GATE_COMPLEXITY"],
   GATE_COMPLEXITY: ["TIER_BRANCH"],
-  TIER_BRANCH: ["INTAKE"],
+  // TIER_BRANCH → READY_FOR_REVIEW is the conversational-intake completion:
+  // the chat walks the schema-driven questions (intake2 store), not the v1
+  // tier forms, so it finishes directly from the post-gate state.
+  TIER_BRANCH: ["INTAKE", "READY_FOR_REVIEW"],
   INTAKE: ["READY_FOR_REVIEW"],
   READY_FOR_REVIEW: [],
 };

@@ -134,12 +134,13 @@ describe("bot interaction log (UPL defense, PII-minimized)", () => {
       expect(entry.content_id).not.toContain("Secret");
       expect(entry.content_id).not.toContain("my name is");
       // content_id is always a known ID or intent code shape.
-      expect(entry.content_id).toMatch(/^(TERM_|INTENT_|WHY_|WELCOME|PRE_GATE|SCOPE_GATE|INTAKE_|READY_|CLARIFY_|CONFLICT_|RESIDENCY_|DV_|BERGEN_|DEFLECT_)/);
+      expect(entry.content_id).toMatch(/^(TERM_|INTENT_|WHY_|WELCOME|PRE_GATE|SCOPE_GATE|INTAKE_|READY_|CLARIFY_|CONFLICT_|RESIDENCY_|DV_|NY_BAR_|DEFLECT_)/);
     }
   });
 
-  it("bot refuses to talk pre-CLEAR (no session in PRE_GATE gets bot access)", async () => {
-    const preGateId = await startSession(cookie);
+  it("bot refuses to talk in PRE_GATE (legacy-wall state stays bot-inactive)", async () => {
+    const { startPregateSession } = await import("./helpers");
+    const preGateId = await startPregateSession(cookie);
     freshLimits();
     const res = await botRoute(
       jsonRequest(`/api/intake/${preGateId}/bot`, { cookie, body: { text: "hi" } }),

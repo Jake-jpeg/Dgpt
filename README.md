@@ -140,7 +140,7 @@ login → PRE_GATE (names only) → conflict check ──HIT──► referral c
   (`src/lib/config-guard.ts`, enforced via `src/instrumentation.ts`).
 - QDRO-needed retirement divisions are **in scope**: flagged for the attorney
   and the intake continues. Business interests, valuation needs, and any
-  disagreement route **out** to the Bergen Bar referral card.
+  disagreement route **out** to the NY bar-referral card.
 
 ## Guardrails
 
