@@ -15,7 +15,6 @@ import {
   grantMatterAccess,
   listAllMatters,
   listMattersForClient,
-  listMattersForGrantee,
   type MatterRow,
 } from "@/lib/db/matters";
 import { recordAudit, listSessionsByMatter } from "@/lib/db/repo";
@@ -69,7 +68,10 @@ export async function GET(req: Request) {
       matters = (await listAllMatters());
       return Response.json({ matters: matters.map(matterSummary) });
     } else {
-      matters = (await listMattersForGrantee(account.id));
+      // STAFF / ATTORNEY: firm-wide working list — every matter, including
+      // ones a client just self-opened, so the lawyer sees every client by
+      // identity (name + email) with no invitation step.
+      matters = (await listAllMatters());
       return Response.json({ matters: await Promise.all((await matters.map(firmMatterRow))) });
     }
   } catch (e) {

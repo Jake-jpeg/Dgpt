@@ -196,11 +196,21 @@ export async function canAccessMatter(user: UserRow, matter: MatterRow): Promise
   if (!user.active) return false;
   switch (user.role) {
     case "CLIENT":
+      // A client sees ONLY their own matter — never another client's.
       return matter.clientUserId === user.id;
     case "STAFF":
     case "ATTORNEY":
-      return hasMatterGrant(matter.id, user.id);
+      // Firm-wide (2026-07-21 directive, solo/small-firm model): any active
+      // firm member sees and can work EVERY matter, so a client who
+      // self-signs-up is visible to the lawyer without an invitation or
+      // per-matter grant. The attorney-only STRUCTURAL guards (conflict
+      // CLEARED/DECLINED, jurisdiction/scope, document approval/release) are
+      // enforced separately by role re-reads at the persistence layer and are
+      // NOT affected by this visibility rule.
+      return true;
     case "ADMIN":
+      // Admin keeps the least-privilege management view (labels + status);
+      // working a matter still requires an explicit grant.
       return hasMatterGrant(matter.id, user.id);
     default:
       return false;

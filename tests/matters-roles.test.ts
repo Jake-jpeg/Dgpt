@@ -134,13 +134,30 @@ describe("matter-level authorization", () => {
     expect(body.matters.map((m: { id: string }) => m.id)).toEqual([mA.id]);
   });
 
-  it("STAFF/ATTORNEY access requires an explicit matter grant", async () => {
+  it("firm-wide (2026-07-21): any active STAFF/ATTORNEY sees every matter — no grant needed; a deactivated one sees nothing", async () => {
     const staff = (await synth("STAFF", "staff@example.test"));
     const otherStaff = (await synth("STAFF", "staff2@example.test"));
+    const attorney = (await synth("ATTORNEY", "atty@example.test"));
+    // A matter created by one firm member, with NO grant to the others —
+    // as happens when a client self-signs-up (created_by = the client).
     const m = (await createMatter({ label: "Matter G", createdBy: staff.user.id }));
-    (await grantMatterAccess(m.id, staff.user.id, staff.user.id));
-    expect((await canAccessMatter(staff.user, (await getMatter(m.id))!))).toBe(true);
-    expect((await canAccessMatter(otherStaff.user, (await getMatter(m.id))!))).toBe(false);
+    const row = (await getMatter(m.id))!;
+    expect((await canAccessMatter(staff.user, row))).toBe(true);
+    expect((await canAccessMatter(otherStaff.user, row))).toBe(true); // firm-wide, ungranted
+    expect((await canAccessMatter(attorney.user, row))).toBe(true);
+    // Deactivation still revokes all access immediately.
+    expect((await canAccessMatter({ ...otherStaff.user, active: false }, row))).toBe(false);
+  });
+
+  it("a CLIENT still sees ONLY their own matter, never another client's", async () => {
+    const staff = (await synth("STAFF", "staff@example.test"));
+    const clientA = (await synth("CLIENT", "clienta@example.test"));
+    const clientB = (await synth("CLIENT", "clientb@example.test"));
+    const m = (await createMatter({ label: "A's matter", createdBy: staff.user.id }));
+    (await bindClientToMatter(m.id, clientA.user.id));
+    const row = (await getMatter(m.id))!;
+    expect((await canAccessMatter(clientA.user, row))).toBe(true);
+    expect((await canAccessMatter(clientB.user, row))).toBe(false);
   });
 
   it("clients never see internal fields from the matter view", async () => {
