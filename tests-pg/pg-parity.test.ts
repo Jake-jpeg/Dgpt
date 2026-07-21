@@ -20,11 +20,17 @@ import {
 import {
   createUser,
   getUserByEmail,
-  deleteUserIfUnreferenced,
+  deleteUserCascade,
   countUserReferences,
   findAccountForSession,
 } from "@/lib/db/users";
-import { createMatter, grantMatterAccess, hasMatterGrant, getMatter } from "@/lib/db/matters";
+import {
+  createMatter,
+  grantMatterAccess,
+  hasMatterGrant,
+  getMatter,
+  bindClientToMatter,
+} from "@/lib/db/matters";
 import { createInvitation, previewInvitation, acceptInvitation } from "@/lib/db/invitations";
 import { appendChatMessage, countChatMessages, listChatMessages } from "@/lib/db/intake-chat";
 import { setConfigValue, getConfigValue, CONFIG_KEYS } from "@/lib/db/config";
@@ -156,15 +162,26 @@ describe("foreign keys + purge (retention parity)", () => {
     expect(events).toBeGreaterThan(0); // SESSION_PURGED survives
   });
 
-  it("delete guard: a referenced user row is refused, an unreferenced one deletes", async () => {
-    const creator = await createUser({ email: "creator@example.test", role: "ATTORNEY" });
-    await createMatter({ label: "PG-REF", createdBy: creator.id });
-    expect(await countUserReferences(creator)).toBeGreaterThan(0);
-    expect((await deleteUserIfUnreferenced(creator.id)).deleted).toBe(false);
-    expect(await getUserByEmail("creator@example.test")).not.toBeNull();
+  it("deleteUserCascade removes a client's matter and account (FK cascade + serialized txn)", async () => {
+    const client = await createUser({ email: "pg-client@example.test", role: "CLIENT" });
+    const matter = await createMatter({ label: "PG-CASCADE", createdBy: client.id });
+    await bindClientToMatter(matter.id, client.id);
+    expect(await countUserReferences(client)).toBeGreaterThan(0);
 
+    const { deleted } = await deleteUserCascade(client.id);
+    expect(deleted).toBe(true);
+    expect(await getUserByEmail("pg-client@example.test")).toBeNull();
+    // The owned matter is gone too — verifies ON DELETE CASCADE + the
+    // serialized transaction commit on real Postgres.
+    const remaining = (await getDb().get<{ c: number }>(
+      `SELECT COUNT(*) AS c FROM matter WHERE id = ?`,
+      matter.id
+    ))!.c;
+    expect(remaining).toBe(0);
+
+    // A clean row deletes just as cleanly.
     const clean = await createUser({ email: "clean@example.test", role: "STAFF" });
-    expect((await deleteUserIfUnreferenced(clean.id)).deleted).toBe(true);
+    expect((await deleteUserCascade(clean.id)).deleted).toBe(true);
     expect(await getUserByEmail("clean@example.test")).toBeNull();
   });
 });

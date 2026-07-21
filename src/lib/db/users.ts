@@ -258,18 +258,93 @@ export async function countUserReferences(user: UserRow): Promise<number> {
   return refs;
 }
 
+/** Count ACTIVE accounts holding a given role, optionally excluding one id.
+ *  Used to stop an admin from deleting the last active ADMIN or ATTORNEY and
+ *  locking the firm out of management / attorney-only functions. */
+export async function countActiveUsersByRole(
+  role: string,
+  excludeUserId?: string
+): Promise<number> {
+  const db = getDb();
+  const r = excludeUserId
+    ? await db.get<{ c: number }>(
+        `SELECT COUNT(*) AS c FROM app_user WHERE role = ? AND active = 1 AND id != ?`,
+        role,
+        excludeUserId
+      )
+    : await db.get<{ c: number }>(
+        `SELECT COUNT(*) AS c FROM app_user WHERE role = ? AND active = 1`,
+        role
+      );
+  return r?.c ?? 0;
+}
+
 /**
- * Hard-delete a reference-free user row. Returns false and deletes nothing
- * if any case history references it — the caller responds 409 and offers
- * deactivation instead. The reference re-check happens inside the same call
- * so a row cannot pick up a reference between the check and the delete.
+ * FORCE-DELETE a user and every piece of case data it OWNS, atomically.
+ *
+ * Unlike a reference guard, this removes the account together with:
+ *   - every matter where the user is the CLIENT (`client_user_id`) and ALL of
+ *     that matter's children (documents/versions/approvals/releases,
+ *     invitations, accommodations, info/assistance requests, internal notes,
+ *     access grants — via ON DELETE CASCADE — plus the non-FK intake answers,
+ *     answer history, conflict submissions, disclosure acks, and AI metadata);
+ *   - the user's own intake sessions (`owner_subject`), which cascade to their
+ *     party identity, answers, and chat transcript;
+ *   - conflict submissions, disclosure acks, invitations, and AI
+ *     invocation/job rows attributed to the user.
+ *
+ * DELIBERATELY RETAINED: the tamper-evident `audit_event` hash chain and the
+ * opaque `bot_interaction_log` (both carry no PII and are keyed only by an
+ * opaque ref — deleting from them would break the audit chain). Matters the
+ * user merely CREATED for OTHER clients are left intact (a firm user's
+ * `created_by` is a non-FK label, so the account still deletes cleanly).
+ *
+ * Runs inside a single serialized transaction: on Postgres it is all-or-
+ * nothing; on SQLite the one connection already serializes.
  */
-export async function deleteUserIfUnreferenced(
-  userId: string
-): Promise<{ deleted: boolean; user: UserRow | null }> {
-  const user = await getUserById(userId);
-  if (!user) return { deleted: false, user: null };
-  if ((await countUserReferences(user)) > 0) return { deleted: false, user };
-  await getDb().run(`DELETE FROM app_user WHERE id = ?`, userId);
-  return { deleted: true, user };
+export async function deleteUserCascade(userId: string): Promise<{ deleted: boolean }> {
+  const db = getDb();
+  return db.serialized(async (tx) => {
+    const user = await tx.get<{ id: string; subject: string | null }>(
+      `SELECT id, subject FROM app_user WHERE id = ?`,
+      userId
+    );
+    if (!user) return { deleted: false };
+
+    // 1. The user's OWN matters (they are the client). For each, clear the
+    //    non-FK children first, then delete the matter (its FK children go
+    //    with it via ON DELETE CASCADE).
+    const ownMatters = await tx.all<{ id: string }>(
+      `SELECT id FROM matter WHERE client_user_id = ?`,
+      userId
+    );
+    for (const { id: m } of ownMatters) {
+      await tx.run(`DELETE FROM matter_intake_answer WHERE matter_id = ?`, m);
+      await tx.run(`DELETE FROM matter_intake_answer_history WHERE matter_id = ?`, m);
+      await tx.run(`DELETE FROM conflict_submission WHERE matter_ref = ?`, m);
+      await tx.run(`DELETE FROM disclosure_ack WHERE matter_ref = ?`, m);
+      await tx.run(`DELETE FROM ai_invocation WHERE matter_ref = ?`, m);
+      await tx.run(`DELETE FROM ai_job WHERE matter_ref = ?`, m);
+      // Sessions are linked by a non-FK matter_id; deleting them cascades
+      // their party_identity / intake_answer / intake_chat_message rows.
+      await tx.run(`DELETE FROM intake_session WHERE matter_id = ?`, m);
+      await tx.run(`DELETE FROM matter WHERE id = ?`, m);
+    }
+
+    // 2. User-scoped rows not necessarily tied to an owned matter.
+    if (user.subject) {
+      await tx.run(`DELETE FROM intake_session WHERE owner_subject = ?`, user.subject);
+    }
+    await tx.run(`DELETE FROM conflict_submission WHERE submitted_by = ?`, userId);
+    await tx.run(`DELETE FROM disclosure_ack WHERE user_ref = ?`, userId);
+    await tx.run(`DELETE FROM invitation WHERE created_by = ?`, userId);
+    await tx.run(`DELETE FROM ai_invocation WHERE user_ref = ?`, userId);
+    await tx.run(`DELETE FROM ai_job WHERE requested_by = ?`, userId);
+    await tx.run(`DELETE FROM matter_access WHERE user_id = ?`, userId);
+
+    // 3. Finally the account. No FK now references it (own matters gone,
+    //    access grants cleared).
+    await tx.run(`DELETE FROM app_user WHERE id = ?`, userId);
+    return { deleted: true };
+  });
 }

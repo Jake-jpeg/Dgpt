@@ -27,9 +27,10 @@ export async function GET(req: Request) {
                     role: u.role,
                     active: u.active,
                     createdAt: u.createdAt,
-                    // Read-only hint for the console: a row with any case-history
-                    // reference can be deactivated but never deleted.
-                    deletable: (await countUserReferences(u)) === 0,
+                    // Read-only hint for the console: how many case-history
+                    // records deleting this account would also remove. Every
+                    // row is deletable; this drives the confirmation warning.
+                    caseData: await countUserReferences(u),
                   })))
       ),
     });

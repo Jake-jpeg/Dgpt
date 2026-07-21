@@ -12,8 +12,8 @@ import {
   getUserById,
   setUserActive,
   setUserRole,
-  countUserReferences,
-  deleteUserIfUnreferenced,
+  deleteUserCascade,
+  countActiveUsersByRole,
 } from "@/lib/db/users";
 import { recordAudit } from "@/lib/db/repo";
 
@@ -76,10 +76,12 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 }
 
 /**
- * Hard-delete a user — ONLY when the row has zero case-history references.
- * A referenced account keeps its history: it is deactivated, never deleted,
- * so every matter/document/session/audit row retains a valid actor. The
- * deletion itself is audited (metadata only: the deleted row's email + role).
+ * Hard-delete a user and CASCADE every piece of case data it owns (see
+ * deleteUserCascade). Two safety guards apply first: an admin cannot delete
+ * their own account, and the last ACTIVE admin or attorney cannot be removed
+ * (that would lock the firm out). The tamper-evident audit trail is retained;
+ * the deletion itself is audited (metadata only: the deleted row's email +
+ * role).
  */
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -90,15 +92,26 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
     const target = (await getUserById(id));
     if (!target) throw new HttpError(404, "User not found");
 
-    if ((await countUserReferences(target)) > 0) {
-      throw new HttpError(409, "This account has case history — deactivate instead");
+    // Guard 1: no self-deletion — avoids an admin locking themselves out
+    // mid-action.
+    if (id === account.id) {
+      throw new HttpError(409, "You cannot delete your own account.");
+    }
+    // Guard 2: keep at least one active admin and one active attorney so the
+    // firm never loses management access or attorney-only functions.
+    if ((target.role === "ADMIN" || target.role === "ATTORNEY") && target.active) {
+      const remaining = await countActiveUsersByRole(target.role, id);
+      if (remaining === 0) {
+        throw new HttpError(
+          409,
+          `Cannot delete the last active ${target.role}. Assign the role to another active account first.`
+        );
+      }
     }
 
-    const { deleted } = (await deleteUserIfUnreferenced(id));
-    if (!deleted) {
-      // Lost a race: a reference appeared between the check and the delete.
-      throw new HttpError(409, "This account has case history — deactivate instead");
-    }
+    const { deleted } = await deleteUserCascade(id);
+    if (!deleted) throw new HttpError(404, "User not found");
+
     // Audit AFTER deletion, keyed by the (now-removed) row id, metadata only.
     (await recordAudit(
             id,

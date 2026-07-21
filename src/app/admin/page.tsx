@@ -19,7 +19,7 @@ interface AdminUser {
   role: string;
   active: boolean;
   createdAt: string;
-  deletable: boolean;
+  caseData: number;
 }
 interface ConfigRow {
   key: string;
@@ -223,29 +223,37 @@ export default function AdminPage() {
                         >
                           {u.active ? "Deactivate" : "Reactivate"}
                         </button>
-                        {/* Delete is offered ONLY for reference-free rows.
-                            Accounts with case history can be deactivated but
-                            never removed — the server enforces this too. */}
-                        {u.deletable && (
-                          <button
-                            className="btn btn-danger"
-                            style={{ padding: "4px 12px", fontSize: ".8rem" }}
-                            disabled={busy}
-                            onClick={() => {
-                              if (
-                                !window.confirm(
-                                  `Permanently delete ${u.email}? This account has no case history and cannot be recovered.`
-                                )
-                              )
-                                return;
-                              act(async () => {
-                                await api.del(`/api/admin/users/${u.id}`);
-                              }, "User deleted.");
-                            }}
-                          >
-                            Delete
-                          </button>
-                        )}
+                        {/* Delete is available on every account and CASCADES:
+                            it removes the account and all case data it owns.
+                            Guarded by a typed-email confirmation; the server
+                            also blocks self-deletion and removing the last
+                            active admin/attorney. */}
+                        <button
+                          className="btn btn-danger"
+                          style={{ padding: "4px 12px", fontSize: ".8rem" }}
+                          disabled={busy}
+                          onClick={() => {
+                            const warn =
+                              u.caseData > 0
+                                ? `This permanently deletes ${u.email} AND ${u.caseData} linked case record${
+                                    u.caseData === 1 ? "" : "s"
+                                  } (matters, intake sessions, documents). This cannot be undone.`
+                                : `This permanently deletes ${u.email}. This cannot be undone.`;
+                            const typed = window.prompt(
+                              `${warn}\n\nType the email address to confirm:`
+                            );
+                            if (typed === null) return;
+                            if (typed.trim().toLowerCase() !== u.email.toLowerCase()) {
+                              setErr("The email you typed didn't match — deletion cancelled.");
+                              return;
+                            }
+                            act(async () => {
+                              await api.del(`/api/admin/users/${u.id}`);
+                            }, "User deleted.");
+                          }}
+                        >
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
