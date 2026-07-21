@@ -111,16 +111,26 @@ describe("access control", () => {
       }
     };
     walk(apiDir);
-    // Exactly two importers, both STAFF/ATTORNEY-only: the AI action route
-    // and the explicit local document-extraction route (B9). No client route
-    // may ever appear in this list.
+    // Exactly three importers. Two are STAFF/ATTORNEY-only (the AI action
+    // route and the local document-extraction route). The third is the ONE
+    // operator-blessed exception (conversational-intake spec): the
+    // separately-caged client intake assistant — CLIENT-gated, kill-switched,
+    // and constitution-constrained. No other client route may appear here.
     const normalized = offenders.map((p) => p.replaceAll("\\", "/")).sort();
-    expect(normalized.length).toBe(2);
+    expect(normalized.length).toBe(3);
     expect(normalized[0]).toContain("/api/document-versions/[id]/extract/route.ts");
-    expect(normalized[1]).toContain("/api/matters/[id]/ai/route.ts");
+    expect(normalized[1]).toContain("/api/intake-chat/[sessionId]/route.ts");
+    expect(normalized[2]).toContain("/api/matters/[id]/ai/route.ts");
     for (const file of offenders) {
       const src = fs.readFileSync(file, "utf8");
-      expect(src).toMatch(/requireUser\(req, \["STAFF", "ATTORNEY"\]\)/);
+      if (file.replaceAll("\\", "/").includes("/api/intake-chat/")) {
+        // The caged exception: turn-posting is CLIENT-only, own-session-only,
+        // and dies without the kill switch.
+        expect(src).toMatch(/requireUser\(req, \["CLIENT"\]\)/);
+        expect(src).toContain("intakeChatEnabled()");
+      } else {
+        expect(src).toMatch(/requireUser\(req, \["STAFF", "ATTORNEY"\]\)/);
+      }
     }
   });
 

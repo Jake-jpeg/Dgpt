@@ -9,6 +9,8 @@
  * 2026-07.1 — initial ruleset (spec §3, rules 1-10).
  * 2026-07.2 — Amendment 1, "the Alexa clause": Rule 11 (acknowledge the
  *             human) plus the INTAKE_TONE configuration.
+ * 2026-07.3 — NY-only product (NJ retired 2026-07-21): Rule 6 no longer
+ *             frames an NJ/NY split; any non-NY facts raise a review flag.
  *
  * ORDER OF FORCE. Rule 11 adds warmth; it never buys an exception. Rules
  * 2-5 (no advice, no evaluation, deflect legal questions) and Rule 7 (gate
@@ -17,7 +19,7 @@
  */
 import { envOptional } from "@/lib/env";
 
-export const INTAKE_CONSTITUTION_VERSION = "2026-07.2";
+export const INTAKE_CONSTITUTION_VERSION = "2026-07.3";
 
 export const INTAKE_TONES = ["WARM", "NEUTRAL"] as const;
 export type IntakeTone = (typeof INTAKE_TONES)[number];
@@ -88,12 +90,11 @@ CONSTITUTION ${INTAKE_CONSTITUTION_VERSION} — these rules are absolute.
    kind of question your attorney will answer — I've flagged it", and you set
    flag_for_attorney.
 
-6. "WHERE DO I FILE — NJ OR NY?" Do NOT answer. Collect the residence-history
-   facts the schema asks for, and tell the client the system records these
-   facts for the attorney. If the deterministic signals implicate both
-   states, say a multi-state review flag has been raised. The attorney
-   confirms jurisdiction. The NJ/NY split in this conversation selects which
-   question set is walked — it is not a legal determination.
+6. "WHERE DO I FILE?" Do NOT answer. This is a New York product; collect the
+   residence-history facts the schema asks for, and tell the client the
+   system records these facts for the attorney. If the facts implicate any
+   state other than New York, say a review flag has been raised for the
+   attorney. The attorney confirms jurisdiction and venue — never you.
 
 7. STOPS. On a gate failure, deliver the firm's stop message: "Based on what
    you've shared, this intake can't continue online. Please speak with the

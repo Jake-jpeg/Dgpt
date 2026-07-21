@@ -18,7 +18,6 @@ import {
   progress,
   isComplete,
   askableItems,
-  GATE_ORDER,
   type SequencerState,
 } from "@/lib/intake-chat/sequencer";
 import { lookupGlossary, glossarySliceFor, glossaryNeedsAttorneyContent } from "@/lib/intake-chat/glossary";
@@ -32,10 +31,10 @@ afterEach(() => {
 
 const FIRM = { firmName: "Jake Kim Law Firm", firmContact: "(201) 555-0100" };
 
-describe("constitution 2026-07.2 — Amendment 1", () => {
-  it("is versioned 2026-07.2 and states the version in the prompt", () => {
-    expect(INTAKE_CONSTITUTION_VERSION).toBe("2026-07.2");
-    expect(buildConstitution(FIRM)).toContain("CONSTITUTION 2026-07.2");
+describe("constitution 2026-07.3 — Amendment 1 + NY-only Rule 6", () => {
+  it("is versioned 2026-07.3 and states the version in the prompt", () => {
+    expect(INTAKE_CONSTITUTION_VERSION).toBe("2026-07.3");
+    expect(buildConstitution(FIRM)).toContain("CONSTITUTION 2026-07.3");
   });
 
   it("carries Rule 11 with its example and all four constraints", () => {
@@ -109,23 +108,23 @@ describe("INTAKE_TONE configuration", () => {
   it("records tone AND version in the session marker", () => {
     delete process.env.INTAKE_TONE;
     expect(constitutionEventText()).toBe(
-      "intake assistant started (constitution 2026-07.2, tone WARM)"
+      "intake assistant started (constitution 2026-07.3, tone WARM)"
     );
     process.env.INTAKE_TONE = "NEUTRAL";
     expect(constitutionEventText()).toContain("tone NEUTRAL");
-    expect(constitutionEventText()).toContain("2026-07.2");
+    expect(constitutionEventText()).toContain("2026-07.3");
   });
 });
 
 // ── sequencer ────────────────────────────────────────────────────────
 
-const SCHEMA = getSchemaForCategory("NJ_FM_DIVORCE_UNCONTESTED");
+const SCHEMA = getSchemaForCategory("NY_SUPREME_UNCONTESTED");
 
 function baseState(over: Partial<SequencerState> = {}): SequencerState {
   return {
     schema: SCHEMA,
     answers: {},
-    gatesAnswered: [],
+    machineState: "GATE_RESIDENCY",
     checklist: [],
     checklistReported: [],
     welcomed: false,
@@ -140,7 +139,7 @@ function baseState(over: Partial<SequencerState> = {}): SequencerState {
 function answer(item: IntakeItem): unknown {
   if (item.type === "yes_no") return true;
   if (item.type === "multi_select") return ["X"];
-  if (item.type.startsWith("repeat_")) return [{ state: "NJ" }];
+  if (item.type.startsWith("repeat_")) return [{ state: "NY" }];
   if (item.type === "money" || item.type === "percent" || item.type === "integer") return 1;
   return "answered";
 }
@@ -150,22 +149,29 @@ describe("sequencer — deterministic and exhaustive", () => {
     expect(nextStep(baseState()).kind).toBe("WELCOME");
   });
 
-  it("walks the five gates in their fixed order before any schema question", () => {
-    const seen: string[] = [];
-    const state = baseState({ welcomed: true });
-    for (let i = 0; i < GATE_ORDER.length; i++) {
-      const step = nextStep(state);
+  it("asks exactly the gate the machine is parked on; questions begin only past the gates", () => {
+    // The machine owns gate order (the NY residency cascade branches).
+    for (const gate of [
+      "GATE_RESIDENCY",
+      "GATE_RESIDENCY_1YR",
+      "GATE_RESIDENCY_NEXUS",
+      "GATE_VENUE",
+      "GATE_DV",
+      "GATE_CHILDREN",
+      "GATE_COMPLEXITY",
+    ] as const) {
+      const step = nextStep(baseState({ welcomed: true, machineState: gate }));
       expect(step.kind).toBe("GATE");
-      seen.push(step.id!);
-      state.gatesAnswered.push(step.id as (typeof GATE_ORDER)[number]);
+      expect(step.id).toBe(gate);
+      expect(step.gate?.prompt.length).toBeGreaterThan(5);
     }
-    expect(seen).toEqual([...GATE_ORDER]);
-    // Only now does it reach the schema.
-    expect(nextStep(state).kind).toBe("QUESTION");
+    expect(nextStep(baseState({ welcomed: true, machineState: "TIER_BRANCH" })).kind).toBe("QUESTION");
+    // A legacy/unexpected machine state never silently skips the gates.
+    expect(nextStep(baseState({ welcomed: true, machineState: "PRE_GATE" })).kind).toBe("STOPPED");
   });
 
   it("visits EVERY visible client item before moving past the question phase", () => {
-    const state = baseState({ welcomed: true, gatesAnswered: [...GATE_ORDER] });
+    const state = baseState({ welcomed: true, machineState: "TIER_BRANCH" });
     const visited = new Set<string>();
     // Bounded loop: far more iterations than items, so a stuck sequencer
     // fails loudly instead of hanging.
@@ -191,7 +197,7 @@ describe("sequencer — deterministic and exhaustive", () => {
   it("walks the checklist, then read-back, then confirmation, then completes", () => {
     const state = baseState({
       welcomed: true,
-      gatesAnswered: [...GATE_ORDER],
+      machineState: "TIER_BRANCH",
       checklist: [
         { documentId: "DOC_A", title: "A", requestText: "a", status: "REQUIRED_NOW", triggeredBy: [] },
         { documentId: "DOC_B", title: "B", requestText: "b", status: "REQUIRED_NOW", triggeredBy: [] },
@@ -232,7 +238,7 @@ describe("sequencer — deterministic and exhaustive", () => {
   });
 
   it("reports progress with a section label for the indicator", () => {
-    const state = baseState({ welcomed: true, gatesAnswered: [...GATE_ORDER] });
+    const state = baseState({ welcomed: true, machineState: "TIER_BRANCH" });
     const p = progress(state);
     expect(p.total).toBeGreaterThan(0);
     expect(p.answered).toBe(0);

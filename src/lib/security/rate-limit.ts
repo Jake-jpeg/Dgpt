@@ -17,6 +17,8 @@ export interface RateLimitRule {
 export const RULES = {
   login: { windowMs: 60_000, max: 10 },
   intake: { windowMs: 60_000, max: 60 },
+  // Conversational intake turns: generous but bounded (spec §2.3).
+  "intake-chat": { windowMs: 60_000, max: 20 },
   bot: { windowMs: 60_000, max: 20 },
   // Beta-gate unlock attempts: strict — this is a shared-secret door.
   beta: { windowMs: 60_000, max: 5 },

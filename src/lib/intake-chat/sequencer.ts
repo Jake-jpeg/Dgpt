@@ -15,14 +15,11 @@
 import type { AnswerMap, IntakeItem, IntakeSchema } from "@/lib/intake2/types";
 import { itemVisible, isAnswered, type ChecklistEntry } from "@/lib/intake2/engine";
 import { GATE_QUESTIONS, type GateQuestion } from "@/config/gate-questions";
+import type { MachineState } from "@/lib/intake/machine";
+import { isGateState } from "@/lib/intake/scope-gate";
 
-export const GATE_ORDER: GateQuestion["state"][] = [
-  "GATE_RESIDENCY",
-  "GATE_VENUE",
-  "GATE_DV",
-  "GATE_CHILDREN",
-  "GATE_COMPLEXITY",
-];
+/** Machine states at or past which the gate phase is behind us. */
+const PAST_GATES: MachineState[] = ["TIER_BRANCH", "INTAKE", "READY_FOR_REVIEW"];
 
 export type StepKind =
   | "WELCOME"
@@ -52,8 +49,13 @@ export interface Step {
 export interface SequencerState {
   schema: IntakeSchema;
   answers: AnswerMap;
-  /** Gate states already answered, in any order. */
-  gatesAnswered: GateQuestion["state"][];
+  /**
+   * The live intake-session machine state. The MACHINE owns which gate is
+   * current (the NY residency cascade branches, so gate order is not a
+   * fixed list): while the state IS a gate, that gate is the step; once the
+   * state is past the gates, the question phase begins.
+   */
+  machineState: MachineState;
   /** Derived checklist for this matter. */
   checklist: ChecklistEntry[];
   /** Document ids the client has already reported on. */
@@ -112,16 +114,20 @@ export function nextStep(state: SequencerState): Step {
     return { kind: "WELCOME", id: null, ...sectionMeta(schema, null) };
   }
 
-  // Gates first, in their fixed order — the same order the form walks.
-  for (const gateState of GATE_ORDER) {
-    if (!state.gatesAnswered.includes(gateState)) {
-      return {
-        kind: "GATE",
-        id: gateState,
-        gate: GATE_QUESTIONS[gateState],
-        ...sectionMeta(schema, null),
-      };
-    }
+  // Gates first — the machine decides which gate is current (the residency
+  // cascade branches; the venue/DV/children/complexity order is fixed).
+  if (isGateState(state.machineState)) {
+    return {
+      kind: "GATE",
+      id: state.machineState,
+      gate: GATE_QUESTIONS[state.machineState],
+      ...sectionMeta(schema, null),
+    };
+  }
+  if (!PAST_GATES.includes(state.machineState)) {
+    // Defensive: an unexpected machine state (e.g. legacy PRE_GATE) never
+    // silently skips the gates — surface it as a stop for a human to fix.
+    return { kind: "STOPPED", id: `UNEXPECTED_STATE_${state.machineState}`, ...sectionMeta(schema, null) };
   }
 
   // Every visible CLIENT item, section by section, in schema order.
