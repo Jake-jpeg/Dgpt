@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Shell, useMe, StatusBadge, ErrorNotice, AccordionPanel } from "@/components/shell";
+import { Shell, useMe, StatusBadge, ErrorNotice, AccordionPanel, type PanelOpenSignal } from "@/components/shell";
 import { api, fmtWhen, STATE_LABELS } from "@/lib/ui/client-api";
 import Workbench from "./workbench";
 
@@ -130,6 +130,11 @@ export default function FirmMatterDetail() {
   const [audit, setAudit] = useState<AuditEvent[]>([]);
   // Jurisdiction confirmation drives one triage item; undefined = not loaded.
   const [jurisConfirmed, setJurisConfirmed] = useState<string | null | undefined>(undefined);
+  // An attention-item click asks a specific panel to open + scroll. The nonce
+  // makes a repeat click on the same target re-fire.
+  const [openSignal, setOpenSignal] = useState<PanelOpenSignal | null>(null);
+  const requestOpen = (id: string) =>
+    setOpenSignal((s) => ({ id, nonce: (s?.nonce ?? 0) + 1 }));
 
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -234,7 +239,15 @@ export default function FirmMatterDetail() {
   const readySessions = (matter?.sessions ?? []).filter((s) => s.state === "READY_FOR_REVIEW");
 
   // "Needs your attention" — exactly the items awaiting attorney action.
-  const attention: { key: string; text: string; href: string; link: string }[] = [];
+  // In-page targets carry `panel` (click opens + scrolls that panel);
+  // cross-page targets carry `href` (a normal navigation).
+  const attention: {
+    key: string;
+    text: string;
+    link: string;
+    panel?: string;
+    href?: string;
+  }[] = [];
   if (isAttorney) {
     for (const s of pendingConflicts) {
       attention.push({
@@ -248,8 +261,8 @@ export default function FirmMatterDetail() {
       attention.push({
         key: "jurisdiction",
         text: "Jurisdiction & scope not yet determined",
-        href: "#workbench",
-        link: "Set below",
+        panel: "jurisdiction",
+        link: "Set jurisdiction",
       });
     }
     for (const s of readySessions) {
@@ -265,7 +278,7 @@ export default function FirmMatterDetail() {
     attention.push({
       key: `ai-${v.id}`,
       text: `AI draft "${doc.title}" (v${v.versionNo}) awaits attorney review`,
-      href: "#documents",
+      panel: "documents",
       link: "Open documents",
     });
   }
@@ -273,7 +286,7 @@ export default function FirmMatterDetail() {
     attention.push({
       key: `esc-${n.id}`,
       text: "Escalation flagged for attorney attention",
-      href: "#requests",
+      panel: "requests",
       link: "Open requests",
     });
   }
@@ -281,7 +294,7 @@ export default function FirmMatterDetail() {
     attention.push({
       key: `assist-${a.id}`,
       text: "Client help request is open",
-      href: "#requests",
+      panel: "requests",
       link: "Open requests",
     });
   }
@@ -369,10 +382,16 @@ export default function FirmMatterDetail() {
                   {attention.map((a) => (
                     <li className="attention-item" key={a.key}>
                       <span className="attention-text">{a.text}</span>
-                      {a.href.startsWith("#") ? (
-                        <a href={a.href}>{a.link}</a>
+                      {a.panel ? (
+                        <button
+                          type="button"
+                          className="attention-link"
+                          onClick={() => requestOpen(a.panel!)}
+                        >
+                          {a.link}
+                        </button>
                       ) : (
-                        <Link href={a.href}>{a.link}</Link>
+                        <Link href={a.href!}>{a.link}</Link>
                       )}
                     </li>
                   ))}
@@ -578,8 +597,9 @@ export default function FirmMatterDetail() {
           </AccordionPanel>
 
           {/* ── Documents ────────────────────────────────────────── */}
-          <div id="documents">
           <AccordionPanel
+            panelId="documents"
+            openSignal={openSignal}
             title="Documents"
             summary={
               docs.length === 0
@@ -897,16 +917,19 @@ export default function FirmMatterDetail() {
               </div>
             </div>
           </AccordionPanel>
-          </div>
 
           {/* ── NJ/NY lawyer workbench (B10) — each panel is its own accordion ── */}
-          <div id="workbench">
-            <Workbench matterId={matterId} isAttorney={isAttorney} onArtifactCreated={load} />
-          </div>
+          <Workbench
+            matterId={matterId}
+            isAttorney={isAttorney}
+            onArtifactCreated={load}
+            openSignal={openSignal}
+          />
 
           {/* ── Requests, accommodations, notes ─────────────────── */}
-          <div id="requests">
           <AccordionPanel
+            panelId="requests"
+            openSignal={openSignal}
             title="Requests & assistance"
             summary={
               openInfoReqs.length + openAssists.length + escalations.length > 0
@@ -1097,7 +1120,6 @@ export default function FirmMatterDetail() {
               </div>
             </div>
           </AccordionPanel>
-          </div>
 
           {/* ── Audit (attorney) ─────────────────────────────────── */}
           {isAttorney && (

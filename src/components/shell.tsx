@@ -5,7 +5,7 @@
  * screen. Navigation is shaped by the AUTHORITATIVE role from /api/auth/me
  * (the server re-checks on every API call regardless of what renders here).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/lib/ui/client-api";
@@ -202,13 +202,30 @@ export function ErrorNotice({ message }: { message: string | null }) {
 }
 
 /**
+ * A request to open a specific panel — an id plus a monotonic nonce so the
+ * SAME target clicked twice still re-fires (the object identity changes even
+ * when the id repeats). Panels compare against their own `panelId`.
+ */
+export interface PanelOpenSignal {
+  id: string;
+  nonce: number;
+}
+
+/**
  * Collapsible section. `summary` is a one-line state string shown in the
  * header so the reader knows what's inside without opening it. When `empty`
  * is true the panel renders as a muted one-liner and cannot be expanded —
- * an empty table is never shown. Native <details> keeps it keyboard- and
- * zoom-friendly with no JS.
+ * an empty table is never shown.
+ *
+ * Native <details> throughout: the summary stays a real toggle (mouse and
+ * keyboard), and user toggles sync back through `onToggle`. When a matching
+ * `openSignal` arrives the panel opens itself and scrolls into view — that
+ * is the ONLY thing that forces it open; it never forces it closed, so a
+ * click-to-open never fights the attorney's own collapse.
  */
 export function AccordionPanel({
+  panelId,
+  openSignal,
   title,
   summary,
   defaultOpen = false,
@@ -216,6 +233,8 @@ export function AccordionPanel({
   emptyText,
   children,
 }: {
+  panelId?: string;
+  openSignal?: PanelOpenSignal | null;
   title: string;
   summary?: string;
   defaultOpen?: boolean;
@@ -223,6 +242,15 @@ export function AccordionPanel({
   emptyText?: string;
   children: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const ref = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    if (!panelId || !openSignal || openSignal.id !== panelId) return;
+    setOpen(true);
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [openSignal, panelId]);
+
   if (empty) {
     return (
       <div className="panel accordion" aria-disabled="true">
@@ -238,7 +266,12 @@ export function AccordionPanel({
     );
   }
   return (
-    <details className="panel accordion" open={defaultOpen}>
+    <details
+      ref={ref}
+      className="panel accordion"
+      open={open}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+    >
       <summary>
         <span className="accordion-title">{title}</span>
         {summary && <span className="accordion-state">{summary}</span>}

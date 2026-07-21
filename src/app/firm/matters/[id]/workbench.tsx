@@ -11,8 +11,8 @@
  * document checklist · form readiness (attorney) · legal source status ·
  * AI actions + AI report viewer (review required, always).
  */
-import { useCallback, useEffect, useState } from "react";
-import { StatusBadge } from "@/components/shell";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { StatusBadge, type PanelOpenSignal } from "@/components/shell";
 import { api, fmtWhen } from "@/lib/ui/client-api";
 
 /* ── shared shapes (mirrors of the API responses) ─────────────────── */
@@ -163,16 +163,32 @@ function Panel({
   sub,
   summary,
   defaultOpen = false,
+  panelId,
+  openSignal,
   children,
 }: {
   title: string;
   sub?: string;
   summary?: string;
   defaultOpen?: boolean;
+  panelId?: string;
+  openSignal?: PanelOpenSignal | null;
   children: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const ref = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (!panelId || !openSignal || openSignal.id !== panelId) return;
+    setOpen(true);
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [openSignal, panelId]);
   return (
-    <details className="panel accordion" open={defaultOpen}>
+    <details
+      ref={ref}
+      className="panel accordion"
+      open={open}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+    >
       <summary>
         <span className="accordion-title">{title}</span>
         {summary && <span className="accordion-state">{summary}</span>}
@@ -191,14 +207,16 @@ export default function Workbench({
   matterId,
   isAttorney,
   onArtifactCreated,
+  openSignal,
 }: {
   matterId: string;
   isAttorney: boolean;
   onArtifactCreated: () => void;
+  openSignal?: PanelOpenSignal | null;
 }) {
   return (
     <>
-      <JurisdictionPanel matterId={matterId} isAttorney={isAttorney} />
+      <JurisdictionPanel matterId={matterId} isAttorney={isAttorney} openSignal={openSignal} />
       <IntakeReviewPanel matterId={matterId} />
       <ChecklistPanel matterId={matterId} isAttorney={isAttorney} />
       {isAttorney && <FormReadinessPanel matterId={matterId} />}
@@ -210,7 +228,15 @@ export default function Workbench({
 
 /* ── jurisdiction & scope (B6 UI) ─────────────────────────────────── */
 
-function JurisdictionPanel({ matterId, isAttorney }: { matterId: string; isAttorney: boolean }) {
+function JurisdictionPanel({
+  matterId,
+  isAttorney,
+  openSignal,
+}: {
+  matterId: string;
+  isAttorney: boolean;
+  openSignal?: PanelOpenSignal | null;
+}) {
   const [view, setView] = useState<JurisdictionView | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -243,6 +269,8 @@ function JurisdictionPanel({ matterId, isAttorney }: { matterId: string; isAttor
 
   return (
     <Panel
+      panelId="jurisdiction"
+      openSignal={openSignal}
       title="Jurisdiction & scope (attorney determination)"
       sub="FACTS COLLECTED are shown separately from the determination. Nothing is auto-selected from a mailing address; multi-state facts flag the matter for review."
       summary={
