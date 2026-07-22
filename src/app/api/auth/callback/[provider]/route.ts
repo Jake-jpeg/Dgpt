@@ -69,7 +69,20 @@ export async function GET(
     // client provider. Accept ONLY if the verified email matches the bound
     // address; nothing is created on a mismatch, so the real client can still
     // use the link. Entra never carries a client invite.
-    if (pendingInvite && (provider === "google" || provider === "msa") && !boundAccount) {
+    //
+    // EXISTING accounts accept too (bug fix 2026-07-22): a returning CLIENT
+    // — e.g. one provisioned under the retired open-signup flow, or a past
+    // client being re-engaged on a new matter — must be able to consume an
+    // invitation exactly like a brand-new identity. Requiring !boundAccount
+    // silently skipped acceptance for them: the invitation stayed unconsumed,
+    // no matter was ever bound, and the portal told an invited client they
+    // were not invited. The failure handling now splits:
+    //   - no account yet → bounce to /invite with the reason (unchanged);
+    //     no session is minted, the link stays usable by the right person;
+    //   - account exists → a stale/used/mismatched cookie token must NEVER
+    //     lock a client out of their own account: audit it and continue the
+    //     normal login (their existing matter bindings are untouched).
+    if (pendingInvite && (provider === "google" || provider === "msa")) {
       const outcome = await onboardInvitedClient({
         rawToken: pendingInvite,
         subject: identity.subject,
@@ -82,22 +95,27 @@ export async function GET(
                 "INVITATION_ACCEPT_FAILED",
                 `provider=${provider} reason=${outcome.error} subjectHash=${hashNameForAudit(identity.email)}`
               ));
-        // Send them back to the invite page with a clear, non-leaky reason,
-        // carrying the same token they already hold so they can retry with the
-        // right account. NO session is minted — an unmatched sign-in is nothing.
-        const back = `/invite?e=${outcome.error}&token=${encodeURIComponent(pendingInvite)}`;
-        const headers = new Headers({ Location: back });
-        headers.append("Set-Cookie", `${OAUTH_TX_COOKIE}=; Path=/; HttpOnly; Max-Age=0`);
-        clearInviteCookie(headers);
-        return new Response(null, { status: 302, headers });
+        if (!boundAccount) {
+          // Send them back to the invite page with a clear, non-leaky reason,
+          // carrying the same token they already hold so they can retry with
+          // the right account. NO session is minted — an unmatched sign-in is
+          // nothing.
+          const back = `/invite?e=${outcome.error}&token=${encodeURIComponent(pendingInvite)}`;
+          const headers = new Headers({ Location: back });
+          headers.append("Set-Cookie", `${OAUTH_TX_COOKIE}=; Path=/; HttpOnly; Max-Age=0`);
+          clearInviteCookie(headers);
+          return new Response(null, { status: 302, headers });
+        }
+        // Existing account + failed invite: fall through to normal login.
+      } else {
+        // Accepted: the client now holds a CLIENT account bound to the matter.
+        boundAccount = (await findAccountForSession({
+              subject: identity.subject,
+              email: identity.email,
+              name: identity.name,
+              adminBootstrapEmails: adminBootstrapEmails(),
+            }));
       }
-      // Accepted: the client now holds a CLIENT account bound to the matter.
-      boundAccount = (await findAccountForSession({
-            subject: identity.subject,
-            email: identity.email,
-            name: identity.name,
-            adminBootstrapEmails: adminBootstrapEmails(),
-          }));
     }
 
     // Providers authenticate; the DB authorizes. Firm-role accounts (Entra or

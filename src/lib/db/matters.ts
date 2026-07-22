@@ -291,6 +291,68 @@ export async function matterConflictCleared(matterId: string): Promise<boolean> 
 }
 
 /**
+ * ATTORNEY matter deletion — the lawyer runs their own book (operator
+ * directive 2026-07-22: attorney-side delete, not admin-only; "once LAS has
+ * this, they call the shots"). Removes the matter and EVERYTHING it owns,
+ * atomically: FK children (documents/versions/approvals/releases,
+ * invitations, accommodations, info/assistance requests, notes, access
+ * grants) via ON DELETE CASCADE, plus the non-FK children (intake answers +
+ * history, conflict submissions, disclosure acks, AI metadata, the matter's
+ * intake sessions → their identity/answers/chat transcripts).
+ *
+ * RETAINED: the tamper-evident audit_event chain and bot_interaction_log
+ * (opaque refs, no PII), exactly like the admin cascade.
+ *
+ * If the bound client account is left owning NOTHING (no other matter, no
+ * sessions, no submissions), it is removed too — an invited client whose only
+ * matter is deleted should not linger as a login with nowhere to go. The
+ * caller (route) enforces the ATTORNEY role and refuses legal holds.
+ */
+export async function deleteMatterCascade(matterId: string): Promise<{
+  deleted: boolean;
+  clientAccountDeleted: boolean;
+  clientEmail: string | null;
+}> {
+  const db = getDb();
+  const result = await db.serialized(async (tx) => {
+    const m = await tx.get<{ id: string; client_user_id: string | null }>(
+      `SELECT id, client_user_id FROM matter WHERE id = ?`,
+      matterId
+    );
+    if (!m) return { deleted: false, clientUserId: null as string | null };
+    await tx.run(`DELETE FROM matter_intake_answer WHERE matter_id = ?`, matterId);
+    await tx.run(`DELETE FROM matter_intake_answer_history WHERE matter_id = ?`, matterId);
+    await tx.run(`DELETE FROM conflict_submission WHERE matter_ref = ?`, matterId);
+    await tx.run(`DELETE FROM disclosure_ack WHERE matter_ref = ?`, matterId);
+    await tx.run(`DELETE FROM ai_invocation WHERE matter_ref = ?`, matterId);
+    await tx.run(`DELETE FROM ai_job WHERE matter_ref = ?`, matterId);
+    // Sessions link by non-FK matter_id; deleting them cascades their
+    // party_identity / intake_answer / intake_chat_message rows.
+    await tx.run(`DELETE FROM intake_session WHERE matter_id = ?`, matterId);
+    await tx.run(`DELETE FROM matter WHERE id = ?`, matterId);
+    return { deleted: true, clientUserId: m.client_user_id };
+  });
+
+  if (!result.deleted) return { deleted: false, clientAccountDeleted: false, clientEmail: null };
+
+  // Orphan cleanup: a CLIENT account with zero remaining case references.
+  let clientAccountDeleted = false;
+  let clientEmail: string | null = null;
+  if (result.clientUserId) {
+    const { getUserById, countUserReferences } = await import("./users");
+    const user = await getUserById(result.clientUserId);
+    if (user && user.role === "CLIENT") {
+      clientEmail = user.email;
+      if ((await countUserReferences(user)) === 0) {
+        await db.run(`DELETE FROM app_user WHERE id = ?`, user.id);
+        clientAccountDeleted = true;
+      }
+    }
+  }
+  return { deleted: true, clientAccountDeleted, clientEmail };
+}
+
+/**
  * Advance (or rewind) a matter's intake phase — 1 commencement, 2 settlement,
  * 3 finalization. Attorney-driven case progression; the API route enforces
  * the ATTORNEY role and the change is audited there.

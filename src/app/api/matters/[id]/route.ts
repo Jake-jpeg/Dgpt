@@ -6,6 +6,10 @@
  * 404 for anyone else — existence is never leaked.
  */
 import { requireUser, requireMatterAccess } from "@/lib/auth/authz";
+import { HttpError } from "@/lib/auth/rbac";
+import { assertCsrf } from "@/lib/security/csrf";
+import { deleteMatterCascade } from "@/lib/db/matters";
+import { recordAudit } from "@/lib/db/repo";
 import { errorResponse } from "@/lib/auth/rbac";
 import { assertRateLimit } from "@/lib/security/rate-limit";
 import { listSessionsByMatter } from "@/lib/db/repo";
@@ -63,6 +67,46 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         })),
       },
     });
+  } catch (e) {
+    return errorResponse(e);
+  }
+}
+
+/**
+ * ATTORNEY matter deletion (2026-07-22 operator directive: the lawyer runs
+ * their own book — deletion is not admin-only). Cascades everything the
+ * matter owns (see deleteMatterCascade); the tamper-evident audit trail is
+ * retained, and the deletion itself is audited with metadata only. An
+ * orphaned CLIENT account (no other case data) is removed with it.
+ * LEGAL HOLD is absolute: a held matter cannot be deleted by anyone.
+ */
+export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  try {
+    assertRateLimit(req, "intake");
+    assertCsrf(req);
+    const authed = await requireUser(req, ["ATTORNEY"]);
+    const { id } = await ctx.params;
+    const matter = await requireMatterAccess(authed, id);
+    if (matter.legalHold) {
+      throw new HttpError(409, "This matter is under legal hold and cannot be deleted.");
+    }
+    const result = await deleteMatterCascade(matter.id);
+    if (!result.deleted) throw new HttpError(404, "Matter not found");
+    await recordAudit(
+      id,
+      "MATTER_DELETED",
+      JSON.stringify({ label: matter.label, lifecycle: matter.lifecycle }),
+      authed.account.id
+    );
+    if (result.clientAccountDeleted && result.clientEmail) {
+      await recordAudit(
+        id,
+        "USER_DELETED",
+        JSON.stringify({ email: result.clientEmail, role: "CLIENT", reason: "orphaned by matter deletion" }),
+        authed.account.id
+      );
+    }
+    return Response.json({ deleted: true, clientAccountDeleted: result.clientAccountDeleted });
   } catch (e) {
     return errorResponse(e);
   }

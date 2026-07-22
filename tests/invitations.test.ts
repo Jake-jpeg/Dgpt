@@ -121,6 +121,51 @@ describe("only the invited email can accept, exactly once", () => {
   });
 });
 
+describe("an EXISTING client account can accept a new invitation (2026-07-22 bug fix)", () => {
+  // THE FIRST LIVE-TEST BUG: a client provisioned earlier (retired
+  // open-signup era, or a returning client) already had a subject-bound
+  // account, and the OAuth callback ran onboarding only when NO account
+  // existed — so their invitation was silently never consumed and the portal
+  // told an invited client they were not invited.
+  it("returning client + fresh invitation → matter bound, session opened", async () => {
+    const email = "returning-client@example.test";
+    // The pre-existing account (as the open-signup era left it): CLIENT,
+    // subject-bound, owning NOTHING.
+    const existing: SessionUser = {
+      subject: "devstub|client:returning",
+      role: "CLIENT",
+      email,
+      name: "Returning Client",
+    };
+    const account = await provisionAccount(existing);
+    expect(account.role).toBe("CLIENT");
+
+    const { matter, rawToken } = await freshInvite(email);
+    const outcome = await onboardInvitedClient({
+      rawToken,
+      subject: existing.subject,
+      email,
+      name: existing.name,
+    });
+    expect("error" in outcome).toBe(false);
+    if ("error" in outcome) return;
+    expect(outcome.matterId).toBe(matter.id);
+    // The matter is bound to the EXISTING account — no duplicate was created.
+    expect((await getMatter(matter.id))!.clientUserId).toBe(account.id);
+    expect((await listSessionsByMatter(matter.id)).length).toBe(1);
+  });
+
+  it("the callback runs invite acceptance for existing accounts too (source tripwire)", async () => {
+    // The bug was one condition: `pendingInvite && ... && !boundAccount`.
+    // This tripwire fails if anyone reintroduces the !boundAccount guard on
+    // the invite branch.
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("src/app/api/auth/callback/[provider]/route.ts", "utf8");
+    expect(src).not.toMatch(/pendingInvite[^)]*&&\s*!boundAccount/);
+    expect(src).toMatch(/EXISTING accounts accept too/);
+  });
+});
+
 describe("a firm account cannot accept a client invitation", () => {
   it("returns firm_account", async () => {
     const attorney = await provisionAccount(SYNTH_ATTORNEY);

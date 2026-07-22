@@ -699,6 +699,11 @@ export default function FirmMatterDetail() {
               </div>
             </AccordionPanel>
           )}
+
+          {/* ── Danger zone: attorney matter deletion ─────────────── */}
+          {isAttorney && matter && (
+            <DeleteMatterPanel matterId={matterId} matterLabel={matter.label} />
+          )}
         </>
       )}
     </Shell>
@@ -883,6 +888,61 @@ function CourtFormsPanel({
   );
 }
 
+/**
+ * Attorney matter deletion (operator directive 2026-07-22: the lawyer runs
+ * their own book). Cascades the matter and everything it owns; an orphaned
+ * client login goes with it; the audit trail survives. Guarded by a
+ * typed-label confirmation, and the server refuses legal holds regardless.
+ */
+function DeleteMatterPanel({ matterId, matterLabel }: { matterId: string; matterLabel: string }) {
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const match = typed.trim() === matterLabel.trim();
+
+  async function doDelete() {
+    if (!match) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = (await api.del(`/api/matters/${matterId}`)) as {
+        deleted: boolean;
+        clientAccountDeleted: boolean;
+      };
+      window.location.href = `/firm?deleted=1${r.clientAccountDeleted ? "&account=1" : ""}`;
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "The matter could not be deleted");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <AccordionPanel title="Delete this matter" summary="danger zone">
+      <p className="panel-sub">
+        Permanently deletes this matter and everything in it — intake answers, chat
+        transcript, documents, invitations. If the client&apos;s login has no other case
+        here, it is removed too. The audit trail is retained. This cannot be undone.
+        Matters under legal hold cannot be deleted.
+      </p>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="min-w-64 flex-1 text-sm">
+          <span className="field-label">Type the matter label to confirm: “{matterLabel}”</span>
+          <input
+            className="text-input"
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            placeholder={matterLabel}
+          />
+        </label>
+        <button className="btn btn-danger" disabled={!match || busy} onClick={doDelete}>
+          {busy ? "Deleting…" : "Delete matter permanently"}
+        </button>
+      </div>
+      {err && <ErrorNotice message={err} />}
+    </AccordionPanel>
+  );
+}
+
 function InvitationsPanel({ matterId }: { matterId: string }) {
   const [invites, setInvites] = useState<InviteRow[]>([]);
   const [email, setEmail] = useState("");
@@ -961,14 +1021,22 @@ function InvitationsPanel({ matterId }: { matterId: string }) {
 
       {link && (
         <div className="notice notice-info mt-3">
-          <p className="font-semibold">Invitation link for {linkFor} — copy it now (shown once):</p>
+          <p className="font-semibold">
+            ⚠ THIS LINK IS SHOWN ONCE — EVER. Copy and send it to {linkFor} before you
+            leave or refresh this page.
+          </p>
           <p className="mono break-all">{link}</p>
           <button
-            className="btn btn-quiet mt-2"
+            className="btn btn-primary mt-2"
             onClick={() => navigator.clipboard?.writeText(link)}
           >
             Copy link
           </button>
+          <p className="mt-2 text-xs text-slate-600">
+            The system stores only a fingerprint of this link, never the link itself, so it
+            cannot be re-displayed. If it&apos;s lost, revoke it below and create a new one —
+            takes ten seconds.
+          </p>
         </div>
       )}
 
