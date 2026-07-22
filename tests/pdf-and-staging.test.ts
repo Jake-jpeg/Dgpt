@@ -121,6 +121,28 @@ describe("deterministic mappings", () => {
     expect(() => buildRenderPayload("ny", "nonsense", matter, {})).toThrow(/unsupported/);
     expect(() => buildRenderPayload("nj", "verification", matter, {})).toThrow(/unsupported/);
   });
+
+  it("Phase-3 UD-14/UD-15 payloads: caption facts mapped, clerk/server fields blank on purpose", async () => {
+    const matter = await nyReadyMatter();
+    const answers = {
+      ...Object.fromEntries(NY_MAPPING_ANSWERS.map((a) => [a.questionId, a.value])),
+      "shared.identity.other_address": { line1: "9 Other St", city: "Brooklyn", state: "NY", zip: "11215" },
+      "ny.case.index_number": "EF001234-2026",
+    };
+    const ud14 = buildRenderPayload("ny", "ud14", matter, answers);
+    expect(ud14.county).toBe("Kings");
+    expect(ud14.indexNumber).toBe("EF001234-2026");
+    expect(ud14.defendantAddress).toBe("9 Other St, Brooklyn, NY 11215");
+    expect(ud14.judgmentEntryDate).toBe(""); // clerk-stamped: never invented
+
+    const ud15 = buildRenderPayload("ny", "ud15", matter, answers);
+    expect(ud15.defendantCurrentAddress).toBe("9 Other St, Brooklyn, NY 11215");
+
+    // The defendant's address is critical for service forms — refuse without it.
+    const noAddr = Object.fromEntries(NY_MAPPING_ANSWERS.map((a) => [a.questionId, a.value]));
+    expect(() => buildRenderPayload("ny", "ud14", matter, noAddr)).toThrow(/VALIDATION/);
+    expect(() => buildRenderPayload("ny", "ud15", matter, noAddr)).toThrow(/VALIDATION/);
+  });
 });
 
 describe("RL client contract", () => {

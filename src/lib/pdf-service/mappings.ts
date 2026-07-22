@@ -130,6 +130,47 @@ export function buildNyComplaintPayload(matter: MatterRow, answers: AnswerMap): 
   return payload;
 }
 
+/**
+ * NY UD-14 Notice of Entry (Phase 3 — post-judgment). judgmentEntryDate is
+ * deliberately BLANK: the entry date exists only on the county clerk's
+ * stamp; the attorney fills it at service time (same pattern as dateFiled).
+ * indexNumber comes from the intake answer when the client/firm has recorded
+ * it; otherwise the form renders a blank for the attorney.
+ */
+export function buildNyUd14Payload(matter: MatterRow, answers: AnswerMap): RenderPayload {
+  const payload: RenderPayload = {
+    plaintiffName: str(answers["shared.identity.client_name"]),
+    defendantName: str(answers["shared.identity.other_name"]),
+    county: titleCaseCounty(answers["ny.case.county"]),
+    indexNumber: str(answers["ny.case.index_number"]),
+    plaintiffAddress: combinedAddress(answers["shared.identity.client_address"]),
+    defendantAddress: combinedAddress(answers["shared.identity.other_address"]),
+    judgmentEntryDate: "", // clerk-stamped; attorney completes at service
+  };
+  required(payload, ["plaintiffName", "defendantName", "county", "plaintiffAddress", "defendantAddress"]);
+  return payload;
+}
+
+/**
+ * NY UD-15 Affirmation of Service by Mail of the JOD (Phase 3). The server
+ * must be a third party over 18 (not the plaintiff) — server identity and
+ * mailing date are completed by the firm at execution; the payload carries
+ * only the caption facts and the defendant's current mailing address.
+ */
+export function buildNyUd15Payload(matter: MatterRow, answers: AnswerMap): RenderPayload {
+  const defendantAddress = combinedAddress(answers["shared.identity.other_address"]);
+  const payload: RenderPayload = {
+    plaintiffName: str(answers["shared.identity.client_name"]),
+    defendantName: str(answers["shared.identity.other_name"]),
+    county: titleCaseCounty(answers["ny.case.county"]),
+    indexNumber: str(answers["ny.case.index_number"]),
+    defendantAddress,
+    defendantCurrentAddress: defendantAddress,
+  };
+  required(payload, ["plaintiffName", "defendantName", "county", "defendantCurrentAddress"]);
+  return payload;
+}
+
 /** Dispatch strictly by the allowlisted (state, form) pair. */
 export function buildRenderPayload(
   state: string,
@@ -139,5 +180,7 @@ export function buildRenderPayload(
 ): RenderPayload {
   if (state === "ny" && form === "ud1") return buildNyUd1Payload(matter, answers);
   if (state === "ny" && form === "complaint") return buildNyComplaintPayload(matter, answers);
+  if (state === "ny" && form === "ud14") return buildNyUd14Payload(matter, answers);
+  if (state === "ny" && form === "ud15") return buildNyUd15Payload(matter, answers);
   throw new Error("VALIDATION: unsupported state/form pair");
 }

@@ -48,6 +48,9 @@ export const PHASE1_ITEM_IDS: ReadonlySet<string> = new Set([
   "ny.case.grounds_dates",
   // Service posture (drives the acknowledgment-of-service / waiver path)
   "ny.case.service_facts",
+  // Existing-case index number (optional): pending-action signal at intake,
+  // and the caption field for the Phase-3 UD-14/UD-15 renders.
+  "ny.case.index_number",
 ]);
 
 /**

@@ -33,6 +33,21 @@ traces to a pleading paragraph (spec: project doc
 | ceremonyType | `shared.relationship.ceremony_type` | `civil` \| `religious` — drives the ¶FOURTH DRL § 253 branch |
 | unemancipatedChildren | — | fixed `"0"`: the children gate STOPS child cases pre-render; the generator renders an [ATTORNEY REVIEW REQUIRED] paragraph as backstop |
 
+## NY `ud14` / `ud15` (Phase 3 — finalization, post-judgment)
+
+RL generators: `generate_ud14.py` (Notice of Entry), `generate_ud15.py`
+(Affirmation of Service by Mail of the JOD).
+
+| RL field | Source | Rule |
+|---|---|---|
+| plaintiffName / defendantName | identity answers | verbatim (caption) |
+| county | `ny.case.county` | title case |
+| indexNumber | `ny.case.index_number` | verbatim; blank if not yet recorded |
+| plaintiffAddress | `shared.identity.client_address` | combined string (ud14) |
+| defendantAddress / defendantCurrentAddress | `shared.identity.other_address` | combined string; required for service forms |
+| judgmentEntryDate | — | blank (clerk-stamped; attorney completes at service) |
+| server identity / mailing date (ud15) | — | blank (third-party server ≥18, completed by the firm at execution) |
+
 ## Unresolved mappings (open, tracked)
 
 - Adverse-party address — intentionally

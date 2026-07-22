@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Shell, useMe, StatusBadge, ErrorNotice, AccordionPanel, type PanelOpenSignal } from "@/components/shell";
 import { api, fmtWhen, STATE_LABELS } from "@/lib/ui/client-api";
+import { ALLOWED_RENDERS } from "@/lib/pdf-service/types";
 import Workbench from "./workbench";
 
 interface MatterDetail {
@@ -653,6 +654,9 @@ export default function FirmMatterDetail() {
             </div>
           </AccordionPanel>
 
+          {/* ── Court forms: deterministic renders from confirmed answers ── */}
+          <CourtFormsPanel matterId={matterId} isAttorney={isAttorney} onArtifactCreated={load} />
+
           {/* ── NY lawyer workbench (B10) — each panel is its own accordion ── */}
           <Workbench
             matterId={matterId}
@@ -713,6 +717,108 @@ interface InviteRow {
   revoked: boolean;
   used: boolean;
   createdAt: string;
+}
+
+/**
+ * Court forms — one button per allowlisted (state, form) render. The payload
+ * is a deterministic mapping from SAVED intake answers (no AI input); the
+ * click IS the attorney's confirmation of that data, and every render lands
+ * as a document version in ATTORNEY_REVIEW_REQUIRED. Grouped by case phase:
+ * commencement (Summons + Verified Complaint) and finalization (UD-14/UD-15,
+ * post-judgment — entry date / server identity are completed by the firm at
+ * service time and render as blanks).
+ */
+function CourtFormsPanel({
+  matterId,
+  isAttorney,
+  onArtifactCreated,
+}: {
+  matterId: string;
+  isAttorney: boolean;
+  onArtifactCreated: () => void | Promise<void>;
+}) {
+  const [busyForm, setBusyForm] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+
+  async function render(state: string, form: string, label: string) {
+    setBusyForm(form);
+    setErr(null);
+    setDone(null);
+    try {
+      const r = (await api.post(`/api/matters/${matterId}/render-pdf`, {
+        state,
+        form,
+        confirmFormData: true,
+      })) as { artifact: { title: string } };
+      setDone(`${label} generated — it's in Documents as "${r.artifact.title}".`);
+      await onArtifactCreated();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "The form could not be generated");
+    } finally {
+      setBusyForm(null);
+    }
+  }
+
+  const phase1 = ALLOWED_RENDERS.filter((r) => r.form === "ud1" || r.form === "complaint");
+  const phase3 = ALLOWED_RENDERS.filter((r) => r.form === "ud14" || r.form === "ud15");
+
+  return (
+    <AccordionPanel title="Court forms" summary={`${ALLOWED_RENDERS.length} available`}>
+      <p className="panel-sub">
+        Forms are filled deterministically from the client&apos;s confirmed intake answers —
+        generating one is your confirmation of that data. Every generated form starts in
+        attorney review; nothing is released to the client from here.
+      </p>
+      {!isAttorney && (
+        <p className="panel-sub">Only the attorney can generate court forms.</p>
+      )}
+      {isAttorney && (
+        <div className="space-y-4">
+          <div>
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Phase 1 — commencement
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {phase1.map((r) => (
+                <button
+                  key={r.form}
+                  className="btn btn-primary"
+                  disabled={busyForm !== null}
+                  onClick={() => render(r.state, r.form, r.label)}
+                >
+                  {busyForm === r.form ? "Generating…" : `Generate ${r.label}`}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Phase 3 — finalization (post-judgment)
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {phase3.map((r) => (
+                <button
+                  key={r.form}
+                  className="btn btn-quiet"
+                  disabled={busyForm !== null}
+                  onClick={() => render(r.state, r.form, r.label)}
+                >
+                  {busyForm === r.form ? "Generating…" : `Generate ${r.label}`}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Entry date and the server&apos;s identity are completed by the firm at service
+              time — they render as blanks on purpose.
+            </p>
+          </div>
+          {done && <div className="notice notice-good">{done}</div>}
+          {err && <ErrorNotice message={err} />}
+        </div>
+      )}
+    </AccordionPanel>
+  );
 }
 
 function InvitationsPanel({ matterId }: { matterId: string }) {
