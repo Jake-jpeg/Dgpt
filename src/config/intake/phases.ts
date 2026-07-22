@@ -35,9 +35,14 @@ export const PHASE1_ITEM_IDS: ReadonlySet<string> = new Set([
   "shared.relationship.ceremony_type",
   // Prior/pending matrimonial actions (¶SEVENTH / ¶EIGHTH)
   "shared.relationship.prior_matrimonial_actions",
-  // NY residency + venue + grounds (¶FIRST, caption county, ¶NINTH)
+  // NY residency + venue + grounds (¶FIRST, caption county, ¶NINTH).
+  // married_in_ny / lived_in_ny_as_spouses select WHICH § 230 prong the
+  // complaint pleads (2yr → § 230(5); 1yr + nexus → § 230(1)/(2); 1yr no
+  // nexus → § 230(3), attorney-flagged at the gate).
   "ny.case.resident_now",
   "ny.case.resident_since",
+  "ny.case.married_in_ny",
+  "ny.case.lived_in_ny_as_spouses",
   "ny.case.county",
   "ny.case.grounds_facts",
   "ny.case.grounds_dates",

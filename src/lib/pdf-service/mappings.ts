@@ -80,6 +80,25 @@ export function buildNyUd1Payload(matter: MatterRow, answers: AnswerMap): Render
  * the generator renders an [ATTORNEY REVIEW REQUIRED] paragraph as a
  * defense-in-depth backstop if that invariant is ever violated.
  */
+/**
+ * Which DRL § 230 residence prong the complaint pleads — derived from the
+ * same facts the gates collected. Deterministic; the attorney sees the
+ * pleaded prong on the draft and the § 230(3) posture arrives pre-flagged
+ * (RESIDENCY_ATTORNEY_REVIEW) from the residency gates.
+ */
+function residencyBasisFromAnswers(answers: AnswerMap): string {
+  const since = str(answers["ny.case.resident_since"]);
+  if (since) {
+    const t = Date.parse(since);
+    const twoYearsMs = 2 * 365.25 * 24 * 60 * 60 * 1000;
+    if (Number.isFinite(t) && Date.now() - t >= twoYearsMs) return "two_year"; // § 230(5)
+  }
+  if (Boolean(answers["ny.case.married_in_ny"])) return "one_year_married"; // § 230(1)
+  if (Boolean(answers["ny.case.lived_in_ny_as_spouses"])) return "one_year_spouses"; // § 230(2)
+  if (since) return "one_year_cause"; // § 230(3) — gate-flagged for attorney review
+  return "two_year"; // no date on file: default prong; attorney reviews the draft
+}
+
 export function buildNyComplaintPayload(matter: MatterRow, answers: AnswerMap): RenderPayload {
   const place = str(answers["shared.relationship.marriage_place"]);
   const state = str(answers["shared.relationship.marriage_state"]);
@@ -91,6 +110,7 @@ export function buildNyComplaintPayload(matter: MatterRow, answers: AnswerMap): 
   const payload: RenderPayload = {
     ...baseFields(answers),
     county: titleCaseCounty(answers["ny.case.county"]),
+    residencyBasis: residencyBasisFromAnswers(answers),
     plaintiffAddress: combinedAddress(answers["shared.identity.client_address"]),
     defendantAddress: combinedAddress(answers["shared.identity.other_address"]),
     residentParty: "plaintiff",

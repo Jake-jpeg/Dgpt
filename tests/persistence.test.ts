@@ -33,10 +33,23 @@ async function expectFullyPurged(id: string) {
 }
 
 describe("out-of-scope sessions leave no substantive data (DB level)", () => {
-  it("PHASE 1: residency short of the two-year ground → attorney-review stop, purged", async () => {
+  it("PHASE 1: 1yr + NY nexus passes clean; under one year → attorney-review stop, purged", async () => {
+    // Clean 1-year + nexus path: § 230(1)/(2) — objective, no flag.
+    const ok = await startSession(cookie);
+    await runIdentityAndClear(cookie, ok);
+    await runGate(cookie, ok, false); // 2-year: no
+    const okR = await runGate(cookie, ok, true); // 1-year: yes
+    expect(okR.data.state).toBe("GATE_RESIDENCY_NEXUS");
+    const okR2 = await runGate(cookie, ok, true); // married in NY / lived as spouses
+    expect(okR2.data.state).toBe("GATE_VENUE");
+    const { getSession } = await import("@/lib/db/repo");
+    expect(((await getSession(ok))?.attorneyFlags ?? [])).not.toContain("RESIDENCY_ATTORNEY_REVIEW");
+
+    // Under one year: hard stop, purged.
     const id = await startSession(cookie);
     await runIdentityAndClear(cookie, id);
-    const r1 = await runGate(cookie, id, false); // 2-year: no → HARD STOP
+    await runGate(cookie, id, false); // 2-year: no
+    const r1 = await runGate(cookie, id, false); // 1-year: no → HARD STOP
     expect(r1.data.status).toBe("TERMINATED");
     expect(r1.data.card.id).toBe("PHASE1_ATTORNEY_REVIEW");
     await expectFullyPurged(id);

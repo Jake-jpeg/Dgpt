@@ -65,20 +65,36 @@ describe("scope gate unit behavior", () => {
   it("residency cascade: 2-year yes passes straight to venue", () => {
     expect(evaluateGate("GATE_RESIDENCY", true)).toMatchObject({ outcome: "PASS", next: "GATE_VENUE" });
   });
-  // ── PHASE 1 (the active product): anything short of the clean two-year
-  //    ground is a HARD STOP to attorney review — durational residency is
-  //    jurisdictional (operator directive 2026-07-22).
-  it("PHASE 1: 2-year no → HARD STOP to attorney review, never the cascade", () => {
-    const r = evaluateGate("GATE_RESIDENCY", false);
-    expect(r).toMatchObject({
+  // ── PHASE 1 residency policy (operator decision 2026-07-22, rev 2):
+  //    2yr → clean pass; 1yr + objective nexus (§230(1)/(2)) → clean pass;
+  //    1yr no nexus (§230(3) cause-in-NY) → pass FLAGGED for attorney;
+  //    under 1 year → HARD STOP (durational residency is jurisdictional).
+  it("PHASE 1: 2-year no → continues to the one-year question (the 1-yr prongs are real law)", () => {
+    expect(evaluateGate("GATE_RESIDENCY", false)).toMatchObject({
+      outcome: "PASS",
+      next: "GATE_RESIDENCY_1YR",
+    });
+  });
+  it("PHASE 1: under one year → HARD STOP to attorney review", () => {
+    expect(evaluateGate("GATE_RESIDENCY_1YR", false)).toMatchObject({
       outcome: "OUT",
       card: "PHASE1_ATTORNEY_REVIEW",
       auditEvent: "SCOPE_OUT_RESIDENCY_PHASE1",
     });
   });
-  it("PHASE 1: the 1-year and nexus states also stop if ever reached (defense in depth)", () => {
-    expect(evaluateGate("GATE_RESIDENCY_1YR", true)).toMatchObject({ outcome: "OUT", card: "PHASE1_ATTORNEY_REVIEW" });
-    expect(evaluateGate("GATE_RESIDENCY_NEXUS", false)).toMatchObject({ outcome: "OUT", card: "PHASE1_ATTORNEY_REVIEW" });
+  it("PHASE 1: 1yr + objective nexus passes CLEAN; 1yr without nexus passes FLAGGED (§230(3))", () => {
+    expect(evaluateGate("GATE_RESIDENCY_1YR", true)).toMatchObject({
+      outcome: "PASS",
+      next: "GATE_RESIDENCY_NEXUS",
+    });
+    const clean = evaluateGate("GATE_RESIDENCY_NEXUS", true);
+    expect(clean).toMatchObject({ outcome: "PASS", next: "GATE_VENUE" });
+    expect((clean as { reviewFlags?: string[] }).reviewFlags).toBeUndefined();
+    expect(evaluateGate("GATE_RESIDENCY_NEXUS", false)).toMatchObject({
+      outcome: "PASS",
+      next: "GATE_VENUE",
+      reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"],
+    });
   });
   // ── Legacy cascade (INTAKE_PHASE=ALL): the § 230 cascade never terminates.
   describe("legacy cascade under INTAKE_PHASE=ALL", () => {

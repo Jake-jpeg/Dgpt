@@ -133,11 +133,15 @@ describe("gates ride the real machine", () => {
     expect((await getSession(sessionId))!.state).toBe("GATE_VENUE");
   });
 
-  it("PHASE 1: residency short of two years → attorney-review card, session pauses", async () => {
+  it("PHASE 1: 1yr + nexus passes clean; under one year → attorney-review card, session pauses", async () => {
     mockTurns(turnPayload({ gate_response: { gateId: "GATE_RESIDENCY", value: false } }));
-    const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "No, we moved recently." });
-    // Durational residency is jurisdictional: the phase-1 lane stops here —
-    // an attorney reviews the § 230 one-year/nexus grounds, not the bot.
+    await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "No, about 18 months." });
+    expect((await getSession(sessionId))!.state).toBe("GATE_RESIDENCY_1YR");
+
+    mockTurns(turnPayload({ gate_response: { gateId: "GATE_RESIDENCY_1YR", value: false } }));
+    const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "Actually just moved here." });
+    // Under one year: durational residency is jurisdictional — the phase-1
+    // lane stops and an attorney reviews before anything proceeds.
     expect(r.stopped).toBe("SCOPE");
     expect(r.card?.title).toContain("attorney needs to look");
     expect(r.card?.body).toContain("isn't a rejection");

@@ -4,18 +4,23 @@
  * static card; the session is purged (no substantive data ever persists for
  * out-of-scope users).
  *
- * PHASE 1 policy (the active product — Summons + Verified Complaint only):
- * the clean DRL § 230(5) two-year continuous residence is the ONLY automated
- * pass. Any shorter path (the § 230(1)-(4) one-year + nexus grounds) is a
- * HARD STOP to attorney review before anything proceeds — durational
- * residency is jurisdictional, and courts are unforgiving about it
- * (operator directive 2026-07-22: "Jurisdiction games — courts HATE").
- * Children present is likewise a stop to attorney review: Phase 1 is the
+ * PHASE 1 residency policy (operator decision 2026-07-22, second revision):
+ *   § 230(5) two years .................... automated PASS (objective).
+ *   § 230(1)/(2) one year + married-in-NY
+ *     or lived-here-as-spouses ............ automated PASS (objective nexus).
+ *   § 230(3) one year, no objective nexus
+ *     (breakdown occurred in NY) .......... PASS + RESIDENCY_ATTORNEY_REVIEW
+ *     flag — valid law, but "where the breakdown occurred" is a
+ *     characterization the attorney verifies before signing.
+ *   Under one year ........................ HARD STOP to attorney review
+ *     (only § 230(4) could remain — a genuine attorney determination;
+ *     durational residency is jurisdictional and courts are unforgiving).
+ * Children present is a stop to attorney review: Phase 1 is the
  * no-unemancipated-children lane; child cases are handled by counsel.
  *
- * Under INTAKE_PHASE=ALL the legacy cascade behavior applies: the residency
- * cascade never terminates (flag + continue) and children route to the bar
- * referral card.
+ * Under INTAKE_PHASE=ALL the legacy behavior applies: the residency cascade
+ * never terminates (under-one-year flags + continues) and children route to
+ * the bar referral card.
  *
  * Venue is collect-only — "not sure" flags and continues; a county answer is
  * captured for the attorney, never judged.
@@ -55,48 +60,43 @@ export function evaluateGate(state: GateState, rawAnswer: unknown): GateEvaluati
   switch (state) {
     case "GATE_RESIDENCY": {
       // DRL § 230(5): two-year continuous residence — objective, automated.
-      // Phase 1: this is the ONLY automated pass. Anything shorter is a hard
-      // stop to attorney review — durational residency is jurisdictional.
+      // Shorter is not a rejection: the one-year pathways are real law —
+      // continue to the one-year question in every phase.
       const yes = requireYesNo(rawAnswer);
-      if (yes) return { outcome: "PASS", next: "GATE_VENUE" };
+      return yes
+        ? { outcome: "PASS", next: "GATE_VENUE" }
+        : { outcome: "PASS", next: "GATE_RESIDENCY_1YR" };
+    }
+    case "GATE_RESIDENCY_1YR": {
+      // The one-year durational floor shared by § 230(1)-(3).
+      // Yes → the nexus question sorts out WHICH prong.
+      // No → under one year of residence there is no § 230 pathway left
+      // that an automated intake should carry (only § 230(4), cause +
+      // both-resident-now — a genuine attorney determination). PHASE 1:
+      // HARD STOP to attorney review (operator directive 2026-07-22 —
+      // durational residency is jurisdictional). Legacy ALL: flag+continue.
+      const yes = requireYesNo(rawAnswer);
+      if (yes) return { outcome: "PASS", next: "GATE_RESIDENCY_NEXUS" };
       return activeIntakePhase() === "ALL"
-        ? { outcome: "PASS", next: "GATE_RESIDENCY_1YR" }
+        ? {
+            outcome: "PASS",
+            next: "GATE_VENUE",
+            reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"],
+          }
         : {
             outcome: "OUT",
             card: "PHASE1_ATTORNEY_REVIEW",
             auditEvent: "SCOPE_OUT_RESIDENCY_PHASE1",
           };
     }
-    case "GATE_RESIDENCY_1YR": {
-      // One-year paths (§ 230(1)-(4)) — reachable only under INTAKE_PHASE=ALL.
-      // "No" is NOT a rejection there: the cause-occurred alternatives are
-      // deliberately an attorney determination — flag and continue.
-      const yes = requireYesNo(rawAnswer);
-      if (activeIntakePhase() !== "ALL") {
-        return {
-          outcome: "OUT",
-          card: "PHASE1_ATTORNEY_REVIEW",
-          auditEvent: "SCOPE_OUT_RESIDENCY_PHASE1",
-        };
-      }
-      return yes
-        ? { outcome: "PASS", next: "GATE_RESIDENCY_NEXUS" }
-        : {
-            outcome: "PASS",
-            next: "GATE_VENUE",
-            reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"],
-          };
-    }
     case "GATE_RESIDENCY_NEXUS": {
-      // Second prong (§ 230(1)-(2)) — reachable only under INTAKE_PHASE=ALL.
+      // Objective nexus prongs (§ 230(1)-(2)): married in NY, or lived in NY
+      // as spouses — checkbox facts; one year + nexus passes CLEAN.
+      // No objective nexus → the remaining basis is § 230(3) (the breakdown
+      // occurred in NY): valid law, but "where a breakdown occurred" is a
+      // characterization the attorney verifies before signing the verified
+      // complaint — PASS with the review flag, in every phase.
       const yes = requireYesNo(rawAnswer);
-      if (activeIntakePhase() !== "ALL") {
-        return {
-          outcome: "OUT",
-          card: "PHASE1_ATTORNEY_REVIEW",
-          auditEvent: "SCOPE_OUT_RESIDENCY_PHASE1",
-        };
-      }
       return yes
         ? { outcome: "PASS", next: "GATE_VENUE" }
         : {
