@@ -34,6 +34,7 @@ function fakeMatter(conflictStatus: MatterRow["conflictStatus"]): MatterRow {
     scopeStatus: "UNREVIEWED",
     scopeNotes: null,
     intakeSchemaVersion: null,
+  intakePhase: 1,
     createdBy: "x",
     createdAt: "",
     updatedAt: "",

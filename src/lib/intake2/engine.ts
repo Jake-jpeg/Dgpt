@@ -12,7 +12,7 @@ import type {
   IntakeItem,
   IntakeSchema,
 } from "./types";
-import { clientItemInActivePhase } from "@/config/intake/phases";
+import { clientItemInPhase, activeIntakePhase, type IntakePhase } from "@/config/intake/phases";
 
 export function evaluateCondition(cond: Condition, answers: AnswerMap): boolean {
   switch (cond.kind) {
@@ -46,14 +46,15 @@ export function itemVisible(item: IntakeItem, answers: AnswerMap): boolean {
 export function visibleItems(
   schema: IntakeSchema,
   answers: AnswerMap,
-  audience: "CLIENT" | "STAFF" | "ATTORNEY"
+  audience: "CLIENT" | "STAFF" | "ATTORNEY",
+  phase: IntakePhase = activeIntakePhase()
 ): IntakeItem[] {
   const rank = { CLIENT: 0, STAFF: 1, ATTORNEY: 2 } as const;
   return schema.items.filter(
     (i) =>
       itemVisible(i, answers) &&
       rank[audience] >= rank[i.audience] &&
-      clientItemInActivePhase(i)
+      clientItemInPhase(i, phase)
   );
 }
 
@@ -65,14 +66,18 @@ export function isAnswered(item: IntakeItem, answers: AnswerMap): boolean {
 }
 
 /** Missing required CLIENT-answerable items (visible under current answers). */
-export function missingRequired(schema: IntakeSchema, answers: AnswerMap): IntakeItem[] {
+export function missingRequired(
+  schema: IntakeSchema,
+  answers: AnswerMap,
+  phase: IntakePhase = activeIntakePhase()
+): IntakeItem[] {
   return schema.items.filter(
     (i) =>
       i.audience === "CLIENT" &&
       i.required &&
       i.type !== "document_request" &&
       i.type !== "attorney_determination" &&
-      clientItemInActivePhase(i) &&
+      clientItemInPhase(i, phase) &&
       itemVisible(i, answers) &&
       !isAnswered(i, answers)
   );
@@ -86,7 +91,11 @@ export interface SectionProgress {
   missingRequired: number;
 }
 
-export function sectionProgress(schema: IntakeSchema, answers: AnswerMap): SectionProgress[] {
+export function sectionProgress(
+  schema: IntakeSchema,
+  answers: AnswerMap,
+  phase: IntakePhase = activeIntakePhase()
+): SectionProgress[] {
   return schema.sections
     .slice()
     .sort((a, b) => a.order - b.order)
@@ -96,7 +105,7 @@ export function sectionProgress(schema: IntakeSchema, answers: AnswerMap): Secti
           i.section === sec.id &&
           i.audience === "CLIENT" &&
           i.type !== "attorney_determination" &&
-          clientItemInActivePhase(i) &&
+          clientItemInPhase(i, phase) &&
           itemVisible(i, answers)
       );
       const answered = items.filter((i) => isAnswered(i, answers)).length;
@@ -134,7 +143,8 @@ export function deriveChecklist(
     incompleteDocumentIds?: string[];
     waivedDocumentIds?: string[];
     attorneyReviewDocumentIds?: string[];
-  } = {}
+  } = {},
+  phase: IntakePhase = activeIntakePhase()
 ): ChecklistEntry[] {
   const received = new Set(state.receivedDocumentIds ?? []);
   const incomplete = new Set(state.incompleteDocumentIds ?? []);
@@ -144,7 +154,7 @@ export function deriveChecklist(
   const triggered = new Map<string, string[]>();
   for (const item of schema.items) {
     if (!item.documentIds?.length) continue;
-    if (!clientItemInActivePhase(item)) continue;
+    if (!clientItemInPhase(item, phase)) continue;
     if (!itemVisible(item, answers)) continue;
     // A document_request item triggers when visible; other items trigger
     // when visible AND answered truthy/answered.

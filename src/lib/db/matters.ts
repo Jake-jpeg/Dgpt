@@ -67,6 +67,8 @@ export interface MatterRow {
   scopeStatus: string;
   scopeNotes: string | null;
   intakeSchemaVersion: string | null;
+  /** 1 commencement | 2 settlement | 3 finalization — attorney-advanced. */
+  intakePhase: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -93,6 +95,7 @@ function rowToMatter(r: Record<string, unknown>): MatterRow {
     scopeStatus: (r.scope_status as string) ?? "UNREVIEWED",
     scopeNotes: (r.scope_notes as string | null) ?? null,
     intakeSchemaVersion: (r.intake_schema_version as string | null) ?? null,
+    intakePhase: Number(r.intake_phase ?? 1),
     createdBy: r.created_by as string,
     createdAt: r.created_at as string,
     updatedAt: r.updated_at as string,
@@ -285,6 +288,22 @@ export async function attorneySetConflictDisposition(opts: {
 export async function matterConflictCleared(matterId: string): Promise<boolean> {
   const m = await getMatter(matterId);
   return Boolean(m && (m.conflictStatus === "CLEARED" || m.conflictStatus === "EXTERNAL"));
+}
+
+/**
+ * Advance (or rewind) a matter's intake phase — 1 commencement, 2 settlement,
+ * 3 finalization. Attorney-driven case progression; the API route enforces
+ * the ATTORNEY role and the change is audited there.
+ */
+export async function setMatterIntakePhase(matterId: string, phase: 1 | 2 | 3): Promise<void> {
+  const t = nowIso();
+  await getDb().run(
+    `UPDATE matter SET intake_phase = ?, updated_at = ?, last_activity_at = ? WHERE id = ?`,
+    phase,
+    t,
+    t,
+    matterId
+  );
 }
 
 /** Invitation acceptance records the firm's external-conflicts posture on the matter. */

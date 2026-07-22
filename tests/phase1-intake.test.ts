@@ -13,7 +13,13 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { getSchemaForCategory } from "@/config/intake/schemas";
 import { askableItems } from "@/lib/intake-chat/sequencer";
 import { estimateQuestionCount } from "@/lib/intake-chat/orchestrator";
-import { PHASE1_ITEM_IDS, activeIntakePhase, clientItemInActivePhase } from "@/config/intake/phases";
+import {
+  PHASE1_ITEM_IDS,
+  PHASE2_ITEM_IDS,
+  activeIntakePhase,
+  clientItemInActivePhase,
+  matterIntakePhase,
+} from "@/config/intake/phases";
 import { visibleItems, missingRequired, sectionProgress } from "@/lib/intake2/engine";
 
 const CATEGORY = "NY_SUPREME_UNCONTESTED" as const;
@@ -82,6 +88,52 @@ describe("Phase 1 intake contract", () => {
       const schema = getSchemaForCategory(CATEGORY);
       const all = askableItems(schema, { "shared.relationship.status_kind": "MARRIAGE" });
       expect(all.length).toBeGreaterThan(PHASE1_ITEM_IDS.size);
+    } finally {
+      delete process.env.INTAKE_PHASE;
+    }
+  });
+});
+
+describe("Phase 2 progression contract", () => {
+  it("phase 2 is cumulative: everything phase 1 asks, plus the settlement items", () => {
+    for (const id of PHASE1_ITEM_IDS) {
+      expect(PHASE2_ITEM_IDS.has(id), `${id} lost when advancing to phase 2`).toBe(true);
+    }
+    expect(PHASE2_ITEM_IDS.size).toBeGreaterThan(PHASE1_ITEM_IDS.size);
+  });
+
+  it("advancing a matter to phase 2 opens the settlement questions — and only allow-listed ones", () => {
+    const schema = getSchemaForCategory(CATEGORY);
+    const answers = { "shared.relationship.status_kind": "MARRIAGE" };
+    const p1 = new Set(askableItems(schema, answers, 1).map((i) => i.id));
+    const p2 = askableItems(schema, answers, 2);
+    // The settlement core appears in phase 2 and was absent in phase 1.
+    for (const id of [
+      "ny.settlement.plaintiff_income",
+      "ny.settlement.defendant_income",
+      "ny.settlement.maintenance_waived",
+      "ny.settlement.division_terms",
+      "shared.assets.records",
+      "shared.debts.records",
+    ]) {
+      expect(p1.has(id), `${id} leaked into phase 1`).toBe(false);
+      expect(p2.some((i) => i.id === id), `${id} missing from phase 2`).toBe(true);
+    }
+    for (const item of p2) {
+      expect(PHASE2_ITEM_IDS.has(item.id), `${item.id} asked outside phase 2`).toBe(true);
+    }
+    // Phase 3 asks the client nothing new.
+    expect(askableItems(schema, answers, 3).map((i) => i.id)).toEqual(p2.map((i) => i.id));
+  });
+
+  it("matterIntakePhase resolves from the matter row; env ALL overrides", () => {
+    expect(matterIntakePhase({ intakePhase: 1 })).toBe(1);
+    expect(matterIntakePhase({ intakePhase: 2 })).toBe(2);
+    expect(matterIntakePhase({ intakePhase: 3 })).toBe(3);
+    expect(matterIntakePhase(null)).toBe(1);
+    process.env.INTAKE_PHASE = "ALL";
+    try {
+      expect(matterIntakePhase({ intakePhase: 1 })).toBe("ALL");
     } finally {
       delete process.env.INTAKE_PHASE;
     }

@@ -5,6 +5,7 @@
  * staff/attorney see the full status board and can waive / flag / mark
  * incomplete (waive is attorney-only).
  */
+import { matterIntakePhase } from "@/config/intake/phases";
 import { z } from "zod";
 import { requireUser, requireMatterAccess } from "@/lib/auth/authz";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
@@ -28,7 +29,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const schema = schemaForMatter(matter);
     const answers = (await getMatterAnswers(matter.id));
     const state = (await getConfigChecklistState(matter.id));
-    const entries = deriveChecklist(schema, answers, state);
+    const entries = deriveChecklist(schema, answers, state, matterIntakePhase(matter));
 
     if (authed.account.role === "CLIENT") {
       return Response.json({

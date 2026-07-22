@@ -9,6 +9,7 @@
  * PUT — save answers (client: own matter, CLIENT items; staff: +STAFF
  *       items). Structurally blocked before attorney conflict clearance.
  */
+import { matterIntakePhase } from "@/config/intake/phases";
 import { z } from "zod";
 import { requireUser, requireMatterAccess } from "@/lib/auth/authz";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
@@ -41,7 +42,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const schema = schemaForMatter(matter);
     const answers = (await getMatterAnswers(matter.id));
     const audience = role === "CLIENT" ? "CLIENT" : role === "STAFF" ? "STAFF" : "ATTORNEY";
-    const items = visibleItems(schema, answers, audience).map((i) => ({
+    const phase = matterIntakePhase(matter);
+    const items = visibleItems(schema, answers, audience, phase).map((i) => ({
       id: i.id,
       section: i.section,
       prompt: i.prompt,
@@ -70,8 +72,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       },
       items,
       answers: clientAnswers,
-      progress: sectionProgress(schema, answers),
-      missingRequired: missingRequired(schema, answers).map((i) => ({
+      progress: sectionProgress(schema, answers, phase),
+      missingRequired: missingRequired(schema, answers, phase).map((i) => ({
         id: i.id,
         section: i.section,
         prompt: i.prompt,

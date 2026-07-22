@@ -171,6 +171,157 @@ export function buildNyUd15Payload(matter: MatterRow, answers: AnswerMap): Rende
   return payload;
 }
 
+/* ── Phase 2: the uncontested packet + stipulation ─────────────────────
+ * Shared principles: caption facts from saved answers; court-stamped dates,
+ * SSNs, and service execution details are NEVER collected online and render
+ * as blanks for the firm (the never-invent pattern). religious/appearance
+ * booleans are OMITTED when false — the Python generators treat any
+ * non-empty string (including "false") as truthy. */
+
+function captionFields(answers: AnswerMap): RenderPayload {
+  return {
+    plaintiffName: str(answers["shared.identity.client_name"]),
+    defendantName: str(answers["shared.identity.other_name"]),
+    county: titleCaseCounty(answers["ny.case.county"]),
+    indexNumber: str(answers["ny.case.index_number"]),
+  };
+}
+
+function isReligious(answers: AnswerMap): boolean {
+  return str(answers["shared.relationship.ceremony_type"]).toUpperCase() === "RELIGIOUS";
+}
+
+function marriagePlaceCombined(answers: AnswerMap): string {
+  const place = str(answers["shared.relationship.marriage_place"]);
+  const state = str(answers["shared.relationship.marriage_state"]);
+  return place && state && !place.toUpperCase().includes(state.toUpperCase())
+    ? `${place}, ${state}`
+    : place || state;
+}
+
+/** Flatten a repeat-row answer (array of objects) into deterministic lines. */
+function summarizeRepeat(v: unknown): string {
+  if (!Array.isArray(v)) return "";
+  return v
+    .map((row) => {
+      if (!row || typeof row !== "object") return "";
+      return Object.values(row as Record<string, unknown>)
+        .map((x) => str(x))
+        .filter(Boolean)
+        .join(" — ");
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function buildNyStipulationPayload(matter: MatterRow, answers: AnswerPayloadMap): RenderPayload {
+  const waived = answers["ny.settlement.maintenance_waived"];
+  const nameRestore = answers["shared.relationship.name_restoration"]
+    ? str(answers["shared.relationship.name_restoration_name"])
+    : "";
+  const payload: RenderPayload = {
+    ...captionFields(answers),
+    plaintiffAddress: combinedAddress(answers["shared.identity.client_address"]),
+    defendantAddress: combinedAddress(answers["shared.identity.other_address"]),
+    marriageDate: str(answers["shared.relationship.marriage_date"]),
+    marriagePlace: marriagePlaceCombined(answers),
+    plaintiffIncome: str(answers["ny.settlement.plaintiff_income"]),
+    defendantIncome: str(answers["ny.settlement.defendant_income"]),
+    maintenanceWaived: waived === false ? "false" : "true",
+    assetsSummary: summarizeRepeat(answers["shared.assets.records"]),
+    debtsSummary: summarizeRepeat(answers["shared.debts.records"]),
+    divisionTerms: str(answers["ny.settlement.division_terms"]),
+    nameRestoration: nameRestore,
+  };
+  required(payload, [
+    "plaintiffName",
+    "defendantName",
+    "county",
+    "plaintiffAddress",
+    "defendantAddress",
+    "marriageDate",
+    "marriagePlace",
+  ]);
+  return payload;
+}
+type AnswerPayloadMap = AnswerMap;
+
+function packetPayload(
+  answers: AnswerMap,
+  extra: RenderPayload,
+  requiredKeys: string[]
+): RenderPayload {
+  const payload: RenderPayload = { ...captionFields(answers), ...extra };
+  required(payload, requiredKeys);
+  return payload;
+}
+
+export function buildNyPacketPayload(form: string, matter: MatterRow, answers: AnswerMap): RenderPayload {
+  const religious: RenderPayload = isReligious(answers) ? { religiousCeremony: "true" } : {};
+  const pAddr = combinedAddress(answers["shared.identity.client_address"]);
+  const dAddr = combinedAddress(answers["shared.identity.other_address"]);
+  switch (form) {
+    case "ud4": // Barriers to Remarriage — religious ceremonies only.
+      if (!isReligious(answers)) {
+        throw new Error("VALIDATION: UD-4 applies only to a religious ceremony (DRL § 253)");
+      }
+      // Service execution details are firm-completed at service time.
+      return packetPayload(answers, {}, ["plaintiffName", "defendantName", "county"]);
+    case "ud5": // Affirmation of Regularity — defendantAppeared OMITTED (generator default).
+      return packetPayload(answers, {}, ["plaintiffName", "defendantName", "county"]);
+    case "ud6": // Plaintiff's Affidavit — SSNs deliberately blank (never collected online).
+      return packetPayload(
+        answers,
+        {
+          plaintiffAddress: pAddr,
+          defendantAddress: dAddr,
+          marriageDate: str(answers["shared.relationship.marriage_date"]),
+          marriagePlace: marriagePlaceCombined(answers),
+          residencyType: residencyBasisFromAnswers(answers),
+          ...religious,
+        },
+        ["plaintiffName", "defendantName", "county", "plaintiffAddress", "marriageDate"]
+      );
+    case "ud7": // Defendant's Affidavit — summonsDate firm-completed.
+      return packetPayload(answers, { defendantAddress: dAddr, ...religious }, [
+        "plaintiffName",
+        "defendantName",
+        "county",
+      ]);
+    case "ud9": // Note of Issue — filing/service dates firm-completed; phones sensitive, blank.
+      return packetPayload(
+        answers,
+        { plaintiffAddress: pAddr, defendantAddress: dAddr },
+        ["plaintiffName", "defendantName", "county"]
+      );
+    case "ud10": {
+      // Findings of Fact — marriage venue split for the form.
+      const place = str(answers["shared.relationship.marriage_place"]);
+      return packetPayload(
+        answers,
+        {
+          marriageCity: place.split(",")[0]?.trim() ?? "",
+          marriageState: str(answers["shared.relationship.marriage_state"]),
+          marriageDate: str(answers["shared.relationship.marriage_date"]),
+          residencyType: residencyBasisFromAnswers(answers),
+          ...religious,
+        },
+        ["plaintiffName", "defendantName", "county", "marriageDate"]
+      );
+    }
+    case "ud11": // Judgment of Divorce.
+      return packetPayload(answers, { plaintiffAddress: pAddr, defendantAddress: dAddr, ...religious }, [
+        "plaintiffName",
+        "defendantName",
+        "county",
+      ]);
+    case "ud12": // Part 130 Certification.
+      return packetPayload(answers, {}, ["plaintiffName", "defendantName", "county"]);
+    default:
+      throw new Error("VALIDATION: unsupported packet form");
+  }
+}
+
 /** Dispatch strictly by the allowlisted (state, form) pair. */
 export function buildRenderPayload(
   state: string,
@@ -180,6 +331,10 @@ export function buildRenderPayload(
 ): RenderPayload {
   if (state === "ny" && form === "ud1") return buildNyUd1Payload(matter, answers);
   if (state === "ny" && form === "complaint") return buildNyComplaintPayload(matter, answers);
+  if (state === "ny" && form === "stipulation") return buildNyStipulationPayload(matter, answers);
+  if (state === "ny" && ["ud4", "ud5", "ud6", "ud7", "ud9", "ud10", "ud11", "ud12"].includes(form)) {
+    return buildNyPacketPayload(form, matter, answers);
+  }
   if (state === "ny" && form === "ud14") return buildNyUd14Payload(matter, answers);
   if (state === "ny" && form === "ud15") return buildNyUd15Payload(matter, answers);
   throw new Error("VALIDATION: unsupported state/form pair");

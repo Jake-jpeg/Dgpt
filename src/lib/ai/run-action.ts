@@ -16,6 +16,7 @@
  *    version like every other artifact and follows the attorney approval →
  *    release path.
  */
+import { matterIntakePhase } from "@/config/intake/phases";
 import { getDb, newId, nowIso } from "@/lib/db/index";
 import { recordAudit } from "@/lib/db/repo";
 import { getUserById } from "@/lib/db/users";
@@ -120,8 +121,8 @@ export async function buildMatterContext(matterId: string): Promise<{
       question: prompts.get(questionId) ?? questionId,
       value,
     })),
-    missingRequired: missingRequired(schema, answers).map((i) => ({ questionId: i.id, question: i.prompt })),
-    checklist: deriveChecklist(schema, answers, (await getConfigChecklistState(matterId))).map((e) => ({
+    missingRequired: missingRequired(schema, answers, matterIntakePhase(matter)).map((i) => ({ questionId: i.id, question: i.prompt })),
+    checklist: deriveChecklist(schema, answers, (await getConfigChecklistState(matterId)), matterIntakePhase(matter)).map((e) => ({
       documentId: e.documentId,
       title: e.title,
       status: e.status,

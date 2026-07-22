@@ -5,6 +5,7 @@
  * "ready to file" — that status does not exist in this system and any
  * filing-readiness decision is a separate attorney exact-version approval.
  */
+import { matterIntakePhase } from "@/config/intake/phases";
 import type { AnswerMap, IntakeSchema } from "./types";
 import { deriveChecklist, isAnswered, itemVisible, missingRequired } from "./engine";
 import type { MatterRow } from "@/lib/db/matters";
@@ -50,10 +51,11 @@ export function buildFormReadiness(
   if (!matter.jurisdictionConfirmed || !matter.matterCategory) {
     reasons.push("Attorney jurisdiction/category confirmation is outstanding.");
   }
-  const missing = missingRequired(schema, answers);
+  const phase = matterIntakePhase(matter);
+  const missing = missingRequired(schema, answers, phase);
   if (missing.length > 0) reasons.push(`${missing.length} required factual answer(s) missing.`);
 
-  const checklist = deriveChecklist(schema, answers, checklistState);
+  const checklist = deriveChecklist(schema, answers, checklistState, phase);
   const missingDocs = checklist.filter((e) => e.status === "REQUIRED_NOW" || e.status === "INCOMPLETE");
   if (missingDocs.length > 0) reasons.push(`${missingDocs.length} required document(s) outstanding.`);
 

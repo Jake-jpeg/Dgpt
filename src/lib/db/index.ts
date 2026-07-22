@@ -150,6 +150,7 @@ CREATE TABLE IF NOT EXISTS matter (
   conflict_status_set_by TEXT,
   conflict_status_set_at TEXT,
   legal_hold             INTEGER NOT NULL DEFAULT 0,
+  intake_phase           INTEGER NOT NULL DEFAULT 1,  -- 1 commencement | 2 settlement | 3 finalization
   legal_hold_reason      TEXT,
   client_user_id         TEXT REFERENCES app_user(id),
   -- B6 attorney jurisdiction & scope review (facts vs determination)
@@ -434,6 +435,7 @@ const MIGRATIONS = [
   `ALTER TABLE matter ADD COLUMN scope_status TEXT NOT NULL DEFAULT 'UNREVIEWED'`,
   `ALTER TABLE matter ADD COLUMN scope_notes TEXT`,
   `ALTER TABLE matter ADD COLUMN intake_schema_version TEXT`,
+  `ALTER TABLE matter ADD COLUMN intake_phase INTEGER NOT NULL DEFAULT 1`,
   `ALTER TABLE ai_invocation ADD COLUMN response_id TEXT`,
   `ALTER TABLE ai_invocation ADD COLUMN prompt_version TEXT`,
   `ALTER TABLE ai_invocation ADD COLUMN latency_ms INTEGER`,

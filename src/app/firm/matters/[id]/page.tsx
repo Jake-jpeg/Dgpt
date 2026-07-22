@@ -740,6 +740,41 @@ function CourtFormsPanel({
   const [busyForm, setBusyForm] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [phase, setPhase] = useState<number | null>(null);
+
+  const loadPhase = useCallback(async () => {
+    try {
+      const r = (await api.get(`/api/matters/${matterId}/phase`)) as { phase: number };
+      setPhase(r.phase);
+    } catch {
+      setPhase(null);
+    }
+  }, [matterId]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadPhase();
+  }, [loadPhase]);
+
+  async function advancePhase(next: 1 | 2 | 3) {
+    setErr(null);
+    setDone(null);
+    try {
+      const r = (await api.post(`/api/matters/${matterId}/phase`, { phase: next })) as {
+        phase: number;
+      };
+      setPhase(r.phase);
+      setDone(
+        next === 2
+          ? "Matter advanced to Phase 2 — the client's interview now includes the settlement questions."
+          : next === 3
+            ? "Matter advanced to Phase 3 — finalization. Generate UD-14/UD-15 below after the judgment is entered."
+            : "Matter set back to Phase 1."
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not change the phase");
+    }
+  }
 
   async function render(state: string, form: string, label: string) {
     setBusyForm(form);
@@ -761,58 +796,85 @@ function CourtFormsPanel({
   }
 
   const phase1 = ALLOWED_RENDERS.filter((r) => r.form === "ud1" || r.form === "complaint");
+  const phase2 = ALLOWED_RENDERS.filter((r) =>
+    ["stipulation", "ud4", "ud5", "ud6", "ud7", "ud9", "ud10", "ud11", "ud12"].includes(r.form)
+  );
   const phase3 = ALLOWED_RENDERS.filter((r) => r.form === "ud14" || r.form === "ud15");
 
+  const group = (
+    title: string,
+    renders: ReadonlyArray<{ state: string; form: string; label: string }>,
+    note?: string,
+    primary?: boolean
+  ) => (
+    <div>
+      <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {title}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {renders.map((r) => (
+          <button
+            key={r.form}
+            className={primary ? "btn btn-primary" : "btn btn-quiet"}
+            disabled={busyForm !== null}
+            onClick={() => render(r.state, r.form, r.label)}
+          >
+            {busyForm === r.form ? "Generating…" : `Generate ${r.label}`}
+          </button>
+        ))}
+      </div>
+      {note && <p className="mt-1 text-xs text-slate-500">{note}</p>}
+    </div>
+  );
+
   return (
-    <AccordionPanel title="Court forms" summary={`${ALLOWED_RENDERS.length} available`}>
+    <AccordionPanel
+      title="Case phase & court forms"
+      summary={phase ? `Phase ${phase} · ${ALLOWED_RENDERS.length} forms` : `${ALLOWED_RENDERS.length} forms`}
+    >
       <p className="panel-sub">
         Forms are filled deterministically from the client&apos;s confirmed intake answers —
         generating one is your confirmation of that data. Every generated form starts in
         attorney review; nothing is released to the client from here.
       </p>
       {!isAttorney && (
-        <p className="panel-sub">Only the attorney can generate court forms.</p>
+        <p className="panel-sub">Only the attorney can change the phase or generate court forms.</p>
       )}
       {isAttorney && (
         <div className="space-y-4">
           <div>
             <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Phase 1 — commencement
+              Intake phase — controls which questions the client sees
             </div>
             <div className="flex flex-wrap gap-2">
-              {phase1.map((r) => (
+              {([1, 2, 3] as const).map((p) => (
                 <button
-                  key={r.form}
-                  className="btn btn-primary"
-                  disabled={busyForm !== null}
-                  onClick={() => render(r.state, r.form, r.label)}
+                  key={p}
+                  className={phase === p ? "btn btn-primary" : "btn btn-quiet"}
+                  disabled={phase === p}
+                  onClick={() => advancePhase(p)}
                 >
-                  {busyForm === r.form ? "Generating…" : `Generate ${r.label}`}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Phase 3 — finalization (post-judgment)
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {phase3.map((r) => (
-                <button
-                  key={r.form}
-                  className="btn btn-quiet"
-                  disabled={busyForm !== null}
-                  onClick={() => render(r.state, r.form, r.label)}
-                >
-                  {busyForm === r.form ? "Generating…" : `Generate ${r.label}`}
+                  {p === 1 ? "1 · Commencement" : p === 2 ? "2 · Settlement" : "3 · Finalization"}
                 </button>
               ))}
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              Entry date and the server&apos;s identity are completed by the firm at service
-              time — they render as blanks on purpose.
+              Advancing to Phase 2 opens the settlement questions (assets, debts, incomes,
+              agreed division) in the client&apos;s interview. Phase 3 asks the client nothing
+              new — it unlocks your finalization work after the judgment.
             </p>
           </div>
+          {group("Phase 1 — commencement", phase1, undefined, true)}
+          {group(
+            "Phase 2 — uncontested packet & stipulation",
+            phase2,
+            "The Stipulation prints the parties' agreed division verbatim and computes the § 236(B)(6) guideline recital from their stated incomes. UD-4 is for religious ceremonies only. Court dates, SSNs, and service details render blank for the firm."
+          )}
+          {group(
+            "Phase 3 — finalization (post-judgment)",
+            phase3,
+            "Entry date and the server's identity are completed by the firm at service time — they render as blanks on purpose."
+          )}
           {done && <div className="notice notice-good">{done}</div>}
           {err && <ErrorNotice message={err} />}
         </div>

@@ -54,21 +54,64 @@ export const PHASE1_ITEM_IDS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * The active phase. Defaults to 1 — Phase 1 IS the product right now.
- * Set INTAKE_PHASE=ALL to restore the full questionnaire (previous behavior),
- * e.g. for a future phase rollout or side-by-side comparison.
+ * PHASE 2 — settlement facts for the uncontested packet + Stipulation of
+ * Settlement. CUMULATIVE: a matter in phase 2 asks phase-1 ∪ phase-2 items.
+ * Every item feeds either a stipulation article or a UD packet form.
  */
-export function activeIntakePhase(): 1 | "ALL" {
-  const v = (process.env.INTAKE_PHASE ?? "1").trim().toUpperCase();
-  return v === "ALL" ? "ALL" : 1;
+export const PHASE2_ITEM_IDS: ReadonlySet<string> = new Set([
+  ...PHASE1_ITEM_IDS,
+  // Where things stand (agreement posture; signed agreement → doc request)
+  "ny.case.agreement_posture",
+  "ny.case.signed_agreement",
+  // Property & debts (stip Articles III–IV; facts, division is the parties')
+  "shared.assets.records",
+  "shared.assets.real_estate_any",
+  "shared.debts.records",
+  // Settlement terms (stip Articles III & V)
+  "ny.settlement.plaintiff_income",
+  "ny.settlement.defendant_income",
+  "ny.settlement.maintenance_waived",
+  "ny.settlement.division_terms",
+  // Name restoration (stip Article VII / judgment)
+  "shared.relationship.name_restoration",
+  "shared.relationship.name_restoration_name",
+]);
+
+export type IntakePhase = 1 | 2 | 3 | "ALL";
+
+/**
+ * Resolve a matter's effective phase. Per-matter `intake_phase` (set by the
+ * attorney as the case progresses) drives it; the INTAKE_PHASE=ALL env is a
+ * global kill-switch back to the full questionnaire. Phase 3 asks nothing new
+ * of the client (finalization is firm-side renders), so it inherits phase 2's
+ * question set.
+ */
+export function matterIntakePhase(matter?: { intakePhase?: number | null } | null): IntakePhase {
+  if ((process.env.INTAKE_PHASE ?? "").trim().toUpperCase() === "ALL") return "ALL";
+  const p = matter?.intakePhase;
+  return p === 2 ? 2 : p === 3 ? 3 : 1;
+}
+
+/** Back-compat default when no matter is in scope: env ALL, else phase 1. */
+export function activeIntakePhase(): IntakePhase {
+  return matterIntakePhase(null);
 }
 
 /**
  * Phase membership for CLIENT-audience items. Non-client items (attorney
  * determinations, staff panels) are never phase-filtered — pass them through.
  */
-export function clientItemInActivePhase(item: { id: string; audience: string }): boolean {
-  if (activeIntakePhase() === "ALL") return true;
+export function clientItemInPhase(
+  item: { id: string; audience: string },
+  phase: IntakePhase
+): boolean {
+  if (phase === "ALL") return true;
   if (item.audience !== "CLIENT") return true;
-  return PHASE1_ITEM_IDS.has(item.id);
+  if (phase === 1) return PHASE1_ITEM_IDS.has(item.id);
+  return PHASE2_ITEM_IDS.has(item.id); // phases 2 and 3
+}
+
+/** Legacy single-argument form — env-resolved phase (used where no matter is available). */
+export function clientItemInActivePhase(item: { id: string; audience: string }): boolean {
+  return clientItemInPhase(item, activeIntakePhase());
 }

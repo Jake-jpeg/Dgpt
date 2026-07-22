@@ -29,7 +29,7 @@ import { assertTransition, type MachineState } from "@/lib/intake/machine";
 import { getCard, type CardId } from "@/config/cards";
 import { GLOSSARY } from "@/config/glossary";
 import { operatingFirmName } from "@/config/branding";
-import { clientItemInActivePhase } from "@/config/intake/phases";
+import { clientItemInPhase, matterIntakePhase, activeIntakePhase, type IntakePhase } from "@/config/intake/phases";
 import { callStructured } from "@/lib/ai/responses";
 import { AiDisabledError } from "@/lib/ai/types";
 import { envOptional } from "@/lib/env";
@@ -213,7 +213,7 @@ export async function loadConversation(sessionId: string): Promise<ConversationC
   const schema = schemaForMatter(matter);
   const answers = await getMatterAnswers(matter.id);
   const checklistState = await getConfigChecklistState(matter.id);
-  const checklist = deriveChecklist(schema, answers, checklistState);
+  const checklist = deriveChecklist(schema, answers, checklistState, matterIntakePhase(matter));
   const transcript = await listChatMessages(sessionId);
   const reported = await getClientChecklistReports(matter.id);
 
@@ -223,6 +223,7 @@ export async function loadConversation(sessionId: string): Promise<ConversationC
   const seqState: SequencerState = {
     schema,
     answers,
+    phase: matterIntakePhase(matter),
     machineState: session.state as MachineState,
     checklist,
     checklistReported: Object.keys(reported),
@@ -247,13 +248,16 @@ export async function loadConversation(sessionId: string): Promise<ConversationC
  * client-answerable items in the pinned schema plus the handful of scope
  * questions. Conditions mean some won't apply, so the copy says "up to about."
  */
-export function estimateQuestionCount(schema: ReturnType<typeof schemaForMatter>): number {
+export function estimateQuestionCount(
+  schema: ReturnType<typeof schemaForMatter>,
+  phase: IntakePhase = activeIntakePhase()
+): number {
   const clientItems = schema.items.filter(
     (i) =>
       i.audience === "CLIENT" &&
       i.type !== "document_request" &&
       i.type !== "attorney_determination" &&
-      clientItemInActivePhase(i)
+      clientItemInPhase(i, phase)
   ).length;
   const SCOPE_QUESTIONS = 5; // residency + venue + DV + children + complexity
   const raw = clientItems + SCOPE_QUESTIONS;
@@ -294,7 +298,7 @@ export async function ensureWelcomed(sessionId: string): Promise<void> {
   await appendChatMessage({
     sessionId,
     role: "ASSISTANT",
-    content: scriptedWelcome(estimateQuestionCount(ctx.schema)),
+    content: scriptedWelcome(estimateQuestionCount(ctx.schema, ctx.seqState.phase)),
     lang: "en",
   });
 }
@@ -378,7 +382,7 @@ function transcriptWindow(transcript: ChatMessageRow[], n = 24): string {
 
 function buildUserPrompt(ctx: ConversationContext, clientMessage: string, correction?: string): string {
   const prog = progress(ctx.seqState);
-  const estimate = estimateQuestionCount(ctx.schema);
+  const estimate = estimateQuestionCount(ctx.schema, ctx.seqState.phase);
   return (
     `PROGRESS: the client is on about question ${prog.answered + 1} of ~${estimate}` +
     (prog.sectionTitle ? ` · current section "${prog.sectionTitle}" (${prog.sectionIndex}/${prog.sectionCount})` : "") +
@@ -406,7 +410,7 @@ function buildUserPrompt(ctx: ConversationContext, clientMessage: string, correc
  */
 function buildAdvancePrompt(ctx: ConversationContext, nextStepToAsk: Step): string {
   const prog = progress(ctx.seqState);
-  const estimate = estimateQuestionCount(ctx.schema);
+  const estimate = estimateQuestionCount(ctx.schema, ctx.seqState.phase);
   return (
     `You just recorded the client's previous answer — it is saved. Now MOVE THE ` +
     `CONVERSATION FORWARD (Rule 12): in ONE short reply, give a brief warm ` +

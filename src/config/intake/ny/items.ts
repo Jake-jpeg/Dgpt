@@ -8,6 +8,7 @@ import type { DocumentCatalogItem, IntakeItem, IntakeSection, MatterCategory } f
 
 export const NY_SECTIONS: IntakeSection[] = [
   { id: "ny_case", title: "New York case details", order: 30, description: "Facts specific to a New York Supreme Court or Family Court matter." },
+  { id: "ny_settlement", title: "Your settlement terms", order: 30, description: "What you and the other party have already agreed. These answers become your Stipulation of Settlement — your attorney reviews every word before anything is signed." },
   { id: "ny_financial", title: "New York financial disclosure (Statement of Net Worth preparation)", order: 31, description: "New York matrimonial cases use a sworn Statement of Net Worth. These answers prepare it." },
   { id: "ny_postjudgment", title: "After-judgment changes", order: 32 },
 ];
@@ -100,6 +101,16 @@ export const NY_ITEMS: IntakeItem[] = [
   ] }),
   q({ id: "ny.pj.changed_circumstances", section: "ny_postjudgment", prompt: "What has changed since the judgment/order (facts and dates)?", type: "long_text", categories: ["NY_SUPREME_POST_JUDGMENT"], required: true }),
   q({ id: "ny.pj.compliance", section: "ny_postjudgment", prompt: "Describe any missed payments or violations (what, when, amounts)", type: "long_text", categories: ["NY_SUPREME_POST_JUDGMENT"], condition: { kind: "eq", questionId: "ny.pj.relief", value: "ENFORCE" } }),
+
+  // ── Phase-2 settlement terms (uncontested stipulation inputs) ────────
+  // FACTS + the parties' OWN agreement only. The division is printed in the
+  // stipulation verbatim; nothing here generates legal terms. Incomes feed
+  // the DRL § 236(B)(6) guideline recital (statutory arithmetic, computed
+  // deterministically). [ATTORNEY REVIEW REQUIRED] on all wording.
+  q({ id: "ny.settlement.plaintiff_income", section: "ny_settlement", prompt: "Your annual gross income (before taxes), approximately", type: "money", categories: SUP, required: true, helpText: "Used for the required spousal-maintenance guideline notice in your agreement. An estimate is fine — your attorney confirms it." }),
+  q({ id: "ny.settlement.defendant_income", section: "ny_settlement", prompt: "The other party's annual gross income (before taxes), as best you know", type: "money", categories: SUP, required: true }),
+  q({ id: "ny.settlement.maintenance_waived", section: "ny_settlement", prompt: "Have you and the other party agreed that NEITHER of you will pay spousal support (maintenance) to the other?", type: "yes_no", categories: SUP, required: true, helpText: "If you have agreed on support payments instead, answer No — your attorney will draft those terms with you." }),
+  q({ id: "ny.settlement.division_terms", section: "ny_settlement", prompt: "What have you two agreed about who keeps each asset and who pays each debt? One item per line (for example: “I keep the Honda and its loan”).", type: "long_text", categories: SUP, required: true, helpText: "Write it in your own words — this is your agreement, and your attorney turns it into the formal document." }),
 
   // ── Attorney-only determinations (NY) ───────────────────────────────
   q({ id: "ny.det.residence_satisfied", section: "ny_case", prompt: "ATTORNEY DETERMINATION: Which DRL § 230 residence pathway (if any) is satisfied on these facts?", type: "attorney_determination", audience: "ATTORNEY", authorityIds: ["NY-DIVORCE-RESIDENCE-001"] }),

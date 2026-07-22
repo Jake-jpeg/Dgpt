@@ -14,7 +14,7 @@
  */
 import type { AnswerMap, IntakeItem, IntakeSchema } from "@/lib/intake2/types";
 import { itemVisible, isAnswered, type ChecklistEntry } from "@/lib/intake2/engine";
-import { clientItemInActivePhase } from "@/config/intake/phases";
+import { clientItemInPhase, activeIntakePhase, type IntakePhase } from "@/config/intake/phases";
 import { GATE_QUESTIONS, type GateQuestion } from "@/config/gate-questions";
 import type { MachineState } from "@/lib/intake/machine";
 import { isGateState } from "@/lib/intake/scope-gate";
@@ -69,18 +69,25 @@ export interface SequencerState {
   confirmed: boolean;
   /** Set when a gate or DV stop has fired — nothing further is asked. */
   stopped?: "SCOPE" | "DV" | null;
+  /** The matter's intake phase (1 commencement · 2 settlement · 3 finalization). */
+  phase?: IntakePhase;
 }
 
 /** CLIENT-answerable items the conversation is responsible for asking.
- *  Phase-filtered: only items in the active intake phase are ever asked
- *  (Phase 1 = the Summons + Verified Complaint field set). */
-export function askableItems(schema: IntakeSchema, answers: AnswerMap): IntakeItem[] {
+ *  Phase-filtered: only items in the matter's intake phase are ever asked
+ *  (Phase 1 = the Summons + Verified Complaint field set; Phase 2 adds the
+ *  settlement/stipulation facts; Phase 3 adds nothing client-side). */
+export function askableItems(
+  schema: IntakeSchema,
+  answers: AnswerMap,
+  phase: IntakePhase = activeIntakePhase()
+): IntakeItem[] {
   return schema.items.filter(
     (i) =>
       i.audience === "CLIENT" &&
       i.type !== "document_request" &&
       i.type !== "attorney_determination" &&
-      clientItemInActivePhase(i) &&
+      clientItemInPhase(i, phase) &&
       itemVisible(i, answers)
   );
 }
@@ -135,7 +142,7 @@ export function nextStep(state: SequencerState): Step {
   }
 
   // Every visible CLIENT item, section by section, in schema order.
-  const askable = askableItems(schema, answers);
+  const askable = askableItems(schema, answers, state.phase ?? activeIntakePhase());
   for (const section of sectionsInOrder(schema)) {
     const next = askable.find((i) => i.section === section.id && !isAnswered(i, answers));
     if (next) {
@@ -186,7 +193,7 @@ export function progress(state: SequencerState): {
   sectionIndex: number | null;
   sectionCount: number;
 } {
-  const askable = askableItems(state.schema, state.answers);
+  const askable = askableItems(state.schema, state.answers, state.phase ?? activeIntakePhase());
   const step = nextStep(state);
   return {
     answered: askable.filter((i) => isAnswered(i, state.answers)).length,

@@ -143,6 +143,55 @@ describe("deterministic mappings", () => {
     expect(() => buildRenderPayload("ny", "ud14", matter, noAddr)).toThrow(/VALIDATION/);
     expect(() => buildRenderPayload("ny", "ud15", matter, noAddr)).toThrow(/VALIDATION/);
   });
+
+  it("Phase-2 stipulation payload: agreed terms verbatim, guideline inputs, waiver flag", async () => {
+    const matter = await nyReadyMatter();
+    const answers = {
+      ...Object.fromEntries(NY_MAPPING_ANSWERS.map((a) => [a.questionId, a.value])),
+      "shared.identity.other_address": { line1: "9 Other St", city: "Brooklyn", state: "NY", zip: "11215" },
+      "shared.relationship.marriage_place": "Brooklyn",
+      "ny.settlement.plaintiff_income": 68000,
+      "ny.settlement.defendant_income": 52000,
+      "ny.settlement.maintenance_waived": true,
+      "ny.settlement.division_terms": "I keep the Honda and its loan.",
+      "shared.assets.records": [{ kind: "Vehicle", description: "2019 Honda", owner: "Plaintiff" }],
+      "shared.debts.records": [],
+    };
+    const p = buildRenderPayload("ny", "stipulation", matter, answers);
+    expect(p.maintenanceWaived).toBe("true");
+    expect(p.plaintiffIncome).toBe("68000");
+    expect(p.divisionTerms).toBe("I keep the Honda and its loan.");
+    expect(p.assetsSummary).toContain("2019 Honda");
+    // waived=false flows through as "false" (the generator's attorney-drafts path)
+    const p2 = buildRenderPayload("ny", "stipulation", matter, {
+      ...answers,
+      "ny.settlement.maintenance_waived": false,
+    });
+    expect(p2.maintenanceWaived).toBe("false");
+  });
+
+  it("Phase-2 packet payloads: UD-4 refuses civil ceremonies; religious flag is omitted-when-false", async () => {
+    const matter = await nyReadyMatter();
+    const answers = {
+      ...Object.fromEntries(NY_MAPPING_ANSWERS.map((a) => [a.questionId, a.value])),
+      "shared.identity.other_address": { line1: "9 Other St", city: "Brooklyn", state: "NY", zip: "11215" },
+      "shared.relationship.ceremony_type": "CIVIL",
+    };
+    // Civil ceremony: UD-4 (Barriers) must refuse; DRL § 253 doesn't apply.
+    expect(() => buildRenderPayload("ny", "ud4", matter, answers)).toThrow(/religious/i);
+    // Python generators treat ANY non-empty string as truthy, so the civil
+    // payload must OMIT religiousCeremony entirely, never carry "false".
+    const ud6 = buildRenderPayload("ny", "ud6", matter, answers);
+    expect("religiousCeremony" in ud6).toBe(false);
+    const ud6r = buildRenderPayload("ny", "ud6", matter, {
+      ...answers,
+      "shared.relationship.ceremony_type": "RELIGIOUS",
+    });
+    expect(ud6r.religiousCeremony).toBe("true");
+    // Judgment + Findings render from caption facts.
+    expect(buildRenderPayload("ny", "ud11", matter, answers).county).toBe("Kings");
+    expect(buildRenderPayload("ny", "ud10", matter, answers).marriageDate).toBe("2015-06-15");
+  });
 });
 
 describe("RL client contract", () => {
