@@ -33,3 +33,10 @@ _to_delete/snapshot-*.tar.gz
 
 # local file storage (synthetic uploads; never in source)
 /data/
+
+# ── CONFIDENTIAL: real client documents (stipulations, PII) — NEVER commit/push ──
+# Kept OUT of the repo entirely (sibling folder); these patterns are a backstop
+# in case anything ever lands inside the tree.
+.gitseriouslyignore/
+Dgpt-Stips/
+*-CONFIDENTIAL/
