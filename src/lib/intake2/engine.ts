@@ -12,6 +12,7 @@ import type {
   IntakeItem,
   IntakeSchema,
 } from "./types";
+import { clientItemInActivePhase } from "@/config/intake/phases";
 
 export function evaluateCondition(cond: Condition, answers: AnswerMap): boolean {
   switch (cond.kind) {
@@ -49,7 +50,10 @@ export function visibleItems(
 ): IntakeItem[] {
   const rank = { CLIENT: 0, STAFF: 1, ATTORNEY: 2 } as const;
   return schema.items.filter(
-    (i) => itemVisible(i, answers) && rank[audience] >= rank[i.audience]
+    (i) =>
+      itemVisible(i, answers) &&
+      rank[audience] >= rank[i.audience] &&
+      clientItemInActivePhase(i)
   );
 }
 
@@ -68,6 +72,7 @@ export function missingRequired(schema: IntakeSchema, answers: AnswerMap): Intak
       i.required &&
       i.type !== "document_request" &&
       i.type !== "attorney_determination" &&
+      clientItemInActivePhase(i) &&
       itemVisible(i, answers) &&
       !isAnswered(i, answers)
   );
@@ -91,6 +96,7 @@ export function sectionProgress(schema: IntakeSchema, answers: AnswerMap): Secti
           i.section === sec.id &&
           i.audience === "CLIENT" &&
           i.type !== "attorney_determination" &&
+          clientItemInActivePhase(i) &&
           itemVisible(i, answers)
       );
       const answered = items.filter((i) => isAnswered(i, answers)).length;
@@ -138,6 +144,7 @@ export function deriveChecklist(
   const triggered = new Map<string, string[]>();
   for (const item of schema.items) {
     if (!item.documentIds?.length) continue;
+    if (!clientItemInActivePhase(item)) continue;
     if (!itemVisible(item, answers)) continue;
     // A document_request item triggers when visible; other items trigger
     // when visible AND answered truthy/answered.

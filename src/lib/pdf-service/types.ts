@@ -6,6 +6,7 @@
  */
 export const ALLOWED_RENDERS = [
   { state: "ny", form: "ud1", label: "NY UD-1 Summons with Notice" },
+  { state: "ny", form: "complaint", label: "NY Verified Complaint (Action for Divorce)" },
 ] as const;
 
 export type AllowedRender = (typeof ALLOWED_RENDERS)[number];

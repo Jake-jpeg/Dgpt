@@ -16,6 +16,23 @@ OpenAI contributes nothing to these payloads.
 | qualifyingParty | — | fixed `plaintiff` |
 | dateFiled | — | blank (court-stamped, never pre-filled) |
 
+## NY `complaint` (Verified Complaint — Action for Divorce, Phase 1)
+
+RL generator: `states/new_york/generate_complaint.py`. Every payload field
+traces to a pleading paragraph (spec: project doc
+`claude/PHASE1-verified-complaint-spec.md`).
+
+| RL field | Source | Rule |
+|---|---|---|
+| plaintiffName / defendantName | identity answers | verbatim (caption, ¶SIXTH, verification) |
+| county | `ny.case.county` | title case (caption + venue) |
+| plaintiffAddress | `shared.identity.client_address` | combined string (¶SIXTH) |
+| defendantAddress | `shared.identity.other_address` | combined string (¶SIXTH) |
+| residentParty | — | fixed `plaintiff` (¶FIRST, DRL § 230(5) two-year ground — the only automated pass) |
+| marriageDate / marriagePlace | `shared.relationship.marriage_date` / `marriage_place` (+ `marriage_state` when not redundant) | ¶THIRD |
+| ceremonyType | `shared.relationship.ceremony_type` | `civil` \| `religious` — drives the ¶FOURTH DRL § 253 branch |
+| unemancipatedChildren | — | fixed `"0"`: the children gate STOPS child cases pre-render; the generator renders an [ATTORNEY REVIEW REQUIRED] paragraph as backstop |
+
 ## Unresolved mappings (open, tracked)
 
 - Adverse-party address — intentionally

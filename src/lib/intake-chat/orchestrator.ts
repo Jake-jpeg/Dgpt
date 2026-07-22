@@ -29,6 +29,7 @@ import { assertTransition, type MachineState } from "@/lib/intake/machine";
 import { getCard, type CardId } from "@/config/cards";
 import { GLOSSARY } from "@/config/glossary";
 import { operatingFirmName } from "@/config/branding";
+import { clientItemInActivePhase } from "@/config/intake/phases";
 import { callStructured } from "@/lib/ai/responses";
 import { AiDisabledError } from "@/lib/ai/types";
 import { envOptional } from "@/lib/env";
@@ -248,7 +249,11 @@ export async function loadConversation(sessionId: string): Promise<ConversationC
  */
 export function estimateQuestionCount(schema: ReturnType<typeof schemaForMatter>): number {
   const clientItems = schema.items.filter(
-    (i) => i.audience === "CLIENT" && i.type !== "document_request" && i.type !== "attorney_determination"
+    (i) =>
+      i.audience === "CLIENT" &&
+      i.type !== "document_request" &&
+      i.type !== "attorney_determination" &&
+      clientItemInActivePhase(i)
   ).length;
   const SCOPE_QUESTIONS = 5; // residency + venue + DV + children + complexity
   const raw = clientItems + SCOPE_QUESTIONS;
@@ -263,8 +268,11 @@ export function scriptedWelcome(questionEstimate: number): string {
     `Here's what to expect: I'll ask you up to about ${questionEstimate} questions, ` +
     `one at a time, and I'll keep us moving — after each answer I'll go straight ` +
     `to the next question, so you won't need to prompt me. Some questions may not ` +
-    `apply to you, so it's often fewer. It can take up to ${expectedHours()} hours ` +
-    `in total, but you can pause and come back anytime — nothing is lost. At any ` +
+    `apply to you, so it's often fewer. ${
+      questionEstimate <= 30
+        ? `Most people finish in about 15–30 minutes`
+        : `It can take up to ${expectedHours()} hours in total`
+    }, and you can pause and come back anytime — nothing is lost. At any ` +
     `point you can ask me how many are left, why I'm asking something, or what a ` +
     `question means, and I'll explain.\n\n` +
     `You can answer in English or Korean (한국어로 답하셔도 됩니다). If you'd ` +

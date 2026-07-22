@@ -14,6 +14,7 @@
  */
 import type { AnswerMap, IntakeItem, IntakeSchema } from "@/lib/intake2/types";
 import { itemVisible, isAnswered, type ChecklistEntry } from "@/lib/intake2/engine";
+import { clientItemInActivePhase } from "@/config/intake/phases";
 import { GATE_QUESTIONS, type GateQuestion } from "@/config/gate-questions";
 import type { MachineState } from "@/lib/intake/machine";
 import { isGateState } from "@/lib/intake/scope-gate";
@@ -70,13 +71,16 @@ export interface SequencerState {
   stopped?: "SCOPE" | "DV" | null;
 }
 
-/** CLIENT-answerable items the conversation is responsible for asking. */
+/** CLIENT-answerable items the conversation is responsible for asking.
+ *  Phase-filtered: only items in the active intake phase are ever asked
+ *  (Phase 1 = the Summons + Verified Complaint field set). */
 export function askableItems(schema: IntakeSchema, answers: AnswerMap): IntakeItem[] {
   return schema.items.filter(
     (i) =>
       i.audience === "CLIENT" &&
       i.type !== "document_request" &&
       i.type !== "attorney_determination" &&
+      clientItemInActivePhase(i) &&
       itemVisible(i, answers)
   );
 }

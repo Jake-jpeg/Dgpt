@@ -93,6 +93,27 @@ export const CARDS = {
   },
 
   /**
+   * Phase-1 attorney-review stop: served when a gate answer takes the case
+   * outside the automated Phase-1 lane (residency short of the two-year
+   * ground, or unemancipated children). NOT a rejection — the firm reviews
+   * and takes it from there. Warmer than the bar-referral card: these are
+   * the firm's OWN prospective clients, routed to counsel.
+   */
+  // [ATTORNEY REVIEW REQUIRED — NY] Phase-1 review-stop copy pending counsel sign-off.
+  PHASE1_ATTORNEY_REVIEW: {
+    id: "PHASE1_ATTORNEY_REVIEW",
+    title: "An attorney needs to look at this first",
+    body:
+      "Thanks — you haven't done anything wrong, and this isn't a rejection. " +
+      "Based on your answers, your situation has a detail that the online " +
+      "intake isn't allowed to handle on its own, so a licensed attorney at " +
+      "the firm needs to review it before anything moves forward. Your " +
+      "answers so far have been saved for that review, and the firm will " +
+      "contact you about next steps. Nothing will be filed without an " +
+      "attorney's review and your say-so.",
+  },
+
+  /**
    * The universal deflection: served whenever a user asks the bot anything
    * that would apply information to their facts or seek advice.
    */

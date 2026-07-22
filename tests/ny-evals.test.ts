@@ -270,7 +270,18 @@ describe("E1 legal-content governance", () => {
 
 /* ═══ E2 — deterministic branching ════════════════════════════════ */
 
+// E2/E3 validate FULL-SCHEMA invariants (branching, checklist derivation,
+// client-language hygiene across every item). They run under INTAKE_PHASE=ALL
+// so the phase-1 subset filter doesn't hide the items under test — the
+// phase-1 product behavior itself is covered in the scope-gate, sequencer,
+// and orchestrator suites.
 describe("E2 deterministic branching", () => {
+  beforeEach(() => {
+    process.env.INTAKE_PHASE = "ALL";
+  });
+  afterEach(() => {
+    delete process.env.INTAKE_PHASE;
+  });
   it("all NY categories produce versioned schemas with the shared core and only NY items", () => {
     expect(listSchemas().length).toBe(MATTER_CATEGORIES.length);
     for (const category of MATTER_CATEGORIES) {
@@ -357,6 +368,12 @@ describe("E2 deterministic branching", () => {
 /* ═══ E3 — client-language surface ════════════════════════════════ */
 
 describe("E3 client-language surface", () => {
+  beforeEach(() => {
+    process.env.INTAKE_PHASE = "ALL";
+  });
+  afterEach(() => {
+    delete process.env.INTAKE_PHASE;
+  });
   it("pre-clearance: the questionnaire is unavailable with neutral language only", async () => {
     // Rewind the open-signup EXTERNAL posture to pin the legacy guard.
     const { getDb } = await import("@/lib/db/index");

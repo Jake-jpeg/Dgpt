@@ -4,10 +4,21 @@
  * static card; the session is purged (no substantive data ever persists for
  * out-of-scope users).
  *
- * The NY residency cascade (DRL § 230) NEVER terminates: the objective paths
- * pass, everything else is flagged for attorney review and the intake
- * continues. Venue is collect-only — "not sure" flags and continues; a county
- * answer is captured for the attorney, never judged.
+ * PHASE 1 policy (the active product — Summons + Verified Complaint only):
+ * the clean DRL § 230(5) two-year continuous residence is the ONLY automated
+ * pass. Any shorter path (the § 230(1)-(4) one-year + nexus grounds) is a
+ * HARD STOP to attorney review before anything proceeds — durational
+ * residency is jurisdictional, and courts are unforgiving about it
+ * (operator directive 2026-07-22: "Jurisdiction games — courts HATE").
+ * Children present is likewise a stop to attorney review: Phase 1 is the
+ * no-unemancipated-children lane; child cases are handled by counsel.
+ *
+ * Under INTAKE_PHASE=ALL the legacy cascade behavior applies: the residency
+ * cascade never terminates (flag + continue) and children route to the bar
+ * referral card.
+ *
+ * Venue is collect-only — "not sure" flags and continues; a county answer is
+ * captured for the attorney, never judged.
  *
  * The server owns gate order via the state machine; a client cannot skip or
  * reorder steps. Gate answers for PASSING steps are held on the session row /
@@ -16,6 +27,7 @@
  */
 import { GATE_QUESTIONS } from "@/config/gate-questions";
 import { NY_COUNTIES } from "@/config/intake-fields";
+import { activeIntakePhase } from "@/config/intake/phases";
 import type { MachineState } from "./machine";
 import type { CardId } from "@/config/cards";
 
@@ -43,16 +55,30 @@ export function evaluateGate(state: GateState, rawAnswer: unknown): GateEvaluati
   switch (state) {
     case "GATE_RESIDENCY": {
       // DRL § 230(5): two-year continuous residence — objective, automated.
+      // Phase 1: this is the ONLY automated pass. Anything shorter is a hard
+      // stop to attorney review — durational residency is jurisdictional.
       const yes = requireYesNo(rawAnswer);
-      return yes
-        ? { outcome: "PASS", next: "GATE_VENUE" }
-        : { outcome: "PASS", next: "GATE_RESIDENCY_1YR" };
+      if (yes) return { outcome: "PASS", next: "GATE_VENUE" };
+      return activeIntakePhase() === "ALL"
+        ? { outcome: "PASS", next: "GATE_RESIDENCY_1YR" }
+        : {
+            outcome: "OUT",
+            card: "PHASE1_ATTORNEY_REVIEW",
+            auditEvent: "SCOPE_OUT_RESIDENCY_PHASE1",
+          };
     }
     case "GATE_RESIDENCY_1YR": {
-      // First prong of the one-year paths. "No" is NOT a rejection: the
-      // cause-occurred alternatives (§ 230(3)-(4)) are deliberately an
-      // attorney determination — flag and continue.
+      // One-year paths (§ 230(1)-(4)) — reachable only under INTAKE_PHASE=ALL.
+      // "No" is NOT a rejection there: the cause-occurred alternatives are
+      // deliberately an attorney determination — flag and continue.
       const yes = requireYesNo(rawAnswer);
+      if (activeIntakePhase() !== "ALL") {
+        return {
+          outcome: "OUT",
+          card: "PHASE1_ATTORNEY_REVIEW",
+          auditEvent: "SCOPE_OUT_RESIDENCY_PHASE1",
+        };
+      }
       return yes
         ? { outcome: "PASS", next: "GATE_RESIDENCY_NEXUS" }
         : {
@@ -62,9 +88,15 @@ export function evaluateGate(state: GateState, rawAnswer: unknown): GateEvaluati
           };
     }
     case "GATE_RESIDENCY_NEXUS": {
-      // Second prong (§ 230(1)-(2)): married in NY, or lived in NY as
-      // spouses. Yes → satisfied; no → attorney review, continue.
+      // Second prong (§ 230(1)-(2)) — reachable only under INTAKE_PHASE=ALL.
       const yes = requireYesNo(rawAnswer);
+      if (activeIntakePhase() !== "ALL") {
+        return {
+          outcome: "OUT",
+          card: "PHASE1_ATTORNEY_REVIEW",
+          auditEvent: "SCOPE_OUT_RESIDENCY_PHASE1",
+        };
+      }
       return yes
         ? { outcome: "PASS", next: "GATE_VENUE" }
         : {
@@ -98,10 +130,18 @@ export function evaluateGate(state: GateState, rawAnswer: unknown): GateEvaluati
     }
     case "GATE_CHILDREN": {
       const yes = requireYesNo(rawAnswer);
-      // Custody tier is deferred — children → out via referral card.
-      return yes
+      // Phase 1 is the no-unemancipated-children lane: children present →
+      // stop to ATTORNEY REVIEW (the firm handles child cases with counsel —
+      // custody/support in a later supervised phase). Legacy (ALL): bar
+      // referral card.
+      if (!yes) return { outcome: "PASS", next: "GATE_COMPLEXITY" };
+      return activeIntakePhase() === "ALL"
         ? { outcome: "OUT", card: "NY_BAR_REFERRAL", auditEvent: "SCOPE_OUT_CHILDREN" }
-        : { outcome: "PASS", next: "GATE_COMPLEXITY" };
+        : {
+            outcome: "OUT",
+            card: "PHASE1_ATTORNEY_REVIEW",
+            auditEvent: "SCOPE_OUT_CHILDREN",
+          };
     }
     case "GATE_COMPLEXITY": {
       const v = String(rawAnswer ?? "");

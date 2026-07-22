@@ -5,7 +5,7 @@
  *
  * Plus unit tests for the pure gate/routing/classifier functions.
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { CARDS } from "@/config/cards";
 import { GLOSSARY } from "@/config/glossary";
 import { PROCESS_COPY } from "@/config/process-copy";
@@ -65,24 +65,48 @@ describe("scope gate unit behavior", () => {
   it("residency cascade: 2-year yes passes straight to venue", () => {
     expect(evaluateGate("GATE_RESIDENCY", true)).toMatchObject({ outcome: "PASS", next: "GATE_VENUE" });
   });
-  it("residency cascade: 2-year no continues to the 1-year question — never out", () => {
+  // ── PHASE 1 (the active product): anything short of the clean two-year
+  //    ground is a HARD STOP to attorney review — durational residency is
+  //    jurisdictional (operator directive 2026-07-22).
+  it("PHASE 1: 2-year no → HARD STOP to attorney review, never the cascade", () => {
     const r = evaluateGate("GATE_RESIDENCY", false);
-    expect(r).toMatchObject({ outcome: "PASS", next: "GATE_RESIDENCY_1YR" });
-    expect((r as { reviewFlags?: string[] }).reviewFlags).toBeUndefined();
+    expect(r).toMatchObject({
+      outcome: "OUT",
+      card: "PHASE1_ATTORNEY_REVIEW",
+      auditEvent: "SCOPE_OUT_RESIDENCY_PHASE1",
+    });
   });
-  it("residency cascade: 1-year no → flag for attorney review, intake continues", () => {
-    const r = evaluateGate("GATE_RESIDENCY_1YR", false);
-    expect(r).toMatchObject({ outcome: "PASS", next: "GATE_VENUE", reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"] });
+  it("PHASE 1: the 1-year and nexus states also stop if ever reached (defense in depth)", () => {
+    expect(evaluateGate("GATE_RESIDENCY_1YR", true)).toMatchObject({ outcome: "OUT", card: "PHASE1_ATTORNEY_REVIEW" });
+    expect(evaluateGate("GATE_RESIDENCY_NEXUS", false)).toMatchObject({ outcome: "OUT", card: "PHASE1_ATTORNEY_REVIEW" });
   });
-  it("residency cascade: 1-year yes → NY-nexus question", () => {
-    expect(evaluateGate("GATE_RESIDENCY_1YR", true)).toMatchObject({ outcome: "PASS", next: "GATE_RESIDENCY_NEXUS" });
-  });
-  it("residency cascade: nexus yes passes clean; nexus no flags and continues", () => {
-    const yes = evaluateGate("GATE_RESIDENCY_NEXUS", true);
-    expect(yes).toMatchObject({ outcome: "PASS", next: "GATE_VENUE" });
-    expect((yes as { reviewFlags?: string[] }).reviewFlags).toBeUndefined();
-    expect(evaluateGate("GATE_RESIDENCY_NEXUS", false)).toMatchObject({
-      outcome: "PASS", next: "GATE_VENUE", reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"],
+  // ── Legacy cascade (INTAKE_PHASE=ALL): the § 230 cascade never terminates.
+  describe("legacy cascade under INTAKE_PHASE=ALL", () => {
+    beforeEach(() => {
+      process.env.INTAKE_PHASE = "ALL";
+    });
+    afterEach(() => {
+      delete process.env.INTAKE_PHASE;
+    });
+    it("2-year no continues to the 1-year question — never out", () => {
+      const r = evaluateGate("GATE_RESIDENCY", false);
+      expect(r).toMatchObject({ outcome: "PASS", next: "GATE_RESIDENCY_1YR" });
+      expect((r as { reviewFlags?: string[] }).reviewFlags).toBeUndefined();
+    });
+    it("1-year no → flag for attorney review, intake continues", () => {
+      const r = evaluateGate("GATE_RESIDENCY_1YR", false);
+      expect(r).toMatchObject({ outcome: "PASS", next: "GATE_VENUE", reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"] });
+    });
+    it("1-year yes → NY-nexus question", () => {
+      expect(evaluateGate("GATE_RESIDENCY_1YR", true)).toMatchObject({ outcome: "PASS", next: "GATE_RESIDENCY_NEXUS" });
+    });
+    it("nexus yes passes clean; nexus no flags and continues", () => {
+      const yes = evaluateGate("GATE_RESIDENCY_NEXUS", true);
+      expect(yes).toMatchObject({ outcome: "PASS", next: "GATE_VENUE" });
+      expect((yes as { reviewFlags?: string[] }).reviewFlags).toBeUndefined();
+      expect(evaluateGate("GATE_RESIDENCY_NEXUS", false)).toMatchObject({
+        outcome: "PASS", next: "GATE_VENUE", reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"],
+      });
     });
   });
   it("venue: NY county captured, never disqualifies; NJ counties are unknown", () => {

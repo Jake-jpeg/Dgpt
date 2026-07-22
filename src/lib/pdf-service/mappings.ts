@@ -72,6 +72,44 @@ export function buildNyUd1Payload(matter: MatterRow, answers: AnswerMap): Render
   return payload;
 }
 
+/**
+ * NY Verified Complaint (Phase 1). Consumes exactly the Phase-1 field set —
+ * every value below traces to a pleading paragraph (see
+ * claude/PHASE1-verified-complaint-spec.md). Children are asserted zero
+ * because the children gate STOPS any child case before intake completes;
+ * the generator renders an [ATTORNEY REVIEW REQUIRED] paragraph as a
+ * defense-in-depth backstop if that invariant is ever violated.
+ */
+export function buildNyComplaintPayload(matter: MatterRow, answers: AnswerMap): RenderPayload {
+  const place = str(answers["shared.relationship.marriage_place"]);
+  const state = str(answers["shared.relationship.marriage_state"]);
+  const marriagePlace =
+    place && state && !place.toUpperCase().includes(state.toUpperCase())
+      ? `${place}, ${state}`
+      : place || state;
+  const ceremonyRaw = str(answers["shared.relationship.ceremony_type"]).toUpperCase();
+  const payload: RenderPayload = {
+    ...baseFields(answers),
+    county: titleCaseCounty(answers["ny.case.county"]),
+    plaintiffAddress: combinedAddress(answers["shared.identity.client_address"]),
+    defendantAddress: combinedAddress(answers["shared.identity.other_address"]),
+    residentParty: "plaintiff",
+    marriagePlace,
+    ceremonyType: ceremonyRaw === "RELIGIOUS" ? "religious" : "civil",
+    unemancipatedChildren: "0",
+  };
+  required(payload, [
+    "plaintiffName",
+    "defendantName",
+    "county",
+    "plaintiffAddress",
+    "defendantAddress",
+    "marriageDate",
+    "marriagePlace",
+  ]);
+  return payload;
+}
+
 /** Dispatch strictly by the allowlisted (state, form) pair. */
 export function buildRenderPayload(
   state: string,
@@ -80,5 +118,6 @@ export function buildRenderPayload(
   answers: AnswerMap
 ): RenderPayload {
   if (state === "ny" && form === "ud1") return buildNyUd1Payload(matter, answers);
+  if (state === "ny" && form === "complaint") return buildNyComplaintPayload(matter, answers);
   throw new Error("VALIDATION: unsupported state/form pair");
 }

@@ -133,17 +133,34 @@ describe("gates ride the real machine", () => {
     expect((await getSession(sessionId))!.state).toBe("GATE_VENUE");
   });
 
-  it("the no/no cascade path flags for attorney review and CONTINUES", async () => {
+  it("PHASE 1: residency short of two years → attorney-review card, session pauses", async () => {
     mockTurns(turnPayload({ gate_response: { gateId: "GATE_RESIDENCY", value: false } }));
-    await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "No, we moved recently." });
-    expect((await getSession(sessionId))!.state).toBe("GATE_RESIDENCY_1YR");
-
-    mockTurns(turnPayload({ gate_response: { gateId: "GATE_RESIDENCY_1YR", value: false } }));
-    const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "Less than a year." });
-    expect(r.stopped).toBeNull(); // residency NEVER terminates
+    const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "No, we moved recently." });
+    // Durational residency is jurisdictional: the phase-1 lane stops here —
+    // an attorney reviews the § 230 one-year/nexus grounds, not the bot.
+    expect(r.stopped).toBe("SCOPE");
+    expect(r.card?.title).toContain("attorney needs to look");
+    expect(r.card?.body).toContain("isn't a rejection");
     const s = (await getSession(sessionId))!;
-    expect(s.state).toBe("GATE_VENUE");
-    expect(s.attorneyFlags).toContain("RESIDENCY_ATTORNEY_REVIEW");
+    expect(s.attorneyFlags.some((f) => f.startsWith("INTAKE_STOPPED_"))).toBe(true);
+  });
+
+  it("legacy (INTAKE_PHASE=ALL): the no/no cascade path flags for attorney review and CONTINUES", async () => {
+    process.env.INTAKE_PHASE = "ALL";
+    try {
+      mockTurns(turnPayload({ gate_response: { gateId: "GATE_RESIDENCY", value: false } }));
+      await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "No, we moved recently." });
+      expect((await getSession(sessionId))!.state).toBe("GATE_RESIDENCY_1YR");
+
+      mockTurns(turnPayload({ gate_response: { gateId: "GATE_RESIDENCY_1YR", value: false } }));
+      const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "Less than a year." });
+      expect(r.stopped).toBeNull(); // legacy: residency NEVER terminates
+      const s = (await getSession(sessionId))!;
+      expect(s.state).toBe("GATE_VENUE");
+      expect(s.attorneyFlags).toContain("RESIDENCY_ATTORNEY_REVIEW");
+    } finally {
+      delete process.env.INTAKE_PHASE;
+    }
   });
 
   it("a gate answer for the WRONG gate is rejected and retried — the machine owns order", async () => {
