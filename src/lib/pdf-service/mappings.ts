@@ -148,30 +148,25 @@ function residencyBasisFromAnswers(answers: AnswerMap): string {
  * attorney to maintain an office for the transaction of law business WITHIN
  * New York; it does not reach an attorney who resides in New York).
  *
- * OPERATOR RULING (Claude 3.05, 2026-07-26): the Fort Lee street address and
- * phone baked into the RL generator are FAKE — "That's a fake fking address.
- * We did a lot of correcting on this before." So the address and phone NEVER
- * fall through to the generator constants: DGPT always sends them — the env
- * value when the firm has set one, otherwise blank lines the attorney
- * completes at review (the same never-invent pattern as court-stamped
- * dates). The name and firm keep their real defaults.
+ * So DGPT now sends it, from env, and the RL constants become the fallback of
+ * a fallback. Leaving every row unset reproduces today's output byte for byte.
+ * Values are TRIMMED and empty rows are DROPPED, so a blank env var falls
+ * through to the generator default rather than printing an empty block.
  *
  * `FIRM_ATTORNEY_ADDRESS` accepts a literal "\n" for the second line.
  */
-const BLANK_ADDRESS = "_________________________________\n_________________________________";
-const BLANK_PHONE = "___________________";
-
 function firmSignatureBlock(): Record<string, string> {
-  const env = (k: string): string => (process.env[k] ?? "").trim();
-  const out: Record<string, string> = {
-    // Address + phone: env row or a blank line — the fake RL constants must
-    // never print on a pleading, so these keys are ALWAYS sent.
-    attorneyAddress: env("FIRM_ATTORNEY_ADDRESS").replace(/\\n/g, "\n") || BLANK_ADDRESS,
-    attorneyPhone: env("FIRM_ATTORNEY_PHONE") || BLANK_PHONE,
+  const rows: Record<string, string | undefined> = {
+    attorneyName: process.env.FIRM_ATTORNEY_NAME,
+    attorneyFirm: process.env.FIRM_ATTORNEY_FIRM,
+    attorneyAddress: process.env.FIRM_ATTORNEY_ADDRESS?.replace(/\\n/g, "\n"),
+    attorneyPhone: process.env.FIRM_ATTORNEY_PHONE,
   };
-  // Name + firm: real values exist as generator defaults; env overrides.
-  if (env("FIRM_ATTORNEY_NAME")) out.attorneyName = env("FIRM_ATTORNEY_NAME");
-  if (env("FIRM_ATTORNEY_FIRM")) out.attorneyFirm = env("FIRM_ATTORNEY_FIRM");
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(rows)) {
+    const trimmed = typeof v === "string" ? v.trim() : "";
+    if (trimmed) out[k] = trimmed;
+  }
   return out;
 }
 
