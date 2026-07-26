@@ -167,8 +167,8 @@ BEFORE starting Phase 1.
   20 msgs/min), max message length 4000 chars.
 - Kill switch: `INTAKE_CHAT_ENABLED === "true"` required, else 503 with a friendly
   "please use the form" message — the form toggle always works regardless.
-- Model: `ANTHROPIC_INTAKE_MODEL` env, falling back to `ANTHROPIC_MODEL`. (Operator
-  will decide Opus vs Sonnet per §6; build the split now so it's one env row later.)
+- Model: `ANTHROPIC_INTAKE_MODEL` env, falling back to `ANTHROPIC_MODEL`, then the
+  built-in default `claude-haiku-4-5` (operator decision 2026-07-26 — see §6).
 
 ### 2.4 Client UI — `/portal/intake` (replace the form as the DEFAULT view)
 - Chat pane: large type (≥16px), high contrast, streaming optional (non-streaming
@@ -300,13 +300,16 @@ operator intended.
   unchanged). Any change to attorney workbench AI actions beyond the Phase-0 fix.
   PDF service. Publishing the Google OAuth app. Additional languages beyond EN/KO.
 
-## 6. Model note for the operator (decision after ship)
-The intake conversation is structured elicitation — Sonnet handles it excellently at a
-fraction of Opus cost/latency, and cost scales per client message. Recommendation:
-`ANTHROPIC_INTAKE_MODEL=claude-sonnet-5` for the chat, `ANTHROPIC_MODEL=claude-opus-4-8`
-for the attorney workbench analysis actions. Both are one env row each; the operator
-flips them in DO and can A/B by changing one value. If the operator prefers Opus
-everywhere, set both to `claude-opus-4-8` — nothing in the build depends on the choice.
+## 6. Model note for the operator (DECIDED 2026-07-26: Haiku)
+The intake conversation is structured elicitation — the sequencer owns question
+order, the state machine owns the gates, and the server disposes every model
+proposal, so the model's only job is phrasing the given step warmly and reading
+the reply through the forced INTAKE_TURN schema. The operator chose speed:
+the code default is now `claude-haiku-4-5` (the fastest current model). Both
+`ANTHROPIC_INTAKE_MODEL` (chat) and `ANTHROPIC_MODEL` (workbench actions,
+still `claude-sonnet-5`) remain one env row each in DO — the operator can
+flip either without a deploy, and there is NO silent fallback if a configured
+model ID is wrong: the chat fails loudly, so only set verified model IDs.
 
 ## 7. Delivery
 Implement Phase 0, verify, commit, push. Then Phase 1 as a series of commits

@@ -21,6 +21,7 @@ import {
   type SequencerState,
 } from "@/lib/intake-chat/sequencer";
 import { lookupGlossary, glossarySliceFor, glossaryNeedsAttorneyContent } from "@/lib/intake-chat/glossary";
+import { intakeChatModel } from "@/lib/intake-chat/orchestrator";
 import { getSchemaForCategory } from "@/config/intake/schemas";
 import { isAnswered } from "@/lib/intake2/engine";
 import type { AnswerMap, IntakeItem } from "@/lib/intake2/types";
@@ -84,6 +85,26 @@ describe("constitution 2026-07.5 — drive + count + why + no-documents", () => 
     expect(text).toMatch(/NEVER end your turn waiting/);
     expect(text).toContain("13. TELL THEM WHERE THEY ARE");
     expect(text).toContain("14. EXPLAIN WHY YOU ASK");
+  });
+});
+
+describe("intake chat model (operator decision 2026-07-26: Haiku for speed)", () => {
+  afterEach(() => {
+    delete process.env.ANTHROPIC_INTAKE_MODEL;
+    delete process.env.ANTHROPIC_MODEL;
+  });
+
+  it("defaults to claude-haiku-4-5 — the fastest current model", () => {
+    delete process.env.ANTHROPIC_INTAKE_MODEL;
+    delete process.env.ANTHROPIC_MODEL;
+    expect(intakeChatModel()).toBe("claude-haiku-4-5");
+  });
+
+  it("ANTHROPIC_INTAKE_MODEL overrides without a deploy; ANTHROPIC_MODEL is the middle fallback", () => {
+    process.env.ANTHROPIC_MODEL = "claude-sonnet-5";
+    expect(intakeChatModel()).toBe("claude-sonnet-5");
+    process.env.ANTHROPIC_INTAKE_MODEL = "claude-opus-4-8";
+    expect(intakeChatModel()).toBe("claude-opus-4-8");
   });
 });
 

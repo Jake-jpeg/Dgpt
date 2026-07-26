@@ -60,11 +60,21 @@ export function intakeChatEnabled(): boolean {
   return envOptional("INTAKE_CHAT_ENABLED") === "true";
 }
 
+/**
+ * The intake chat's model. Operator decision (2026-07-26): Haiku — the
+ * fastest current model — because the intake turn is a NARROW job: the
+ * sequencer owns question order, the machine owns the gates, the server
+ * disposes every proposal; the model only phrases the given step warmly
+ * and interprets the reply through the forced INTAKE_TURN schema. Verified
+ * current API alias: claude-haiku-4-5 (docs, 2026-07-26).
+ * ANTHROPIC_INTAKE_MODEL overrides without a deploy (DO env), then
+ * ANTHROPIC_MODEL, then the Haiku default.
+ */
 export function intakeChatModel(): string {
   return (
     envOptional("ANTHROPIC_INTAKE_MODEL") ||
     envOptional("ANTHROPIC_MODEL") ||
-    "claude-sonnet-5"
+    "claude-haiku-4-5"
   );
 }
 
