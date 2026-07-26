@@ -23,7 +23,9 @@
 export const PHASE1_ITEM_IDS: ReadonlySet<string> = new Set([
   // Parties (caption, ¶SIXTH, verification, UD-1)
   "shared.identity.client_name",
-  "shared.identity.client_dob",
+  // client_dob deliberately ABSENT: no Phase 1-2 pleading or agreement
+  // prints it (operator, 2026-07-26 live test: "And the DOB?"). The lawyer
+  // collects it at drafting when a form actually needs it.
   "shared.identity.client_address",
   "shared.identity.other_name",
   "shared.identity.other_address",

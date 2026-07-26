@@ -31,10 +31,10 @@ afterEach(() => {
 
 const FIRM = { firmName: "Jake Kim Law Firm", firmContact: "(201) 555-0100" };
 
-describe("constitution 2026-07.4 — drive + count + why", () => {
-  it("is versioned 2026-07.4 and states the version in the prompt", () => {
-    expect(INTAKE_CONSTITUTION_VERSION).toBe("2026-07.4");
-    expect(buildConstitution(FIRM)).toContain("CONSTITUTION 2026-07.4");
+describe("constitution 2026-07.5 — drive + count + why + no-documents", () => {
+  it("is versioned 2026-07.5 and states the version in the prompt", () => {
+    expect(INTAKE_CONSTITUTION_VERSION).toBe("2026-07.5");
+    expect(buildConstitution(FIRM)).toContain("CONSTITUTION 2026-07.5");
   });
 
   it("carries Rule 11 with its example and all four constraints", () => {
@@ -77,7 +77,7 @@ describe("constitution 2026-07.4 — drive + count + why", () => {
     expect(text).toContain("(201) 555-0100");
   });
 
-  it("carries the 2026-07.4 rules: drive the conversation, tell progress, explain why", () => {
+  it("carries the 2026-07.5 rules: drive, tell progress, explain why, never ask for documents", () => {
     const text = buildConstitution(FIRM);
     expect(text).toContain("12. YOU MOVE THE CONVERSATION FORWARD");
     expect(text).toMatch(/ask the NEXT question in the SAME reply/);
@@ -117,11 +117,11 @@ describe("INTAKE_TONE configuration", () => {
   it("records tone AND version in the session marker", () => {
     delete process.env.INTAKE_TONE;
     expect(constitutionEventText()).toBe(
-      "intake assistant started (constitution 2026-07.4, tone WARM)"
+      "intake assistant started (constitution 2026-07.5, tone WARM)"
     );
     process.env.INTAKE_TONE = "NEUTRAL";
     expect(constitutionEventText()).toContain("tone NEUTRAL");
-    expect(constitutionEventText()).toContain("2026-07.4");
+    expect(constitutionEventText()).toContain("2026-07.5");
   });
 });
 
@@ -203,7 +203,11 @@ describe("sequencer — deterministic and exhaustive", () => {
     }
   });
 
-  it("walks the checklist, then read-back, then confirmation, then completes", () => {
+  it("NEVER walks the checklist (2026-07-26): questions go straight to read-back", () => {
+    // The first live interview ballooned to 30+ turns because the sequencer
+    // interrogated the client about every catalog document — including child
+    // documents in a no-kids case. Documents move over EMAIL now; this test
+    // pins that even REQUIRED_NOW checklist entries are never asked.
     const state = baseState({
       welcomed: true,
       machineState: "TIER_BRANCH",
@@ -221,20 +225,14 @@ describe("sequencer — deterministic and exhaustive", () => {
       state.answers = { ...state.answers, [s.id!]: answer(s.item!) };
     }
 
-    let step = nextStep(state);
-    expect(step.kind).toBe("CHECKLIST");
-    expect(step.id).toBe("DOC_A");
-    state.checklistReported.push("DOC_A");
-    expect(nextStep(state).id).toBe("DOC_B");
-    state.checklistReported.push("DOC_B");
-
+    // No CHECKLIST step, ever — unreported REQUIRED_NOW docs notwithstanding.
     expect(nextStep(state).kind).toBe("READBACK");
     state.readBackShown = true;
     expect(nextStep(state).kind).toBe("CONFIRM");
     state.confirmed = true;
 
-    step = nextStep(state);
-    expect(step.kind).toBe("COMPLETE");
+    const final = nextStep(state);
+    expect(final.kind).toBe("COMPLETE");
     expect(isComplete(state)).toBe(true);
   });
 

@@ -9,8 +9,17 @@
  * "exhaustive" (spec §3 rule 8) a property the server can guarantee rather
  * than a behavior we hope for.
  *
- * Order: welcome → gates → every schema section in order → document
- * checklist walk → read-back → confirmation → complete.
+ * Order: welcome → gates → every schema section in order → read-back →
+ * confirmation → complete.
+ *
+ * THE DOCUMENT CHECKLIST IS NEVER WALKED CONVERSATIONALLY (removed
+ * 2026-07-26 after the first live interview: it ballooned a 15-question
+ * intake into 30+ turns, asked child-document questions in a no-kids case,
+ * and broke the "N questions" promise). Documents move over EMAIL, directly
+ * with the firm — the portal does not even accept client uploads anymore.
+ * The derived checklist remains an internal firm-side artifact
+ * (form-readiness, attorney panels); the client is simply never
+ * interrogated about it.
  */
 import type { AnswerMap, IntakeItem, IntakeSchema } from "@/lib/intake2/types";
 import { itemVisible, isAnswered, type ChecklistEntry } from "@/lib/intake2/engine";
@@ -166,16 +175,8 @@ export function nextStep(state: SequencerState): Step {
     };
   }
 
-  // Then the conversational document checklist walk.
-  const pendingDoc = state.checklist.find((c) => !state.checklistReported.includes(c.documentId));
-  if (pendingDoc) {
-    return {
-      kind: "CHECKLIST",
-      id: pendingDoc.documentId,
-      ...sectionMeta(schema, null),
-    };
-  }
-
+  // Documents are handled over email with the firm — no checklist walk
+  // (see the header note). Straight to the read-back once questions end.
   if (!state.readBackShown) {
     return { kind: "READBACK", id: null, ...sectionMeta(schema, null) };
   }

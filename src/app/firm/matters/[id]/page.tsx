@@ -949,12 +949,21 @@ function ConnectClientPanel({
     }
   }
 
+  // Plain-language + Korean, per the operator (2026-07-26): "log in with
+  // your Gmail, Outlook, or Hotmail account."
   const mailBody = encodeURIComponent(
-    "Hello,\n\nTo get started with your case, please:\n\n" +
+    "Hello,\n\nGetting started with your case takes one minute:\n\n" +
       "1. Go to https://divorcegpt.com\n" +
-      "2. Sign in with THIS email address using Google or Microsoft (Outlook/Hotmail)\n\n" +
-      "That is all — once you have signed in, I will connect your case on my end and " +
-      "your questionnaire will be ready the next time you log in.\n\n" +
+      "2. Log in with your Gmail, Outlook, or Hotmail account — use THIS email address\n\n" +
+      "That's it. Once you've logged in, I'll connect your case on my end, and your " +
+      "questionnaire will be ready the next time you log in.\n\n" +
+      "\u2014\u2014\u2014\n\n" +
+      "\uC548\uB155\uD558\uC138\uC694,\n\n" +
+      "\uC0AC\uAC74\uC744 \uC2DC\uC791\uD558\uB294 \uB370 1\uBD84\uC774\uBA74 \uCDA9\uBD84\uD569\uB2C8\uB2E4:\n\n" +
+      "1. https://divorcegpt.com \uC5D0 \uC811\uC18D\uD558\uC138\uC694\n" +
+      "2. \uC9C0\uAE08 \uC774 \uC774\uBA54\uC77C \uC8FC\uC18C(Gmail, Outlook \uB610\uB294 Hotmail \uACC4\uC815)\uB85C \uB85C\uADF8\uC778\uD558\uC138\uC694\n\n" +
+      "\uADF8\uAC8C \uC804\uBD80\uC785\uB2C8\uB2E4. \uB85C\uADF8\uC778\uD558\uC2DC\uBA74 \uC81C\uAC00 \uC0AC\uAC74\uC744 \uC5F0\uACB0\uD574 \uB4DC\uB9AC\uACE0, " +
+      "\uB2E4\uC74C \uB85C\uADF8\uC778 \uC2DC \uC9C8\uBB38\uC9C0\uAC00 \uC900\uBE44\uB418\uC5B4 \uC788\uC744 \uAC81\uB2C8\uB2E4.\n\n" +
       "Jake Kim, Esq.\nJake Kim Law Firm"
   );
 
@@ -965,7 +974,7 @@ function ConnectClientPanel({
       summary={unlinked.length > 0 ? `${unlinked.length} waiting` : "none waiting"}
     >
       <p className="panel-sub">
-        Clients register by signing in at divorcegpt.com with Google or Outlook — no links,
+        Clients register by logging in at divorcegpt.com with their Gmail, Outlook, or Hotmail account — no links,
         no codes. Every registration shows up here, and you decide: connect it to this
         matter, or decline it. Nothing is visible to a client until you connect them.
       </p>

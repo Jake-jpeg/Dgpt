@@ -22,7 +22,7 @@
 import { getSession, updateSession, recordAudit, addAttorneyFlag, touchSession, type SessionRow } from "@/lib/db/repo";
 import { getMatter, type MatterRow } from "@/lib/db/matters";
 import { getMatterAnswers, saveMatterAnswers, schemaForMatter } from "@/lib/db/intake2";
-import { deriveChecklist, type ChecklistEntry } from "@/lib/intake2/engine";
+import { deriveChecklist, itemVisible, type ChecklistEntry } from "@/lib/intake2/engine";
 import { getConfigChecklistState } from "@/lib/db/checklist";
 import { evaluateGate, isGateState } from "@/lib/intake/scope-gate";
 import { assertTransition, type MachineState } from "@/lib/intake/machine";
@@ -252,12 +252,17 @@ export function estimateQuestionCount(
   schema: ReturnType<typeof schemaForMatter>,
   phase: IntakePhase = activeIntakePhase()
 ): number {
+  // Count what a fresh client will actually SEE: initially-visible items
+  // (conditionals only ever ADD later, and gate prefills SUBTRACT) plus the
+  // scope gates. The welcome frames this as "up to about N, often fewer" —
+  // a ceiling the interview then under-runs, never overruns.
   const clientItems = schema.items.filter(
     (i) =>
       i.audience === "CLIENT" &&
       i.type !== "document_request" &&
       i.type !== "attorney_determination" &&
-      clientItemInPhase(i, phase)
+      clientItemInPhase(i, phase) &&
+      itemVisible(i, {})
   ).length;
   const SCOPE_QUESTIONS = 5; // residency + venue + DV + children + complexity
   const raw = clientItems + SCOPE_QUESTIONS;
@@ -382,11 +387,20 @@ function transcriptWindow(transcript: ChatMessageRow[], n = 24): string {
 
 function buildUserPrompt(ctx: ConversationContext, clientMessage: string, correction?: string): string {
   const prog = progress(ctx.seqState);
-  const estimate = estimateQuestionCount(ctx.schema, ctx.seqState.phase);
+  // HONEST COUNTS ONLY (2026-07-26 — the first live interview misquoted its
+  // own length): the model is given the SAME live numbers the header and the
+  // progress rail show, and nothing else. No padded estimates, no arithmetic
+  // of its own. Conditionals can only SHRINK what remains, so "about R more,
+  // possibly fewer" is a promise the system always keeps.
+  const remaining = Math.max(0, prog.total - prog.answered);
+  const inGates = ctx.step.kind === "GATE" || ctx.step.kind === "WELCOME";
+  const progressLine = inGates
+    ? `PROGRESS (live — quote ONLY these numbers, Rule 13): you are in the short eligibility check (a handful of yes/no questions). The main questions come after it — currently about ${prog.total}, possibly fewer as answers rule things out. Never state an exact total.`
+    : `PROGRESS (live — quote ONLY these numbers, Rule 13): ${prog.answered} main question(s) answered, about ${remaining} remaining — possibly fewer as answers rule things out. Never state an exact total, never invent your own count.`;
   return (
-    `PROGRESS: the client is on about question ${prog.answered + 1} of ~${estimate}` +
+    progressLine +
     (prog.sectionTitle ? ` · current section "${prog.sectionTitle}" (${prog.sectionIndex}/${prog.sectionCount})` : "") +
-    `. If they ask how many questions there are or how far along they are, tell them this plainly (Rule 13).\n\n` +
+    `\n\n` +
     `${describeStep(ctx.step, ctx)}\n\n` +
     `HOW TO REPLY:\n` +
     `- If the client ANSWERED the current question: record it (per above), then in the SAME reply ` +
@@ -495,6 +509,27 @@ async function applyTurn(
       state: evaluation.next,
       ...(evaluation.persist?.county ? { county: evaluation.persist.county } : {}),
     });
+    // PREFILL (2026-07-26 — never re-ask what a gate already collected):
+    // unambiguous gate facts are written straight into the intake answers,
+    // so the question phase silently skips them. County = the venue gate's
+    // county; a YES on either residency-duration gate = lives in NY now.
+    const prefill: { questionId: string; value: unknown }[] = [];
+    if (evaluation.persist?.county) {
+      prefill.push({ questionId: "ny.case.county", value: evaluation.persist.county });
+    }
+    if (
+      (current === "GATE_RESIDENCY" || current === "GATE_RESIDENCY_1YR") &&
+      (turn.gate_response!.value === true || turn.gate_response!.value === "yes")
+    ) {
+      prefill.push({ questionId: "ny.case.resident_now", value: true });
+    }
+    if (prefill.length > 0) {
+      try {
+        await saveMatterAnswers({ matterId: ctx.matter.id, actingUserId, answers: prefill });
+      } catch {
+        /* prefill is a convenience — a schema mismatch must never break a gate pass */
+      }
+    }
     for (const flag of evaluation.reviewFlags ?? []) {
       await addAttorneyFlag(sessionId, flag);
       await recordAudit(sessionId, "GATE_FLAGGED_FOR_ATTORNEY", `${current}:${flag}`);
