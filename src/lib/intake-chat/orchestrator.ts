@@ -414,6 +414,56 @@ function describeStep(step: Step, ctx: ConversationContext): string {
   }
 }
 
+/**
+ * FACTS ON FILE — every answer already saved for this matter, shown to the
+ * model on every turn.
+ *
+ * Root cause (operator, Claude 3.05, with transcript): the model was given
+ * only a trailing transcript window, so it could not resolve "with me",
+ * "same as mine", or "read above — what does it say?" against what the
+ * client had already provided, and it re-confirmed things the client had
+ * typed into the form. The saved answers are the system's actual memory —
+ * so hand them to the model verbatim, every turn.
+ *
+ * The server still disposes: anything the model records from these facts is
+ * re-validated by saveMatterAnswers like any other proposal.
+ */
+function factsOnFile(ctx: ConversationContext): string {
+  const phase = ctx.seqState.phase ?? activeIntakePhase();
+  const lines = ctx.schema.items
+    .filter(
+      (i) =>
+        i.audience === "CLIENT" &&
+        i.type !== "attorney_determination" &&
+        clientItemInPhase(i, phase) &&
+        isAnswered(i, ctx.answers)
+    )
+    .map((i) => {
+      let v: string;
+      try {
+        v = JSON.stringify(ctx.answers[i.id]);
+      } catch {
+        v = String(ctx.answers[i.id]);
+      }
+      if (v.length > 220) v = v.slice(0, 220) + "…";
+      return `- ${i.id} ("${i.prompt}"): ${v}`;
+    });
+  if (lines.length === 0) return "(nothing recorded yet)";
+  return lines.join("\n");
+}
+
+const FACTS_RULES =
+  `RULES FOR THE FACTS ON FILE:\n` +
+  `- NEVER ask for, or re-confirm, anything already listed there. It is saved. Move on.\n` +
+  `- When the client refers to something they already said ("same as mine", "with me", ` +
+  `"read above", "I already told you"), resolve it FROM the facts on file. Example: if the ` +
+  `spouse "lives with me", record the other party's address as a copy of the client's ` +
+  `saved address value.\n` +
+  `- When the client asks what they said earlier, answer directly from the facts on file — ` +
+  `never say you can't see it or ask them to repeat it.\n` +
+  `- If a fact on file already plainly answers the CURRENT question, do not ask it: record ` +
+  `that value and briefly note it in passing ("you mentioned X earlier, so I've noted that").`;
+
 function transcriptWindow(transcript: ChatMessageRow[], n = 24): string {
   return transcript
     .slice(-n)
@@ -448,6 +498,8 @@ function buildUserPrompt(ctx: ConversationContext, clientMessage: string, correc
     `give the progress count), record nothing, and keep them on the current question (Rules 3, 13, 14).\n` +
     `- If their answer is genuinely unclear: ask them to clarify; record nothing yet.\n\n` +
     `APPROVED GLOSSARY (use verbatim on a hit; plain language otherwise):\n${glossarySlice()}\n\n` +
+    `FACTS ON FILE (already saved — the client's answers so far):\n${factsOnFile(ctx)}\n\n` +
+    `${FACTS_RULES}\n\n` +
     `RECENT CONVERSATION:\n${transcriptWindow(ctx.transcript)}\n\n` +
     (correction ? `SERVER CORRECTION (your previous proposal was rejected): ${correction}\n\n` : "") +
     `CLIENT'S NEW MESSAGE:\n${clientMessage}`
@@ -473,6 +525,7 @@ function buildAdvancePrompt(ctx: ConversationContext, nextStepToAsk: Step): stri
     `PROGRESS: about question ${prog.answered + 1} of ~${estimate}.\n\n` +
     `NEXT ${describeStep(nextStepToAsk, ctx)}\n\n` +
     `APPROVED GLOSSARY (use verbatim on a hit; plain language otherwise):\n${glossarySlice()}\n\n` +
+    `FACTS ON FILE (already saved — never re-ask or re-confirm any of it):\n${factsOnFile(ctx)}\n\n` +
     `RECENT CONVERSATION:\n${transcriptWindow(ctx.transcript)}`
   );
 }
