@@ -21,7 +21,7 @@ import { recordAudit, listSessionsByMatter } from "@/lib/db/repo";
 import { getUserById } from "@/lib/db/users";
 import { listDocumentsForMatter, listVersions } from "@/lib/db/documents";
 import { attorneySetJurisdictionAndScope } from "@/lib/db/intake2";
-import { matterIntakeTrack, TRACK_CATEGORY } from "@/config/intake/phases";
+import { UNCONTESTED_CATEGORY } from "@/config/intake/phases";
 import type { MatterCategory } from "@/lib/intake2/types";
 
 function matterSummary(m: MatterRow) {
@@ -47,7 +47,6 @@ async function firmMatterRow(m: MatterRow) {
   const released = versions.filter((v) => v.status === "RELEASED").length;
   return {
     ...matterSummary(m),
-    track: matterIntakeTrack(m),
     client: client ? { name: client.name || client.email, email: client.email } : null,
     intakeStatus: latestSession?.state ?? "NOT_STARTED",
     documents: { total: versions.length, awaitingReview, released },
@@ -85,11 +84,6 @@ export async function GET(req: Request) {
 
 const createSchema = z.object({
   label: z.string().trim().min(1).max(120),
-  // Intake track (2026-07-26): the attorney declares uncontested vs contested
-  // at creation. Category assignment is ATTORNEY-only (the guarded setter
-  // enforces it), so STAFF create without a track and the attorney sets it
-  // on the matter page.
-  track: z.enum(["UNCONTESTED", "CONTESTED"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -99,20 +93,28 @@ export async function POST(req: Request) {
     const { account } = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const parsed = createSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid matter payload");
-    if (parsed.data.track && account.role !== "ATTORNEY") {
-      throw new HttpError(403, "FORBIDDEN: only an attorney may set the intake track");
-    }
     const matter = (await createMatter({ label: parsed.data.label, createdBy: account.id }));
     // The creator works this matter: grant access at creation.
     (await grantMatterAccess(matter.id, account.id, account.id));
-    (await recordAudit(matter.id, "MATTER_CREATED", parsed.data.track ? `track=${parsed.data.track}` : undefined, account.id));
-    if (parsed.data.track) {
+    (await recordAudit(matter.id, "MATTER_CREATED", undefined, account.id));
+    // There is no track. Every matter on this product is a NY uncontested
+    // matrimonial (operator directive 2026-07-26: "We're not doing contested
+    // at all."). Category assignment is guarded to ATTORNEY, so a matter a
+    // STAFF member opens is categorized the first time an attorney touches it.
+    // Jurisdiction is NEW YORK because this product only does New York. The
+    // attorney no longer fills a jurisdiction form (operator directive
+    // 2026-07-26: "Get rid of the jurisdiction panel… If a lawyer reviews and
+    // fucks up jurisdiction — that's for the lawyer to correct."). The Case
+    // check card shows PASS/REVIEW on the § 230 facts; this line is what
+    // unlocks the NY render allowlist so the forms can actually be produced.
+    if (account.role === "ATTORNEY") {
       await attorneySetJurisdictionAndScope({
         matterId: matter.id,
         actingUserId: account.id,
-        matterCategory: TRACK_CATEGORY[parsed.data.track] as MatterCategory,
+        jurisdictionConfirmed: "NY",
+        matterCategory: UNCONTESTED_CATEGORY as MatterCategory,
       });
-      await recordAudit(matter.id, "INTAKE_TRACK_SET", `from=- to=${parsed.data.track}`, account.id);
+      await recordAudit(matter.id, "JURISDICTION_SCOPE_SET", "jurisdiction=NY category=NY_SUPREME_UNCONTESTED (NY-only product default at creation)", account.id);
     }
     return Response.json({ matter: matterSummary(matter) }, { status: 201 });
   } catch (e) {

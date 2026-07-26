@@ -18,21 +18,15 @@ import { api, fmtWhen } from "@/lib/ui/client-api";
 /* ── shared shapes (mirrors of the API responses) ─────────────────── */
 
 interface JurisdictionView {
-  factsCollected: Record<string, unknown>;
-  signals: {
-    nyImplicated: boolean;
-    otherStates: string[];
-    multiJurisdiction: boolean;
-    note: string;
+  residency: {
+    verdict: "PASS" | "REVIEW";
+    prong: string;
+    reasons: string[];
+    citations: string[];
   };
+  guidelines: { maintenance: string; childSupport: string };
   attorneyDetermination: {
-    jurisdictionCandidate: string | null;
-    jurisdictionConfirmed: string | null;
-    jurisdictionConfirmedBy: string | null;
-    jurisdictionConfirmedAt: string | null;
     matterCategory: string | null;
-    scopeStatus: string;
-    scopeNotes: string | null;
     intakeSchemaVersion: string | null;
   };
 }
@@ -66,8 +60,11 @@ interface ChecklistEntry {
   title: string;
   requestText: string;
   status: string;
+  /** Server-computed: false when nothing in the client's answers calls for it. */
+  applicable: boolean;
+  /** Plain-English WHY, assembled server-side from the triggering questions. */
   reason: string;
-  overriddenBy?: string | null;
+  triggeredBy?: string[];
 }
 
 interface ReadinessReport {
@@ -216,7 +213,7 @@ export default function Workbench({
 }) {
   return (
     <>
-      <JurisdictionPanel matterId={matterId} isAttorney={isAttorney} openSignal={openSignal} />
+      <CaseCheckPanel matterId={matterId} openSignal={openSignal} />
       <IntakeTranscriptPanel matterId={matterId} openSignal={openSignal} />
       <ChecklistPanel matterId={matterId} isAttorney={isAttorney} />
       {isAttorney && <FormReadinessPanel matterId={matterId} />}
@@ -226,33 +223,34 @@ export default function Workbench({
   );
 }
 
-/* ── jurisdiction & scope (B6 UI) ─────────────────────────────────── */
-
-function JurisdictionPanel({
+/* ── case check: can this be filed? ───────────────────────────────────
+ *
+ * Replaces the old "Jurisdiction & scope (attorney determination)" panel,
+ * which asked the attorney to fill in a state, a workflow category, and a
+ * scope status before it would tell them anything. Operator directive
+ * (2026-07-26): "Jurisdiction should be simple: either they passed or there
+ * is a yellow warning sign… IF PASS (GREEN) -> list WHY."
+ *
+ * So: one card, two colors, the reasons spelled out, nothing to fill in.
+ * The verdict is computed server-side by evaluateResidency() — the SAME
+ * function the Verified Complaint uses to pick its § 230 prong, so the card
+ * and the pleading can never disagree. It also prints which year's
+ * maintenance and child-support guidelines this build applies.
+ */
+function CaseCheckPanel({
   matterId,
-  isAttorney,
   openSignal,
 }: {
   matterId: string;
-  isAttorney: boolean;
   openSignal?: PanelOpenSignal | null;
 }) {
   const [view, setView] = useState<JurisdictionView | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [confirmed, setConfirmed] = useState<string>("");
-  const [category, setCategory] = useState<string>("");
-  const [scope, setScope] = useState<string>("");
-  const [notes, setNotes] = useState("");
 
   const load = useCallback(async () => {
     try {
       const v = (await api.get(`/api/matters/${matterId}/jurisdiction`)) as unknown as JurisdictionView;
       setView(v);
-      setConfirmed(v.attorneyDetermination.jurisdictionConfirmed ?? "");
-      setCategory(v.attorneyDetermination.matterCategory ?? "");
-      setScope(v.attorneyDetermination.scopeStatus);
-      setNotes(v.attorneyDetermination.scopeNotes ?? "");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "load failed");
     }
@@ -262,158 +260,61 @@ function JurisdictionPanel({
     load();
   }, [load]);
 
-  if (err) return <Panel title="Jurisdiction & scope">{<p className="text-sm text-red-700">{err}</p>}</Panel>;
+  if (err) return <Panel title="Case check">{<p className="text-sm text-red-700">{err}</p>}</Panel>;
   if (!view) return null;
-  const det = view.attorneyDetermination;
-  const categories = AI_CATEGORY_LIST.filter((c) => !confirmed || c.startsWith(confirmed + "_"));
+
+  const pass = view.residency.verdict === "PASS";
 
   return (
     <Panel
       panelId="jurisdiction"
       openSignal={openSignal}
-      title="Jurisdiction & scope (attorney determination)"
-      sub="FACTS COLLECTED are shown separately from the determination. Nothing is auto-selected from a mailing address; multi-state facts flag the matter for review."
-      summary={
-        det.jurisdictionConfirmed
-          ? `${det.jurisdictionConfirmed}${det.matterCategory ? ` · ${det.matterCategory}` : ""} · scope ${det.scopeStatus.replaceAll("_", " ").toLowerCase()}`
-          : "Not yet determined"
-      }
+      title="Case check — can this be filed?"
+      summary={pass ? "PASS" : "REVIEW"}
+      defaultOpen={!pass}
     >
-      {view.signals.multiJurisdiction && (
-        <div className="notice notice-warn mb-3 font-semibold">
-          MULTI-JURISDICTION REVIEW REQUIRED — facts implicate a state other than New York.
+      <div
+        className="rounded border-l-4 p-3"
+        style={
+          pass
+            ? { borderColor: "#15803d", background: "#f0fdf4" }
+            : { borderColor: "#ca8a04", background: "#fefce8" }
+        }
+      >
+        <div
+          className="text-sm font-bold uppercase tracking-wide"
+          style={{ color: pass ? "#15803d" : "#a16207" }}
+        >
+          {pass ? "✓ Passed — clear to file in New York" : "⚠ Needs your review before filing"}
         </div>
-      )}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div>
-          <p className="field-label">Facts collected</p>
-          <table className="tbl">
-            <tbody>
-              {Object.entries(view.factsCollected).map(([q, v]) => (
-                <tr key={q}>
-                  <td className="mono text-xs">{q.replace(/^shared\./, "")}</td>
-                  <td className="text-sm">{v === null ? <span className="text-slate-400">— unanswered</span> : formatAnswer(v)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="mt-2 text-xs text-slate-500">
-            Signals — NY: {view.signals.nyImplicated ? "implicated" : "none"} · other states:{" "}
-            {view.signals.otherStates.length > 0 ? view.signals.otherStates.join(", ") : "none"}
-            {view.signals.multiJurisdiction && <> · attorney review required</>}
-          </p>
-          <p className="mt-1 text-xs text-slate-500">{view.signals.note}</p>
-        </div>
-        <div>
-          <p className="field-label">Attorney determination</p>
-          <table className="tbl">
-            <tbody>
-              <tr>
-                <td className="w-44 font-semibold">Confirmed state</td>
-                <td>{det.jurisdictionConfirmed ?? <span className="text-slate-400">not confirmed</span>}</td>
-              </tr>
-              <tr>
-                <td className="font-semibold">Workflow category</td>
-                <td>{det.matterCategory ?? <span className="text-slate-400">not assigned</span>}</td>
-              </tr>
-              <tr>
-                <td className="font-semibold">Scope status</td>
-                <td><StatusBadge value={det.scopeStatus} /></td>
-              </tr>
-              <tr>
-                <td className="font-semibold">Schema version</td>
-                <td className="mono">{det.intakeSchemaVersion ?? "—"}</td>
-              </tr>
-              {det.jurisdictionConfirmedBy && (
-                <tr>
-                  <td className="font-semibold">Confirmed by</td>
-                  <td>
-                    {det.jurisdictionConfirmedBy} on {fmtWhen(det.jurisdictionConfirmedAt)}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          {isAttorney ? (
-            <div className="mt-3 space-y-2 rounded bg-slate-50 p-3 text-sm">
-              <div className="flex flex-wrap gap-2">
-                <label>
-                  <span className="field-label">State</span>
-                  <select className="text-input" style={{ width: "auto" }} value={confirmed} onChange={(e) => { setConfirmed(e.target.value); setCategory(""); }}>
-                    <option value="">— not confirmed —</option>
-                    <option value="NY">New York</option>
-                  </select>
-                </label>
-                <label className="flex-1">
-                  <span className="field-label">Workflow category</span>
-                  <select className="text-input" value={category} onChange={(e) => setCategory(e.target.value)} disabled={!confirmed}>
-                    <option value="">— none —</option>
-                    {categories.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span className="field-label">Scope</span>
-                  <select className="text-input" style={{ width: "auto" }} value={scope} onChange={(e) => setScope(e.target.value)}>
-                    {["UNREVIEWED", "UNDER_REVIEW", "ACCEPTED", "DECLINED", "MULTI_JURISDICTION_REVIEW_REQUIRED"].map((s) => (
-                      <option key={s} value={s}>{s.replaceAll("_", " ").toLowerCase()}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <label className="block">
-                <span className="field-label">Scope notes (internal)</span>
-                <input className="text-input" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} />
-              </label>
-              <button
-                className="btn btn-primary"
-                disabled={busy}
-                onClick={async () => {
-                  setBusy(true);
-                  setErr(null);
-                  try {
-                    await api.post(`/api/matters/${matterId}/jurisdiction`, {
-                      jurisdictionConfirmed: confirmed === "NY" ? confirmed : null,
-                      matterCategory: category || null,
-                      scopeStatus: scope,
-                      scopeNotes: notes || undefined,
-                    });
-                    await load();
-                  } catch (e) {
-                    setErr(e instanceof Error ? e.message : "save failed");
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                Record determination
-              </button>
-              <p className="text-xs text-slate-500">
-                Assigning a category re-pins the intake schema version for this matter and changes which
-                state-specific questions the client sees.
-              </p>
-            </div>
-          ) : (
-            <p className="mt-2 text-xs text-slate-500">Jurisdiction, category, and scope are attorney determinations.</p>
-          )}
-        </div>
+        <ul className="mt-2 space-y-1 text-sm">
+          {view.residency.reasons.map((r, i) => (
+            <li key={i}>— {r}</li>
+          ))}
+        </ul>
+        {view.residency.citations.length > 0 && (
+          <p className="mt-2 text-xs text-slate-500">{view.residency.citations.join(" · ")}</p>
+        )}
       </div>
+
+      <div className="mt-3 rounded bg-slate-50 p-3 text-xs text-slate-600">
+        <div className="mb-1 font-semibold uppercase tracking-wide text-slate-500">
+          Guidelines applied by this build
+        </div>
+        <p>Spousal maintenance — {view.guidelines.maintenance}</p>
+        <p className="mt-1">Child support — {view.guidelines.childSupport}</p>
+      </div>
+
+      <p className="mt-2 text-xs text-slate-500">
+        This is a deterministic read of the client&apos;s own answers, not legal advice and not a
+        determination. You correct anything that is wrong — the card only tells you where to look.
+        {view.attorneyDetermination.intakeSchemaVersion && (
+          <> Intake schema {view.attorneyDetermination.intakeSchemaVersion}.</>
+        )}
+      </p>
     </Panel>
   );
 }
-
-const AI_CATEGORY_LIST = [
-  "NY_SUPREME_UNCONTESTED_JOINT",
-  "NY_SUPREME_UNCONTESTED",
-  "NY_SUPREME_CONTESTED",
-  "NY_SUPREME_POST_JUDGMENT",
-  "NY_FAMILY_COURT_CUSTODY_VISITATION",
-  "NY_FAMILY_COURT_SUPPORT_PARENTAGE",
-  "NY_UCCJEA_INTERSTATE",
-  "NY_FAMILY_OFFENSE_OR_EMERGENCY_ESCALATION",
-];
 
 function formatAnswer(v: unknown): string {
   if (v === true) return "Yes";
@@ -557,49 +458,77 @@ function ChecklistPanel({ matterId, isAttorney }: { matterId: string; isAttorney
     }
   };
 
-  // One-line header summary — read the checklist without opening it.
-  const requiredNow = entries.filter((e) => e.status === "REQUIRED_NOW").length;
-  const notApplicable = entries.filter((e) => e.status === "NOT_APPLICABLE").length;
-  const summaryParts = [`${requiredNow} required now`];
-  if (notApplicable > 0) summaryParts.push(`${notApplicable} not applicable`);
-  const summary = `${entries.length} item${entries.length === 1 ? "" : "s"} — ${summaryParts.join(", ")}`;
+  // The list is BUILT, not assembled by the lawyer. Operator directive
+  // 2026-07-26: "Make the AI list it automatically. The purpose is for it to
+  // save the lawyer's time not to build it." So: the documents this client's
+  // own answers call for are the panel. The rest of the catalog — the items
+  // nothing in the file triggers — collapses to one line the attorney can
+  // open if they want to audit what was left out.
+  const live = entries.filter((e) => e.applicable);
+  const notApplicable = entries.filter((e) => !e.applicable);
+  const requiredNow = live.filter((e) => e.status === "REQUIRED_NOW").length;
+  const summary =
+    live.length === 0
+      ? "Nothing needed yet — the answers so far don't call for a document"
+      : `${live.length} document${live.length === 1 ? "" : "s"} needed${requiredNow ? ` · ${requiredNow} now` : ""}`;
 
   return (
-    <Panel title="Document checklist (deterministic)" sub={disclaimer} summary={summary}>
-      <table className="tbl">
-        <thead>
-          <tr>
-            <th>Document</th>
-            <th>Status</th>
-            <th>Why it applies</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((e) => (
-            <tr key={e.documentId}>
-              <td className="font-semibold">{e.title}</td>
-              <td><StatusBadge value={e.status} /></td>
-              <td className="text-xs text-slate-600">{e.reason}</td>
-              <td>
-                {/* De-noised: the status badge above carries the state; the
-                    five override buttons are revealed on demand, one row at a
-                    time, instead of 5×N buttons shouting at once. */}
-                <ChecklistOverride
-                  open={menuFor === e.documentId}
-                  busy={busy}
-                  isAttorney={isAttorney}
-                  onToggle={() => setMenuFor(menuFor === e.documentId ? null : e.documentId)}
-                  onPick={(o) => {
-                    setMenuFor(null);
-                    override(e.documentId, o);
-                  }}
-                />
-              </td>
+    <Panel title="Documents this case needs" sub={disclaimer} summary={summary}>
+      {live.length === 0 ? (
+        <p className="text-sm text-slate-600">
+          Nothing to collect yet. Documents appear here on their own as the client answers —
+          you don&apos;t build this list.
+        </p>
+      ) : (
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th>Document</th>
+              <th>Status</th>
+              <th>Why it applies</th>
+              <th></th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {live.map((e) => (
+              <tr key={e.documentId}>
+                <td className="font-semibold">{e.title}</td>
+                <td><StatusBadge value={e.status} /></td>
+                <td className="text-xs text-slate-600">{e.reason}</td>
+                <td>
+                  {/* De-noised: the status badge above carries the state; the
+                      five override buttons are revealed on demand, one row at a
+                      time, instead of 5×N buttons shouting at once. */}
+                  <ChecklistOverride
+                    open={menuFor === e.documentId}
+                    busy={busy}
+                    isAttorney={isAttorney}
+                    onToggle={() => setMenuFor(menuFor === e.documentId ? null : e.documentId)}
+                    onPick={(o) => {
+                      setMenuFor(null);
+                      override(e.documentId, o);
+                    }}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {notApplicable.length > 0 && (
+        <details className="mt-3 rounded bg-slate-50 p-3 text-xs text-slate-600">
+          <summary className="cursor-pointer select-none">
+            {notApplicable.length} other document{notApplicable.length === 1 ? "" : "s"} in the
+            catalog don&apos;t apply to this case
+          </summary>
+          <ul className="mt-2 space-y-1">
+            {notApplicable.map((e) => (
+              <li key={e.documentId}>— {e.title}</li>
+            ))}
+          </ul>
+        </details>
+      )}
     </Panel>
   );
 }

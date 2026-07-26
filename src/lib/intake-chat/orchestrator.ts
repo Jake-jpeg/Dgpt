@@ -22,7 +22,8 @@
 import { getSession, updateSession, recordAudit, addAttorneyFlag, touchSession, type SessionRow } from "@/lib/db/repo";
 import { getMatter, type MatterRow } from "@/lib/db/matters";
 import { getMatterAnswers, saveMatterAnswers, schemaForMatter } from "@/lib/db/intake2";
-import { deriveChecklist, itemVisible, type ChecklistEntry } from "@/lib/intake2/engine";
+import { deriveChecklist, isAnswered, itemVisible, type ChecklistEntry } from "@/lib/intake2/engine";
+import { deriveImpliedAnswers } from "./derive";
 import { getConfigChecklistState } from "@/lib/db/checklist";
 import { evaluateGate, isGateState } from "@/lib/intake/scope-gate";
 import { assertTransition, type MachineState } from "@/lib/intake/machine";
@@ -47,6 +48,7 @@ import {
   intakeTone,
 } from "./constitution";
 import {
+  askableItems,
   nextStep,
   progress,
   type SequencerState,
@@ -328,6 +330,26 @@ function glossarySlice(): string {
     .join("\n");
 }
 
+/**
+ * The other questions still waiting to be asked, offered to the model so a
+ * client who answers three things in one sentence is not asked all three.
+ * Capped and id-explicit: the model may only record ids it sees here, and the
+ * server re-validates every one of them against the pinned schema anyway.
+ */
+function pendingRoster(ctx: ConversationContext, currentId: string): string {
+  const pending = askableItems(ctx.schema, ctx.answers, ctx.seqState.phase ?? activeIntakePhase())
+    .filter((i) => i.id !== currentId && !isAnswered(i, ctx.answers))
+    .slice(0, 12);
+  if (pending.length === 0) return "(none — this is the last question)";
+  return pending
+    .map(
+      (i) =>
+        `- ${i.id}: "${i.prompt}"` +
+        (i.options ? ` [valid values: ${i.options.map((o) => o.value).join(", ")}]` : "")
+    )
+    .join("\n");
+}
+
 function describeStep(step: Step, ctx: ConversationContext): string {
   switch (step.kind) {
     case "GATE":
@@ -352,7 +374,13 @@ function describeStep(step: Step, ctx: ConversationContext): string {
           ? `Valid values: ${item.options.map((o) => o.value).join(", ")}.\n`
           : "") +
         `When the client answers, set record_answers [{questionId: "${item.id}", value: <canonical value in English>}]. ` +
-        `"I don't know" / "prefer not to say" is recorded honestly as the string "UNSURE" for selects or as their words for text.`
+        `"I don't know" / "prefer not to say" is recorded honestly as the string "UNSURE" for selects or as their words for text.\n` +
+        `NEVER ASK WHAT THEY ALREADY TOLD YOU. If their reply also answers one or ` +
+        `more of the STILL-PENDING questions listed below, record those in the SAME ` +
+        `record_answers array — one entry per question id — and they will be skipped. ` +
+        `Only record a pending question when the client's own words plainly answer it; ` +
+        `never infer, never fill it in for them.\n` +
+        `STILL-PENDING QUESTIONS YOU MAY ALSO RECORD:\n${pendingRoster(ctx, item.id)}`
       );
     }
     case "CHECKLIST": {
@@ -466,6 +494,35 @@ export interface TurnResult {
 }
 
 /**
+ * Write every answer the server can DERIVE from what is already on file, so
+ * the sequencer never asks a question the client has effectively answered.
+ * Deterministic (see lib/intake-chat/derive.ts) and never overwrites a real
+ * answer. A derivation failure is silent: it is a convenience, and must never
+ * break a turn — the question simply gets asked.
+ */
+async function applyDerivations(ctx: ConversationContext, actingUserId: string): Promise<void> {
+  const derived = deriveImpliedAnswers(ctx.answers);
+  if (derived.length === 0) return;
+  try {
+    await saveMatterAnswers({
+      matterId: ctx.matter.id,
+      actingUserId,
+      answers: derived.map((d) => ({ questionId: d.questionId, value: d.value })),
+    });
+  } catch {
+    return;
+  }
+  for (const d of derived) {
+    await appendSystemEvent(
+      ctx.session.id,
+      `answer derived q=${d.questionId} (${d.because})`
+    );
+  }
+  ctx.answers = await getMatterAnswers(ctx.matter.id);
+  ctx.seqState.answers = ctx.answers;
+}
+
+/**
  * Validate + apply one INTAKE_TURN proposal. Returns null when the proposal
  * is invalid (caller retries with the correction), or the applied result.
  */
@@ -539,6 +596,8 @@ async function applyTurn(
       } catch {
         /* prefill is a convenience — a schema mismatch must never break a gate pass */
       }
+      ctx.answers = await getMatterAnswers(ctx.matter.id);
+      ctx.seqState.answers = ctx.answers;
     }
     for (const flag of evaluation.reviewFlags ?? []) {
       await addAttorneyFlag(sessionId, flag);
@@ -564,7 +623,8 @@ async function applyTurn(
       return {
         correction:
           `record_answers was rejected (${e instanceof Error ? e.message : "invalid"}). ` +
-          `Only propose values for the current question, matching its type exactly.`,
+          `Propose values only for the current question or for a question id listed ` +
+          `under STILL-PENDING QUESTIONS, and match each question's type exactly.`,
       };
     }
     for (const a of turn.record_answers) {
@@ -573,6 +633,7 @@ async function applyTurn(
     ctx.answers = await getMatterAnswers(ctx.matter.id);
     ctx.seqState.answers = ctx.answers;
     advanced = true;
+    await applyDerivations(ctx, actingUserId);
   }
 
   // 3. Checklist reports — ids validated against the DERIVED list.

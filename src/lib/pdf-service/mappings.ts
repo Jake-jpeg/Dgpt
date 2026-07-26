@@ -8,6 +8,7 @@
  */
 import type { MatterRow } from "@/lib/db/matters";
 import type { AnswerMap } from "@/lib/intake2/types";
+import { evaluateResidency } from "@/lib/legal/ny-residency";
 import type { RenderPayload } from "./types";
 
 function str(v: unknown): string {
@@ -37,6 +38,50 @@ function titleCaseCounty(v: unknown): string {
     .split(/[_\s]+/)
     .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : ""))
     .join(" ");
+}
+
+interface ChildValue {
+  name?: string;
+  dateOfBirth?: string;
+}
+
+/** The children the client listed (repeat_child rows with a name). */
+function childRows(answers: AnswerMap): ChildValue[] {
+  const v = answers["shared.children.records"];
+  if (!Array.isArray(v)) return [];
+  return (v as ChildValue[]).filter((c) => c && typeof c === "object" && str(c.name));
+}
+
+/** ¶FIFTH count — how many children of the marriage the pleading recites. */
+function childCount(answers: AnswerMap): number {
+  return childRows(answers).length;
+}
+
+/**
+ * "Jane Doe, born 2015-04-02; John Doe, born 2018-11-19" — the name-and-DOB
+ * recital ¶FIFTH prints. Nothing else about the children goes on the
+ * pleading.
+ */
+function childrenDetail(answers: AnswerMap): string {
+  return childRows(answers)
+    .map((c) => {
+      const dob = pleadingDate(str(c.dateOfBirth));
+      return dob ? `${str(c.name)}, born ${dob}` : str(c.name);
+    })
+    .join("; ");
+}
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** "2018-03-11" → "March 11, 2018". A pleading does not print ISO dates. */
+function pleadingDate(v: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v.trim());
+  if (!m) return v.trim();
+  const month = MONTHS[Number(m[2]) - 1];
+  return month ? `${month} ${Number(m[3])}, ${m[1]}` : v.trim();
 }
 
 function required(payload: RenderPayload, keys: string[]): void {
@@ -75,10 +120,7 @@ export function buildNyUd1Payload(matter: MatterRow, answers: AnswerMap): Render
 /**
  * NY Verified Complaint (Phase 1). Consumes exactly the Phase-1 field set —
  * every value below traces to a pleading paragraph (see
- * claude/PHASE1-verified-complaint-spec.md). Children are asserted zero
- * because the children gate STOPS any child case before intake completes;
- * the generator renders an [ATTORNEY REVIEW REQUIRED] paragraph as a
- * defense-in-depth backstop if that invariant is ever violated.
+ * claude/PHASE1-verified-complaint-spec.md).
  */
 /**
  * Which DRL § 230 residence prong the complaint pleads — derived from the
@@ -87,16 +129,12 @@ export function buildNyUd1Payload(matter: MatterRow, answers: AnswerMap): Render
  * (RESIDENCY_ATTORNEY_REVIEW) from the residency gates.
  */
 function residencyBasisFromAnswers(answers: AnswerMap): string {
-  const since = str(answers["ny.case.resident_since"]);
-  if (since) {
-    const t = Date.parse(since);
-    const twoYearsMs = 2 * 365.25 * 24 * 60 * 60 * 1000;
-    if (Number.isFinite(t) && Date.now() - t >= twoYearsMs) return "two_year"; // § 230(5)
-  }
-  if (Boolean(answers["ny.case.married_in_ny"])) return "one_year_married"; // § 230(1)
-  if (Boolean(answers["ny.case.lived_in_ny_as_spouses"])) return "one_year_spouses"; // § 230(2)
-  if (since) return "one_year_cause"; // § 230(3) — gate-flagged for attorney review
-  return "two_year"; // no date on file: default prong; attorney reviews the draft
+  // One source of truth: the same evaluation the attorney's PASS/REVIEW card
+  // shows. A prong the panel calls thin must never print as clean on the
+  // pleading. "none" falls back to the two-year prong so the draft is complete
+  // for the attorney to correct — the card already told them it needs work.
+  const prong = evaluateResidency(answers).prong;
+  return prong === "none" ? "two_year" : prong;
 }
 
 export function buildNyComplaintPayload(matter: MatterRow, answers: AnswerMap): RenderPayload {
@@ -116,7 +154,14 @@ export function buildNyComplaintPayload(matter: MatterRow, answers: AnswerMap): 
     residentParty: "plaintiff",
     marriagePlace,
     ceremonyType: ceremonyRaw === "RELIGIOUS" ? "religious" : "civil",
-    unemancipatedChildren: "0",
+    // ¶FIFTH. Counted from the children the client actually listed. This used
+    // to be hard-wired to "0" on the theory that a child case never reached
+    // here; that is no longer true and never should have printed a sworn
+    // pleading paragraph from an assumption. Operator directive 2026-07-26:
+    // "the lawyer wouldn't know if the client has kids or not. That's the
+    // whole point of the intake."
+    unemancipatedChildren: String(childCount(answers)),
+    childrenDetail: childrenDetail(answers),
   };
   required(payload, [
     "plaintiffName",

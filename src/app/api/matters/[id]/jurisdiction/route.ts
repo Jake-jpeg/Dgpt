@@ -18,6 +18,8 @@ import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
 import { getMatterAnswers, attorneySetJurisdictionAndScope } from "@/lib/db/intake2";
 import { jurisdictionSignals } from "@/lib/intake2/engine";
+import { evaluateResidency } from "@/lib/legal/ny-residency";
+import { guidelineYearSummary } from "@/config/legal/ny-guidelines-2026";
 import { MATTER_CATEGORIES } from "@/lib/intake2/types";
 import { recordAudit } from "@/lib/db/repo";
 import { getUserById } from "@/lib/db/users";
@@ -43,6 +45,12 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const answers = (await getMatterAnswers(matter.id));
     const signals = jurisdictionSignals(answers);
     return Response.json({
+      // The card the attorney actually reads: green PASS or yellow REVIEW,
+      // with the WHY spelled out. Deterministic; no attorney form to fill.
+      residency: evaluateResidency(answers),
+      // Which year's spousal-maintenance and child-support numbers this build
+      // applies — printed on the lawyer panel per operator directive.
+      guidelines: guidelineYearSummary(),
       factsCollected: Object.fromEntries(
         FACT_QUESTIONS.map((q) => [q, answers[q] ?? null])
       ),

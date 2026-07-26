@@ -16,7 +16,10 @@ import { requireUser, requireMatterAccess } from "@/lib/auth/authz";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
-import { getMatterAnswers } from "@/lib/db/intake2";
+import { getMatterAnswers, attorneySetJurisdictionAndScope } from "@/lib/db/intake2";
+import { UNCONTESTED_CATEGORY } from "@/config/intake/phases";
+import type { MatterCategory } from "@/lib/intake2/types";
+import { recordAudit } from "@/lib/db/repo";
 import { getFileStorage } from "@/lib/storage";
 import { addDocumentVersion, createDocument } from "@/lib/db/documents";
 import { isAllowedRender, renderLabel, PdfServiceError, ALLOWED_RENDERS } from "@/lib/pdf-service/types";
@@ -66,10 +69,24 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (!isAllowedRender(state, form)) {
       throw new HttpError(400, "VALIDATION: that state/form pair is not on the render allowlist");
     }
-    if (!matter.jurisdictionConfirmed || matter.jurisdictionConfirmed.toLowerCase() !== state) {
+    // NY-only product. A matter opened by staff can reach an attorney with no
+    // jurisdiction row set, and there is no jurisdiction form any more to set
+    // it (operator directive 2026-07-26). An ATTORNEY asking to render a NY
+    // form on a New York-only product IS the determination — so record it,
+    // audited, instead of dead-ending the render. A confirmed non-NY matter
+    // still refuses: that would be a real conflict, not a blank field.
+    if (!matter.jurisdictionConfirmed && state === "ny") {
+      await attorneySetJurisdictionAndScope({
+        matterId: matter.id,
+        actingUserId: authed.account.id,
+        jurisdictionConfirmed: "NY",
+        matterCategory: UNCONTESTED_CATEGORY as MatterCategory,
+      });
+      await recordAudit(matter.id, "JURISDICTION_SCOPE_SET", "jurisdiction=NY (confirmed by the attorney's render request on a NY-only product)", authed.account.id);
+    } else if (!matter.jurisdictionConfirmed || matter.jurisdictionConfirmed.toLowerCase() !== state) {
       throw new HttpError(
         409,
-        "JURISDICTION_GUARD: confirm the matter's jurisdiction (attorney determination) before rendering that state's forms"
+        "JURISDICTION_GUARD: this matter is confirmed to another state — it cannot render that state's forms"
       );
     }
     if (matter.conflictStatus !== "CLEARED" && matter.conflictStatus !== "EXTERNAL") {

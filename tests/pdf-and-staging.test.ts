@@ -96,7 +96,7 @@ async function nyReadyMatter() {
         matterId: ctx.matterId,
         actingUserId: ctx.attorneyUserId,
         jurisdictionConfirmed: "NY",
-        matterCategory: "NY_SUPREME_CONTESTED",
+        matterCategory: "NY_SUPREME_UNCONTESTED",
         scopeStatus: "ACCEPTED",
       }));
   (await saveMatterAnswers({ matterId: ctx.matterId, actingUserId: ctx.clientUserId, answers: NY_MAPPING_ANSWERS }));
@@ -309,20 +309,33 @@ describe("render route lifecycle", () => {
     expect(rel.status).toBeGreaterThanOrEqual(400);
   });
 
-  it("jurisdiction mismatch is refused (NY form before NY is confirmed)", async () => {
+  /**
+   * Operator directive 2026-07-26: "Get rid of the jurisdiction panel." This
+   * is a New York-only product, so a blank jurisdiction field is not a reason
+   * to refuse a NY render — the ATTORNEY's render request IS the
+   * determination, and it is written to the matter (audited) on the way
+   * through. What must still refuse is a matter confirmed to ANOTHER state:
+   * that is a real conflict, not an empty field.
+   */
+  it("a blank jurisdiction is confirmed to NY by the attorney's render request", async () => {
     await clearMatter(ctx.matterId);
-    const matter = (await getMatter(ctx.matterId))!;
+    const blank = (await getMatter(ctx.matterId))!;
+    expect(blank.jurisdictionConfirmed).toBeNull();
     enablePdfService();
     mockRlFetch();
     freshLimits();
     const res = await renderPost(
-      jsonRequest(`/api/matters/${matter.id}/render-pdf`, {
+      jsonRequest(`/api/matters/${blank.id}/render-pdf`, {
         cookie: attorneyCookie,
         body: { state: "ny", form: "ud1", confirmFormData: true },
       }),
-      params({ id: matter.id })
+      params({ id: blank.id })
     );
-    expect(res.status).toBe(409);
+    // No 409: it gets past the jurisdiction guard. (With the answers cleared
+    // it then fails the deterministic mapping's completeness check — 400 —
+    // which is the correct next objection: missing FACTS, not missing form.)
+    expect(res.status).not.toBe(409);
+    expect((await getMatter(blank.id))!.jurisdictionConfirmed).toBe("NY");
   });
 
   it("service disabled ⇒ 503 and the manual workflow is unaffected", async () => {

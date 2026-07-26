@@ -29,7 +29,25 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const schema = schemaForMatter(matter);
     const answers = (await getMatterAnswers(matter.id));
     const state = (await getConfigChecklistState(matter.id));
-    const entries = deriveChecklist(schema, answers, state, matterIntakePhase(matter));
+    const derived = deriveChecklist(schema, answers, state, matterIntakePhase(matter));
+
+    // WHY each item is on the list, in words. The engine reports the question
+    // IDs that triggered a document; a lawyer should not have to read
+    // "shared.relationship.marriage_date" to know the marriage certificate is
+    // needed because the client gave a marriage date. Operator directive
+    // 2026-07-26: "Make the AI list it automatically… save the lawyer's time."
+    const promptById = new Map(schema.items.map((i) => [i.id, i.prompt]));
+    const entries = derived.map((e) => ({
+      ...e,
+      applicable: e.status !== "NOT_APPLICABLE",
+      reason:
+        e.triggeredBy.length === 0
+          ? "Nothing in this client's answers calls for it."
+          : e.triggeredBy
+              .map((qid) => promptById.get(qid) ?? qid)
+              .slice(0, 3)
+              .join(" · "),
+    }));
 
     if (authed.account.role === "CLIENT") {
       return Response.json({

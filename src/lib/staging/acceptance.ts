@@ -152,7 +152,7 @@ function nyStateAnswers() {
     { questionId: "ny.case.county", value: "Westchester" },
     { questionId: "ny.case.married_in_ny", value: true },
     { questionId: "ny.case.lived_in_ny_as_spouses", value: false },
-    { questionId: "ny.case.grounds_facts", value: ["IRRETRIEVABLE_6MO"] },
+    { questionId: "ny.case.grounds_facts", value: "IRRETRIEVABLE_6MO" },
     { questionId: "ny.case.agreement_posture", value: "NO_AGREEMENT" },
     { questionId: "ny.snw.family_data_confirm", value: true },
     { questionId: "ny.snw.expenses_confirm", value: true },
@@ -166,7 +166,7 @@ function nyStateAnswers() {
 
 async function setupMatter(origin: string): Promise<StepResult> {
   const checks: StepCheck[] = [];
-  const label = "STAGING-NY contested matrimonial (synthetic)";
+  const label = "STAGING-NY uncontested matrimonial (synthetic)";
   const clientKey: PersonaKey = "clientNy";
   const clientName = "Quinn Stagingperson";
   const otherName = "Reese Stagingperson";
@@ -230,7 +230,7 @@ async function setupMatter(origin: string): Promise<StepResult> {
   const jur = await call(origin, `/api/matters/${matterId}/jurisdiction`, {
     cookie: attorney,
     ip: ipA,
-    body: { jurisdictionConfirmed: "NY", matterCategory: "NY_SUPREME_CONTESTED", scopeStatus: "UNDER_REVIEW" },
+    body: { jurisdictionConfirmed: "NY", matterCategory: "NY_SUPREME_UNCONTESTED", scopeStatus: "UNDER_REVIEW" },
   });
   ck(checks, "attorney assigns workflow", jur.status === 200, `HTTP ${jur.status}`);
 

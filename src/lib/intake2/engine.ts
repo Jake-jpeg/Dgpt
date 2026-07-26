@@ -58,6 +58,19 @@ export function visibleItems(
   );
 }
 
+/**
+ * Is a yes/no answer a YES? The portal radio stores "yes"/"no"; the intake
+ * chat records booleans. Anything else (unanswered, "no", false) is not.
+ */
+export function isAffirmative(v: unknown): boolean {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "string") {
+    const s = v.trim().toUpperCase();
+    return s === "YES" || s === "TRUE" || s === "Y";
+  }
+  return false;
+}
+
 export function isAnswered(item: IntakeItem, answers: AnswerMap): boolean {
   const v = answers[item.id];
   if (v === undefined || v === null || v === "") return false;
@@ -152,21 +165,33 @@ export function deriveChecklist(
   const review = new Set(state.attorneyReviewDocumentIds ?? []);
 
   const triggered = new Map<string, string[]>();
+  // Documents a question in THIS phase could ever ask for. The catalog is
+  // written for the whole matter life-cycle; a commencement-phase matter must
+  // not display twenty financial-disclosure rows as "not applicable" when no
+  // question that could trigger them has even been asked yet.
+  const reachable = new Set<string>();
   for (const item of schema.items) {
     if (!item.documentIds?.length) continue;
     if (!clientItemInPhase(item, phase)) continue;
+    for (const d of item.documentIds) reachable.add(d);
     if (!itemVisible(item, answers)) continue;
     // A document_request item triggers when visible; other items trigger
-    // when visible AND answered truthy/answered.
+    // when visible AND answered. A yes/no is the exception: "no, there is no
+    // protective order" is an ANSWER, not a reason to demand the order. Only
+    // a yes fires the request.
     const fires =
-      item.type === "document_request" ? true : isAnswered(item, answers);
+      item.type === "document_request"
+        ? true
+        : item.type === "yes_no"
+          ? isAffirmative(answers[item.id])
+          : isAnswered(item, answers);
     if (!fires) continue;
     for (const d of item.documentIds) {
       triggered.set(d, [...(triggered.get(d) ?? []), item.id]);
     }
   }
 
-  return schema.documents.map((doc) => {
+  return schema.documents.filter((doc) => reachable.has(doc.id)).map((doc) => {
     const triggeredBy = triggered.get(doc.id) ?? [];
     let status: ChecklistStatus;
     if (waived.has(doc.id)) status = "ATTORNEY_WAIVED";

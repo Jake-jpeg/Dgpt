@@ -7,11 +7,19 @@
  *             (agreed ED; the clause bank drives the field set).
  *   Phase 3 — finalization: Notice of Entry / Affidavit of Service.
  *
+ * SCOPE (operator directive, 2026-07-26): "The whole scope is uncontested…
+ * We're not doing contested at all." There is no contested track. Every
+ * matter is an uncontested NY Supreme matrimonial; a competent attorney
+ * reviews the final output, which is why the intake asks the full scope
+ * (custody, child support, maintenance, equitable distribution) without
+ * guardrailing questions away.
+ *
  * Phase 1 asks ONLY what the Summons and Verified Complaint consume, plus the
- * scope gates (residency / venue / DV / children / complexity) that run in the
- * state machine BEFORE any schema question. Every question must earn its seat
- * by mapping to a pleading fact — everything else (SNW, assets, property
- * history, parenting…) belongs to a later phase and is not asked.
+ * children facts (the complaint must recite them, and the lawyer has no other
+ * way to learn whether there are kids), plus the scope questions, plus the
+ * gates (residency / venue / DV) that run in the state machine BEFORE any
+ * schema question. Everything else (SNW, assets, property history,
+ * parenting schedules…) belongs to a later phase and is not asked.
  *
  * Mechanics: `PHASE1_ITEM_IDS` is an allow-list over the EXISTING intake2
  * schema — no item definitions change, so retiring the phase filter (or
@@ -29,27 +37,40 @@ export const PHASE1_ITEM_IDS: ReadonlySet<string> = new Set([
   "shared.identity.client_address",
   "shared.identity.other_name",
   "shared.identity.other_address",
-  // Marriage (¶THIRD / ¶FOURTH — DRL § 253 civil/religious branch)
+  // Marriage (¶THIRD / ¶FOURTH — DRL § 253 civil/religious branch).
+  // marriage_place now asks city + state/country in ONE question; the
+  // marriage_state and ny.case.married_in_ny values are DERIVED from it
+  // server-side (see deriveImpliedAnswers) and never asked again.
   "shared.relationship.status_kind",
   "shared.relationship.marriage_date",
   "shared.relationship.marriage_place",
-  "shared.relationship.marriage_state",
   "shared.relationship.ceremony_type",
   // Prior/pending matrimonial actions (¶SEVENTH / ¶EIGHTH)
   "shared.relationship.prior_matrimonial_actions",
+  // Children (¶FIFTH). The complaint must recite each child's name and date
+  // of birth, and — operator, 2026-07-26 — "the lawyer wouldn't know if the
+  // client has kids or not. That's the whole point of the intake."
+  "shared.children.any",
+  "shared.children.records",
   // NY residency + venue + grounds (¶FIRST, caption county, ¶NINTH).
-  // married_in_ny / lived_in_ny_as_spouses select WHICH § 230 prong the
-  // complaint pleads (2yr → § 230(5); 1yr + nexus → § 230(1)/(2); 1yr no
-  // nexus → § 230(3), attorney-flagged at the gate).
+  // married_in_ny is DERIVED from marriage_place, never asked.
+  // lived_in_ny_as_spouses selects the § 230(1)/(2) prong when the 2-year
+  // prong is not available.
   "ny.case.resident_now",
   "ny.case.resident_since",
-  "ny.case.married_in_ny",
   "ny.case.lived_in_ny_as_spouses",
   "ny.case.county",
   "ny.case.grounds_facts",
   "ny.case.grounds_dates",
   // Service posture (drives the acknowledgment-of-service / waiver path)
   "ny.case.service_facts",
+  // Scope of the uncontested resolution — what the attorney must paper.
+  // Custody/child support ask only when there are children.
+  "ny.scope.custody",
+  "ny.scope.child_support",
+  "ny.scope.maintenance",
+  "ny.scope.equitable_distribution",
+  "ny.scope.all_resolved",
   // Existing-case index number (optional): pending-action signal at intake,
   // and the caption field for the Phase-3 UD-14/UD-15 renders.
   "ny.case.index_number",
@@ -82,44 +103,24 @@ export const PHASE2_ITEM_IDS: ReadonlySet<string> = new Set([
 export type IntakePhase = 1 | 2 | 3 | "ALL";
 
 /**
- * Intake tracks (2026-07-26 operator directive): the attorney chooses, per
- * matter, "This is for an uncontested case" or "This is for a contested
- * case".
- *   UNCONTESTED — the lean phased interview (phase 1 = pleading facts only;
- *                 no SNW battery, no DOB, ~15 questions).
- *   CONTESTED   — the full questionnaire, SNW facts included ("most people,
- *                 when I give them the SNW form, they just fill it out").
- * The track rides the existing `matter_category` column: NY_SUPREME_CONTESTED
- * means contested; everything else (including unassigned) is the uncontested
- * default. Contested resolves the phase to "ALL" — one switch, no parallel
- * plumbing.
+ * The product is uncontested-only (operator directive, 2026-07-26: "We're not
+ * doing contested at all"). Every matter uses the same category; there is no
+ * track selector, and no code path resolves a matter to the old full
+ * questionnaire on the basis of its category.
  */
-export type IntakeTrack = "UNCONTESTED" | "CONTESTED";
-
-export const TRACK_CATEGORY: Record<IntakeTrack, string> = {
-  UNCONTESTED: "NY_SUPREME_UNCONTESTED",
-  CONTESTED: "NY_SUPREME_CONTESTED",
-};
-
-export function matterIntakeTrack(
-  matter?: { matterCategory?: string | null } | null
-): IntakeTrack {
-  return matter?.matterCategory === "NY_SUPREME_CONTESTED" ? "CONTESTED" : "UNCONTESTED";
-}
+export const UNCONTESTED_CATEGORY = "NY_SUPREME_UNCONTESTED" as const;
 
 /**
- * Resolve a matter's effective phase. A CONTESTED matter always gets the
- * full questionnaire ("ALL"). Otherwise the per-matter `intake_phase` (set
- * by the attorney as the case progresses) drives it; the INTAKE_PHASE=ALL
- * env is a global kill-switch back to the full questionnaire. Phase 3 asks
- * nothing new of the client (finalization is firm-side renders), so it
- * inherits phase 2's question set.
+ * Resolve a matter's effective phase. The per-matter `intake_phase` (set by
+ * the attorney as the case progresses) drives it; the INTAKE_PHASE=ALL env is
+ * a global kill-switch back to the full questionnaire for internal testing.
+ * Phase 3 asks nothing new of the client (finalization is firm-side renders),
+ * so it inherits phase 2's question set.
  */
 export function matterIntakePhase(
   matter?: { intakePhase?: number | null; matterCategory?: string | null } | null
 ): IntakePhase {
   if ((process.env.INTAKE_PHASE ?? "").trim().toUpperCase() === "ALL") return "ALL";
-  if (matterIntakeTrack(matter) === "CONTESTED") return "ALL";
   const p = matter?.intakePhase;
   return p === 2 ? 2 : p === 3 ? 3 : 1;
 }

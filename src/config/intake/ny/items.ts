@@ -5,9 +5,11 @@
  * implemented. All wording COUNSEL_REVIEW_REQUIRED.
  */
 import type { DocumentCatalogItem, IntakeItem, IntakeSection, MatterCategory } from "@/lib/intake2/types";
+import { CSSA_GUIDELINES, MAINTENANCE_GUIDELINES, usd } from "@/config/legal/ny-guidelines-2026";
 
 export const NY_SECTIONS: IntakeSection[] = [
   { id: "ny_case", title: "New York case details", order: 30, description: "Facts specific to a New York Supreme Court or Family Court matter." },
+  { id: "ny_scope", title: "What still needs to be worked out", order: 33, description: "Which parts of the divorce you and the other party have already settled between yourselves. Your attorney reviews every answer — nothing here is decided by this questionnaire." },
   { id: "ny_settlement", title: "Your settlement terms", order: 30, description: "What you and the other party have already agreed. These answers become your Stipulation of Settlement — your attorney reviews every word before anything is signed." },
   { id: "ny_financial", title: "New York financial disclosure (Statement of Net Worth preparation)", order: 31, description: "New York matrimonial cases use a sworn Statement of Net Worth. These answers prepare it." },
   { id: "ny_postjudgment", title: "After-judgment changes", order: 32 },
@@ -37,18 +39,20 @@ export const NY_ITEMS: IntakeItem[] = [
   q({ id: "ny.case.lived_in_ny_as_spouses", section: "ny_case", prompt: "Did you and the other party ever live in New York together as spouses?", type: "yes_no", categories: SUP_ALL, authorityIds: ["NY-DIVORCE-RESIDENCE-001"] }),
   q({ id: "ny.case.county", section: "ny_case", prompt: "Which New York county do you live in (or expect the case to proceed in)?", type: "short_text", required: true, authorityIds: ["NY-MATRIMONIAL-RULES-001"] }),
 
-  // ── Grounds facts (DRL 170) — facts only ────────────────────────────
-  q({ id: "ny.case.grounds_facts", section: "ny_case", prompt: "Which of these describes your situation? (Select all that apply — your attorney will determine the legal basis.)", type: "multi_select", categories: SUP, required: true, authorityIds: ["NY-DIVORCE-GROUNDS-001"], options: [
-    { value: "IRRETRIEVABLE_6MO", label: "The relationship has been broken down beyond repair for at least six months" },
-    { value: "SEPARATION_AGREEMENT", label: "We have lived apart under a written separation agreement" },
-    { value: "SEPARATION_DECREE", label: "We have lived apart under a court separation judgment" },
-    { value: "ABANDONMENT", label: "The other party left more than a year ago" },
-    { value: "CRUELTY", label: "There has been cruel and inhuman treatment" },
-    { value: "ADULTERY", label: "There has been adultery" },
-    { value: "IMPRISONMENT", label: "The other party has been imprisoned for three or more years" },
-    { value: "OTHER", label: "Something else / not sure" },
+  // ── Grounds facts (DRL § 170(7)) ────────────────────────────────────
+  // SCOPE IS UNCONTESTED-ONLY. An uncontested NY divorce is pleaded under
+  // DRL § 170(7) — irretrievable breakdown for six months or more, stated
+  // under oath by ONE party. The fault grounds (cruelty, adultery,
+  // abandonment, imprisonment) and the separation-agreement/decree grounds
+  // are NOT offered: they are contested-case pleadings, and listing them
+  // alongside § 170(7) misled the client in the 2026-07-26 live test into
+  // thinking a six-month physical separation was required. IT IS NOT.
+  // Spouses living under the same roof qualify.
+  q({ id: "ny.case.grounds_facts", section: "ny_case", prompt: "Has the relationship between you and the other party been broken down beyond repair for at least six months?", type: "single_select", categories: SUP, required: true, authorityIds: ["NY-DIVORCE-GROUNDS-001"], helpText: "This is what New York asks for in an uncontested divorce (DRL § 170(7)). It does NOT require living apart — you can still be in the same home. Only one of you has to state it, and the other party does not have to agree with the reason.", options: [
+    { value: "IRRETRIEVABLE_6MO", label: "Yes — it has been broken down beyond repair for six months or more" },
+    { value: "OTHER", label: "No, or I'm not sure — I'd like the attorney to look at this" },
   ] }),
-  q({ id: "ny.case.grounds_dates", section: "ny_case", prompt: "Approximate dates for what you selected (when the breakdown began, separation dates, agreement date)", type: "long_text", categories: SUP, condition: { kind: "answered", questionId: "ny.case.grounds_facts" }, authorityIds: ["NY-DIVORCE-GROUNDS-001"] }),
+  q({ id: "ny.case.grounds_dates", section: "ny_case", prompt: "Roughly when did the breakdown begin? (a month and year is fine)", type: "short_text", categories: SUP, condition: { kind: "answered", questionId: "ny.case.grounds_facts" }, authorityIds: ["NY-DIVORCE-GROUNDS-001"] }),
 
   // ── Posture / commencement facts ────────────────────────────────────
   q({ id: "ny.case.agreement_posture", section: "ny_case", prompt: "As of today, where do things stand between you and the other party?", type: "single_select", categories: SUP, required: true, options: [
@@ -60,6 +64,36 @@ export const NY_ITEMS: IntakeItem[] = [
   q({ id: "ny.case.signed_agreement", section: "ny_case", prompt: "Do you already have a signed settlement or separation agreement?", type: "yes_no", categories: SUP, authorityIds: ["NY-UNCONTESTED-FORMS-001"], documentIds: ["doc.ny_settlement_agreement"] }),
   q({ id: "ny.case.index_number", section: "ny_case", prompt: "If a case has already been started: the index number, county, and filing date", type: "short_text", categories: SUP_ALL, authorityIds: ["NY-CONTESTED-PROCESS-001"] }),
   q({ id: "ny.case.service_facts", section: "ny_case", prompt: "Will the other party accept papers, sign an affidavit, or need formal service? What do you expect?", type: "short_text", categories: SUP, authorityIds: ["NY-UNCONTESTED-FORMS-001"] }),
+
+  // ── Scope of the uncontested resolution ─────────────────────────────
+  // Operator directive 2026-07-26: "Everything is fair game because a lawyer
+  // is reviewing it. I don't need to guardrail the shit out of this if a
+  // competent attorney is there to review it for his or her county."
+  // These are FACT questions about what the parties have already settled
+  // between themselves — no legal advice, no calculators, no gatekeeping.
+  // Custody and child support ask ONLY when there are children; with no
+  // children the interview drops straight to equitable distribution.
+  q({ id: "ny.scope.custody", section: "ny_scope", prompt: "Have you and the other party already agreed on custody and a parenting schedule for the children?", type: "single_select", categories: SUP, required: true, condition: { kind: "truthy", questionId: "shared.children.any" }, authorityIds: ["NY-UCCJEA-001"], options: [
+    { value: "AGREED", label: "Yes — we've agreed" },
+    { value: "MOSTLY", label: "Mostly — a few details are open" },
+    { value: "NOT_YET", label: "Not yet" },
+  ], helpText: "Your attorney papers whatever you two have agreed and advises you on anything still open." }),
+  q({ id: "ny.scope.child_support", section: "ny_scope", prompt: "Have you and the other party already agreed on child support?", type: "single_select", categories: SUP, required: true, condition: { kind: "truthy", questionId: "shared.children.any" }, authorityIds: ["NY-CSSA-001"], options: [
+    { value: "AGREED", label: "Yes — we've agreed on an amount" },
+    { value: "MOSTLY", label: "Mostly — we still need to work out details" },
+    { value: "NOT_YET", label: "Not yet" },
+  ], helpText: "New York has a child-support formula your attorney applies. Any agreement that departs from it has to say so in writing — that is your attorney's job, not yours." }),
+  q({ id: "ny.scope.maintenance", section: "ny_scope", prompt: "Have you and the other party already agreed about spousal support (maintenance) — including agreeing that neither of you will pay it?", type: "single_select", categories: SUP, required: true, authorityIds: ["NY-ED-MAINTENANCE-001"], options: [
+    { value: "AGREED_NONE", label: "Yes — neither of us will pay maintenance" },
+    { value: "AGREED_AMOUNT", label: "Yes — we've agreed on payments" },
+    { value: "NOT_YET", label: "Not yet" },
+  ] }),
+  q({ id: "ny.scope.equitable_distribution", section: "ny_scope", prompt: "Have you and the other party already agreed on how to divide your property and debts?", type: "single_select", categories: SUP, required: true, authorityIds: ["NY-ED-MAINTENANCE-001"], options: [
+    { value: "AGREED", label: "Yes — we've agreed on everything" },
+    { value: "MOSTLY", label: "Mostly — some items are still open" },
+    { value: "NOT_YET", label: "Not yet" },
+  ], helpText: "This covers the house, vehicles, bank and retirement accounts, and any debts in either name." }),
+  q({ id: "ny.scope.all_resolved", section: "ny_scope", prompt: "Putting it all together — is everything resolved between you and the other party?", type: "yes_no", categories: SUP, required: true, helpText: "A “no” does not stop anything. It tells your attorney what is still open so they can work it out with you." }),
 
   // ── Family Court facts ──────────────────────────────────────────────
   q({ id: "ny.fc.relief_sought", section: "ny_case", prompt: "What are you asking the Family Court to address? (Select all that apply)", type: "multi_select", categories: FC, required: true, authorityIds: ["NY-FC-JURISDICTION-001"], options: [
@@ -117,8 +151,8 @@ export const NY_ITEMS: IntakeItem[] = [
   q({ id: "ny.det.grounds", section: "ny_case", prompt: "ATTORNEY DETERMINATION: Which DRL § 170 ground(s) will be pleaded?", type: "attorney_determination", audience: "ATTORNEY", categories: SUP, authorityIds: ["NY-DIVORCE-GROUNDS-001"] }),
   q({ id: "ny.det.court_selection", section: "ny_case", prompt: "ATTORNEY DETERMINATION: Supreme Court vs Family Court posture (FCA § 115 / Art. 6 / Art. 8).", type: "attorney_determination", audience: "ATTORNEY", authorityIds: ["NY-FC-JURISDICTION-001"] }),
   q({ id: "ny.det.uccjea", section: "ny_case", prompt: "ATTORNEY DETERMINATION: UCCJEA home-state / jurisdiction analysis (DRL Art. 5-A).", type: "attorney_determination", audience: "ATTORNEY", authorityIds: ["NY-UCCJEA-001"], condition: { kind: "truthy", questionId: "shared.children.any" } }),
-  q({ id: "ny.det.maintenance_posture", section: "ny_financial", prompt: "ATTORNEY DETERMINATION: Maintenance posture under DRL § 236(B)(5-a)/(6). No calculator implemented; use official UCS tools.", type: "attorney_determination", audience: "ATTORNEY", categories: SUP_ALL, authorityIds: ["NY-ED-MAINTENANCE-001", "NY-MAINT-CS-TOOLS-001"] }),
-  q({ id: "ny.det.cssa_posture", section: "ny_financial", prompt: "ATTORNEY DETERMINATION: CSSA child-support posture (FCA § 413 / DRL § 240 [needs cite check]). No calculator implemented; use official worksheets.", type: "attorney_determination", audience: "ATTORNEY", authorityIds: ["NY-CSSA-001", "NY-MAINT-CS-TOOLS-001"], condition: { kind: "truthy", questionId: "shared.children.any" } }),
+  q({ id: "ny.det.maintenance_posture", section: "ny_financial", prompt: `ATTORNEY DETERMINATION: Maintenance posture under DRL § 236(B)(5-a)/(6). GUIDELINE YEAR APPLIED: ${MAINTENANCE_GUIDELINES.year} — payor income cap ${usd(MAINTENANCE_GUIDELINES.incomeCap)}, effective ${MAINTENANCE_GUIDELINES.effective}. No calculator implemented; use official UCS tools.`, type: "attorney_determination", audience: "ATTORNEY", categories: SUP_ALL, authorityIds: ["NY-ED-MAINTENANCE-001", "NY-MAINT-CS-TOOLS-001"] }),
+  q({ id: "ny.det.cssa_posture", section: "ny_financial", prompt: `ATTORNEY DETERMINATION: CSSA child-support posture (FCA § 413 / DRL § 240 [needs cite check]). GUIDELINE YEAR APPLIED: ${CSSA_GUIDELINES.year} — combined parental income cap ${usd(CSSA_GUIDELINES.combinedIncomeCap)}, self-support reserve ${usd(CSSA_GUIDELINES.selfSupportReserve)}, effective ${CSSA_GUIDELINES.effective} (${CSSA_GUIDELINES.chartLabel}). No calculator implemented; use official worksheets.`, type: "attorney_determination", audience: "ATTORNEY", authorityIds: ["NY-CSSA-001", "NY-MAINT-CS-TOOLS-001"], condition: { kind: "truthy", questionId: "shared.children.any" } }),
   q({ id: "ny.det.ed_posture", section: "ny_financial", prompt: "ATTORNEY DETERMINATION: Equitable-distribution issues requiring analysis (DRL § 236(B)(5)).", type: "attorney_determination", audience: "ATTORNEY", categories: SUP_ALL, authorityIds: ["NY-ED-MAINTENANCE-001"] }),
   q({ id: "ny.det.fo_escalation", section: "ny_case", prompt: "ATTORNEY DETERMINATION: Family-offense escalation / protective steps required (FCA Art. 8)?", type: "attorney_determination", audience: "ATTORNEY", authorityIds: ["NY-FC-JURISDICTION-001"] }),
 ];
