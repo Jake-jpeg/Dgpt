@@ -183,6 +183,50 @@ export async function acceptInvitation(opts: {
   return getInvitation(inv.id);
 }
 
+/**
+ * ATTORNEY-CONTROLLED CONNECTION (2026-07-26 — the successor to invitation
+ * links): the client has already registered by signing in (an unlinked
+ * CLIENT shell); the ATTORNEY connects that registration to a matter from
+ * the firm portal. Same guarantees as invitation acceptance, minus the
+ * token: one client per matter, EXTERNAL conflict posture recorded, intake
+ * session opened, everything audited by the caller.
+ */
+export async function connectClientToMatter(opts: {
+  matterId: string;
+  clientUserId: string;
+}): Promise<
+  | { sessionId: string }
+  | { error: "matter_not_found" | "matter_taken" | "not_a_client" | "never_signed_in" }
+> {
+  const { getUserById } = await import("./users");
+  const matter = await getMatter(opts.matterId);
+  if (!matter) return { error: "matter_not_found" };
+  if (matter.clientUserId && matter.clientUserId !== opts.clientUserId) {
+    return { error: "matter_taken" };
+  }
+  const user = await getUserById(opts.clientUserId);
+  if (!user || user.role !== "CLIENT") return { error: "not_a_client" };
+  if (!user.subject) return { error: "never_signed_in" };
+
+  await bindClientToMatter(opts.matterId, user.id);
+  await markConflictsExternal(opts.matterId);
+
+  const existing = (await listSessionsByMatter(opts.matterId)).find(
+    (s) => s.ownerSubject === user.subject
+  );
+  const sess =
+    existing ??
+    (await createSession({
+      initiatedBy: "CLIENT",
+      ownerSubject: user.subject,
+      initialState: "GATE_RESIDENCY",
+      matterId: opts.matterId,
+      conflictClear: true,
+    }));
+  if (!existing) await recordAudit(sess.id, "SESSION_STARTED", "initiatedBy=CLIENT");
+  return { sessionId: sess.id };
+}
+
 export type InviteOnboardError =
   | "invalid" // unknown / expired / revoked / used
   | "wrong_email" // signed in with an account other than the invited one

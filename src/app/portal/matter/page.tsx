@@ -159,10 +159,12 @@ export default function ClientMatterPage() {
 
       {!loading && me?.user?.role === "CLIENT" && !matterId && (
         <div className="panel">
-          <h2>No matter linked yet</h2>
+          <h2>You&apos;re registered — your attorney takes it from here</h2>
           <p className="panel-sub">
-            Your account isn&apos;t linked to a matter. If the firm sent you an
-            invitation link, open it now; otherwise please contact the firm.
+            Your sign-in worked and the firm can see your registration. There is
+            nothing else for you to do right now: once your attorney connects
+            your case, your questionnaire will be waiting the next time you log
+            in. If you expected it to be ready already, contact the firm.
           </p>
         </div>
       )}

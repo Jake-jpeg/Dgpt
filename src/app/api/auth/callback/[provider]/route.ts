@@ -8,12 +8,17 @@
  * ATTORNEY role. Attorney-role accounts are additionally re-checked against
  * ATTORNEY_EMAILS here and on every later request.
  *
- * Clients (Google / Outlook·Hotmail): INVITE-ONLY. Signing in creates no
- * account by itself. A client enters only by opening an email-bound
- * invitation link — the token rides through the round-trip in the pending
- * invite cookie, and is auto-accepted here ONLY when the verified email
- * matches the invitation's bound address. A leaked link is useless to any
- * other account. No invitation → no account → the "invitation required" page.
+ * Clients (Google / Outlook·Hotmail) — ATTORNEY-CONTROLLED CONNECTION
+ * (2026-07-26 operator directive, replacing the invitation-link flow): a
+ * client simply signs in and a CLIENT account is created on the spot —
+ * "make them make an ID." That account is a shell: it is linked to NOTHING
+ * and can see NOTHING until the ATTORNEY connects it to a matter from the
+ * firm portal (accept), or declines/deletes it. No tokens, no invite
+ * cookies, no email-matching through OAuth redirects — the previous
+ * link-based flow died in live testing because the invite cookie did not
+ * reliably survive the provider round-trip, and the attorney could not see
+ * or control any of it. Now the attorney sees every registration and makes
+ * the call.
  */
 import { completeOAuth, OAUTH_TX_COOKIE, type ProviderId } from "@/lib/auth/oauth";
 import {
@@ -24,17 +29,10 @@ import {
 import { attorneyEmailAllowlist, adminBootstrapEmails } from "@/lib/env";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertRateLimit } from "@/lib/security/rate-limit";
-import { findAccountForSession } from "@/lib/db/users";
+import { findAccountForSession, provisionClientAccount } from "@/lib/db/users";
 import { decideLoginDestination } from "@/lib/auth/authorize-login";
 import { recordAudit } from "@/lib/db/repo";
 import { hashNameForAudit } from "@/lib/security/audit-hash";
-import { onboardInvitedClient } from "@/lib/db/invitations";
-import { PENDING_INVITE_COOKIE } from "@/app/api/auth/login/[provider]/route";
-
-/** Expire the one-time invite cookie no matter how the callback ends. */
-function clearInviteCookie(headers: Headers): void {
-  headers.append("Set-Cookie", `${PENDING_INVITE_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
-}
 
 export async function GET(
   req: Request,
@@ -49,12 +47,10 @@ export async function GET(
     const url = new URL(req.url);
     const cookies = parseCookies(req);
     const identity = await completeOAuth(provider as ProviderId, url, cookies[OAUTH_TX_COOKIE]);
-    const pendingInvite = cookies[PENDING_INVITE_COOKIE]
-      ? decodeURIComponent(cookies[PENDING_INVITE_COOKIE])
-      : null;
 
-    // Look up (never create) the account for this stable identity. The one
-    // narrow exception inside findAccountForSession is ADMIN_EMAILS.
+    // Look up (never invent a role for) the account bound to this stable
+    // identity. The one narrow exception inside findAccountForSession is
+    // ADMIN_EMAILS bootstrap.
     const account = (await findAccountForSession({
           subject: identity.subject,
           email: identity.email,
@@ -64,63 +60,43 @@ export async function GET(
     let boundAccount =
       account && account.subject === identity.subject ? account : null;
 
-    // ── INVITE-ONLY client onboarding (frictionless, email-bound) ──
-    // A pending invite means the client arrived via an invitation link on a
-    // client provider. Accept ONLY if the verified email matches the bound
-    // address; nothing is created on a mismatch, so the real client can still
-    // use the link. Entra never carries a client invite.
-    //
-    // EXISTING accounts accept too (bug fix 2026-07-22): a returning CLIENT
-    // — e.g. one provisioned under the retired open-signup flow, or a past
-    // client being re-engaged on a new matter — must be able to consume an
-    // invitation exactly like a brand-new identity. Requiring !boundAccount
-    // silently skipped acceptance for them: the invitation stayed unconsumed,
-    // no matter was ever bound, and the portal told an invited client they
-    // were not invited. The failure handling now splits:
-    //   - no account yet → bounce to /invite with the reason (unchanged);
-    //     no session is minted, the link stays usable by the right person;
-    //   - account exists → a stale/used/mismatched cookie token must NEVER
-    //     lock a client out of their own account: audit it and continue the
-    //     normal login (their existing matter bindings are untouched).
-    if (pendingInvite && (provider === "google" || provider === "msa")) {
-      const outcome = await onboardInvitedClient({
-        rawToken: pendingInvite,
-        subject: identity.subject,
-        email: identity.email,
-        name: identity.name,
-      });
-      if ("error" in outcome) {
+    // ── CLIENT REGISTRATION AT SIGN-IN (attorney-controlled connection) ──
+    // A brand-new Google/Outlook identity becomes an UNLINKED CLIENT shell:
+    // provider subject, email, display name — the absolute minimum, nothing
+    // else. It confers no access to anything; the attorney connects it to a
+    // matter (or declines it) from the firm portal. Entra never registers.
+    if (!boundAccount && (provider === "google" || provider === "msa")) {
+      try {
+        const created = await provisionClientAccount({
+          subject: identity.subject,
+          email: identity.email,
+          name: identity.name,
+        });
+        if (created.role === "CLIENT") {
+          boundAccount = created;
+          (await recordAudit(
+                  "auth",
+                  "CLIENT_REGISTERED",
+                  `provider=${provider} subjectHash=${hashNameForAudit(identity.email)}`
+                ));
+        }
+      } catch {
+        // The email is already bound to a DIFFERENT sign-in identity.
+        // Nothing is created or relinked; send them to the help page.
         (await recordAudit(
                 "auth",
-                "INVITATION_ACCEPT_FAILED",
-                `provider=${provider} reason=${outcome.error} subjectHash=${hashNameForAudit(identity.email)}`
+                "CLIENT_REGISTRATION_CONFLICT",
+                `provider=${provider} subjectHash=${hashNameForAudit(identity.email)}`
               ));
-        if (!boundAccount) {
-          // Send them back to the invite page with a clear, non-leaky reason,
-          // carrying the same token they already hold so they can retry with
-          // the right account. NO session is minted — an unmatched sign-in is
-          // nothing.
-          const back = `/invite?e=${outcome.error}&token=${encodeURIComponent(pendingInvite)}`;
-          const headers = new Headers({ Location: back });
-          headers.append("Set-Cookie", `${OAUTH_TX_COOKIE}=; Path=/; HttpOnly; Max-Age=0`);
-          clearInviteCookie(headers);
-          return new Response(null, { status: 302, headers });
-        }
-        // Existing account + failed invite: fall through to normal login.
-      } else {
-        // Accepted: the client now holds a CLIENT account bound to the matter.
-        boundAccount = (await findAccountForSession({
-              subject: identity.subject,
-              email: identity.email,
-              name: identity.name,
-              adminBootstrapEmails: adminBootstrapEmails(),
-            }));
+        const headers = new Headers({ Location: "/invite?e=account_conflict" });
+        headers.append("Set-Cookie", `${OAUTH_TX_COOKIE}=; Path=/; HttpOnly; Max-Age=0`);
+        return new Response(null, { status: 302, headers });
       }
     }
 
-    // Providers authenticate; the DB authorizes. Firm-role accounts (Entra or
-    // a Google Workspace firm mailbox) pass the active + attorney-allowlist
-    // gate. A client with no account (no/invalid invite) lands on /invite.
+    // Providers authenticate; the DB authorizes. Firm-role accounts pass the
+    // active + attorney-allowlist gate; clients land on their portal (linked
+    // or not — the waiting room handles the unlinked state).
     const dest = decideLoginDestination({
       provider: provider as ProviderId,
       boundAccount,
@@ -141,7 +117,6 @@ export async function GET(
     const headers = new Headers({ Location: dest });
     headers.append("Set-Cookie", sessionCookieHeader(token));
     headers.append("Set-Cookie", `${OAUTH_TX_COOKIE}=; Path=/; HttpOnly; Max-Age=0`);
-    clearInviteCookie(headers);
     return new Response(null, { status: 302, headers });
   } catch (e) {
     return errorResponse(e);

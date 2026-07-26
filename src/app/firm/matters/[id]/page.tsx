@@ -261,7 +261,7 @@ export default function FirmMatterDetail() {
           </div>
 
           {/* ── Invite the client ────────────────────────────────── */}
-          <InvitationsPanel matterId={matterId} />
+          <ConnectClientPanel matterId={matterId} isAttorney={isAttorney} onLinked={load} />
 
           {/* ── Matter status & lifecycle ────────────────────────── */}
           <AccordionPanel
@@ -715,15 +715,6 @@ export default function FirmMatterDetail() {
  * enters the client's email; the returned link works ONLY for that account,
  * exactly once. The raw link is shown once at creation (never stored).
  */
-interface InviteRow {
-  id: string;
-  email: string;
-  expiresAt: string;
-  revoked: boolean;
-  used: boolean;
-  createdAt: string;
-}
-
 /**
  * Court forms — one button per allowlisted (state, form) render. The payload
  * is a deterministic mapping from SAVED intake answers (no AI input); the
@@ -889,6 +880,162 @@ function CourtFormsPanel({
 }
 
 /**
+ * Attorney-controlled client connection (2026-07-26 — replaces invitation
+ * links). The client registers by signing in at the site; every registration
+ * appears here and the ATTORNEY makes the call: connect it to this matter,
+ * or decline it. No links, no tokens, nothing for a client to lose.
+ */
+function ConnectClientPanel({
+  matterId,
+  isAttorney,
+  onLinked,
+}: {
+  matterId: string;
+  isAttorney: boolean;
+  onLinked: () => void | Promise<void>;
+}) {
+  const [clients, setClients] = useState<
+    { id: string; email: string; name: string; createdAt: string; registered: boolean; linked: boolean }[]
+  >([]);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+
+  const loadClients = useCallback(async () => {
+    try {
+      const r = (await api.get(`/api/clients`)) as { clients: typeof clients };
+      setClients(r.clients);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not load registrations");
+    }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadClients();
+  }, [loadClients]);
+
+  const unlinked = clients.filter((c) => !c.linked && c.registered);
+
+  async function connect(userId: string, email: string) {
+    setBusy(userId);
+    setErr(null);
+    setInfo(null);
+    try {
+      await api.post(`/api/matters/${matterId}/client`, { userId });
+      setInfo(`${email} is connected — their intake is open.`);
+      await loadClients();
+      await onLinked();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not connect the client");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function decline(userId: string, email: string) {
+    if (!window.confirm(`Decline and remove the registration for ${email}?`)) return;
+    setBusy(userId);
+    setErr(null);
+    setInfo(null);
+    try {
+      await api.del(`/api/clients/${userId}`);
+      setInfo(`${email} declined and removed.`);
+      await loadClients();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not decline the registration");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const mailBody = encodeURIComponent(
+    "Hello,\n\nTo get started with your case, please:\n\n" +
+      "1. Go to https://divorcegpt.com\n" +
+      "2. Sign in with THIS email address using Google or Microsoft (Outlook/Hotmail)\n\n" +
+      "That is all — once you have signed in, I will connect your case on my end and " +
+      "your questionnaire will be ready the next time you log in.\n\n" +
+      "Jake Kim, Esq.\nJake Kim Law Firm"
+  );
+
+  return (
+    <AccordionPanel
+      title="Connect the client"
+      defaultOpen
+      summary={unlinked.length > 0 ? `${unlinked.length} waiting` : "none waiting"}
+    >
+      <p className="panel-sub">
+        Clients register by signing in at divorcegpt.com with Google or Outlook — no links,
+        no codes. Every registration shows up here, and you decide: connect it to this
+        matter, or decline it. Nothing is visible to a client until you connect them.
+      </p>
+      <a
+        className="btn btn-quiet"
+        href={`mailto:?subject=${encodeURIComponent("Getting started with your case — Jake Kim Law Firm")}&body=${mailBody}`}
+      >
+        ✉ Email sign-in instructions to the client
+      </a>
+      {unlinked.length === 0 && (
+        <p className="mt-3 text-sm text-slate-500">
+          No registrations waiting. When your client signs in, they&apos;ll appear here —
+          refresh the page.
+        </p>
+      )}
+      {unlinked.length > 0 && (
+        <table className="tbl mt-3">
+          <thead>
+            <tr>
+              <th>Registered client</th>
+              <th>Signed up</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {unlinked.map((c) => (
+              <tr key={c.id}>
+                <td>
+                  {c.email}
+                  {c.name && <div className="text-xs text-slate-500">{c.name}</div>}
+                </td>
+                <td>{fmtWhen(c.createdAt)}</td>
+                <td>
+                  <div className="flex flex-wrap gap-2">
+                    {isAttorney ? (
+                      <>
+                        <button
+                          className="btn btn-primary"
+                          style={{ padding: "4px 12px", fontSize: ".8rem" }}
+                          disabled={busy !== null}
+                          onClick={() => connect(c.id, c.email)}
+                        >
+                          {busy === c.id ? "Connecting…" : "Connect to this matter"}
+                        </button>
+                        <button
+                          className="btn btn-danger"
+                          style={{ padding: "4px 12px", fontSize: ".8rem" }}
+                          disabled={busy !== null}
+                          onClick={() => decline(c.id, c.email)}
+                        >
+                          Decline
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-slate-500">attorney decides</span>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {info && <div className="notice notice-good mt-3">{info}</div>}
+      {err && <ErrorNotice message={err} />}
+    </AccordionPanel>
+  );
+}
+
+/**
  * Attorney matter deletion (operator directive 2026-07-22: the lawyer runs
  * their own book). Cascades the matter and everything it owns; an orphaned
  * client login goes with it; the audit trail survives. Guarded by a
@@ -943,159 +1090,6 @@ function DeleteMatterPanel({ matterId, matterLabel }: { matterId: string; matter
   );
 }
 
-function InvitationsPanel({ matterId }: { matterId: string }) {
-  const [invites, setInvites] = useState<InviteRow[]>([]);
-  const [email, setEmail] = useState("");
-  const [link, setLink] = useState<string | null>(null);
-  const [linkFor, setLinkFor] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      const r = (await api.get(`/api/matters/${matterId}/invitations`)) as { invitations: InviteRow[] };
-      setInvites(r.invitations);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Could not load invitations");
-    }
-  }, [matterId]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load();
-  }, [load]);
-
-  const open = invites.filter((i) => !i.used && !i.revoked);
-
-  async function create() {
-    setBusy(true);
-    setErr(null);
-    setLink(null);
-    try {
-      const r = (await api.post(`/api/matters/${matterId}/invitations`, { email: email.trim() })) as {
-        link: string;
-        invitation: { email: string };
-      };
-      setLink(r.link);
-      setLinkFor(r.invitation.email);
-      setEmail("");
-      await load();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Could not create the invitation");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <AccordionPanel
-      title="Invite the client"
-      defaultOpen
-      summary={open.length > 0 ? `${open.length} active` : invites.length > 0 ? "none active" : "none yet"}
-    >
-      <p className="panel-sub">
-        Enter the client&apos;s email. The link you get works <strong>only</strong>{" "}
-        for that Google or Outlook account, and can be used <strong>once</strong> —
-        a forwarded or leaked link is useless to anyone else. Send it to the
-        client however you like.
-      </p>
-      {err && <div className="notice notice-warn mb-3 text-sm">{err}</div>}
-
-      <div className="flex flex-wrap items-end gap-2">
-        <input
-          className="text-input flex-1"
-          type="email"
-          placeholder="client@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          maxLength={200}
-        />
-        <button
-          className="btn btn-primary"
-          disabled={busy || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())}
-          onClick={create}
-        >
-          Create invitation
-        </button>
-      </div>
-
-      {link && (
-        <div className="notice notice-info mt-3">
-          <p className="font-semibold">
-            ⚠ THIS LINK IS SHOWN ONCE — EVER. Copy and send it to {linkFor} before you
-            leave or refresh this page.
-          </p>
-          <p className="mono break-all">{link}</p>
-          <button
-            className="btn btn-primary mt-2"
-            onClick={() => navigator.clipboard?.writeText(link)}
-          >
-            Copy link
-          </button>
-          <p className="mt-2 text-xs text-slate-600">
-            The system stores only a fingerprint of this link, never the link itself, so it
-            cannot be re-displayed. If it&apos;s lost, revoke it below and create a new one —
-            takes ten seconds.
-          </p>
-        </div>
-      )}
-
-      {invites.length > 0 && (
-        <table className="tbl mt-4">
-          <thead>
-            <tr>
-              <th>Client email</th>
-              <th>Created</th>
-              <th>Expires</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {invites.map((i) => (
-              <tr key={i.id}>
-                <td>{i.email}</td>
-                <td>{fmtWhen(i.createdAt)}</td>
-                <td>{fmtWhen(i.expiresAt)}</td>
-                <td>
-                  <StatusBadge value={i.used ? "ACCEPTED" : i.revoked ? "REVOKED" : "ACTIVE"} />
-                </td>
-                <td>
-                  {!i.used && !i.revoked && (
-                    <button
-                      className="btn btn-danger"
-                      style={{ padding: "4px 12px", fontSize: ".8rem" }}
-                      disabled={busy}
-                      onClick={async () => {
-                        setBusy(true);
-                        try {
-                          await api.post(`/api/invitations/${i.id}/revoke`);
-                          await load();
-                        } catch (e) {
-                          setErr(e instanceof Error ? e.message : "Revoke failed");
-                        } finally {
-                          setBusy(false);
-                        }
-                      }}
-                    >
-                      Revoke
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </AccordionPanel>
-  );
-}
-
-/**
- * Release confirmation — surfaces exactly what the directive requires before
- * the attorney commits: title, exact version, approval type, approving
- * attorney, approval timestamp, and destination.
- */
 function ReleaseConfirm({
   version,
   docTitle,

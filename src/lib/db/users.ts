@@ -101,15 +101,16 @@ export async function createUser(opts: {
  *     ADMIN role at first login;
  *  4. otherwise NULL here. Firm accounts must be admin-created; CLIENT
  *     accounts are created at login by the OAuth callback via
- *     `provisionClientAccount`, called only from invitation acceptance
- *     (invite-only, 2026-07-21 directive).
+ *     `provisionClientAccount` — registration-at-sign-in; the ATTORNEY
+ *     connects each registration to a matter (2026-07-26 directive).
  */
 /**
- * INVITE-ONLY CLIENT PROVISIONING (2026-07-21 directive): a Google/MSA identity
- * becomes a CLIENT account only when consuming an email-bound invitation. Only
- * the absolute minimum is stored: provider subject, email, display name. Called
- * ONLY from invitation acceptance (`onboardInvitedClient`); per-request
- * authorization never creates accounts, and Microsoft Entra remains firm-only.
+ * CLIENT REGISTRATION (2026-07-26 directive, replacing invitation links): a
+ * Google/MSA identity becomes an UNLINKED CLIENT shell at sign-in — "make
+ * them make an ID." Only the absolute minimum is stored: provider subject,
+ * email, display name. The shell confers NOTHING until the attorney connects
+ * it to a matter (`connectClientToMatter`); per-request authorization never
+ * creates accounts, and Microsoft Entra remains firm-only.
  */
 export async function provisionClientAccount(opts: {
   subject: string;

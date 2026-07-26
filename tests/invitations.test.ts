@@ -121,48 +121,58 @@ describe("only the invited email can accept, exactly once", () => {
   });
 });
 
-describe("an EXISTING client account can accept a new invitation (2026-07-22 bug fix)", () => {
-  // THE FIRST LIVE-TEST BUG: a client provisioned earlier (retired
-  // open-signup era, or a returning client) already had a subject-bound
-  // account, and the OAuth callback ran onboarding only when NO account
-  // existed — so their invitation was silently never consumed and the portal
-  // told an invited client they were not invited.
-  it("returning client + fresh invitation → matter bound, session opened", async () => {
-    const email = "returning-client@example.test";
-    // The pre-existing account (as the open-signup era left it): CLIENT,
-    // subject-bound, owning NOTHING.
-    const existing: SessionUser = {
-      subject: "devstub|client:returning",
+describe("attorney-controlled connection (2026-07-26 — the invite-link successor)", () => {
+  // Live testing killed the link flow twice: first the !boundAccount skip,
+  // then the invite cookie failing to survive the OAuth round-trip at all
+  // (AUTH_LOGIN account=none with no INVITATION_ACCEPT_FAILED beside it).
+  // The replacement has no tokens and no cookies: the client registers by
+  // signing in; the ATTORNEY connects the registration to a matter.
+  it("registered client + attorney connect → matter bound, session opened", async () => {
+    const email = "registered-client@example.test";
+    const registered: SessionUser = {
+      subject: "devstub|client:registered",
       role: "CLIENT",
       email,
-      name: "Returning Client",
+      name: "Registered Client",
     };
-    const account = await provisionAccount(existing);
+    const account = await provisionAccount(registered);
     expect(account.role).toBe("CLIENT");
 
-    const { matter, rawToken } = await freshInvite(email);
-    const outcome = await onboardInvitedClient({
-      rawToken,
-      subject: existing.subject,
-      email,
-      name: existing.name,
-    });
-    expect("error" in outcome).toBe(false);
-    if ("error" in outcome) return;
-    expect(outcome.matterId).toBe(matter.id);
-    // The matter is bound to the EXISTING account — no duplicate was created.
+    const attorney = await provisionAccount(SYNTH_ATTORNEY);
+    const matter = await createMatter({ label: "Connect Matter", createdBy: attorney.id });
+    const { connectClientToMatter } = await import("@/lib/db/invitations");
+    const result = await connectClientToMatter({ matterId: matter.id, clientUserId: account.id });
+    expect("error" in result).toBe(false);
+
     expect((await getMatter(matter.id))!.clientUserId).toBe(account.id);
+    expect((await getMatter(matter.id))!.conflictStatus).toBe("EXTERNAL");
     expect((await listSessionsByMatter(matter.id)).length).toBe(1);
+
+    // Guards: a taken matter refuses a different client; a firm account and a
+    // never-signed-in row are refused.
+    const other = await provisionAccount({
+      subject: "devstub|client:other",
+      role: "CLIENT",
+      email: "other@example.test",
+      name: "Other",
+    });
+    expect(await connectClientToMatter({ matterId: matter.id, clientUserId: other.id })).toEqual({
+      error: "matter_taken",
+    });
+    const fresh = await createMatter({ label: "Fresh Matter", createdBy: attorney.id });
+    expect(await connectClientToMatter({ matterId: fresh.id, clientUserId: attorney.id })).toEqual({
+      error: "not_a_client",
+    });
   });
 
-  it("the callback runs invite acceptance for existing accounts too (source tripwire)", async () => {
-    // The bug was one condition: `pendingInvite && ... && !boundAccount`.
-    // This tripwire fails if anyone reintroduces the !boundAccount guard on
-    // the invite branch.
+  it("the callback registers clients at sign-in and carries no invite-cookie machinery (source tripwire)", async () => {
     const { readFileSync } = await import("node:fs");
-    const src = readFileSync("src/app/api/auth/callback/[provider]/route.ts", "utf8");
-    expect(src).not.toMatch(/pendingInvite[^)]*&&\s*!boundAccount/);
-    expect(src).toMatch(/EXISTING accounts accept too/);
+    const cb = readFileSync("src/app/api/auth/callback/[provider]/route.ts", "utf8");
+    expect(cb).toMatch(/CLIENT_REGISTERED/);
+    expect(cb).toMatch(/provisionClientAccount/);
+    expect(cb).not.toMatch(/PENDING_INVITE_COOKIE|pendingInvite/);
+    const login = readFileSync("src/app/api/auth/login/[provider]/route.ts", "utf8");
+    expect(login).not.toMatch(/PENDING_INVITE_COOKIE|invite/);
   });
 });
 

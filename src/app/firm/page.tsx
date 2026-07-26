@@ -25,6 +25,33 @@ interface FirmMatterRow {
 
 export default function FirmMattersPage() {
   const { me, loading } = useMe();
+  const isAttorney = me?.user?.role === "ATTORNEY";
+  const [busyDelete, setBusyDelete] = useState<string | null>(null);
+
+  /** Attorney matter deletion from the list (2026-07-26 operator directive).
+   *  Typed-label confirmation; cascades the matter and an orphaned client
+   *  login; LEGAL HOLD is refused by the server regardless. */
+  async function deleteMatter(id: string, label: string) {
+    const typed = window.prompt(
+      `Permanently delete "${label}" and everything in it (intake, transcript, documents)? ` +
+        `If the client has no other case, their login is removed too. This cannot be undone.\n\n` +
+        `Type the matter reference to confirm:`
+    );
+    if (typed === null) return;
+    if (typed.trim() !== label.trim()) {
+      window.alert("The reference you typed didn't match — nothing was deleted.");
+      return;
+    }
+    setBusyDelete(id);
+    try {
+      await api.del(`/api/matters/${id}`);
+      await load();
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "The matter could not be deleted");
+    } finally {
+      setBusyDelete(null);
+    }
+  }
   const [matters, setMatters] = useState<FirmMatterRow[]>([]);
   const [label, setLabel] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -120,6 +147,7 @@ export default function FirmMattersPage() {
                       <th>Intake</th>
                       <th>Documents</th>
                       <th>Last updated</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -168,6 +196,18 @@ export default function FirmMattersPage() {
                           )}
                         </td>
                         <td>{fmtWhen(m.updatedAt)}</td>
+                        <td>
+                          {isAttorney && (
+                            <button
+                              className="btn btn-danger"
+                              style={{ padding: "2px 10px", fontSize: ".75rem" }}
+                              disabled={busyDelete === m.id}
+                              onClick={() => deleteMatter(m.id, m.label)}
+                            >
+                              {busyDelete === m.id ? "Deleting…" : "Delete"}
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
