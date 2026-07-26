@@ -9,6 +9,7 @@ export async function POST(req: Request) {
       status: 200,
       headers: {
         "content-type": "application/json",
+        "cache-control": "no-store",
         "Set-Cookie": clearSessionCookieHeader(),
       },
     });

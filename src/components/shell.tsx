@@ -7,7 +7,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { api } from "@/lib/ui/client-api";
 
 export interface Me {
@@ -100,7 +100,6 @@ export function Shell({
 }) {
   const { me, loading } = useMe();
   const pathname = usePathname();
-  const router = useRouter();
 
   async function signOut() {
     try {
@@ -108,8 +107,13 @@ export function Shell({
     } catch {
       /* cookie may already be gone */
     }
-    router.push("/portal");
-    router.refresh();
+    // HARD navigation, deliberately not router.push. Every page mounts its
+    // own <Shell>, so a push to "/portal" from /portal is a no-op: no
+    // remount, no refetch, and the screen keeps saying "You are signed in"
+    // with the cookie already cleared (operator bug report, 2026-07-26:
+    // "Why can't I sign out?"). A full page load drops all client state and
+    // re-reads the real cookie state.
+    window.location.replace("/portal");
   }
 
   const user = me?.user ?? null;

@@ -39,16 +39,25 @@ export async function GET(req: Request) {
     }
   }
 
-  return Response.json({
-    user,
-    identity,
-    clientMatterId,
-    // True only in LOCAL development (APP_STAGE=local + DEV_AUTH_STUB).
-    devStub: testLoginAllowed(req),
-    providers: {
-      google: isProviderConfigured("google"),
-      entra: isProviderConfigured("entra"),
-      msa: isProviderConfigured("msa"),
+  return Response.json(
+    {
+      user,
+      identity,
+      clientMatterId,
+      // True only in LOCAL development (APP_STAGE=local + DEV_AUTH_STUB).
+      devStub: testLoginAllowed(req),
+      providers: {
+        google: isProviderConfigured("google"),
+        entra: isProviderConfigured("entra"),
+        msa: isProviderConfigured("msa"),
+      },
     },
-  });
+    {
+      // Identity must NEVER be cached: a CDN- or browser-cached body here
+      // keeps a signed-out user looking signed in (and vice versa). This is
+      // the "CDN needs no-store" landmine applied to the one endpoint every
+      // screen's header trusts.
+      headers: { "cache-control": "no-store" },
+    }
+  );
 }
