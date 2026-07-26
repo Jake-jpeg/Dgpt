@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Shell, useMe, ErrorNotice } from "@/components/shell";
 import { api, fmtWhen } from "@/lib/ui/client-api";
+import { inquiryEmail, operatingFirmName } from "@/config/branding";
 
 interface Disclosure {
   version: string;
@@ -108,15 +109,7 @@ export default function ClientMatterPage() {
       )}
 
       {!loading && me?.user?.role === "CLIENT" && !matterId && (
-        <div className="panel">
-          <h2>You&apos;re registered — your attorney takes it from here</h2>
-          <p className="panel-sub">
-            Your sign-in worked and the firm can see your registration. There is
-            nothing else for you to do right now: once your attorney connects
-            your case, your questionnaire will be waiting the next time you log
-            in. If you expected it to be ready already, contact the firm.
-          </p>
-        </div>
+        <WaitingRoom email={me.user.email} />
       )}
 
       {matterId && matter && (
@@ -192,5 +185,61 @@ export default function ClientMatterPage() {
         </>
       )}
     </Shell>
+  );
+}
+
+/**
+ * The waiting room — a registered client whose account the attorney has not
+ * connected to a matter yet.
+ *
+ * OPERATOR DIRECTIVE (2026-07-26): "INSTRUCT THE CLIENT TO EMAIL THE LAWYER
+ * AFTER THEY LOG IN. OTHERWISE THE LAWYER WILL NOT KNOW AND HAVE TO CHECK
+ * MANUALLY. That causes problems for an LAS attorney handling a 20 case
+ * docket."
+ *
+ * So the notification travels the only way that costs nothing and needs no
+ * credential anywhere: the CLIENT sends it, from their own mailbox, and it
+ * lands in the attorney's inbox like any other client email. The server
+ * sends no mail and holds no mail credential.
+ *
+ * The address comes from the EXISTING NEXT_PUBLIC_INQUIRY_EMAIL branding
+ * row. Unset, the page still gives the instruction but renders no mailto —
+ * per branding.ts, an address is never invented.
+ */
+function WaitingRoom({ email }: { email: string }) {
+  const firm = operatingFirmName();
+  const to = inquiryEmail();
+  const subject = `Registered on DivorceGPT — please connect my case (${email})`;
+  const body =
+    `Hello,\n\n` +
+    `I've registered at divorcegpt.com and signed in with this email address ` +
+    `(${email}). Please connect my case so I can start my questionnaire.\n\n` +
+    `Thank you.`;
+
+  return (
+    <div className="panel">
+      <h2>You&apos;re registered — one last step</h2>
+      <p className="panel-sub">
+        Your sign-in worked. <strong>Now email {firm} to let them know you&apos;ve
+        registered</strong> — your attorney connects your case by hand, and your
+        email is what tells them you&apos;re ready. Once they connect it, your
+        questionnaire will be waiting the next time you log in.
+      </p>
+      {to ? (
+        <a
+          className="btn btn-primary mt-2"
+          href={`mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(
+            subject
+          )}&body=${encodeURIComponent(body)}`}
+        >
+          ✉ Email the firm now
+        </a>
+      ) : (
+        <p className="mt-2 text-sm text-slate-600">
+          Send it to the email address the firm gave you, and mention that you
+          signed in as {email}.
+        </p>
+      )}
+    </div>
   );
 }

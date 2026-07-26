@@ -33,7 +33,6 @@ import { findAccountForSession, provisionClientAccount } from "@/lib/db/users";
 import { decideLoginDestination } from "@/lib/auth/authorize-login";
 import { recordAudit } from "@/lib/db/repo";
 import { hashNameForAudit } from "@/lib/security/audit-hash";
-import { notifyClientRegistered } from "@/lib/notify/firm-email";
 
 export async function GET(
   req: Request,
@@ -80,19 +79,6 @@ export async function GET(
                   "CLIENT_REGISTERED",
                   `provider=${provider} subjectHash=${hashNameForAudit(identity.email)}`
                 ));
-          // EMAIL THE LAWYER TO CLEAR THE CLIENT (operator, Claude 3.05).
-          // Fire-and-forget: the login redirect never waits on SMTP, and a
-          // mail failure never breaks a registration — the outcome lands in
-          // the audit log either way.
-          void notifyClientRegistered({ email: identity.email, name: identity.name })
-            .then((outcome) =>
-              recordAudit(
-                "auth",
-                "CLIENT_REGISTERED_FIRM_EMAIL",
-                `outcome=${outcome} subjectHash=${hashNameForAudit(identity.email)}`
-              )
-            )
-            .catch(() => {});
         }
       } catch {
         // The email is already bound to a DIFFERENT sign-in identity.
