@@ -168,6 +168,29 @@ function IntakeChat({
   const [err, setErr] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
+  // ── TurboTax-style journey rail (2026-07-26 operator request) ──
+  // Section list + per-section progress from the deterministic engine; the
+  // rail is display-only (the conversation owns question order).
+  const [railSections, setRailSections] = useState<
+    { sectionId: string; title: string; total: number; answered: number }[]
+  >([]);
+  const [railOpen, setRailOpen] = useState(false);
+  const loadRail = useCallback(async () => {
+    if (!matterId) return;
+    try {
+      const v = (await api.get(`/api/matters/${matterId}/intake2`)) as unknown as {
+        progress?: { sectionId: string; title: string; total: number; answered: number }[];
+      };
+      setRailSections((v.progress ?? []).filter((p) => p.total > 0));
+    } catch {
+      /* the rail is decoration — never block the chat on it */
+    }
+  }, [matterId]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadRail();
+  }, [loadRail]);
+
   // Resolve the client's own intake session from their matter, then load
   // the transcript (the server appends the scripted welcome on first read).
   useEffect(() => {
@@ -240,6 +263,7 @@ function IntakeChat({
         { id: `a-${Date.now()}`, role: "ASSISTANT", content: r.say, lang: "en" },
       ]);
       setProg(r.progress);
+      loadRail();
       setStopped(r.stopped);
       if (r.complete) setComplete(true);
       if (r.card) {
@@ -269,8 +293,59 @@ function IntakeChat({
     }
   }
 
+  const rail = (
+    <JourneyRail
+      sections={railSections}
+      currentTitle={prog?.sectionTitle ?? null}
+      gatesDone={Boolean(prog?.sectionTitle) || complete}
+      stopped={Boolean(stopped)}
+      complete={complete}
+    />
+  );
+
   return (
-    <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-4 py-6">
+    <div className="mx-auto flex min-h-screen max-w-5xl gap-6 px-4 py-6">
+      {/* Desktop journey rail — TurboTax style, always visible on large screens */}
+      <aside className="hidden w-60 shrink-0 lg:block" aria-label="Your progress">
+        <div className="sticky top-6 rounded-lg border border-slate-200 bg-white p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Your progress
+          </p>
+          {rail}
+        </div>
+      </aside>
+
+      {/* Mobile drawer — toggle button lives in the header below */}
+      {railOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/30 lg:hidden"
+          role="dialog"
+          aria-label="Your progress"
+          onClick={() => setRailOpen(false)}
+        >
+          <aside
+            className="absolute left-0 top-0 h-full w-72 overflow-y-auto bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Your progress
+              </p>
+              <button
+                type="button"
+                className="rounded px-2 py-1 text-slate-500 hover:bg-slate-100"
+                aria-label="Close progress panel"
+                onClick={() => setRailOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+            {rail}
+          </aside>
+        </div>
+      )}
+
+      <div className="flex min-h-screen max-w-3xl flex-1 flex-col">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Your intake</h1>
@@ -283,13 +358,23 @@ function IntakeChat({
             </p>
           )}
         </div>
-        <button
-          type="button"
-          className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
-          onClick={onPreferForm}
-        >
-          Prefer a form?
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 lg:hidden"
+            aria-expanded={railOpen}
+            onClick={() => setRailOpen(true)}
+          >
+            ☰ Progress
+          </button>
+          <button
+            type="button"
+            className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
+            onClick={onPreferForm}
+          >
+            Prefer a form?
+          </button>
+        </div>
       </div>
 
       <p className="mb-3 rounded bg-slate-100 px-3 py-2 text-xs text-slate-600">
@@ -378,7 +463,108 @@ function IntakeChat({
           </button>
         </form>
       )}
+      </div>
     </div>
+  );
+}
+
+/**
+ * The TurboTax-style journey rail: eligibility basics → each question
+ * section → review → attorney review. Display-only; states derive from the
+ * same deterministic progress the chat header shows.
+ */
+function JourneyRail({
+  sections,
+  currentTitle,
+  gatesDone,
+  stopped,
+  complete,
+}: {
+  sections: { sectionId: string; title: string; total: number; answered: number }[];
+  currentTitle: string | null;
+  gatesDone: boolean;
+  stopped: boolean;
+  complete: boolean;
+}) {
+  const allAnswered =
+    sections.length > 0 && sections.every((s) => s.answered >= s.total);
+  type StepState = "done" | "current" | "todo" | "paused";
+  const steps: { key: string; title: string; sub?: string; state: StepState }[] = [
+    {
+      key: "basics",
+      title: "The basics",
+      sub: "eligibility questions",
+      state: stopped ? "paused" : gatesDone ? "done" : "current",
+    },
+    ...sections.map((s) => ({
+      key: s.sectionId,
+      title: s.title,
+      sub: `${Math.min(s.answered, s.total)} of ${s.total} answered`,
+      state: (complete || (s.answered >= s.total && s.title !== currentTitle)
+        ? "done"
+        : s.title === currentTitle
+          ? "current"
+          : "todo") as StepState,
+    })),
+    {
+      key: "review",
+      title: "Review & confirm",
+      sub: "read-back of your answers",
+      state: complete ? "done" : allAnswered && gatesDone && !stopped ? "current" : "todo",
+    },
+    {
+      key: "attorney",
+      title: "Attorney review",
+      sub: "the firm takes it from here",
+      state: complete ? "current" : "todo",
+    },
+  ];
+
+  return (
+    <ol className="space-y-0">
+      {steps.map((step, i) => (
+        <li key={step.key} className="relative flex gap-3 pb-5 last:pb-0">
+          {i < steps.length - 1 && (
+            <span
+              className="absolute left-[11px] top-6 h-full w-0.5 bg-slate-200"
+              aria-hidden
+            />
+          )}
+          <span
+            className={
+              "z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold " +
+              (step.state === "done"
+                ? "bg-green-600 text-white"
+                : step.state === "current"
+                  ? "bg-[#16324f] text-white ring-4 ring-[#16324f]/15"
+                  : step.state === "paused"
+                    ? "bg-amber-500 text-white"
+                    : "border-2 border-slate-300 bg-white text-slate-400")
+            }
+            aria-hidden
+          >
+            {step.state === "done" ? "✓" : step.state === "paused" ? "!" : i + 1}
+          </span>
+          <span className="min-w-0">
+            <span
+              className={
+                "block text-sm " +
+                (step.state === "current"
+                  ? "font-semibold text-slate-900"
+                  : step.state === "done"
+                    ? "text-slate-700"
+                    : "text-slate-400")
+              }
+            >
+              {step.title}
+            </span>
+            {step.sub && (
+              <span className="block text-xs text-slate-500">{step.sub}</span>
+            )}
+          </span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
