@@ -28,17 +28,6 @@ interface ClientMatter {
   helpLabel: string;
 }
 
-interface ReleasedDoc {
-  documentId: string;
-  versionId: string;
-  title: string;
-  releasedAt: string;
-}
-interface UploadDoc {
-  documentId: string;
-  title: string;
-  uploadedAt: string;
-}
 
 export default function ClientMatterPage() {
   const { me, loading } = useMe();
@@ -46,9 +35,6 @@ export default function ClientMatterPage() {
   const [ackDone, setAckDone] = useState<boolean | null>(null);
   const [disclosure, setDisclosure] = useState<Disclosure | null>(null);
   const [agree, setAgree] = useState(false); // never preselected
-  const [released, setReleased] = useState<ReleasedDoc[]>([]);
-  const [uploads, setUploads] = useState<UploadDoc[]>([]);
-  const [file, setFile] = useState<File | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -69,12 +55,6 @@ export default function ClientMatterPage() {
         const d = (await api.get("/api/disclosure")) as { disclosure: Disclosure };
         setDisclosure(d.disclosure);
       }
-      const docs = (await api.get(`/api/matters/${matterId}/documents`)) as unknown as {
-        released: ReleasedDoc[];
-        uploads: UploadDoc[];
-      };
-      setReleased(docs.released ?? []);
-      setUploads(docs.uploads ?? []);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Could not load your matter");
     }
@@ -99,36 +79,6 @@ export default function ClientMatterPage() {
       setInfo("Thank you — your acknowledgment has been recorded.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Could not record acknowledgment");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function requestHelp() {
-    if (!matterId) return;
-    setBusy(true);
-    setErr(null);
-    try {
-      const res = await api.post(`/api/matters/${matterId}/assistance`);
-      setInfo(String(res.message ?? "The firm has been notified."));
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Could not send the request");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function uploadFile() {
-    if (!matterId || !file) return;
-    setBusy(true);
-    setErr(null);
-    try {
-      await api.upload(`/api/matters/${matterId}/documents`, file);
-      setFile(null);
-      setInfo("Your document was uploaded and is with the firm for review.");
-      await load();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setBusy(false);
     }
@@ -235,100 +185,10 @@ export default function ClientMatterPage() {
             </div>
           )}
 
-          <div className="panel">
-            <h2>Upload a requested document</h2>
-            <p className="panel-sub">
-              {matter.canProceed
-                ? "PDF, Word, image, or text files. Uploads go to the firm for review."
-                : "Document upload becomes available after the firm completes its review."}
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <input
-                type="file"
-                accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                className="text-sm"
-                disabled={!matter.canProceed}
-              />
-              <button
-                className="btn btn-primary"
-                onClick={uploadFile}
-                disabled={!file || busy || !matter.canProceed}
-              >
-                Upload
-              </button>
-            </div>
-            {uploads.length > 0 && (
-              <table className="tbl mt-4">
-                <thead>
-                  <tr>
-                    <th>Your uploads</th>
-                    <th>Uploaded</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {uploads.map((u) => (
-                    <tr key={u.documentId}>
-                      <td>{u.title}</td>
-                      <td>{fmtWhen(u.uploadedAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-
-          <div className="panel">
-            <h2>Documents from the firm</h2>
-            <p className="panel-sub">
-              Documents appear here once an attorney has approved and released
-              them to you.
-            </p>
-            {released.length === 0 ? (
-              <p className="text-sm text-slate-500">Nothing has been released yet.</p>
-            ) : (
-              <table className="tbl">
-                <thead>
-                  <tr>
-                    <th>Document</th>
-                    <th>Released</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {released.map((r) => (
-                    <tr key={r.versionId}>
-                      <td>{r.title}</td>
-                      <td>{fmtWhen(r.releasedAt)}</td>
-                      <td>
-                        <a
-                          className="btn btn-quiet"
-                          style={{ padding: "4px 12px", fontSize: ".8rem" }}
-                          href={`/api/document-versions/${r.versionId}/download`}
-                        >
-                          Download
-                        </a>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-
-          {matter.helpAvailable && (
-            <div className="panel">
-              <h2>{matter.helpLabel}</h2>
-              <p className="panel-sub">
-                You do not need to give a reason. The firm will contact you and
-                can complete this intake with you by phone, video, in person,
-                or on paper.
-              </p>
-              <button className="btn btn-quiet" onClick={requestHelp} disabled={busy}>
-                Ask the firm for help
-              </button>
-            </div>
-          )}
+          {/* Document exchange and help requests happen OVER EMAIL, directly
+              with the firm (2026-07-26 operator directive): this portal does
+              not carry client correspondence or file uploads — what it never
+              holds, it can never leak or make discoverable. */}
         </>
       )}
     </Shell>

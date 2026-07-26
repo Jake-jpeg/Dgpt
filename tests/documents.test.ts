@@ -89,28 +89,28 @@ beforeEach(async () => {
 });
 
 describe("uploads", () => {
-  it("client upload works once past conflicts; blocked on a NOT_STARTED matter", async () => {
-    // Open-signup matters carry EXTERNAL from birth; rewind this one to the
-    // legacy NOT_STARTED posture to pin the guard.
-    const { getDb } = await import("@/lib/db/index");
-    await getDb().run(`UPDATE matter SET conflict_status = 'NOT_STARTED' WHERE id = ?`, ctx.matterId);
-    const mkReq = () => {
+  it("CLIENT uploads are CLOSED (2026-07-26: documents move over email); firm uploads work", async () => {
+    // Clients may never put files into the portal — whatever their conflict
+    // posture. What the portal never holds, it can never leak or make
+    // discoverable. The refusal tells them exactly what to do instead.
+    await clearMatter(ctx.matterId);
+    const mkReq = (cookie: string) => {
       const form = new FormData();
       form.set("file", new File([bytesOf("synthetic pdf bytes")], "cert.pdf", { type: "application/pdf" }));
       return new Request(`http://localhost:3000/api/matters/${ctx.matterId}/documents`, {
         method: "POST",
-        headers: { "x-dgpt-csrf": "1", cookie: clientCookie },
+        headers: { "x-dgpt-csrf": "1", cookie },
         body: form,
       });
     };
-    const before = await docsPost(mkReq(), params({ id: ctx.matterId }));
-    expect(before.status).toBe(409); // not yet CLEARED
+    const clientRes = await docsPost(mkReq(clientCookie), params({ id: ctx.matterId }));
+    expect(clientRes.status).toBe(403);
+    expect(String(((await clientRes.json()) as { error: string }).error)).toMatch(/email your documents/i);
 
-    await clearMatter(ctx.matterId);
     freshLimits();
-    const after = await docsPost(mkReq(), params({ id: ctx.matterId }));
-    expect(after.status).toBe(201);
-    const body = await after.json();
+    const firmRes = await docsPost(mkReq(attorneyCookie), params({ id: ctx.matterId }));
+    expect(firmRes.status).toBe(201);
+    const body = await firmRes.json();
     expect(body.version.status).toBe("DRAFT"); // uploads begin unapproved
   });
 
@@ -121,7 +121,7 @@ describe("uploads", () => {
     const res = await docsPost(
       new Request(`http://localhost:3000/api/matters/${ctx.matterId}/documents`, {
         method: "POST",
-        headers: { "x-dgpt-csrf": "1", cookie: clientCookie },
+        headers: { "x-dgpt-csrf": "1", cookie: attorneyCookie },
         body: exe,
       }),
       params({ id: ctx.matterId })
@@ -141,7 +141,7 @@ describe("uploads", () => {
     const bigRes = await docsPost(
       new Request(`http://localhost:3000/api/matters/${ctx.matterId}/documents`, {
         method: "POST",
-        headers: { "x-dgpt-csrf": "1", cookie: clientCookie },
+        headers: { "x-dgpt-csrf": "1", cookie: attorneyCookie },
         body: big,
       }),
       params({ id: ctx.matterId })

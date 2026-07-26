@@ -98,8 +98,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const { id } = await ctx.params;
     const matter = (await requireMatterAccess(authed, id));
 
-    if (authed.account.role === "CLIENT" && matter.conflictStatus !== "CLEARED" && matter.conflictStatus !== "EXTERNAL") {
-      throw new HttpError(409, "Document upload becomes available after the firm completes its review");
+    // CLIENT uploads are CLOSED (2026-07-26 operator directive): document
+    // exchange happens over email, directly with the firm. What this portal
+    // never holds, it can never leak or make discoverable. Firm-side uploads
+    // (staff/attorney working documents) are unchanged.
+    if (authed.account.role === "CLIENT") {
+      throw new HttpError(
+        403,
+        "This portal does not accept document uploads. Please email your documents to the firm directly."
+      );
     }
 
     const form = await req.formData().catch(() => null);
@@ -116,7 +123,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const doc = (await createDocument({
           matterId: matter.id,
           title,
-          docKind: authed.account.role === "CLIENT" ? "CLIENT_UPLOAD" : "GENERAL",
+          docKind: "GENERAL", // client uploads are closed; only firm-side uploads remain
           createdBy: authed.account.id,
         }));
     const version = (await addDocumentVersion({
