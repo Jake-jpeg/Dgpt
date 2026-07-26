@@ -137,6 +137,39 @@ function residencyBasisFromAnswers(answers: AnswerMap): string {
   return prong === "none" ? "two_year" : prong;
 }
 
+/**
+ * The attorney signature block on the Verified Complaint.
+ *
+ * This used to live ONLY as a Python constant inside the RL repo, which meant
+ * changing the firm's filing address required a code edit in a second repo
+ * plus a manual PDF-service redeploy. The address that prints on a NY Supreme
+ * Court pleading is not a deployment artifact — it is a firm decision that can
+ * change (see Judiciary Law § 470, which requires a nonresident NY-admitted
+ * attorney to maintain an office for the transaction of law business WITHIN
+ * New York; it does not reach an attorney who resides in New York).
+ *
+ * So DGPT now sends it, from env, and the RL constants become the fallback of
+ * a fallback. Leaving every row unset reproduces today's output byte for byte.
+ * Values are TRIMMED and empty rows are DROPPED, so a blank env var falls
+ * through to the generator default rather than printing an empty block.
+ *
+ * `FIRM_ATTORNEY_ADDRESS` accepts a literal "\n" for the second line.
+ */
+function firmSignatureBlock(): Record<string, string> {
+  const rows: Record<string, string | undefined> = {
+    attorneyName: process.env.FIRM_ATTORNEY_NAME,
+    attorneyFirm: process.env.FIRM_ATTORNEY_FIRM,
+    attorneyAddress: process.env.FIRM_ATTORNEY_ADDRESS?.replace(/\\n/g, "\n"),
+    attorneyPhone: process.env.FIRM_ATTORNEY_PHONE,
+  };
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(rows)) {
+    const trimmed = typeof v === "string" ? v.trim() : "";
+    if (trimmed) out[k] = trimmed;
+  }
+  return out;
+}
+
 export function buildNyComplaintPayload(matter: MatterRow, answers: AnswerMap): RenderPayload {
   const place = str(answers["shared.relationship.marriage_place"]);
   const state = str(answers["shared.relationship.marriage_state"]);
@@ -162,6 +195,8 @@ export function buildNyComplaintPayload(matter: MatterRow, answers: AnswerMap): 
     // whole point of the intake."
     unemancipatedChildren: String(childCount(answers)),
     childrenDetail: childrenDetail(answers),
+    // Firm signature block — env-driven, empty by default (§ 470 note above).
+    ...firmSignatureBlock(),
   };
   required(payload, [
     "plaintiffName",
