@@ -18,6 +18,7 @@ interface FirmMatterRow {
   conflictStatus: string;
   legalHold: boolean;
   updatedAt: string;
+  track: "UNCONTESTED" | "CONTESTED";
   client: { name: string; email: string } | null;
   intakeStatus: string;
   documents: { total: number; awaitingReview: number; released: number };
@@ -54,6 +55,7 @@ export default function FirmMattersPage() {
   }
   const [matters, setMatters] = useState<FirmMatterRow[]>([]);
   const [label, setLabel] = useState("");
+  const [track, setTrack] = useState<"UNCONTESTED" | "CONTESTED">("UNCONTESTED");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -80,8 +82,11 @@ export default function FirmMattersPage() {
     setBusy(true);
     setErr(null);
     try {
-      await api.post("/api/matters", { label });
+      // Only the attorney may set the track — staff create without one and
+      // the attorney chooses it on the matter page.
+      await api.post("/api/matters", isAttorney ? { label, track } : { label });
       setLabel("");
+      setTrack("UNCONTESTED");
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Could not create the matter");
@@ -119,6 +124,27 @@ export default function FirmMattersPage() {
                   placeholder="Prospect 2026-014 (synthetic)"
                 />
               </label>
+              {isAttorney && (
+                <div className="text-sm">
+                  <span className="field-label">This is for…</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className={track === "UNCONTESTED" ? "btn btn-primary" : "btn btn-quiet"}
+                      onClick={() => setTrack("UNCONTESTED")}
+                    >
+                      An uncontested case
+                    </button>
+                    <button
+                      type="button"
+                      className={track === "CONTESTED" ? "btn btn-primary" : "btn btn-quiet"}
+                      onClick={() => setTrack("CONTESTED")}
+                    >
+                      A contested case
+                    </button>
+                  </div>
+                </div>
+              )}
               <button
                 className="btn btn-primary"
                 onClick={createMatter}
@@ -127,12 +153,19 @@ export default function FirmMattersPage() {
                 Create matter
               </button>
             </div>
+            {isAttorney && (
+              <p className="mt-2 text-xs text-slate-500">
+                Uncontested runs the short phased interview (pleading facts only).
+                Contested runs the full intake questionnaire, net-worth facts included.
+              </p>
+            )}
           </div>
 
           <div className="panel">
             <h2>Your matters</h2>
             <p className="panel-sub">
-              Matters you hold access to. Uncontested divorce workflow.
+              Matters you hold access to. Uncontested matters run the short
+              phased interview; contested matters run the full questionnaire.
             </p>
             {matters.length === 0 ? (
               <p className="text-sm text-slate-500">No matters yet.</p>
@@ -162,6 +195,9 @@ export default function FirmMattersPage() {
                           </Link>
                           {m.legalHold && (
                             <span className="badge badge-stop ml-2">LEGAL HOLD</span>
+                          )}
+                          {m.track === "CONTESTED" && (
+                            <span className="badge badge-warn ml-2">CONTESTED</span>
                           )}
                           <div className="text-xs text-slate-500">{m.lifecycle}</div>
                         </td>

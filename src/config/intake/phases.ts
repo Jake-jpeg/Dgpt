@@ -82,14 +82,44 @@ export const PHASE2_ITEM_IDS: ReadonlySet<string> = new Set([
 export type IntakePhase = 1 | 2 | 3 | "ALL";
 
 /**
- * Resolve a matter's effective phase. Per-matter `intake_phase` (set by the
- * attorney as the case progresses) drives it; the INTAKE_PHASE=ALL env is a
- * global kill-switch back to the full questionnaire. Phase 3 asks nothing new
- * of the client (finalization is firm-side renders), so it inherits phase 2's
- * question set.
+ * Intake tracks (2026-07-26 operator directive): the attorney chooses, per
+ * matter, "This is for an uncontested case" or "This is for a contested
+ * case".
+ *   UNCONTESTED — the lean phased interview (phase 1 = pleading facts only;
+ *                 no SNW battery, no DOB, ~15 questions).
+ *   CONTESTED   — the full questionnaire, SNW facts included ("most people,
+ *                 when I give them the SNW form, they just fill it out").
+ * The track rides the existing `matter_category` column: NY_SUPREME_CONTESTED
+ * means contested; everything else (including unassigned) is the uncontested
+ * default. Contested resolves the phase to "ALL" — one switch, no parallel
+ * plumbing.
  */
-export function matterIntakePhase(matter?: { intakePhase?: number | null } | null): IntakePhase {
+export type IntakeTrack = "UNCONTESTED" | "CONTESTED";
+
+export const TRACK_CATEGORY: Record<IntakeTrack, string> = {
+  UNCONTESTED: "NY_SUPREME_UNCONTESTED",
+  CONTESTED: "NY_SUPREME_CONTESTED",
+};
+
+export function matterIntakeTrack(
+  matter?: { matterCategory?: string | null } | null
+): IntakeTrack {
+  return matter?.matterCategory === "NY_SUPREME_CONTESTED" ? "CONTESTED" : "UNCONTESTED";
+}
+
+/**
+ * Resolve a matter's effective phase. A CONTESTED matter always gets the
+ * full questionnaire ("ALL"). Otherwise the per-matter `intake_phase` (set
+ * by the attorney as the case progresses) drives it; the INTAKE_PHASE=ALL
+ * env is a global kill-switch back to the full questionnaire. Phase 3 asks
+ * nothing new of the client (finalization is firm-side renders), so it
+ * inherits phase 2's question set.
+ */
+export function matterIntakePhase(
+  matter?: { intakePhase?: number | null; matterCategory?: string | null } | null
+): IntakePhase {
   if ((process.env.INTAKE_PHASE ?? "").trim().toUpperCase() === "ALL") return "ALL";
+  if (matterIntakeTrack(matter) === "CONTESTED") return "ALL";
   const p = matter?.intakePhase;
   return p === 2 ? 2 : p === 3 ? 3 : 1;
 }

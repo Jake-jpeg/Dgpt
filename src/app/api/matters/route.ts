@@ -20,6 +20,9 @@ import {
 import { recordAudit, listSessionsByMatter } from "@/lib/db/repo";
 import { getUserById } from "@/lib/db/users";
 import { listDocumentsForMatter, listVersions } from "@/lib/db/documents";
+import { attorneySetJurisdictionAndScope } from "@/lib/db/intake2";
+import { matterIntakeTrack, TRACK_CATEGORY } from "@/config/intake/phases";
+import type { MatterCategory } from "@/lib/intake2/types";
 
 function matterSummary(m: MatterRow) {
   return {
@@ -44,6 +47,7 @@ async function firmMatterRow(m: MatterRow) {
   const released = versions.filter((v) => v.status === "RELEASED").length;
   return {
     ...matterSummary(m),
+    track: matterIntakeTrack(m),
     client: client ? { name: client.name || client.email, email: client.email } : null,
     intakeStatus: latestSession?.state ?? "NOT_STARTED",
     documents: { total: versions.length, awaitingReview, released },
@@ -81,6 +85,11 @@ export async function GET(req: Request) {
 
 const createSchema = z.object({
   label: z.string().trim().min(1).max(120),
+  // Intake track (2026-07-26): the attorney declares uncontested vs contested
+  // at creation. Category assignment is ATTORNEY-only (the guarded setter
+  // enforces it), so STAFF create without a track and the attorney sets it
+  // on the matter page.
+  track: z.enum(["UNCONTESTED", "CONTESTED"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -90,10 +99,21 @@ export async function POST(req: Request) {
     const { account } = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const parsed = createSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid matter payload");
+    if (parsed.data.track && account.role !== "ATTORNEY") {
+      throw new HttpError(403, "FORBIDDEN: only an attorney may set the intake track");
+    }
     const matter = (await createMatter({ label: parsed.data.label, createdBy: account.id }));
     // The creator works this matter: grant access at creation.
     (await grantMatterAccess(matter.id, account.id, account.id));
-    (await recordAudit(matter.id, "MATTER_CREATED", undefined, account.id));
+    (await recordAudit(matter.id, "MATTER_CREATED", parsed.data.track ? `track=${parsed.data.track}` : undefined, account.id));
+    if (parsed.data.track) {
+      await attorneySetJurisdictionAndScope({
+        matterId: matter.id,
+        actingUserId: account.id,
+        matterCategory: TRACK_CATEGORY[parsed.data.track] as MatterCategory,
+      });
+      await recordAudit(matter.id, "INTAKE_TRACK_SET", `from=- to=${parsed.data.track}`, account.id);
+    }
     return Response.json({ matter: matterSummary(matter) }, { status: 201 });
   } catch (e) {
     return errorResponse(e);

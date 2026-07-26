@@ -737,13 +737,19 @@ function CourtFormsPanel({
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [phase, setPhase] = useState<number | null>(null);
+  const [track, setTrack] = useState<"UNCONTESTED" | "CONTESTED" | null>(null);
 
   const loadPhase = useCallback(async () => {
     try {
-      const r = (await api.get(`/api/matters/${matterId}/phase`)) as { phase: number };
+      const r = (await api.get(`/api/matters/${matterId}/phase`)) as {
+        phase: number;
+        track: "UNCONTESTED" | "CONTESTED";
+      };
       setPhase(r.phase);
+      setTrack(r.track);
     } catch {
       setPhase(null);
+      setTrack(null);
     }
   }, [matterId]);
 
@@ -751,6 +757,26 @@ function CourtFormsPanel({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadPhase();
   }, [loadPhase]);
+
+  async function setMatterTrack(next: "UNCONTESTED" | "CONTESTED") {
+    setErr(null);
+    setDone(null);
+    try {
+      const r = (await api.post(`/api/matters/${matterId}/phase`, { track: next })) as {
+        phase: number;
+        track: "UNCONTESTED" | "CONTESTED";
+      };
+      setPhase(r.phase);
+      setTrack(r.track);
+      setDone(
+        next === "CONTESTED"
+          ? "Contested track — the client's interview is now the full intake questionnaire, net-worth facts included."
+          : "Uncontested track — the client's interview is the short phased intake."
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not change the track");
+    }
+  }
 
   async function advancePhase(next: 1 | 2 | 3) {
     setErr(null);
@@ -825,8 +851,14 @@ function CourtFormsPanel({
 
   return (
     <AccordionPanel
-      title="Case phase & court forms"
-      summary={phase ? `Phase ${phase} · ${ALLOWED_RENDERS.length} forms` : `${ALLOWED_RENDERS.length} forms`}
+      title="Case track, phase & court forms"
+      summary={
+        track === "CONTESTED"
+          ? `Contested · ${ALLOWED_RENDERS.length} forms`
+          : phase
+            ? `Uncontested · Phase ${phase} · ${ALLOWED_RENDERS.length} forms`
+            : `${ALLOWED_RENDERS.length} forms`
+      }
     >
       <p className="panel-sub">
         Forms are filled deterministically from the client&apos;s confirmed intake answers —
@@ -838,6 +870,33 @@ function CourtFormsPanel({
       )}
       {isAttorney && (
         <div className="space-y-4">
+          <div>
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Intake track — this is for…
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className={track === "UNCONTESTED" ? "btn btn-primary" : "btn btn-quiet"}
+                disabled={track === "UNCONTESTED"}
+                onClick={() => setMatterTrack("UNCONTESTED")}
+              >
+                An uncontested case
+              </button>
+              <button
+                className={track === "CONTESTED" ? "btn btn-primary" : "btn btn-quiet"}
+                disabled={track === "CONTESTED"}
+                onClick={() => setMatterTrack("CONTESTED")}
+              >
+                A contested case
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Uncontested runs the short phased interview below. Contested runs the FULL
+              intake questionnaire — identity, income, assets, debts, the net-worth facts —
+              so the Statement of Net Worth can be prepared from the answers.
+            </p>
+          </div>
+          {track !== "CONTESTED" && (
           <div>
             <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
               Intake phase — controls which questions the client sees
@@ -860,6 +919,7 @@ function CourtFormsPanel({
               new — it unlocks your finalization work after the judgment.
             </p>
           </div>
+          )}
           {group("Phase 1 — commencement", phase1, undefined, true)}
           {group(
             "Phase 2 — uncontested packet & stipulation",
