@@ -32,10 +32,10 @@ afterEach(() => {
 
 const FIRM = { firmName: "Jake Kim Law Firm", firmContact: "(201) 555-0100" };
 
-describe("constitution 2026-07.5 — drive + count + why + no-documents", () => {
-  it("is versioned 2026-07.5 and states the version in the prompt", () => {
-    expect(INTAKE_CONSTITUTION_VERSION).toBe("2026-07.5");
-    expect(buildConstitution(FIRM)).toContain("CONSTITUTION 2026-07.5");
+describe("constitution 2026-07.6 — drive + count + why + no-documents", () => {
+  it("is versioned 2026-07.6 and states the version in the prompt", () => {
+    expect(INTAKE_CONSTITUTION_VERSION).toBe("2026-07.6");
+    expect(buildConstitution(FIRM)).toContain("CONSTITUTION 2026-07.6");
   });
 
   it("carries Rule 11 with its example and all four constraints", () => {
@@ -78,7 +78,7 @@ describe("constitution 2026-07.5 — drive + count + why + no-documents", () => 
     expect(text).toContain("(201) 555-0100");
   });
 
-  it("carries the 2026-07.5 rules: drive, tell progress, explain why, never ask for documents", () => {
+  it("carries the 2026-07.6 rules: drive, tell progress, explain why, never ask for documents", () => {
     const text = buildConstitution(FIRM);
     expect(text).toContain("12. YOU MOVE THE CONVERSATION FORWARD");
     expect(text).toMatch(/ask the NEXT question in the SAME reply/);
@@ -138,11 +138,11 @@ describe("INTAKE_TONE configuration", () => {
   it("records tone AND version in the session marker", () => {
     delete process.env.INTAKE_TONE;
     expect(constitutionEventText()).toBe(
-      "intake assistant started (constitution 2026-07.5, tone WARM)"
+      "intake assistant started (constitution 2026-07.6, tone WARM)"
     );
     process.env.INTAKE_TONE = "NEUTRAL";
     expect(constitutionEventText()).toContain("tone NEUTRAL");
-    expect(constitutionEventText()).toContain("2026-07.5");
+    expect(constitutionEventText()).toContain("2026-07.6");
   });
 });
 
@@ -156,7 +156,6 @@ function baseState(over: Partial<SequencerState> = {}): SequencerState {
     answers: {},
     machineState: "GATE_RESIDENCY",
     checklist: [],
-    checklistReported: [],
     welcomed: false,
     readBackShown: false,
     confirmed: false,

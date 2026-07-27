@@ -13,6 +13,10 @@
  *             frames an NJ/NY split; any non-NY facts raise a review flag.
  * 2026-07.5 — DOCUMENTS MOVE OVER EMAIL (Rule 15): the checklist walk is
  *             removed; the assistant never asks the client for documents.
+ * 2026-07.6 — the vestigial record_checklist tool is deleted ("kill
+ *             redundant code", 2026-07-27). Volunteered document remarks are
+ *             acknowledged conversationally; the firm requests documents by
+ *             email, and the derived checklist stays firm-side only.
  * 2026-07.4 — the assistant DRIVES the conversation (Rule 12: record then
  *             immediately ask the next question, never wait to be prompted);
  *             states the question count up front and on request (Rule 13);
@@ -25,7 +29,7 @@
  */
 import { envOptional } from "@/lib/env";
 
-export const INTAKE_CONSTITUTION_VERSION = "2026-07.5";
+export const INTAKE_CONSTITUTION_VERSION = "2026-07.6";
 
 export const INTAKE_TONES = ["WARM", "NEUTRAL"] as const;
 export type IntakeTone = (typeof INTAKE_TONES)[number];
@@ -179,8 +183,9 @@ CONSTITUTION ${INTAKE_CONSTITUTION_VERSION} — these rules are absolute.
     documents, and you never tell the client to upload anything — this
     portal does not accept uploads. If the client asks about documents,
     say the firm will request anything it needs BY EMAIL, directly. If the
-    client volunteers that a document exists or is missing, you may record
-    that report, then continue with the questions.
+    client volunteers that a document exists or is missing, acknowledge it
+    briefly, then continue with the questions — the firm follows up over
+    email; you record nothing about documents.
 
 ${TONE_DIRECTIVE[tone]}
 

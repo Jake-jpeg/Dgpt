@@ -47,7 +47,6 @@ function turnPayload(over: Record<string, unknown> = {}) {
     say: "Thanks — got it. Next question…",
     lang: "en",
     record_answers: [],
-    record_checklist: [],
     gate_response: null,
     flag_for_attorney: null,
     control: "CONTINUE",
@@ -284,9 +283,9 @@ describe("answers: the model proposes, the server disposes", () => {
     expect(Object.keys(answers).filter((k) => k.startsWith("nope."))).toEqual([]);
   });
 
-  it("unknown checklist ids are rejected; premature INTAKE_COMPLETE is ignored", async () => {
+  it("unknown answer ids are rejected; premature INTAKE_COMPLETE is ignored", async () => {
     const mock = mockTurns(
-      turnPayload({ record_checklist: [{ documentId: "doc.does_not_exist", clientReport: "HAS_IT" }] }),
+      turnPayload({ record_answers: [{ questionId: "shared.does_not_exist", value: "x" }] }),
       turnPayload({ control: "INTAKE_COMPLETE" }) // premature: questions remain
     );
     const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "I have that document" });

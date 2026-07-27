@@ -109,21 +109,6 @@ export const INTAKE_TURN_SCHEMA: Record<string, unknown> = {
         },
       },
     },
-    record_checklist: {
-      type: "array",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["documentId", "clientReport"],
-        properties: {
-          documentId: { type: "string" },
-          clientReport: {
-            type: "string",
-            enum: ["HAS_IT", "NEEDS_TO_GET", "DOES_NOT_EXIST", "UNSURE"],
-          },
-        },
-      },
-    },
     gate_response: {
       type: ["object", "null"],
       additionalProperties: false,
@@ -156,7 +141,6 @@ interface IntakeTurn {
   say: string;
   lang: ChatLang;
   record_answers?: { questionId: string; value: unknown }[];
-  record_checklist?: { documentId: string; clientReport: string }[];
   gate_response?: { gateId: string; value: unknown } | null;
   flag_for_attorney?: { reason: string } | null;
   control: "CONTINUE" | "STOPPED_SCOPE" | "STOPPED_DV" | "SECTION_COMPLETE" | "INTAKE_COMPLETE";
@@ -167,44 +151,6 @@ interface IntakeTurn {
 const EV_READBACK = "read-back summary shown";
 const EV_CONFIRMED = "client confirmed the read-back";
 const EV_STOPPED_PREFIX = "stopped:";
-const EV_CHECKLIST_PREFIX = "checklist recorded ";
-
-function checklistReportKey(matterId: string): string {
-  return `intake-chat-client-reports:${matterId}`;
-}
-
-export async function getClientChecklistReports(matterId: string): Promise<Record<string, string>> {
-  const r = await getDb().get<{ value: string }>(
-    `SELECT value FROM app_config WHERE key = ?`,
-    checklistReportKey(matterId)
-  );
-  if (!r) return {};
-  try {
-    return JSON.parse(r.value) as Record<string, string>;
-  } catch {
-    return {};
-  }
-}
-
-async function saveClientChecklistReport(
-  matterId: string,
-  documentId: string,
-  report: string,
-  actingUserId: string
-): Promise<void> {
-  const all = await getClientChecklistReports(matterId);
-  all[documentId] = report;
-  const { nowIso } = await import("@/lib/db/index");
-  await getDb().run(
-    `INSERT INTO app_config (key, value, updated_by, updated_at) VALUES (?, ?, ?, ?)
-     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
-    checklistReportKey(matterId),
-    JSON.stringify(all),
-    actingUserId,
-    nowIso()
-  );
-}
-
 interface ConversationContext {
   session: SessionRow;
   matter: MatterRow;
@@ -227,7 +173,6 @@ export async function loadConversation(sessionId: string): Promise<ConversationC
   const checklistState = await getConfigChecklistState(matter.id);
   const checklist = deriveChecklist(schema, answers, checklistState, matterIntakePhase(matter));
   const transcript = await listChatMessages(sessionId);
-  const reported = await getClientChecklistReports(matter.id);
 
   const stoppedEvent = transcript.find(
     (m) => m.role === "SYSTEM_EVENT" && m.content.startsWith(EV_STOPPED_PREFIX)
@@ -238,7 +183,6 @@ export async function loadConversation(sessionId: string): Promise<ConversationC
     phase: matterIntakePhase(matter),
     machineState: session.state as MachineState,
     checklist,
-    checklistReported: Object.keys(reported),
     welcomed: transcript.some((m) => m.role === "ASSISTANT"),
     readBackShown: transcript.some((m) => m.role === "SYSTEM_EVENT" && m.content === EV_READBACK),
     confirmed: transcript.some((m) => m.role === "SYSTEM_EVENT" && m.content === EV_CONFIRMED),
@@ -383,14 +327,6 @@ function describeStep(step: Step, ctx: ConversationContext): string {
         `STILL-PENDING QUESTIONS YOU MAY ALSO RECORD:\n${pendingRoster(ctx, item.id)}`
       );
     }
-    case "CHECKLIST": {
-      const entry = ctx.checklist.find((c) => c.documentId === step.id);
-      return (
-        `CURRENT STEP — DOCUMENT CHECKLIST ITEM (document id ${step.id}).\n` +
-        `Ask about: "${entry?.requestText ?? entry?.title ?? step.id}".\n` +
-        `Record record_checklist [{documentId: "${step.id}", clientReport: HAS_IT | NEEDS_TO_GET | DOES_NOT_EXIST | UNSURE}].`
-      );
-    }
     case "READBACK":
       return (
         `CURRENT STEP — READ-BACK. Summarize, briefly and in plain words, the key ` +
@@ -520,7 +456,7 @@ function buildAdvancePrompt(ctx: ConversationContext, nextStepToAsk: Step): stri
     `CONVERSATION FORWARD (Rule 12): in ONE short reply, give a brief warm ` +
     `acknowledgment of what they just shared, then ask the next question below. ` +
     `Do NOT wait for the client to prompt you. Record NOTHING this turn (leave ` +
-    `record_answers, record_checklist, and gate_response empty) — you are only ` +
+    `record_answers and gate_response empty) — you are only ` +
     `asking. control: CONTINUE.\n\n` +
     `PROGRESS: about question ${prog.answered + 1} of ~${estimate}.\n\n` +
     `NEXT ${describeStep(nextStepToAsk, ctx)}\n\n` +
@@ -689,29 +625,14 @@ async function applyTurn(
     await applyDerivations(ctx, actingUserId);
   }
 
-  // 3. Checklist reports — ids validated against the DERIVED list.
-  if (turn.record_checklist && turn.record_checklist.length > 0) {
-    const valid = new Set(ctx.checklist.map((c) => c.documentId));
-    const bad = turn.record_checklist.find((c) => !valid.has(c.documentId));
-    if (bad) {
-      return { correction: `Unknown checklist document id "${bad.documentId}". Only report on the current checklist item.` };
-    }
-    for (const c of turn.record_checklist) {
-      await saveClientChecklistReport(ctx.matter.id, c.documentId, c.clientReport, actingUserId);
-      await appendSystemEvent(sessionId, `${EV_CHECKLIST_PREFIX}doc=${c.documentId} report=${c.clientReport}`);
-    }
-    ctx.seqState.checklistReported = Object.keys(await getClientChecklistReports(ctx.matter.id));
-    advanced = true;
-  }
-
-  // 4. Attorney flag.
+  // 3. Attorney flag.
   if (turn.flag_for_attorney?.reason) {
     await addAttorneyFlag(sessionId, `CHAT_FLAG: ${turn.flag_for_attorney.reason.slice(0, 200)}`);
     await recordAudit(sessionId, "CHAT_FLAGGED_FOR_ATTORNEY");
     await appendSystemEvent(sessionId, "flagged for attorney");
   }
 
-  // 5. Read-back / confirmation / completion bookkeeping. The SEQUENCER —
+  // 4. Read-back / confirmation / completion bookkeeping. The SEQUENCER —
   //    not the model — decides whether completion is actually available.
   const stepNow = nextStep(ctx.seqState);
   if (ctx.step.kind === "READBACK" && stepNow.kind === "READBACK") {
@@ -859,7 +780,7 @@ async function driveToNextQuestion(
   phase1: TurnResult
 ): Promise<TurnResult> {
   const ctx = await loadConversation(sessionId);
-  const ASKABLE = new Set(["QUESTION", "GATE", "CHECKLIST", "READBACK", "CONFIRM"]);
+  const ASKABLE = new Set(["QUESTION", "GATE", "READBACK", "CONFIRM"]);
   const showPhase1 = async (): Promise<TurnResult> => {
     await appendChatMessage({ sessionId, role: "ASSISTANT", content: phase1.say, lang: phase1.lang });
     return { ...phase1, progress: progress(ctx.seqState) };

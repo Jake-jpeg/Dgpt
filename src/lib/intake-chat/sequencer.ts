@@ -35,7 +35,6 @@ export type StepKind =
   | "WELCOME"
   | "GATE"
   | "QUESTION"
-  | "CHECKLIST"
   | "READBACK"
   | "CONFIRM"
   | "COMPLETE"
@@ -69,7 +68,6 @@ export interface SequencerState {
   /** Derived checklist for this matter. */
   checklist: ChecklistEntry[];
   /** Document ids the client has already reported on. */
-  checklistReported: string[];
   /** True once the assistant has delivered the scripted opening. */
   welcomed: boolean;
   /** True once the read-back summary has been shown. */
