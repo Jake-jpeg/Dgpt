@@ -31,7 +31,7 @@ import {
   getMatter,
   bindClientToMatter,
 } from "@/lib/db/matters";
-import { createInvitation, previewInvitation, acceptInvitation } from "@/lib/db/invitations";
+import { connectClientToMatter } from "@/lib/db/invitations";
 import { appendChatMessage, countChatMessages, listChatMessages } from "@/lib/db/intake-chat";
 import { setConfigValue, getConfigValue, CONFIG_KEYS } from "@/lib/db/config";
 import { toDollarPlaceholders } from "@/lib/db/driver";
@@ -205,28 +205,39 @@ describe("audit hash chain under real concurrency", () => {
   });
 });
 
-describe("invitations end-to-end on postgres", () => {
-  it("mint → preview → accept binds the client; replay is refused neutrally", async () => {
+describe("attorney-controlled connection end-to-end on postgres", () => {
+  // The invitation-link machinery was retired and deleted 2026-07-27; the
+  // successor flow gets the same parity coverage the links had.
+  it("registered client + attorney connect binds the matter; a taken matter refuses", async () => {
     const attorney = await createUser({ email: "attorney@example.test", role: "ATTORNEY" });
-    const m = await createMatter({ label: "PG-INV", createdBy: attorney.id });
-    const { rawToken } = await createInvitation({ matterId: m.id, createdBy: attorney.id, targetEmail: "invitee@example.test" });
+    const m = await createMatter({ label: "PG-CONNECT", createdBy: attorney.id });
 
-    expect(await previewInvitation(rawToken)).not.toBeNull();
-    const client = await findAccountForSession({
-      subject: "pg|client:invitee",
-      email: "invitee@example.test",
+    const ghost = await findAccountForSession({
+      subject: "pg|client:registered",
+      email: "registered@example.test",
       adminBootstrapEmails: [],
     });
-    expect(client).toBeNull(); // providers authenticate; the DB authorizes
+    expect(ghost).toBeNull(); // providers authenticate; the DB authorizes
 
-    const clientRow = await createUser({ email: "invitee@example.test", role: "CLIENT" });
-    // Email must match the bound target — a mismatch is refused.
-    expect(await acceptInvitation({ rawToken, clientUserId: clientRow.id, email: "someone.else@example.test" })).toBeNull();
-    const accepted = await acceptInvitation({ rawToken, clientUserId: clientRow.id, email: "invitee@example.test" });
-    expect(accepted?.usedByUserId).toBe(clientRow.id);
+    const { provisionClientAccount } = await import("@/lib/db/users");
+    const clientRow = await provisionClientAccount({
+      subject: "pg|client:registered",
+      email: "registered@example.test",
+      name: "Registered",
+    });
+    const result = await connectClientToMatter({ matterId: m.id, clientUserId: clientRow.id });
+    expect("error" in result).toBe(false);
     expect((await getMatter(m.id))?.clientUserId).toBe(clientRow.id);
+    expect((await getMatter(m.id))?.conflictStatus).toBe("EXTERNAL");
 
-    expect(await acceptInvitation({ rawToken, clientUserId: clientRow.id, email: "invitee@example.test" })).toBeNull();
+    const other = await provisionClientAccount({
+      subject: "pg|client:other",
+      email: "other@example.test",
+      name: "Other",
+    });
+    expect(await connectClientToMatter({ matterId: m.id, clientUserId: other.id })).toEqual({
+      error: "matter_taken",
+    });
   });
 });
 
