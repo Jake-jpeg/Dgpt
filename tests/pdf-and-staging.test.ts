@@ -20,6 +20,7 @@ import {
   type MatterContext,
 } from "./helpers";
 import { getMatter } from "@/lib/db/matters";
+import { docxAvailable } from "@/lib/pdf-service/types";
 import { saveMatterAnswers, attorneySetJurisdictionAndScope } from "@/lib/db/intake2";
 import { buildRenderPayload, buildNyUd1Payload } from "@/lib/pdf-service/mappings";
 import { renderPdf, pdfServiceEnabled } from "@/lib/pdf-service/client";
@@ -36,6 +37,8 @@ let attorneyCookie: string;
 let clientCookie: string;
 
 const PDF_BYTES = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x0a]); // "%PDF-1.4\n"
+const DOCX_BYTES = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00]); // PK\x03\x04 zip magic
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 function mockRlFetch(status = 200, body: BodyInit = PDF_BYTES, headers: Record<string, string> = {}) {
   const mock = vi.fn(async () =>
@@ -217,6 +220,31 @@ describe("RL client contract", () => {
     vi.stubGlobal("fetch", flaky);
     await expect(renderPdf({ state: "ny", form: "ud1", payload: {} })).rejects.toBeInstanceOf(PdfServiceError);
     expect(flaky).toHaveBeenCalledTimes(2);
+  });
+
+  it("docx format: ?format=docx on the URL, PK magic + Word mime validated, .docx filename", async () => {
+    enablePdfService();
+    const mock = mockRlFetch(200, DOCX_BYTES, {
+      "content-type": DOCX_MIME,
+      "content-disposition": 'attachment; filename="NY_UD1_Avery.docx"',
+    });
+    const result = await renderPdf({ state: "ny", form: "ud1", payload: {}, format: "docx" });
+    expect(result.filename).toBe("NY_UD1_Avery.docx");
+    const [url] = mock.mock.calls[0] as unknown as [string];
+    expect(String(url)).toBe("http://rl.test/generate/ny/ud1?format=docx");
+  });
+
+  it("docx format: a PDF body answering a docx request is refused", async () => {
+    enablePdfService();
+    mockRlFetch(200, PDF_BYTES); // pdf magic + pdf mime, but we asked for docx
+    await expect(renderPdf({ state: "ny", form: "ud1", payload: {}, format: "docx" })).rejects.toThrow(/non-DOCX/);
+  });
+
+  it("docx availability is pinned: Phase-1 forms only (today)", async () => {
+    expect(docxAvailable("ny", "ud1")).toBe(true);
+    expect(docxAvailable("ny", "complaint")).toBe(true);
+    expect(docxAvailable("ny", "stipulation")).toBe(false);
+    expect(docxAvailable("ny", "ud14")).toBe(false);
   });
 
   it("a non-PDF body is rejected even with a 200", async () => {

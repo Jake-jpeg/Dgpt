@@ -29,6 +29,19 @@ export function isAllowedRender(state: string, form: string): boolean {
   return ALLOWED_RENDERS.some((r) => r.state === state && r.form === form);
 }
 
+/**
+ * Forms with an editable Word (.docx) build on the RL side. Phase-1 first
+ * (operator directive 2026-07-27); grows form by form as each build is
+ * proven. PDF exists for every allowlisted form regardless.
+ */
+export const DOCX_FORMS: ReadonlySet<string> = new Set(["ny/ud1", "ny/complaint"]);
+
+export type RenderFormat = "pdf" | "docx";
+
+export function docxAvailable(state: string, form: string): boolean {
+  return DOCX_FORMS.has(`${state}/${form}`);
+}
+
 export function renderLabel(state: string, form: string): string {
   return ALLOWED_RENDERS.find((r) => r.state === state && r.form === form)?.label ?? `${state}/${form}`;
 }

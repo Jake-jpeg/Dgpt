@@ -33,20 +33,27 @@ export function pdfServiceTimeoutMs(): number {
   return Number.isFinite(n) && n > 1000 ? n : 60000;
 }
 
-function sanitizeFilename(raw: string, fallback: string): string {
+function sanitizeFilename(raw: string, fallback: string, ext: string): string {
   const cleaned = raw.replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^_+|_+$/g, "");
-  return cleaned && cleaned.endsWith(".pdf") ? cleaned : fallback;
+  return cleaned && cleaned.endsWith(ext) ? cleaned : fallback;
 }
+
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 export async function renderPdf(opts: {
   state: string;
   form: string;
   payload: RenderPayload;
+  /** "pdf" (default) or "docx" — the RL service refuses docx for forms without a Word build. */
+  format?: "pdf" | "docx";
 }): Promise<PdfRenderResult> {
   if (!pdfServiceEnabled()) {
     throw new PdfServiceError("PDF_GUARD: PDF service is not configured/enabled");
   }
-  const endpoint = `${pdfServiceUrl()}/generate/${encodeURIComponent(opts.state)}/${encodeURIComponent(opts.form)}`;
+  const format = opts.format === "docx" ? "docx" : "pdf";
+  const endpoint =
+    `${pdfServiceUrl()}/generate/${encodeURIComponent(opts.state)}/${encodeURIComponent(opts.form)}` +
+    (format === "docx" ? "?format=docx" : "");
   const token = envOptional("PDF_SERVICE_TOKEN")!;
   const body = JSON.stringify(opts.payload);
 
@@ -79,16 +86,20 @@ export async function renderPdf(opts: {
         continue; // one bounded retry on 5xx
       }
       const buf = new Uint8Array(await res.arrayBuffer());
-      const looksPdf =
-        buf.length > 5 &&
-        buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46 && buf[4] === 0x2d; // %PDF-
       const ct = res.headers.get("content-type") ?? "";
-      if (!looksPdf || !ct.includes("application/pdf")) {
-        throw new PdfServiceError("PDF_GUARD: PDF service returned a non-PDF response");
+      // Content sniff: %PDF- for pdf, PK\x03\x04 (zip) for docx. A wrong
+      // magic or content-type is refused — never store mystery bytes.
+      const looksRight =
+        format === "docx"
+          ? buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x4b && buf[2] === 0x03 && buf[3] === 0x04 && ct.includes(DOCX_MIME)
+          : buf.length > 5 && buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46 && buf[4] === 0x2d && ct.includes("application/pdf");
+      if (!looksRight) {
+        throw new PdfServiceError(`PDF_GUARD: PDF service returned a non-${format.toUpperCase()} response`);
       }
+      const ext = format === "docx" ? ".docx" : ".pdf";
       const disposition = res.headers.get("content-disposition") ?? "";
       const m = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
-      const filename = sanitizeFilename(m?.[1] ?? "", `${opts.state.toUpperCase()}_${opts.form.toUpperCase()}.pdf`);
+      const filename = sanitizeFilename(m?.[1] ?? "", `${opts.state.toUpperCase()}_${opts.form.toUpperCase()}${ext}`, ext);
       return {
         bytes: buf,
         filename,

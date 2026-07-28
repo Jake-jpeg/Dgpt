@@ -22,7 +22,7 @@ import type { MatterCategory } from "@/lib/intake2/types";
 import { recordAudit } from "@/lib/db/repo";
 import { getFileStorage } from "@/lib/storage";
 import { addDocumentVersion, createDocument } from "@/lib/db/documents";
-import { isAllowedRender, renderLabel, PdfServiceError, ALLOWED_RENDERS } from "@/lib/pdf-service/types";
+import { isAllowedRender, renderLabel, docxAvailable, PdfServiceError, ALLOWED_RENDERS } from "@/lib/pdf-service/types";
 import { buildRenderPayload } from "@/lib/pdf-service/mappings";
 import { pdfServiceEnabled, renderPdf } from "@/lib/pdf-service/client";
 import { auditFormDataConfirmed, auditPdfRendered } from "@/lib/pdf-service/audit";
@@ -31,6 +31,9 @@ const schema = z.object({
   state: z.enum(["ny"]),
   form: z.string().trim().min(1).max(40),
   confirmFormData: z.literal(true),
+  // "pdf" (default) or "docx" — Word builds exist for the DOCX_FORMS set
+  // only (operator directive 2026-07-27: attorneys download forms in Word).
+  format: z.enum(["pdf", "docx"]).optional(),
 });
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -65,9 +68,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const parsed = schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid render request");
     const { state, form } = parsed.data;
+    const format = parsed.data.format === "docx" ? "docx" : "pdf";
 
     if (!isAllowedRender(state, form)) {
       throw new HttpError(400, "VALIDATION: that state/form pair is not on the render allowlist");
+    }
+    if (format === "docx" && !docxAvailable(state, form)) {
+      throw new HttpError(400, "VALIDATION: no Word build for that form yet — request PDF");
     }
     // NY-only product. A matter opened by staff can reach an attorney with no
     // jurisdiction row set, and there is no jurisdiction form any more to set
@@ -104,7 +111,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const payload = buildRenderPayload(state, form, matter, (await getMatterAnswers(matter.id)));
     (await auditFormDataConfirmed({ matterId: matter.id, userId: authed.account.id, state, form, payload }));
 
-    const result = await renderPdf({ state, form, payload });
+    const result = await renderPdf({ state, form, payload, format });
 
     const stored = await getFileStorage().put(result.bytes);
     if (stored.sha256 !== result.sha256) {
@@ -119,7 +126,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         : " — attorney review required";
     const doc = (await createDocument({
           matterId: matter.id,
-          title: `${renderLabel(state, form)}${stageMarker}`,
+          title: `${renderLabel(state, form)}${format === "docx" ? " (Word)" : ""}${stageMarker}`,
           docKind: "RENDERED_FORM",
           createdBy: authed.account.id,
         }));
@@ -127,7 +134,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
           documentId: doc.id,
           storageKey: stored.storageKey,
           sha256: stored.sha256,
-          mime: "application/pdf",
+          mime:
+            format === "docx"
+              ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              : "application/pdf",
           sizeBytes: stored.sizeBytes,
           originalFilename: result.filename,
           source: "INTERNAL",
