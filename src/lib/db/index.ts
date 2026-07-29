@@ -153,6 +153,11 @@ CREATE TABLE IF NOT EXISTS matter (
   intake_phase           INTEGER NOT NULL DEFAULT 1,  -- 1 commencement | 2 settlement | 3 finalization
   legal_hold_reason      TEXT,
   client_user_id         TEXT REFERENCES app_user(id),
+  -- The client the ATTORNEY says to expect, added by email before they ever
+  -- sign in (2026-07-29). Lowercased. This does NOT grant access: it only
+  -- lets the firm portal recognise the matching registration when it shows
+  -- up, so the attorney confirms a named person instead of picking blind.
+  expected_client_email  TEXT,
   -- B6 attorney jurisdiction & scope review (facts vs determination)
   jurisdiction_candidate   TEXT,
   jurisdiction_confirmed   TEXT,
@@ -449,6 +454,8 @@ const MIGRATIONS = [
   // 2026-07-21 EXTERNAL conflict posture (firm runs conflicts externally):
   // databases must widen the CHECK. Postgres-only syntax — on SQLite these
   // fail and are skipped (fresh SQLite DBs get the new CHECK from the DDL).
+  // 2026-07-29 attorney adds the client by email before they register.
+  `ALTER TABLE matter ADD COLUMN expected_client_email TEXT`,
   `ALTER TABLE matter DROP CONSTRAINT IF EXISTS matter_conflict_status_check`,
   `ALTER TABLE matter ADD CONSTRAINT matter_conflict_status_check CHECK (conflict_status IN (
      'NOT_STARTED','EXTERNAL','NO_APPARENT_MATCH','POTENTIAL_MATCH',

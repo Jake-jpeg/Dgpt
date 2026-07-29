@@ -23,6 +23,7 @@ interface MatterDetail {
   conflictStatus: string;
   legalHold: boolean;
   clientUserId: string | null;
+  expectedClientEmail: string | null;
   createdAt: string;
   updatedAt: string;
   sessions: { id: string; state: string; tier: string | null; updatedAt: string }[];
@@ -249,7 +250,12 @@ export default function FirmMatterDetail() {
           </div>
 
           {/* ── Invite the client ────────────────────────────────── */}
-          <ConnectClientPanel matterId={matterId} isAttorney={isAttorney} onLinked={load} />
+          <ConnectClientPanel
+            matterId={matterId}
+            isAttorney={isAttorney}
+            expectedClientEmail={matter.expectedClientEmail ?? null}
+            onLinked={load}
+          />
 
           {/* ── Intake transcript — the one review surface that stays
                  (operator, 2026-07-27: "Lawyer should be able to review and
@@ -283,12 +289,16 @@ export default function FirmMatterDetail() {
 function ConnectClientPanel({
   matterId,
   isAttorney,
+  expectedClientEmail,
   onLinked,
 }: {
   matterId: string;
   isAttorney: boolean;
+  expectedClientEmail: string | null;
   onLinked: () => void | Promise<void>;
 }) {
+  const [emailDraft, setEmailDraft] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
   const [clients, setClients] = useState<
     { id: string; email: string; name: string; createdAt: string; registered: boolean; linked: boolean }[]
   >([]);
@@ -311,6 +321,33 @@ function ConnectClientPanel({
   }, [loadClients]);
 
   const unlinked = clients.filter((c) => !c.linked && c.registered);
+  // The registration that matches the address the attorney added, if it has
+  // shown up yet. Sorted first so the expected person is never buried.
+  const expected = (expectedClientEmail ?? "").toLowerCase();
+  const isExpected = (email: string) => expected !== "" && email.toLowerCase() === expected;
+  const queue = [...unlinked].sort(
+    (a, b) => Number(isExpected(b.email)) - Number(isExpected(a.email))
+  );
+
+  async function saveExpectedEmail(email: string | null) {
+    setSavingEmail(true);
+    setErr(null);
+    setInfo(null);
+    try {
+      await api.put(`/api/matters/${matterId}/client`, { email });
+      setInfo(
+        email
+          ? `${email} added. Send them the sign-in email — they'll appear below the moment they log in.`
+          : "Client email cleared."
+      );
+      setEmailDraft("");
+      await onLinked();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not save the client's email");
+    } finally {
+      setSavingEmail(false);
+    }
+  }
 
   async function connect(userId: string, email: string) {
     setBusy(userId);
@@ -398,10 +435,65 @@ function ConnectClientPanel({
       summary={unlinked.length > 0 ? `${unlinked.length} waiting` : "none waiting"}
     >
       <p className="panel-sub">
-        Clients register by logging in at divorcegpt.com with their Gmail, Outlook, or Hotmail account — no links,
-        no codes. Every registration shows up here, and you decide: connect it to this
-        matter, or decline it. Nothing is visible to a client until you connect them.
+        Add your client&apos;s email, send them the sign-in instructions, then connect them
+        when they appear. Adding the email does not give anyone access — it only lets this
+        page recognise them. Nothing is visible to a client until you connect them.
       </p>
+
+      {/* Step 1 — the attorney names the client BEFORE they exist in the
+          system (operator, 2026-07-29). Deliberately not an access grant:
+          a mistyped address costs a wasted email, never a disclosed file. */}
+      <div
+        className="mt-1 mb-3 rounded-lg p-3"
+        style={{ background: "#f8fafc", border: "1px solid var(--line, #e2e8f0)" }}
+      >
+        {expectedClientEmail ? (
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+            <span className="text-sm">
+              Your client: <strong>{expectedClientEmail}</strong>
+            </span>
+            {isAttorney && (
+              <button
+                className="btn btn-quiet"
+                style={{ padding: "3px 10px", fontSize: ".75rem", marginLeft: "auto" }}
+                disabled={savingEmail}
+                onClick={() => saveExpectedEmail(null)}
+              >
+                Change
+              </button>
+            )}
+          </div>
+        ) : isAttorney ? (
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 10 }}>
+            <label className="text-sm" style={{ flex: "1 1 260px" }}>
+              <span className="field-label">Your client&apos;s email address</span>
+              <input
+                className="text-input"
+                type="email"
+                autoComplete="off"
+                placeholder="client@example.com"
+                value={emailDraft}
+                onChange={(e) => setEmailDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && emailDraft.trim()) saveExpectedEmail(emailDraft.trim());
+                }}
+              />
+            </label>
+            <button
+              className="btn btn-primary"
+              disabled={!emailDraft.trim() || savingEmail}
+              onClick={() => saveExpectedEmail(emailDraft.trim())}
+            >
+              {savingEmail ? "Adding…" : "Add client"}
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500" style={{ margin: 0 }}>
+            No client added yet — the attorney adds them.
+          </p>
+        )}
+      </div>
+
       <div className="mt-1">
         <p className="text-sm" style={{ marginBottom: 6 }}>
           Email sign-in instructions to the client — the button you click sets the
@@ -412,7 +504,9 @@ function ConnectClientPanel({
             <a
               key={m.key}
               className="btn btn-quiet"
-              href={`mailto:?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`}
+              href={`mailto:${encodeURIComponent(expectedClientEmail ?? "")}?subject=${encodeURIComponent(
+                m.subject
+              )}&body=${encodeURIComponent(m.body)}`}
             >
               {m.label}
             </a>
@@ -435,11 +529,21 @@ function ConnectClientPanel({
             </tr>
           </thead>
           <tbody>
-            {unlinked.map((c) => (
+            {queue.map((c) => (
               <tr key={c.id}>
                 <td>
                   {c.email}
+                  {isExpected(c.email) && (
+                    <span className="badge badge-good" style={{ marginLeft: 8 }}>
+                      the client you added
+                    </span>
+                  )}
                   {c.name && <div className="text-xs text-slate-500">{c.name}</div>}
+                  {expected !== "" && !isExpected(c.email) && (
+                    <div className="text-xs" style={{ color: "#b45309" }}>
+                      Not the address you added — confirm before connecting.
+                    </div>
+                  )}
                 </td>
                 <td>{fmtWhen(c.createdAt)}</td>
                 <td>

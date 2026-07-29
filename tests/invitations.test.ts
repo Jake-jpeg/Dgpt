@@ -19,7 +19,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { resetDbForTests } from "@/lib/db/index";
 import { cookieFor, SYNTH_ATTORNEY, provisionAccount, jsonRequest, freshLimits } from "./helpers";
-import { createMatter, getMatter } from "@/lib/db/matters";
+import { createMatter, getMatter, setExpectedClientEmail } from "@/lib/db/matters";
 import { connectClientToMatter, maskEmail } from "@/lib/db/invitations";
 import { getUserByEmail } from "@/lib/db/users";
 import { listSessionsByMatter } from "@/lib/db/repo";
@@ -125,5 +125,62 @@ describe("maskEmail (firm-facing display)", () => {
     expect(maskEmail("jane.doe@gmail.com")).toBe("ja***@gmail.com");
     expect(maskEmail("a@b.co")).toBe("a***@b.co");
     expect(maskEmail("not-an-email")).toBe("***");
+  });
+});
+
+describe("attorney adds the client by email before they register (2026-07-29)", () => {
+  it("stores it lowercased, validates it, and clears on null", async () => {
+    const attorney = await provisionAccount(SYNTH_ATTORNEY);
+    const matter = await createMatter({ label: "Expect Matter", createdBy: attorney.id });
+    expect((await getMatter(matter.id))!.expectedClientEmail).toBeNull();
+
+    await setExpectedClientEmail(matter.id, "  Test.Pilot@Example.TEST  ");
+    expect((await getMatter(matter.id))!.expectedClientEmail).toBe("test.pilot@example.test");
+
+    await expect(setExpectedClientEmail(matter.id, "not-an-email")).rejects.toThrow(/VALIDATION/);
+    // the bad write left the good value alone
+    expect((await getMatter(matter.id))!.expectedClientEmail).toBe("test.pilot@example.test");
+
+    await setExpectedClientEmail(matter.id, null);
+    expect((await getMatter(matter.id))!.expectedClientEmail).toBeNull();
+  });
+
+  it("GRANTS NOTHING: naming an email does not bind the matter or open a session", async () => {
+    const attorney = await provisionAccount(SYNTH_ATTORNEY);
+    const matter = await createMatter({ label: "No Grant", createdBy: attorney.id });
+    await setExpectedClientEmail(matter.id, "test.pilot@example.test");
+
+    // The named person signs in. They get a CLIENT shell and nothing else:
+    // the matter is still unbound and no intake session exists until the
+    // attorney explicitly connects them.
+    const account = await provisionAccount({
+      subject: "devstub|client:pilot",
+      role: "CLIENT",
+      email: "test.pilot@example.test",
+      name: "Test Pilot",
+    });
+    expect((await getMatter(matter.id))!.clientUserId).toBeNull();
+    expect(await listSessionsByMatter(matter.id)).toHaveLength(0);
+
+    // Only the explicit connect binds it.
+    const result = await connectClientToMatter({ matterId: matter.id, clientUserId: account.id });
+    expect("error" in result).toBe(false);
+    expect((await getMatter(matter.id))!.clientUserId).toBe(account.id);
+  });
+
+  it("a typo cannot expose the matter to whoever owns the mistyped address", async () => {
+    const attorney = await provisionAccount(SYNTH_ATTORNEY);
+    const matter = await createMatter({ label: "Typo", createdBy: attorney.id });
+    await setExpectedClientEmail(matter.id, "tset.pilot@example.test"); // transposed
+
+    const stranger = await provisionAccount({
+      subject: "devstub|client:stranger",
+      role: "CLIENT",
+      email: "tset.pilot@example.test",
+      name: "Stranger",
+    });
+    // Signing in with the mistyped address still binds nothing.
+    expect((await getMatter(matter.id))!.clientUserId).toBeNull();
+    expect(stranger.role).toBe("CLIENT");
   });
 });

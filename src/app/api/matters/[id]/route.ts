@@ -57,6 +57,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         conflictStatusSetAt: matter.conflictStatusSetAt,
         legalHold: matter.legalHold,
         clientUserId: matter.clientUserId,
+        expectedClientEmail: matter.expectedClientEmail,
         createdAt: matter.createdAt,
         updatedAt: matter.updatedAt,
         sessions: (await listSessionsByMatter(matter.id)).map((s) => ({

@@ -19,6 +19,7 @@ function fakeMatter(conflictStatus: MatterRow["conflictStatus"]): MatterRow {
     id: "m",
     label: "l",
     lifecycle: "PROSPECTIVE",
+    expectedClientEmail: null,
     conflictStatus,
     conflictStatusSetBy: null,
     conflictStatusSetAt: null,

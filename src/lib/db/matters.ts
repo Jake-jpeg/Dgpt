@@ -57,6 +57,8 @@ export interface MatterRow {
   legalHold: boolean;
   legalHoldReason: string | null;
   clientUserId: string | null;
+  /** Lowercased email the attorney expects to register. Confers NO access. */
+  expectedClientEmail: string | null;
   // B6 — attorney jurisdiction & scope review
   jurisdictionCandidate: string | null;
   jurisdictionConfirmed: string | null;
@@ -86,6 +88,7 @@ function rowToMatter(r: Record<string, unknown>): MatterRow {
     legalHold: r.legal_hold === 1,
     legalHoldReason: (r.legal_hold_reason as string | null) ?? null,
     clientUserId: (r.client_user_id as string | null) ?? null,
+    expectedClientEmail: (r.expected_client_email as string | null) ?? null,
     jurisdictionCandidate: (r.jurisdiction_candidate as string | null) ?? null,
     jurisdictionConfirmed: (r.jurisdiction_confirmed as string | null) ?? null,
     jurisdictionConfirmedBy: (r.jurisdiction_confirmed_by as string | null) ?? null,
@@ -221,6 +224,45 @@ export async function bindClientToMatter(matterId: string, clientUserId: string)
     t,
     matterId
   );
+}
+
+/**
+ * Record the client the attorney expects on this matter, by email, BEFORE
+ * that person has ever signed in (operator, 2026-07-29: "Lawyer adds client
+ * via their email address").
+ *
+ * THIS GRANTS NOTHING. It is a label, not a credential. Access still comes
+ * only from `bindClientToMatter`, which only the attorney's explicit connect
+ * action calls. The stored address does one job: when a registration appears
+ * whose provider-VERIFIED email matches, the firm portal can say "this is
+ * the person you added" so the attorney confirms a name instead of picking a
+ * stranger out of a list. A typo therefore costs a wasted invitation, never
+ * a disclosed matter — which is why matching is deliberately not
+ * auto-connect. (The retired invitation-link flow bound an email the same
+ * way; the links themselves are NOT coming back — the invite cookie did not
+ * survive the OAuth round-trip in live testing. See git history at 5041649.)
+ *
+ * Pass null to clear. Returns the updated matter.
+ */
+export async function setExpectedClientEmail(
+  matterId: string,
+  email: string | null
+): Promise<MatterRow> {
+  const normalized = email === null ? null : email.trim().toLowerCase();
+  if (normalized !== null && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalized)) {
+    throw new Error("VALIDATION: enter a valid email address for the client");
+  }
+  const t = nowIso();
+  await getDb().run(
+    `UPDATE matter SET expected_client_email = ?, updated_at = ?, last_activity_at = ? WHERE id = ?`,
+    normalized,
+    t,
+    t,
+    matterId
+  );
+  const m = await getMatter(matterId);
+  if (!m) throw new Error("VALIDATION: matter not found");
+  return m;
 }
 
 // ── Conflict status (structural attorney-only terminal states) ───────

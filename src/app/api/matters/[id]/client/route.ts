@@ -12,11 +12,15 @@ import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
 import { connectClientToMatter } from "@/lib/db/invitations";
+import { setExpectedClientEmail } from "@/lib/db/matters";
 import { getUserById } from "@/lib/db/users";
 import { recordAudit } from "@/lib/db/repo";
 import { hashNameForAudit } from "@/lib/security/audit-hash";
 
 const schema = z.object({ userId: z.string().min(1) });
+
+/** null clears the expectation. */
+const expectSchema = z.object({ email: z.string().trim().max(320).nullable() });
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -48,6 +52,45 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       authed.account.id
     );
     return Response.json({ connected: true, sessionId: result.sessionId });
+  } catch (e) {
+    return errorResponse(e);
+  }
+}
+
+/**
+ * Add (or clear) the client the attorney expects on this matter, by email —
+ * before that person has signed in. ATTORNEY only, audited.
+ *
+ * Deliberately NOT an access grant: see setExpectedClientEmail. The address
+ * is stored so the connect queue can recognise the matching registration and
+ * so the sign-in-instructions email addresses itself. Connecting remains a
+ * separate, explicit attorney action (POST above).
+ */
+export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  try {
+    assertRateLimit(req, "intake");
+    assertCsrf(req);
+    const authed = await requireUser(req, ["ATTORNEY"]);
+    const { id } = await ctx.params;
+    const matter = await requireMatterAccess(authed, id);
+    const parsed = expectSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) throw new HttpError(400, "VALIDATION: email is required (or null to clear)");
+
+    const raw = parsed.data.email;
+    const email = raw === null || raw.trim() === "" ? null : raw;
+    let updated;
+    try {
+      updated = await setExpectedClientEmail(matter.id, email);
+    } catch (e) {
+      throw new HttpError(400, e instanceof Error ? e.message : "VALIDATION: invalid email");
+    }
+    await recordAudit(
+      matter.id,
+      email === null ? "CLIENT_EMAIL_CLEARED" : "CLIENT_EMAIL_EXPECTED",
+      email === null ? "expectation cleared" : `subjectHash=${hashNameForAudit(email)}`,
+      authed.account.id
+    );
+    return Response.json({ expectedClientEmail: updated.expectedClientEmail });
   } catch (e) {
     return errorResponse(e);
   }
