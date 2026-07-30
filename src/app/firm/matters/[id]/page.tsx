@@ -213,7 +213,7 @@ export default function FirmMatterDetail() {
                 shows where the case is, these buttons set what it is). */}
             {isAttorney && (
               <div className="mt-3 flex flex-wrap gap-2">
-                {(["PROSPECTIVE", "ENGAGED", "ABANDONED", "CLOSED"] as const)
+                {(["PROSPECTIVE", "ENGAGED", "CLOSED"] as const)
                   .filter((l) => l !== matter.lifecycle)
                   .map((l) => (
                     <button
@@ -230,21 +230,47 @@ export default function FirmMatterDetail() {
                       Mark {l.toLowerCase()}
                     </button>
                   ))}
-                <button
-                  className={matter.legalHold ? "btn btn-quiet" : "btn btn-danger"}
-                  style={{ padding: "4px 12px", fontSize: ".8rem" }}
-                  disabled={busy}
-                  onClick={() =>
-                    act(async () => {
-                      await api.post(`/api/matters/${matterId}/lifecycle`, {
-                        legalHold: !matter.legalHold,
-                        legalHoldReason: matter.legalHold ? undefined : "Set from matter view",
-                      });
-                    })
-                  }
-                >
-                  {matter.legalHold ? "Release legal hold" : "Place legal hold"}
-                </button>
+                {/* Conflict disposition — the check itself happens at the
+                    firm, on the firm's own records; DivorceGPT only records
+                    the attorney's answer (operator, 2026-07-30: "Conflict
+                    check is always done on the law-firm end … I move the
+                    burden, I don't absorb it"). Pass ⇒ CLEARED (rendering
+                    unlocks). Fail ⇒ DECLINED (terminal; the render guard
+                    refuses the matter). Attorney-only server-side. */}
+                {matter.conflictStatus !== "CLEARED" && (
+                  <button
+                    className="btn btn-quiet"
+                    style={{ padding: "4px 12px", fontSize: ".8rem" }}
+                    disabled={busy}
+                    onClick={() =>
+                      act(async () => {
+                        await api.post(`/api/matters/${matterId}/conflict`, {
+                          disposition: "CLEARED",
+                          internalNote: "Conflict check run at the firm — passed.",
+                        });
+                      }, "Conflict check recorded: passed.")
+                    }
+                  >
+                    Conflict check pass
+                  </button>
+                )}
+                {matter.conflictStatus !== "DECLINED" && (
+                  <button
+                    className="btn btn-danger"
+                    style={{ padding: "4px 12px", fontSize: ".8rem" }}
+                    disabled={busy}
+                    onClick={() =>
+                      act(async () => {
+                        await api.post(`/api/matters/${matterId}/conflict`, {
+                          disposition: "DECLINED",
+                          internalNote: "Conflict check run at the firm — failed.",
+                        });
+                      }, "Conflict check recorded: failed — this matter cannot generate documents.")
+                    }
+                  >
+                    Conflict check fail
+                  </button>
+                )}
               </div>
             )}
           </div>

@@ -145,7 +145,7 @@ export default function FirmMattersPage() {
                     <tr>
                       <th>Reference</th>
                       <th>Client</th>
-                      <th>Conflict</th>
+                      <th>Status</th>
                       <th>Intake</th>
                       <th>Documents</th>
                       <th>Last updated</th>
