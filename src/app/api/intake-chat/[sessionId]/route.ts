@@ -1,9 +1,10 @@
 /**
  * Conversational intake API (spec §2.3).
  *
- * GET  — transcript + progress. The CLIENT who owns the session, or
- *        STAFF/ATTORNEY holding matter access (the attorney's read-only
- *        transcript panel uses this).
+ * GET  — the client's own live view + progress. CLIENT-only: the verbatim
+ *        transcript is not retained (2026-07-31), so what comes back is
+ *        SYNTHESIZED from server state — the scripted welcome and the
+ *        pending question — never a stored conversation.
  * POST — one orchestrator turn. CLIENT-only, own session only, dedicated
  *        bounded rate bucket, message capped at MAX_CHAT_MESSAGE_CHARS.
  *
@@ -12,7 +13,7 @@
  */
 import { z } from "zod";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
-import { requireUser, requireMatterAccess } from "@/lib/auth/authz";
+import { requireUser } from "@/lib/auth/authz";
 import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
 import { getSession } from "@/lib/db/repo";
@@ -31,21 +32,19 @@ export async function GET(
 ) {
   try {
     assertRateLimit(req, "intake");
-    const authed = await requireUser(req, ["CLIENT", "STAFF", "ATTORNEY"]);
+    // CLIENT-ONLY since 2026-07-31. The firm's read-only transcript panel is
+    // gone because the verbatim transcript is no longer retained; there is
+    // nothing here for STAFF or an ATTORNEY to read.
+    const authed = await requireUser(req, ["CLIENT"]);
     const { sessionId } = await ctx.params;
     const session = await getSession(sessionId);
     if (!session) throw new HttpError(404, "Session not found");
 
-    if (authed.account.role === "CLIENT") {
-      if (session.ownerSubject !== authed.account.subject) {
-        throw new HttpError(404, "Session not found"); // never leak existence
-      }
-      // The scripted opening greets the client before their first message.
-      if (intakeChatEnabled()) await ensureWelcomed(sessionId);
-    } else {
-      if (!session.matterId) throw new HttpError(404, "Session not found");
-      await requireMatterAccess(authed, session.matterId);
+    if (session.ownerSubject !== authed.account.subject) {
+      throw new HttpError(404, "Session not found"); // never leak existence
     }
+    // The scripted opening greets the client before their first message.
+    if (intakeChatEnabled()) await ensureWelcomed(sessionId);
 
     return Response.json({ enabled: intakeChatEnabled(), ...(await conversationView(sessionId)) });
   } catch (e) {

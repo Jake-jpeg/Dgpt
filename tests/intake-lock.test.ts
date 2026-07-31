@@ -67,7 +67,9 @@ describe("attorney reopen", () => {
     await appendSystemEvent(session.id, "stopped: dv");
     let lock = await readIntakeLock(matter.id);
     expect(lock.locked).toBe(true);
-    expect(lock.reason).toBe("dv");
+    // Legacy events said "dv"; the reason vocabulary normalises them.
+    expect(lock.reason).toBe("DV");
+    expect(lock.auto).toBe(true);
 
     lock = await reopenIntake({
       matterId: matter.id,
@@ -103,7 +105,7 @@ describe("attorney reopen", () => {
     await appendSystemEvent(session.id, "stopped: scope");
     const lock = await readIntakeLock(matter.id);
     expect(lock.locked).toBe(true);
-    expect(lock.reason).toBe("scope");
+    expect(lock.reason).toBe("SCOPE");
   });
 
   it("a fresh session minted by the reopen is owned by the CLIENT, not the attorney", async () => {
@@ -132,15 +134,18 @@ describe("attorney lock", () => {
     const locked = await lockIntake({
       matterId: matter.id,
       actingUserId: attorney.id,
+      reason: "THREATS",
       note: "threats in a call",
     });
     expect(locked.locked).toBe(true);
-    expect(locked.reason).toBe("locked by attorney");
+    expect(locked.reason).toBe("THREATS");
+    expect(locked.auto).toBe(false);
+    expect(locked.reasonText).toMatch(/threats of violence/i);
 
     // Locking twice does not stack a second event.
-    await lockIntake({ matterId: matter.id, actingUserId: attorney.id });
+    await lockIntake({ matterId: matter.id, actingUserId: attorney.id, reason: "THREATS" });
     const events = (await listChatMessages(locked.sessionId!)).filter(
-      (m) => m.content === "stopped: locked by attorney"
+      (m) => m.content === "stopped: THREATS"
     );
     expect(events).toHaveLength(1);
 

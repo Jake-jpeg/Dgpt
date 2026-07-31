@@ -430,6 +430,13 @@ CREATE TABLE IF NOT EXISTS app_config (
  * identical semantics on both engines).
  */
 const MIGRATIONS = [
+  // THE VERBATIM TRANSCRIPT IS NOT RETAINED (operator, 2026-07-31: "Nuke the
+  // transcript… The assumption is that I'll get hacked somewhere for
+  // divorcegpt."). New CLIENT/ASSISTANT turns are never written (see
+  // lib/db/intake-chat.ts); this clears what earlier builds already stored.
+  // SYSTEM_EVENT rows stay — they are machine facts with no client words in
+  // them, and the intake lock is derived from them.
+  `DELETE FROM intake_chat_message WHERE role IN ('CLIENT','ASSISTANT')`,
   `ALTER TABLE intake_session ADD COLUMN matter_id TEXT`,
   `ALTER TABLE matter ADD COLUMN jurisdiction_candidate TEXT`,
   `ALTER TABLE matter ADD COLUMN jurisdiction_confirmed TEXT`,

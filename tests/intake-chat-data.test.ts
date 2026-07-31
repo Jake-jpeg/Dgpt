@@ -35,26 +35,56 @@ async function newSession(): Promise<string> {
   return startSession(await cookieFor(SYNTH_CLIENT));
 }
 
-describe("intake_chat_message — append-only ordered transcript", () => {
-  it("allocates seq per session and returns messages in order", async () => {
+describe("intake_chat_message — machine markers only, no verbatim transcript", () => {
+  // 2026-07-31, operator: "Nuke the transcript… The assumption is that I'll
+  // get hacked somewhere for divorcegpt." The client's words and the model's
+  // words are held for one request and never written. What persists is the
+  // SYSTEM_EVENT trail, which carries no client content and is what the
+  // intake lock is derived from.
+  it("NEVER writes a CLIENT or ASSISTANT turn to disk", async () => {
     const sessionId = await newSession();
-    (await appendChatMessage({ sessionId, role: "ASSISTANT", content: "Hello." }));
-    (await appendChatMessage({ sessionId, role: "CLIENT", content: "안녕하세요", lang: "ko" }));
-    (await appendSystemEvent(sessionId, "gate GATE_DV passed"));
+    const assistant = await appendChatMessage({ sessionId, role: "ASSISTANT", content: "Hello." });
+    const client = await appendChatMessage({
+      sessionId,
+      role: "CLIENT",
+      content: "안녕하세요",
+      lang: "ko",
+    });
 
-    const all = (await listChatMessages(sessionId));
-    expect(all.map((m) => m.seq)).toEqual([1, 2, 3]);
-    expect(all.map((m) => m.role)).toEqual(["ASSISTANT", "CLIENT", "SYSTEM_EVENT"]);
-    expect(all[1].lang).toBe("ko");
-    expect(all[1].content).toBe("안녕하세요");
+    // The caller still gets a usable object for THIS request…
+    expect(client.content).toBe("안녕하세요");
+    expect(client.lang).toBe("ko");
+    // …but it holds no place in the sequence and no row exists.
+    expect(assistant.seq).toBe(-1);
+    expect(client.seq).toBe(-1);
+    expect(await listChatMessages(sessionId)).toEqual([]);
+    expect(await countChatMessages(sessionId)).toBe(0);
+
+    const rows = await getDb().all(
+      `SELECT role FROM intake_chat_message WHERE session_id = ?`,
+      sessionId
+    );
+    expect(rows).toEqual([]);
+  });
+
+  it("allocates seq per session for the SYSTEM_EVENT trail that remains", async () => {
+    const sessionId = await newSession();
+    await appendSystemEvent(sessionId, "gate GATE_RESIDENCY passed");
+    // Client/assistant turns in between must not consume a seq.
+    await appendChatMessage({ sessionId, role: "CLIENT", content: "confidential" });
+    await appendSystemEvent(sessionId, "gate GATE_DV passed");
+
+    const all = await listChatMessages(sessionId);
+    expect(all.map((m) => m.seq)).toEqual([1, 2]);
+    expect(all.map((m) => m.role)).toEqual(["SYSTEM_EVENT", "SYSTEM_EVENT"]);
     // A system marker is always recorded in English.
-    expect(all[2].lang).toBe("en");
-    expect((await countChatMessages(sessionId))).toBe(3);
+    expect(all.every((m) => m.lang === "en")).toBe(true);
+    expect(await countChatMessages(sessionId)).toBe(2);
   });
 
   it("keeps sequences independent per session", async () => {
     const a = await newSession();
-    (await appendChatMessage({ sessionId: a, role: "CLIENT", content: "first" }));
+    await appendSystemEvent(a, "first");
     expect((await listChatMessages(a))[0].seq).toBe(1);
   });
 
@@ -77,7 +107,7 @@ describe("intake_chat_message — append-only ordered transcript", () => {
 
   it("CASCADEs with the session, so retention purges it for free", async () => {
     const sessionId = await newSession();
-    (await appendChatMessage({ sessionId, role: "CLIENT", content: "confidential" }));
+    await appendSystemEvent(sessionId, "gate GATE_DV passed");
     expect((await countChatMessages(sessionId))).toBe(1);
 
     await getDb().run(`DELETE FROM intake_session WHERE id = ?`, sessionId);

@@ -13,7 +13,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Shell, useMe, StatusBadge, ErrorNotice, AccordionPanel, type PanelOpenSignal } from "@/components/shell";
 import { api, fmtWhen } from "@/lib/ui/client-api";
-import { IntakeTranscriptPanel } from "./workbench";
 import FormsRail from "./rail";
 
 interface MatterDetail {
@@ -34,6 +33,8 @@ interface IntakeLock {
   sessionId: string | null;
   locked: boolean;
   reason: string | null;
+  reasonText: string | null;
+  auto: boolean;
   since: string | null;
   state: string | null;
 }
@@ -142,12 +143,9 @@ export default function FirmMatterDetail() {
     if (matter?.intakeLock?.locked) {
       attention.push({
         key: "intake-locked",
-        text:
-          matter.intakeLock.reason === "dv"
-            ? "Client questionnaire is LOCKED — domestic-violence question. Call the client; reopen only after you have."
-            : matter.intakeLock.reason === "locked by attorney"
-              ? "Client questionnaire is LOCKED by you — the client cannot continue until you reopen it"
-              : "Client questionnaire is LOCKED on a scope question — the client cannot continue until you reopen it",
+        text: `Client questionnaire is LOCKED — ${matter.intakeLock.reason ?? "reason not recorded"}. ${
+          matter.intakeLock.auto ? "The system flagged this. " : ""
+        }Call the client before you reopen it.`,
         panel: "intake-lock",
         link: "Review",
       });
@@ -155,9 +153,9 @@ export default function FirmMatterDetail() {
     for (const s of readySessions) {
       attention.push({
         key: `ready-${s.id}`,
-        text: "Client intake is complete — transcript and answers ready for your review",
-        panel: "transcript",
-        link: "Open transcript",
+        text: "Client intake is complete — their answers are ready for your review",
+        panel: "intake-lock",
+        link: "Open matter",
       });
     }
   }
@@ -322,11 +320,10 @@ export default function FirmMatterDetail() {
             onLinked={load}
           />
 
-          {/* ── Intake transcript — the one review surface that stays
-                 (operator, 2026-07-27: "Lawyer should be able to review and
-                 audit the convo."). Audit LOGGING continues server-side;
-                 only the viewer panel was removed. ── */}
-          <IntakeTranscriptPanel matterId={matterId} openSignal={openSignal} />
+          {/* The intake transcript panel was DELETED 2026-07-31: the
+              verbatim transcript is no longer retained ("Nuke the
+              transcript" — operator). The structured answers remain, and
+              the lock panel above carries the reason code. */}
           </div>
 
           {/* ── The forms rail — TurboTax-style; the one control surface
@@ -376,6 +373,8 @@ function IntakeLockPanel({
   onChanged: () => void | Promise<void>;
 }) {
   const [lock, setLock] = useState<IntakeLock | null>(null);
+  const [reasons, setReasons] = useState<{ code: string; label: string }[]>([]);
+  const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -383,8 +382,12 @@ function IntakeLockPanel({
 
   const load = useCallback(async () => {
     try {
-      const r = (await api.get(`/api/matters/${matterId}/intake-lock`)) as { lock: IntakeLock };
+      const r = (await api.get(`/api/matters/${matterId}/intake-lock`)) as {
+        lock: IntakeLock;
+        reasons: { code: string; label: string }[];
+      };
       setLock(r.lock);
+      setReasons(r.reasons ?? []);
     } catch {
       setLock(null);
     }
@@ -401,10 +404,12 @@ function IntakeLockPanel({
     try {
       const r = (await api.post(`/api/matters/${matterId}/intake-lock`, {
         action,
+        ...(action === "LOCK" ? { reason } : {}),
         note: note.trim() || undefined,
       })) as { lock: IntakeLock };
       setLock(r.lock);
       setNote("");
+      setReason("");
       setConfirming(false);
       await onChanged();
     } catch (e) {
@@ -415,12 +420,6 @@ function IntakeLockPanel({
   }
 
   if (!lock || !lock.sessionId) return null;
-
-  const REASON_TEXT: Record<string, string> = {
-    dv: "The client answered yes to the domestic-violence question. They were shown the DV resource card and the intake stopped.",
-    scope: "The intake stopped on a scope question — this matter is outside the uncontested Phase 1 lane.",
-    "locked by attorney": "You locked this intake.",
-  };
 
   return (
     <div className="panel" id="intake-lock">
@@ -441,10 +440,10 @@ function IntakeLockPanel({
       {lock.locked ? (
         <>
           <p className="panel-sub">
-            {(lock.reason && REASON_TEXT[lock.reason]) ??
-              `The intake stopped (${lock.reason ?? "reason not recorded"}).`}{" "}
-            {lock.since && <>Locked {fmtWhen(lock.since)}.</>} The client cannot continue
-            until you reopen it.
+            <strong>{lock.reason ?? "REASON NOT RECORDED"}</strong>
+            {lock.auto ? " — flagged by the system" : " — locked by you"}.{" "}
+            {lock.reasonText} {lock.since && <>Locked {fmtWhen(lock.since)}.</>} The client
+            cannot continue until you reopen it.
           </p>
           {isAttorney ? (
             <>
@@ -482,15 +481,31 @@ function IntakeLockPanel({
           {isAttorney &&
             (confirming ? (
               <>
+                <select
+                  className="input mt-2"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                >
+                  <option value="">Cite the reason…</option>
+                  {reasons.map((r) => (
+                    <option key={r.code} value={r.code}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
                 <input
                   className="input mt-2"
-                  placeholder="Reason (goes in the audit trail)"
+                  placeholder="Anything you want to remember (audit trail; your words, not theirs)"
                   value={note}
                   maxLength={300}
                   onChange={(e) => setNote(e.target.value)}
                 />
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  <button className="btn btn-danger" disabled={busy} onClick={() => flip("LOCK")}>
+                  <button
+                    className="btn btn-danger"
+                    disabled={busy || !reason}
+                    onClick={() => flip("LOCK")}
+                  >
                     {busy ? "Locking…" : "Confirm — lock them out"}
                   </button>
                   <button className="btn btn-quiet" disabled={busy} onClick={() => setConfirming(false)}>

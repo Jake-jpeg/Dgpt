@@ -151,6 +151,10 @@ interface IntakeTurn {
 const EV_READBACK = "read-back summary shown";
 const EV_CONFIRMED = "client confirmed the read-back";
 const EV_STOPPED_PREFIX = "stopped:";
+/** The welcome is an ASSISTANT turn and ASSISTANT turns are no longer
+ *  persisted (2026-07-31), so the "already greeted" fact needs its own
+ *  machine marker or every page load would re-greet the client. */
+const EV_WELCOMED = "welcome delivered";
 /**
  * The attorney's unlock (operator directive 2026-07-31: "lock the account
  * (client) with the option for the lawyer to reopen it after review").
@@ -161,8 +165,9 @@ const EV_STOPPED_PREFIX = "stopped:";
  * lock/unlock history readable in order and needs no schema change.
  */
 export const EV_REOPENED_PREFIX = "reopened by attorney";
-/** An attorney-initiated lock (threats, terms abuse) — same family as a gate stop. */
-export const EV_LOCKED_PREFIX = "stopped: locked by attorney";
+/** An attorney-initiated lock — same family as a gate stop. The reason CODE
+ *  (never the client's words) is appended: "stopped: THREATS". */
+export const EV_LOCKED_PREFIX = "stopped: ";
 interface ConversationContext {
   session: SessionRow;
   matter: MatterRow;
@@ -207,16 +212,16 @@ export async function loadConversation(sessionId: string): Promise<ConversationC
     phase: matterIntakePhase(matter),
     machineState: session.state as MachineState,
     checklist,
-    welcomed: transcript.some((m) => m.role === "ASSISTANT"),
+    welcomed: transcript.some((m) => m.role === "SYSTEM_EVENT" && m.content === EV_WELCOMED),
     readBackShown: transcript.some((m) => m.role === "SYSTEM_EVENT" && m.content === EV_READBACK),
     confirmed: transcript.some((m) => m.role === "SYSTEM_EVENT" && m.content === EV_CONFIRMED),
+    // Case-insensitive: the reason vocabulary writes CODES ("stopped: DV"),
+    // while pre-2026-07-31 events wrote lowercase words ("stopped: dv").
     stopped: stoppedEvent
-      ? stoppedEvent.content.includes("dv")
+      ? /\bdv\b/i.test(stoppedEvent.content)
         ? "DV"
         : "SCOPE"
-      : session.state === "READY_FOR_REVIEW"
-        ? null
-        : null,
+      : null,
   };
   return { session, matter, schema, answers, checklist, transcript, seqState, step: nextStep(seqState) };
 }
@@ -275,17 +280,12 @@ export function scriptedWelcome(questionEstimate: number): string {
 /** Ensure the transcript opens with the constitution marker + scripted welcome. */
 export async function ensureWelcomed(sessionId: string): Promise<void> {
   const transcript = await listChatMessages(sessionId);
-  if (transcript.some((m) => m.role === "ASSISTANT")) return;
+  if (transcript.some((m) => m.role === "SYSTEM_EVENT" && m.content === EV_WELCOMED)) return;
   if (!transcript.some((m) => m.role === "SYSTEM_EVENT" && m.content.startsWith("intake assistant started"))) {
     await appendSystemEvent(sessionId, constitutionEventText(intakeTone()));
   }
   const ctx = await loadConversation(sessionId);
-  await appendChatMessage({
-    sessionId,
-    role: "ASSISTANT",
-    content: scriptedWelcome(estimateQuestionCount(ctx.schema, ctx.seqState.phase)),
-    lang: "en",
-  });
+  await appendSystemEvent(sessionId, EV_WELCOMED);
 }
 
 /* ── prompt assembly ────────────────────────────────────────────────── */
@@ -424,13 +424,21 @@ const FACTS_RULES =
   `- If a fact on file already plainly answers the CURRENT question, do not ask it: record ` +
   `that value and briefly note it in passing ("you mentioned X earlier, so I've noted that").`;
 
+/**
+ * What the model is shown of the conversation so far.
+ *
+ * Since 2026-07-31 the verbatim transcript is not retained, so this is
+ * MACHINE MARKERS ONLY — the gates passed, the answers recorded, the stops.
+ * The model's memory of the client comes from FACTS ON FILE (factsOnFile
+ * below: the saved, validated answers) and from the pending step, which is
+ * what "yes" or "the second one" resolves against. That was already the
+ * load-bearing fix for the "read above" defect (c171d74); the trailing
+ * window was never what made it work.
+ */
 function transcriptWindow(transcript: ChatMessageRow[], n = 24): string {
-  return transcript
-    .slice(-n)
-    .map((m) =>
-      m.role === "SYSTEM_EVENT" ? `[system: ${m.content}]` : `${m.role}: ${m.content}`
-    )
-    .join("\n");
+  const events = transcript.filter((m) => m.role === "SYSTEM_EVENT").slice(-n);
+  if (events.length === 0) return "(nothing recorded yet)";
+  return events.map((m) => `[system: ${m.content}]`).join("\n");
 }
 
 function buildUserPrompt(ctx: ConversationContext, clientMessage: string, correction?: string): string {
@@ -492,9 +500,12 @@ function buildAdvancePrompt(ctx: ConversationContext, nextStepToAsk: Step): stri
 
 /* ── applying a validated turn ──────────────────────────────────────── */
 
+// Reason CODES from LOCK_REASONS — what the attorney reads on the lock panel
+// and says out loud when they call the client (operator, 2026-07-31).
 const GATE_CARD_EVENT: Record<string, string> = {
-  DV_RESOURCES: "stopped: dv",
-  NY_BAR_REFERRAL: "stopped: scope",
+  DV_RESOURCES: "stopped: DV",
+  NY_BAR_REFERRAL: "stopped: SCOPE_COMPLEXITY",
+  PHASE1_ATTORNEY_REVIEW: "stopped: SCOPE_CHILDREN",
 };
 
 export interface TurnResult {
@@ -849,10 +860,44 @@ export async function conversationView(sessionId: string): Promise<{
 }> {
   const ctx = await loadConversation(sessionId);
   return {
-    transcript: ctx.transcript,
+    // SYNTHESIZED, not stored. The verbatim transcript is not retained
+    // (2026-07-31), so a reload cannot replay what was said — and shouldn't:
+    // a scrollback of someone's disclosures sitting on a shared or borrowed
+    // computer is its own leak. What the client gets back is where they ARE:
+    // the scripted welcome, then the question that is pending. Both are
+    // server-deterministic, so this is a re-render, not a recollection.
+    transcript: rehydrateView(ctx),
     progress: progress(ctx.seqState),
     stopped: ctx.seqState.stopped ?? null,
     complete: ctx.session.state === "READY_FOR_REVIEW",
     state: ctx.session.state,
   };
+}
+
+/** Ephemeral ASSISTANT turns rebuilt from server state — never persisted. */
+function rehydrateView(ctx: ConversationContext): ChatMessageRow[] {
+  const at = ctx.session.updatedAt;
+  const msg = (n: number, content: string): ChatMessageRow => ({
+    id: `view-${n}`,
+    sessionId: ctx.session.id,
+    seq: -1,
+    role: "ASSISTANT",
+    content,
+    lang: "en",
+    createdAt: at,
+  });
+  const out: ChatMessageRow[] = [];
+  if (ctx.seqState.welcomed) {
+    out.push(msg(1, scriptedWelcome(estimateQuestionCount(ctx.schema, ctx.seqState.phase))));
+  }
+  if (ctx.seqState.stopped) {
+    out.push(msg(2, `This intake is paused. Please contact ${firmContact()} to continue.`));
+  } else if (ctx.step.kind === "GATE") {
+    const prompt = ctx.step.gate?.prompt;
+    if (prompt) out.push(msg(2, `Where we left off — ${prompt}`));
+  } else if (ctx.step.kind === "QUESTION") {
+    const prompt = ctx.step.item?.prompt;
+    if (prompt) out.push(msg(2, `Where we left off — ${prompt}`));
+  }
+  return out;
 }

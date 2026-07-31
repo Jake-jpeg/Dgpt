@@ -170,6 +170,7 @@ replace before real use; the engine renders whatever the config defines.
 | `intake_session` | state machine skeleton | no |
 | `party_identity` | pre-gate names only | no |
 | `intake_answer` | substantive intake (post-CLEAR only — enforced at the persistence layer) | no |
+| `intake_chat_message` | SYSTEM_EVENT machine markers ONLY — the verbatim client/assistant transcript is never written (2026-07-31) | no |
 | `bot_interaction_log` | content IDs only, never free text/PII | yes |
 | `audit_event` | event codes + salted name hashes | yes |
 

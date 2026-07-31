@@ -32,7 +32,12 @@ import { getSession } from "@/lib/db/repo";
 import { getMatterAnswers } from "@/lib/db/intake2";
 import { grantMatterAccess } from "@/lib/db/matters";
 import { listChatMessages } from "@/lib/db/intake-chat";
-import { runIntakeTurn, ensureWelcomed, INTAKE_TURN_SCHEMA } from "@/lib/intake-chat/orchestrator";
+import {
+  runIntakeTurn,
+  ensureWelcomed,
+  conversationView,
+  INTAKE_TURN_SCHEMA,
+} from "@/lib/intake-chat/orchestrator";
 import { INTAKE_CONSTITUTION_VERSION } from "@/lib/intake-chat/constitution";
 import { GET as chatGet, POST as chatPost } from "@/app/api/intake-chat/[sessionId]/route";
 import type { SessionUser } from "@/lib/auth/session";
@@ -109,16 +114,26 @@ describe("scripted opening", () => {
     vi.stubGlobal("fetch", boom);
     await ensureWelcomed(sessionId);
     const t = await listChatMessages(sessionId);
+    // The welcome itself is no longer persisted (2026-07-31 — the verbatim
+    // transcript is not retained); a SYSTEM_EVENT marker records that it was
+    // delivered, and conversationView re-renders the scripted text.
     expect(t[0].role).toBe("SYSTEM_EVENT");
     expect(t[0].content).toContain(INTAKE_CONSTITUTION_VERSION);
-    expect(t[1].role).toBe("ASSISTANT");
-    expect(t[1].content).toContain("not a lawyer");
+    expect(t[1].role).toBe("SYSTEM_EVENT");
+    expect(t[1].content).toBe("welcome delivered");
+    expect(t).toHaveLength(2);
+    const view = await conversationView(sessionId);
+    expect(view.transcript[0].role).toBe("ASSISTANT");
+    expect(view.transcript[0].content).toContain("not a lawyer");
     // Rule 13: the opening states about how many questions to expect.
-    expect(t[1].content).toMatch(/up to about \d+ questions/);
+    expect(view.transcript[0].content).toMatch(/up to about \d+ questions/);
     expect(boom).not.toHaveBeenCalled();
-    // Idempotent.
+    // Idempotent — the marker is what makes it so now that the greeting
+    // itself leaves no row behind.
     await ensureWelcomed(sessionId);
-    expect((await listChatMessages(sessionId)).filter((m) => m.role === "ASSISTANT").length).toBe(1);
+    const after = await listChatMessages(sessionId);
+    expect(after.filter((m) => m.content === "welcome delivered")).toHaveLength(1);
+    expect(after.some((m) => m.role === "ASSISTANT")).toBe(false);
   });
 });
 
@@ -340,7 +355,7 @@ describe("API surface", () => {
     expect(res.status).toBe(404);
   });
 
-  it("ADMIN cannot post turns; STAFF with matter access reads the transcript", async () => {
+  it("ADMIN cannot post turns; STAFF is refused the chat GET entirely", async () => {
     const admin: SessionUser = {
       subject: "devstub|admin:admin@example.test",
       role: "ADMIN",
@@ -355,6 +370,9 @@ describe("API surface", () => {
     );
     expect([401, 403]).toContain(res.status);
 
+    // 2026-07-31: the verbatim transcript is not retained and the firm's
+    // read-only panel is gone, so there is nothing here for the firm to read.
+    // Matter access no longer buys a way in — the route is CLIENT-only.
     const staffAccount = await provisionAccount(SYNTH_STAFF);
     await grantMatterAccess(ctx.matterId, staffAccount.id, ctx.attorneyUserId);
     await ensureWelcomed(sessionId);
@@ -363,19 +381,25 @@ describe("API surface", () => {
       jsonRequest(`/api/intake-chat/${sessionId}`, { method: "GET", cookie: await cookieFor(SYNTH_STAFF) }),
       params({ sessionId })
     );
-    expect(g.status).toBe(200);
-    const body = await g.json();
-    expect(body.transcript.length).toBeGreaterThan(0);
+    expect([401, 403]).toContain(g.status);
   });
 
-  it("attorney reads the transcript through matter access", async () => {
+  it("not even the ATTORNEY can read the chat — there is no transcript to read", async () => {
+    // The attorney's window into a matter is the structured ANSWERS and the
+    // lock panel's reason code, not the client's words (operator, 2026-07-31:
+    // "Nuke the transcript"). Deciding whether to reopen means calling the
+    // client. Matter access is irrelevant here; the route is CLIENT-only.
     await ensureWelcomed(sessionId);
     freshLimits();
     const g = await chatGet(
       jsonRequest(`/api/intake-chat/${sessionId}`, { method: "GET", cookie: await cookieFor(SYNTH_ATTORNEY) }),
       params({ sessionId })
     );
-    expect(g.status).toBe(200);
+    expect([401, 403]).toContain(g.status);
+
+    // And nothing the client said is on disk to leak in the first place.
+    const rows = await listChatMessages(sessionId);
+    expect(rows.every((m) => m.role === "SYSTEM_EVENT")).toBe(true);
   });
 });
 

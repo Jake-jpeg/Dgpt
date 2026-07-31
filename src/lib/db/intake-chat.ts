@@ -51,6 +51,34 @@ function rowToMessage(r: Record<string, unknown>): ChatMessageRow {
   };
 }
 
+/**
+ * THE VERBATIM TRANSCRIPT IS NOT RETAINED (operator directive 2026-07-31:
+ * "Nuke the transcript… The assumption is that I'll get hacked somewhere for
+ * divorcegpt.").
+ *
+ * CLIENT and ASSISTANT turns are held in memory for the length of one
+ * request and never written to disk. What persists is SYSTEM_EVENT rows —
+ * machine facts the server wrote about actions it already took ("gate
+ * GATE_DV passed", "answer recorded q=…", "stopped: dv") — plus the
+ * structured `intake_answer` rows, which are the actual record: they are
+ * what buildRenderPayload turns into the pleadings.
+ *
+ * The reasoning, in the operator's own words and his own design standard
+ * (README, "okay even if we get hacked"): the verbatim log is a byproduct of
+ * the INTERVIEW METHOD, not the record of it. A phone intake produces notes,
+ * not a wiretap. What the verbatim added was narrative that never becomes a
+ * form field — abuse disclosures, affairs, medical history — and that is
+ * exactly the material that turns a breach from embarrassing into
+ * catastrophic. Retention is a decision the attorney makes deliberately,
+ * after review, not a default the database makes for him.
+ *
+ * `intake_chat_message` was never in the README data-class table at all; it
+ * was added with the chat intake and never run through the standard.
+ */
+export function isRetainedRole(role: ChatRole): boolean {
+  return role === "SYSTEM_EVENT";
+}
+
 export async function appendChatMessage(opts: {
   sessionId: string;
   role: ChatRole;
@@ -66,6 +94,19 @@ export async function appendChatMessage(opts: {
   }
   if (opts.content.length > MAX_CHAT_MESSAGE_CHARS) {
     throw new Error("VALIDATION: message too long");
+  }
+  // Client words and model words leave no trace on disk. The row is returned
+  // so callers keep working with a message object for THIS request only.
+  if (!isRetainedRole(opts.role)) {
+    return {
+      id: newId(),
+      sessionId: opts.sessionId,
+      seq: -1, // never persisted, so it holds no place in the sequence
+      role: opts.role,
+      content: opts.content,
+      lang,
+      createdAt: nowIso(),
+    };
   }
   const db = getDb();
   const next =
