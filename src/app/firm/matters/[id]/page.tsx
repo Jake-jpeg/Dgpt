@@ -27,6 +27,15 @@ interface MatterDetail {
   createdAt: string;
   updatedAt: string;
   sessions: { id: string; state: string; tier: string | null; updatedAt: string }[];
+  intakeLock?: IntakeLock;
+}
+/** Reason CODE only — never the client's free text. */
+interface IntakeLock {
+  sessionId: string | null;
+  locked: boolean;
+  reason: string | null;
+  since: string | null;
+  state: string | null;
 }
 interface Approval {
   id: string;
@@ -127,6 +136,22 @@ export default function FirmMatterDetail() {
     href?: string;
   }[] = [];
   if (isAttorney) {
+    // A client locked out of their questionnaire outranks everything else on
+    // the matter: they are sitting on "please contact the firm to continue"
+    // and nothing else in this UI would ever tell you (2026-07-31).
+    if (matter?.intakeLock?.locked) {
+      attention.push({
+        key: "intake-locked",
+        text:
+          matter.intakeLock.reason === "dv"
+            ? "Client questionnaire is LOCKED — domestic-violence question. Call the client; reopen only after you have."
+            : matter.intakeLock.reason === "locked by attorney"
+              ? "Client questionnaire is LOCKED by you — the client cannot continue until you reopen it"
+              : "Client questionnaire is LOCKED on a scope question — the client cannot continue until you reopen it",
+        panel: "intake-lock",
+        link: "Review",
+      });
+    }
     for (const s of readySessions) {
       attention.push({
         key: `ready-${s.id}`,
@@ -198,7 +223,17 @@ export default function FirmMatterDetail() {
                       <button
                         type="button"
                         className="attention-link"
-                        onClick={() => requestOpen(a.panel!)}
+                        onClick={() => {
+                          // The lock panel is always-visible, not an accordion —
+                          // scroll to it instead of asking it to open.
+                          if (a.panel === "intake-lock") {
+                            document
+                              .getElementById("intake-lock")
+                              ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                            return;
+                          }
+                          requestOpen(a.panel!);
+                        }}
                       >
                         {a.link}
                       </button>
@@ -275,6 +310,9 @@ export default function FirmMatterDetail() {
             )}
           </div>
 
+          {/* ── Intake lock / reopen ─────────────────────────────── */}
+          <IntakeLockPanel matterId={matterId} isAttorney={isAttorney} onChanged={load} />
+
           {/* ── Invite the client ────────────────────────────────── */}
           <ConnectClientPanel
             matterId={matterId}
@@ -313,6 +351,164 @@ export default function FirmMatterDetail() {
  * appears here and the ATTORNEY makes the call: connect it to this matter,
  * or decline it. No links, no tokens, nothing for a client to lose.
  */
+
+/**
+ * Intake lock / reopen (operator directive 2026-07-31: "lock the account
+ * (client) with the option for the lawyer to reopen it after review").
+ *
+ * Before this panel existed, a scope gate that stopped a client stopped them
+ * FOREVER — no page in the app could restart them, and the client was left
+ * reading "please contact the firm to continue" with no path that led
+ * anywhere. In Phase 1 that is not an edge case: GATE_CHILDREN stops every
+ * client who has children, which is most of them.
+ *
+ * The reason shown here is a CODE, not the client's words — "dv",
+ * "scope", "locked by attorney". Deciding whether to reopen means calling
+ * the client, not re-reading what they typed.
+ */
+function IntakeLockPanel({
+  matterId,
+  isAttorney,
+  onChanged,
+}: {
+  matterId: string;
+  isAttorney: boolean;
+  onChanged: () => void | Promise<void>;
+}) {
+  const [lock, setLock] = useState<IntakeLock | null>(null);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const r = (await api.get(`/api/matters/${matterId}/intake-lock`)) as { lock: IntakeLock };
+      setLock(r.lock);
+    } catch {
+      setLock(null);
+    }
+  }, [matterId]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
+
+  async function flip(action: "LOCK" | "REOPEN") {
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = (await api.post(`/api/matters/${matterId}/intake-lock`, {
+        action,
+        note: note.trim() || undefined,
+      })) as { lock: IntakeLock };
+      setLock(r.lock);
+      setNote("");
+      setConfirming(false);
+      await onChanged();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "The action failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!lock || !lock.sessionId) return null;
+
+  const REASON_TEXT: Record<string, string> = {
+    dv: "The client answered yes to the domestic-violence question. They were shown the DV resource card and the intake stopped.",
+    scope: "The intake stopped on a scope question — this matter is outside the uncontested Phase 1 lane.",
+    "locked by attorney": "You locked this intake.",
+  };
+
+  return (
+    <div className="panel" id="intake-lock">
+      <h2>
+        Client questionnaire access
+        {lock.locked ? (
+          <span className="badge badge-warn" style={{ marginLeft: 8 }}>
+            locked
+          </span>
+        ) : (
+          <span className="badge badge-good" style={{ marginLeft: 8 }}>
+            open
+          </span>
+        )}
+      </h2>
+      <ErrorNotice message={err} />
+
+      {lock.locked ? (
+        <>
+          <p className="panel-sub">
+            {(lock.reason && REASON_TEXT[lock.reason]) ??
+              `The intake stopped (${lock.reason ?? "reason not recorded"}).`}{" "}
+            {lock.since && <>Locked {fmtWhen(lock.since)}.</>} The client cannot continue
+            until you reopen it.
+          </p>
+          {isAttorney ? (
+            <>
+              <p className="text-xs text-slate-500" style={{ marginTop: 8 }}>
+                Reopening carries the client past the question that stopped them and records
+                that you reviewed it. Speak with the client first — this panel deliberately
+                does not show you what they typed.
+              </p>
+              <input
+                className="input mt-2"
+                placeholder="Why you're reopening (goes in the audit trail)"
+                value={note}
+                maxLength={300}
+                onChange={(e) => setNote(e.target.value)}
+              />
+              <button
+                className="btn btn-primary mt-2"
+                disabled={busy}
+                onClick={() => flip("REOPEN")}
+              >
+                {busy ? "Reopening…" : "Reopen the questionnaire"}
+              </button>
+            </>
+          ) : (
+            <p className="text-xs text-slate-500">An attorney reopens this.</p>
+          )}
+        </>
+      ) : (
+        <>
+          <p className="panel-sub">
+            The client can work on their questionnaire. Lock it if you need them to stop —
+            threats, abuse of the terms, or anything you want to look at before it goes
+            further.
+          </p>
+          {isAttorney &&
+            (confirming ? (
+              <>
+                <input
+                  className="input mt-2"
+                  placeholder="Reason (goes in the audit trail)"
+                  value={note}
+                  maxLength={300}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button className="btn btn-danger" disabled={busy} onClick={() => flip("LOCK")}>
+                    {busy ? "Locking…" : "Confirm — lock them out"}
+                  </button>
+                  <button className="btn btn-quiet" disabled={busy} onClick={() => setConfirming(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button className="btn btn-quiet mt-2" onClick={() => setConfirming(true)}>
+                Lock the questionnaire
+              </button>
+            ))}
+        </>
+      )}
+    </div>
+  );
+}
+
 function ConnectClientPanel({
   matterId,
   isAttorney,

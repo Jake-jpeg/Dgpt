@@ -11,6 +11,7 @@ import { assertCsrf } from "@/lib/security/csrf";
 import { deleteMatterCascade } from "@/lib/db/matters";
 import { recordAudit } from "@/lib/db/repo";
 import { errorResponse } from "@/lib/auth/rbac";
+import { readIntakeLock } from "@/lib/intake/lock";
 import { assertRateLimit } from "@/lib/security/rate-limit";
 import { listSessionsByMatter } from "@/lib/db/repo";
 import { clientMatterStatus } from "@/lib/matters/client-view";
@@ -66,6 +67,12 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
           tier: s.tier,
           updatedAt: s.updatedAt,
         })),
+        // A locked-out client is the single most urgent thing on a matter and
+        // used to be invisible: the session sits at its gate state, which the
+        // matter list labels "Scope questions" exactly like a client who is
+        // merely mid-interview (2026-07-31). REASON CODE ONLY — never the
+        // client's words.
+        intakeLock: await readIntakeLock(matter.id),
       },
     });
   } catch (e) {

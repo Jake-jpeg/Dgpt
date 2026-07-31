@@ -96,6 +96,18 @@ export function canTransition(from: MachineState, to: MachineState): boolean {
   return ALLOWED_TRANSITIONS[from]?.includes(to) ?? false;
 }
 
+/**
+ * The single legal successor of a gate, or null if the state branches or is
+ * terminal. Every gate that can hard-stop a client (GATE_DV, GATE_CHILDREN,
+ * GATE_COMPLEXITY) has exactly one, which is what lets the attorney's unlock
+ * carry the session PAST the gate it tripped on. Without that, reopening
+ * would drop the client back onto the same question and re-lock instantly.
+ */
+export function soleSuccessor(from: MachineState): MachineState | null {
+  const next = ALLOWED_TRANSITIONS[from];
+  return next && next.length === 1 ? next[0] : null;
+}
+
 export function assertTransition(from: MachineState, to: MachineState): void {
   if (!canTransition(from, to)) {
     throw new Error(`STATE_MACHINE: illegal transition ${from} → ${to}`);

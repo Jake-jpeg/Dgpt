@@ -151,6 +151,18 @@ interface IntakeTurn {
 const EV_READBACK = "read-back summary shown";
 const EV_CONFIRMED = "client confirmed the read-back";
 const EV_STOPPED_PREFIX = "stopped:";
+/**
+ * The attorney's unlock (operator directive 2026-07-31: "lock the account
+ * (client) with the option for the lawyer to reopen it after review").
+ *
+ * The transcript is append-only by design — nothing deletes a SYSTEM_EVENT,
+ * so a stop can never be erased. The unlock is therefore a LATER event, and
+ * the lock state is whichever of the two came last. That keeps the whole
+ * lock/unlock history readable in order and needs no schema change.
+ */
+export const EV_REOPENED_PREFIX = "reopened by attorney";
+/** An attorney-initiated lock (threats, terms abuse) — same family as a gate stop. */
+export const EV_LOCKED_PREFIX = "stopped: locked by attorney";
 interface ConversationContext {
   session: SessionRow;
   matter: MatterRow;
@@ -174,9 +186,21 @@ export async function loadConversation(sessionId: string): Promise<ConversationC
   const checklist = deriveChecklist(schema, answers, checklistState, matterIntakePhase(matter));
   const transcript = await listChatMessages(sessionId);
 
-  const stoppedEvent = transcript.find(
-    (m) => m.role === "SYSTEM_EVENT" && m.content.startsWith(EV_STOPPED_PREFIX)
-  );
+  // LAST word wins: scan backwards for the most recent stop-or-reopen. A
+  // reopen after a stop clears it; a later stop locks it again. (Before
+  // 2026-07-31 this was a forward .find() for a stop only, which made every
+  // stop permanent and unappealable — the client could not restart, no firm
+  // page called /api/intake/start, and a session started by the attorney
+  // carried the ATTORNEY's ownerSubject so the client never saw it.)
+  const lockEvent = [...transcript]
+    .reverse()
+    .find(
+      (m) =>
+        m.role === "SYSTEM_EVENT" &&
+        (m.content.startsWith(EV_STOPPED_PREFIX) || m.content.startsWith(EV_REOPENED_PREFIX))
+    );
+  const stoppedEvent =
+    lockEvent && lockEvent.content.startsWith(EV_STOPPED_PREFIX) ? lockEvent : undefined;
   const seqState: SequencerState = {
     schema,
     answers,
