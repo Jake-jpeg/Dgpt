@@ -280,6 +280,7 @@ export default function FirmMatterDetail() {
             matterId={matterId}
             isAttorney={isAttorney}
             expectedClientEmail={matter.expectedClientEmail ?? null}
+            clientConnected={Boolean(matter.clientUserId)}
             onLinked={load}
           />
 
@@ -316,11 +317,13 @@ function ConnectClientPanel({
   matterId,
   isAttorney,
   expectedClientEmail,
+  clientConnected,
   onLinked,
 }: {
   matterId: string;
   isAttorney: boolean;
   expectedClientEmail: string | null;
+  clientConnected: boolean;
   onLinked: () => void | Promise<void>;
 }) {
   const [emailDraft, setEmailDraft] = useState("");
@@ -477,7 +480,32 @@ function ConnectClientPanel({
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
             <span className="text-sm">
               Your client: <strong>{expectedClientEmail}</strong>
+              {/* Adding an email is step 1 of 3. Saying only "Your client:
+                  x@y.com" read as completion and cost a live pilot run
+                  (2026-07-30) — the attorney believed the client was
+                  connected while the server still had client_user_id NULL.
+                  The pending state now says so in as many words. */}
+              {clientConnected ? (
+                <span className="badge badge-good" style={{ marginLeft: 8 }}>
+                  connected
+                </span>
+              ) : (
+                <span className="badge badge-warn" style={{ marginLeft: 8 }}>
+                  not connected yet
+                </span>
+              )}
             </span>
+            {!clientConnected && (
+              <p
+                className="text-xs"
+                style={{ flexBasis: "100%", margin: 0, color: "#b45309" }}
+              >
+                Adding the email does not connect them. Once they sign in they
+                appear below — you still have to click <strong>Connect to this
+                matter</strong>. Until you do, they see a waiting screen and cannot
+                start the questionnaire.
+              </p>
+            )}
             {isAttorney && (
               <button
                 className="btn btn-quiet"

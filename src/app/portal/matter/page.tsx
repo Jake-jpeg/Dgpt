@@ -120,7 +120,7 @@ export default function ClientMatterPage() {
             {ackDone && matter.canProceed && (
               <div className="mt-3 flex flex-wrap gap-3">
                 <Link className="btn btn-primary" href="/portal/intake">
-                  Continue my intake
+                  Open my questionnaire
                 </Link>
               </div>
             )}
@@ -240,6 +240,22 @@ function WaitingRoom({ email }: { email: string }) {
           signed in as {email}.
         </p>
       )}
+
+      {/* useMe() resolves once on mount, so a client who is already sitting on
+          this screen when the attorney connects them would stay here forever —
+          the page has no way to learn it. A full reload is the honest fix
+          (2026-07-30). */}
+      <p className="mt-4 text-sm text-slate-600">
+        Already heard back from the firm?{" "}
+        <button
+          type="button"
+          className="btn btn-quiet"
+          style={{ padding: "3px 10px", fontSize: ".8rem" }}
+          onClick={() => window.location.reload()}
+        >
+          Check again
+        </button>
+      </p>
     </div>
   );
 }
