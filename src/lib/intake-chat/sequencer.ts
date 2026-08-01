@@ -103,13 +103,36 @@ function sectionsInOrder(schema: IntakeSchema) {
   return schema.sections.slice().sort((a, b) => a.order - b.order);
 }
 
-function sectionMeta(schema: IntakeSchema, sectionId: string | null) {
-  const ordered = sectionsInOrder(schema);
-  const idx = sectionId ? ordered.findIndex((s) => s.id === sectionId) : -1;
+/**
+ * Section position, counted over the sections the CLIENT is actually walking.
+ *
+ * Was counted over EVERY section in the schema, which showed a Phase 1 client
+ * "Section 3 of 25" beside a progress rail listing eight (2026-08-01, from a
+ * live screenshot). The denominator has to be the same set the rail shows or
+ * it reads as a bug — and to the client it IS one.
+ *
+ * Membership is by "has a client item in this phase", NOT by "has an
+ * unanswered visible item": answering something must never shrink the
+ * denominator underneath the person answering it.
+ */
+function sectionMeta(state: SequencerState, sectionId: string | null) {
+  const { schema } = state;
+  const phase = state.phase ?? activeIntakePhase();
+  const walked = sectionsInOrder(schema).filter((sec) =>
+    schema.items.some(
+      (i) =>
+        i.section === sec.id &&
+        i.audience === "CLIENT" &&
+        i.type !== "document_request" &&
+        i.type !== "attorney_determination" &&
+        clientItemInPhase(i, phase)
+    )
+  );
+  const idx = sectionId ? walked.findIndex((s) => s.id === sectionId) : -1;
   return {
-    sectionTitle: idx >= 0 ? ordered[idx].title : null,
+    sectionTitle: idx >= 0 ? walked[idx].title : null,
     sectionIndex: idx >= 0 ? idx + 1 : null,
-    sectionCount: ordered.length,
+    sectionCount: walked.length,
   };
 }
 
@@ -124,12 +147,12 @@ export function nextStep(state: SequencerState): Step {
     return {
       kind: "STOPPED",
       id: state.stopped,
-      ...sectionMeta(schema, null),
+      ...sectionMeta(state, null),
     };
   }
 
   if (!state.welcomed) {
-    return { kind: "WELCOME", id: null, ...sectionMeta(schema, null) };
+    return { kind: "WELCOME", id: null, ...sectionMeta(state, null) };
   }
 
   // Gates first — the machine decides which gate is current (the residency
@@ -139,13 +162,13 @@ export function nextStep(state: SequencerState): Step {
       kind: "GATE",
       id: state.machineState,
       gate: GATE_QUESTIONS[state.machineState],
-      ...sectionMeta(schema, null),
+      ...sectionMeta(state, null),
     };
   }
   if (!PAST_GATES.includes(state.machineState)) {
     // Defensive: an unexpected machine state (e.g. legacy PRE_GATE) never
     // silently skips the gates — surface it as a stop for a human to fix.
-    return { kind: "STOPPED", id: `UNEXPECTED_STATE_${state.machineState}`, ...sectionMeta(schema, null) };
+    return { kind: "STOPPED", id: `UNEXPECTED_STATE_${state.machineState}`, ...sectionMeta(state, null) };
   }
 
   // Every visible CLIENT item, section by section, in schema order.
@@ -157,7 +180,7 @@ export function nextStep(state: SequencerState): Step {
         kind: "QUESTION",
         id: next.id,
         item: next,
-        ...sectionMeta(schema, section.id),
+        ...sectionMeta(state, section.id),
       };
     }
   }
@@ -169,19 +192,19 @@ export function nextStep(state: SequencerState): Step {
       kind: "QUESTION",
       id: orphan.id,
       item: orphan,
-      ...sectionMeta(schema, orphan.section),
+      ...sectionMeta(state, orphan.section),
     };
   }
 
   // Documents are handled over email with the firm — no checklist walk
   // (see the header note). Straight to the read-back once questions end.
   if (!state.readBackShown) {
-    return { kind: "READBACK", id: null, ...sectionMeta(schema, null) };
+    return { kind: "READBACK", id: null, ...sectionMeta(state, null) };
   }
   if (!state.confirmed) {
-    return { kind: "CONFIRM", id: null, ...sectionMeta(schema, null) };
+    return { kind: "CONFIRM", id: null, ...sectionMeta(state, null) };
   }
-  return { kind: "COMPLETE", id: null, ...sectionMeta(schema, null) };
+  return { kind: "COMPLETE", id: null, ...sectionMeta(state, null) };
 }
 
 /** Progress for the client-facing indicator. Counts questions, not turns. */

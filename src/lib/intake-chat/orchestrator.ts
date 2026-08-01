@@ -423,7 +423,26 @@ function describeStep(step: Step, ctx: ConversationContext): string {
           : `Valid answers: yes / no.\n`) +
         `When the client answers, set gate_response ` +
         `{gateId: "${step.id}", value_json: <their answer as JSON TEXT>} — ` +
-        `true or false for yes/no, a QUOTED string for a coded value ("KINGS").`
+        `true or false for yes/no, a QUOTED string for a coded value ("KINGS").\n` +
+        // THE GATE PHASE RECORDS TOO (2026-08-01). Clients open with a
+        // paragraph — "my name is X, my wife is Y, we married on Z, we live
+        // at ADDRESS" — and the gates are the first thing they meet. Until
+        // now this branch named no question ids at all, so the model COULD
+        // NOT record any of it: it thanked them, the facts were never saved,
+        // and twenty questions later the intake asked for the name it had
+        // already been given. The server has always accepted these
+        // (saveMatterAnswers validates ids against the pinned schema and
+        // never compares them to the current step) — only the prompt was
+        // withholding the roster.
+        `\nTHE CLIENT MAY ALSO ANSWER OTHER QUESTIONS IN THE SAME MESSAGE, and ` +
+        `people very often do in their first one. NEVER ASK WHAT THEY ALREADY ` +
+        `TOLD YOU. If their message plainly answers any question listed below, ` +
+        `record it in record_answers in the SAME turn — one entry per question ` +
+        `id, each value as JSON TEXT in value_json (a text answer is QUOTED, ` +
+        `"Jake Kim"; yes/no is true or false; a number is unquoted). Recording ` +
+        `here is what stops the intake re-asking later. Only record what their ` +
+        `own words plainly answer — never infer, never fill it in for them.\n` +
+        `QUESTIONS YOU MAY ALSO RECORD RIGHT NOW:\n${pendingRoster(ctx, "")}`
       );
     case "QUESTION": {
       const item = step.item!;
