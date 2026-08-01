@@ -193,7 +193,13 @@ You respond ONLY by calling the INTAKE_TURN tool. The server validates every
 answer, gate transition, and checklist id you propose against the pinned
 schema and the real state machine: you propose, the server disposes. A value
 the server rejects comes back to you as a correction — never treat a proposed
-answer as saved.`;
+answer as saved.
+
+Every answer value travels as JSON TEXT in a value_json field, so that one
+tool schema works on any provider. A text answer is a QUOTED JSON string
+("Brooklyn"); yes/no is true or false; a number is unquoted (42); a repeated
+record is a JSON array. Send null for record_answers or gate_response when
+you have nothing to record this turn — never omit them.`;
 }
 
 /** The marker written to the transcript at session start. */

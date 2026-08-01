@@ -90,32 +90,65 @@ function expectedHours(): string {
 
 /* ── the forced tool (spec §2.2) ────────────────────────────────────── */
 
+/**
+ * The forced tool.
+ *
+ * PROVIDER-PORTABLE SHAPE (2026-08-01). This schema is also the contract for
+ * OpenAI strict structured outputs, which is stricter than Anthropic's tool
+ * schemas in two ways:
+ *
+ *   1. EVERY key in `properties` must also appear in `required`. Optional
+ *      fields are expressed as a NULL UNION, not by omission — hence
+ *      `["array","null"]` and `["object","null"]` below, all six listed.
+ *   2. NO UNCONSTRAINED SCHEMAS. The old shape carried the answer as
+ *      `value: {}` because an intake answer can be a string, a boolean, a
+ *      money number, a select code, or an array of child records
+ *      (shared.children.records). Anthropic accepts `{}`; OpenAI strict
+ *      rejects it, and an anyOf across five shapes — one of them a nested
+ *      array of objects — is exactly what strict mode handles worst.
+ *
+ * So the value travels as JSON TEXT in `value_json`, and the server parses it
+ * before anything else touches it (coerceTurn). That is legal under both
+ * providers, keeps every value shape the schema already supports, and a
+ * malformed parse is not a new failure mode — it takes the same corrective
+ * retry path as any other rejected proposal.
+ */
 export const INTAKE_TURN_SCHEMA: Record<string, unknown> = {
   type: "object",
   additionalProperties: false,
-  required: ["say", "lang", "control"],
+  required: ["say", "lang", "record_answers", "gate_response", "flag_for_attorney", "control"],
   properties: {
     say: { type: "string", description: "Your message to the client, in their language." },
     lang: { type: "string", enum: ["en", "ko"] },
     record_answers: {
-      type: "array",
+      type: ["array", "null"],
+      description: "Answers to record this turn, or null.",
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["questionId", "value"],
+        required: ["questionId", "value_json"],
         properties: {
           questionId: { type: "string" },
-          value: {},
+          value_json: {
+            type: "string",
+            description:
+              'The answer as a JSON literal: "yes" | true | 42 | "KINGS" | ' +
+              '[{"name":"Aaron Doe","dateOfBirth":"2019-03-04"}]. Text answers are ' +
+              "JSON strings, so they must be quoted.",
+          },
         },
       },
     },
     gate_response: {
       type: ["object", "null"],
       additionalProperties: false,
-      required: ["gateId", "value"],
+      required: ["gateId", "value_json"],
       properties: {
         gateId: { type: "string" },
-        value: {},
+        value_json: {
+          type: "string",
+          description: 'The gate answer as a JSON literal: true, false, or "KINGS" for a county.',
+        },
       },
     },
     flag_for_attorney: {
@@ -136,6 +169,72 @@ export const INTAKE_TURN_SCHEMA: Record<string, unknown> = {
     },
   },
 };
+
+/**
+ * Raw tool output → the internal turn, with every value_json parsed.
+ *
+ * Accepts a literal `value` too, so server-side constructions and the test
+ * suite keep working unchanged; only the wire format moved.
+ */
+export function coerceTurn(raw: unknown): { turn: IntakeTurn } | { correction: string } {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const bad: string[] = [];
+
+  const readValue = (o: Record<string, unknown>, label: string): unknown => {
+    if ("value" in o) return o.value; // literal (internal callers, tests)
+    const text = o.value_json;
+    if (typeof text !== "string") {
+      bad.push(`${label}: value_json must be a JSON string`);
+      return undefined;
+    }
+    try {
+      return JSON.parse(text);
+    } catch {
+      bad.push(`${label}: value_json was not valid JSON (got ${JSON.stringify(text.slice(0, 60))})`);
+      return undefined;
+    }
+  };
+
+  const rawAnswers = Array.isArray(r.record_answers) ? r.record_answers : [];
+  const record_answers = rawAnswers.map((a) => {
+    const o = (a ?? {}) as Record<string, unknown>;
+    const questionId = typeof o.questionId === "string" ? o.questionId : "";
+    if (!questionId) bad.push("record_answers: missing questionId");
+    return { questionId, value: readValue(o, `record_answers[${questionId || "?"}]`) };
+  });
+
+  let gate_response: IntakeTurn["gate_response"] = null;
+  if (r.gate_response && typeof r.gate_response === "object") {
+    const o = r.gate_response as Record<string, unknown>;
+    const gateId = typeof o.gateId === "string" ? o.gateId : "";
+    if (!gateId) bad.push("gate_response: missing gateId");
+    gate_response = { gateId, value: readValue(o, `gate_response(${gateId || "?"})`) };
+  }
+
+  if (bad.length > 0) {
+    return {
+      correction:
+        `Your tool call could not be read: ${bad.join("; ")}. ` +
+        `Every value travels as JSON TEXT in value_json — a text answer is a QUOTED ` +
+        `JSON string ("Brooklyn"), yes/no is true or false, a number is unquoted (42), ` +
+        `and a repeated record is a JSON array. Re-send the turn.`,
+    };
+  }
+
+  return {
+    turn: {
+      say: typeof r.say === "string" ? r.say : "",
+      lang: r.lang === "ko" ? "ko" : "en",
+      record_answers,
+      gate_response,
+      flag_for_attorney:
+        r.flag_for_attorney && typeof r.flag_for_attorney === "object"
+          ? (r.flag_for_attorney as { reason: string })
+          : null,
+      control: (typeof r.control === "string" ? r.control : "CONTINUE") as IntakeTurn["control"],
+    },
+  };
+}
 
 interface IntakeTurn {
   say: string;
@@ -328,7 +427,9 @@ function describeStep(step: Step, ctx: ConversationContext): string {
         (step.gate!.options
           ? `Valid answers (record the VALUE): ${step.gate!.options.map((o) => `${o.value} ("${o.label}")`).join(", ")}\n`
           : `Valid answers: yes / no.\n`) +
-        `When the client answers, set gate_response {gateId: "${step.id}", value: <their answer>}.`
+        `When the client answers, set gate_response ` +
+        `{gateId: "${step.id}", value_json: <their answer as JSON TEXT>} — ` +
+        `true or false for yes/no, a QUOTED string for a coded value ("KINGS").`
       );
     case "QUESTION": {
       const item = step.item!;
@@ -341,7 +442,10 @@ function describeStep(step: Step, ctx: ConversationContext): string {
         (item.options
           ? `Valid values: ${item.options.map((o) => o.value).join(", ")}.\n`
           : "") +
-        `When the client answers, set record_answers [{questionId: "${item.id}", value: <canonical value in English>}]. ` +
+        `When the client answers, set record_answers ` +
+        `[{questionId: "${item.id}", value_json: <the canonical value in English, as JSON TEXT>}]. ` +
+        `value_json is a JSON literal in a string: a text answer is QUOTED ("Brooklyn"), ` +
+        `yes/no is true or false, a number is unquoted (42), a repeated record is a JSON array. ` +
         `"I don't know" / "prefer not to say" is recorded honestly as the string "UNSURE" for selects or as their words for text.\n` +
         `NEVER ASK WHAT THEY ALREADY TOLD YOU. If their reply also answers one or ` +
         `more of the STILL-PENDING questions listed below, record those in the SAME ` +
@@ -363,7 +467,7 @@ function describeStep(step: Step, ctx: ConversationContext): string {
         `CURRENT STEP — FINAL CONFIRMATION. If the client's message confirms the ` +
         `read-back is accurate, set control INTAKE_COMPLETE and thank them: the ` +
         `attorney will take it from here. If they correct something, set ` +
-        `record_answers with the corrected value(s) and control CONTINUE.`
+        `record_answers with the corrected value(s) as value_json and control CONTINUE.`
       );
     case "COMPLETE":
       return `The intake is COMPLETE. Thank the client warmly; the attorney reviews everything next. control INTAKE_COMPLETE.`;
@@ -766,8 +870,15 @@ export async function runIntakeTurn(opts: {
       jsonSchema: INTAKE_TURN_SCHEMA,
       matterId: ctx.matter.id,
     });
-    const turn = call.parsed as unknown as IntakeTurn;
-    const applied = await applyTurn(ctx, turn, opts.actingUserId);
+    const coerced = coerceTurn(call.parsed);
+    if ("correction" in coerced) {
+      // Unreadable tool call (a value_json that wasn't JSON). Same corrective
+      // retry as any rejected proposal — nothing was persisted.
+      correction = coerced.correction;
+      ctx = await loadConversation(opts.sessionId);
+      continue;
+    }
+    const applied = await applyTurn(ctx, coerced.turn, opts.actingUserId);
     if ("correction" in applied) {
       correction = applied.correction;
       ctx = await loadConversation(opts.sessionId);
