@@ -33,6 +33,9 @@ import {
   type AiProvider,
   type ProviderAdapter,
 } from "./providers";
+import { aiModelFor, aiProviderFor } from "@/config/ai-providers";
+
+export { aiModelFor, aiProviderFor };
 import { AiConfigError } from "./errors";
 
 export { AiConfigError };
@@ -76,8 +79,9 @@ export function messagesUrl(): string {
   return anthropicAdapter.endpoint();
 }
 
+/** The workbench tier's model — see @/config/ai-providers for resolution. */
 export function aiModel(): string {
-  return envOptional("ANTHROPIC_MODEL") ?? DEFAULT_ANTHROPIC_MODEL;
+  return aiModelFor("workbench");
 }
 export function aiTimeoutMs(): number {
   const n = Number(process.env.AI_REQUEST_TIMEOUT_MS ?? "60000");

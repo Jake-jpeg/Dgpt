@@ -30,6 +30,7 @@ import { listAuthorities } from "@/lib/legal/authority";
 import { getFileStorage } from "@/lib/storage";
 import { AiDisabledError } from "./types";
 import { callStructured, aiModel, AiConfigError } from "./responses";
+import { aiProviderFor } from "@/config/ai-providers";
 import { ACTION_KIND, AI_ACTIONS, reportJsonSchema, validateAiReport, type AiAction, type AiReport } from "./schemas2";
 import { ACTION_TITLES, PROMPT_VERSION, systemPrompt, userPrompt } from "./actions";
 
@@ -181,6 +182,7 @@ export async function runAiAction(opts: {
       schemaName: kind,
       jsonSchema: reportJsonSchema(kind),
       matterId: opts.matterId,
+      provider: aiProviderFor("workbench"),
     });
   } catch (e) {
     await logInvocation({ matterId: opts.matterId, userId: actor.id, action: opts.action, model, status: "ERROR" });

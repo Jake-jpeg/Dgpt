@@ -34,7 +34,8 @@ import {
   type AiInvocationInput,
   type AiInvocationResult,
 } from "./types";
-import { callStructured, AiConfigError, DEFAULT_ANTHROPIC_MODEL } from "./responses";
+import { callStructured, AiConfigError } from "./responses";
+import { aiModelFor, aiProviderFor } from "@/config/ai-providers";
 import * as internalSummary from "./prompts/internal-summary";
 import * as issueList from "./prompts/issue-list";
 import * as inconsistencyReview from "./prompts/inconsistency-review";
@@ -45,7 +46,7 @@ export function aiFeaturesEnabled(): boolean {
 }
 
 export function aiModel(): string {
-  return envOptional("ANTHROPIC_MODEL") ?? DEFAULT_ANTHROPIC_MODEL;
+  return aiModelFor("workbench");
 }
 
 function assertServerOnly(): void {
@@ -145,6 +146,7 @@ export async function invokeInternalAi(input: AiInvocationInput): Promise<AiInvo
       schemaName: `INTERNAL_${input.feature}`,
       jsonSchema: FREE_TEXT_SCHEMA,
       matterId: input.matterId,
+      provider: aiProviderFor("workbench"),
     });
   } catch (e) {
     (await logAiInvocation({

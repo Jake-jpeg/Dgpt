@@ -8,7 +8,7 @@ import { getDb } from "@/lib/db/index";
 import { appStage } from "@/config/stage";
 import { pdfServiceHealthy } from "@/lib/pdf-service/client";
 import { syntheticEphemeralStorageActive } from "@/lib/storage";
-import { intakeChatProvider, intakeChatModel, PROVIDER_KEY_ENV } from "@/config/ai-providers";
+import { aiProviderFor, aiModelFor, PROVIDER_KEY_ENV, AI_TIERS, type AiTier } from "@/config/ai-providers";
 
 // Cache the PDF probe briefly so frequent platform health checks don't
 // hammer the RL service.
@@ -33,33 +33,52 @@ export async function GET() {
     ephemeralStorage: syntheticEphemeralStorageActive(),
     db,
     dbEngine: getDb().dialect,
-    aiConfigured: process.env.AI_FEATURES_ENABLED === "true" && Boolean(process.env.ANTHROPIC_API_KEY),
-    // The intake bot resolves its own provider (2026-08-01), so a swap that
-    // forgot the key must be visible WITHOUT reading logs. Names and booleans
-    // only — never a key, never a fragment of one. A bad provider name is
-    // reported here rather than thrown: health must answer even when the
-    // intake is misconfigured, because that is exactly when it is read.
-    intakeAi: intakeAiHealth(),
+    // Provider-aware since 2026-08-01: this asked for ANTHROPIC_API_KEY
+    // specifically, so it would have read false the moment the platform moved
+    // to another provider — a green swap reported as broken.
+    aiConfigured: process.env.AI_FEATURES_ENABLED === "true" && everyTierKeyed(),
+    // Every AI tier reports where it points, so a swap that forgot a key is
+    // visible WITHOUT reading logs. Names and booleans only — never a key,
+    // never a fragment of one. A bad provider name is REPORTED rather than
+    // thrown: health must answer even when the AI is misconfigured, because
+    // that is exactly when it gets read.
+    ai: aiTierHealth(),
     pdfService: pdfCache.value,
   };
   return Response.json(body, { status: db === "ok" ? 200 : 503 });
 }
 
-function intakeAiHealth(): { provider: string; model: string; keyConfigured: boolean; error?: string } {
+/** True when every configured tier has its own provider's key present. */
+function everyTierKeyed(): boolean {
   try {
-    const provider = intakeChatProvider();
-    const keyEnv = PROVIDER_KEY_ENV[provider];
+    return AI_TIERS.every((t) => Boolean(process.env[PROVIDER_KEY_ENV[aiProviderFor(t)]]));
+  } catch {
+    return false; // an unresolvable provider is not "configured"
+  }
+}
+
+function aiTierHealth(): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const tier of AI_TIERS) {
+    out[tier] = tierHealth(tier);
+  }
+  return out;
+}
+
+function tierHealth(tier: AiTier): { provider: string; model: string; keyConfigured: boolean; error?: string } {
+  try {
+    const provider = aiProviderFor(tier);
     return {
       provider,
-      model: intakeChatModel(),
-      keyConfigured: Boolean(process.env[keyEnv]),
+      model: aiModelFor(tier),
+      keyConfigured: Boolean(process.env[PROVIDER_KEY_ENV[provider]]),
     };
   } catch (e) {
     return {
       provider: "invalid",
       model: "unresolved",
       keyConfigured: false,
-      error: e instanceof Error ? e.message : "intake AI configuration is invalid",
+      error: e instanceof Error ? e.message : "AI configuration is invalid",
     };
   }
 }

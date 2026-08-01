@@ -24,6 +24,8 @@ import {
 } from "@/lib/ai/providers";
 import { callStructured, AiConfigError, safetyIdentifier } from "@/lib/ai/responses";
 import {
+  aiProviderFor,
+  aiModelFor,
   intakeChatProvider,
   intakeChatModel,
   IntakeProviderConfigError,
@@ -283,11 +285,15 @@ describe("callStructured keeps one guard posture across providers", () => {
   });
 });
 
-/* ── which provider the INTAKE BOT uses ──────────────────────────────── */
+/* ── ONE SWITCH ──────────────────────────────────────────────────────── */
 
-describe("intake provider/model resolution — the env flip", () => {
+describe("AI_PROVIDER moves the whole platform; overrides are exceptions", () => {
   const ENV = [
+    "AI_PROVIDER",
+    "AI_PROVIDER_WORKBENCH",
     "INTAKE_AI_PROVIDER",
+    "AI_MODEL_INTAKE",
+    "AI_MODEL_WORKBENCH",
     "INTAKE_MODEL",
     "ANTHROPIC_INTAKE_MODEL",
     "ANTHROPIC_MODEL",
@@ -295,76 +301,119 @@ describe("intake provider/model resolution — the env flip", () => {
   beforeEach(() => ENV.forEach((k) => delete process.env[k]));
   afterEach(() => ENV.forEach((k) => delete process.env[k]));
 
-  it("defaults to Anthropic Haiku — unset env changes nothing", () => {
-    expect(intakeChatProvider()).toBe("anthropic");
-    expect(intakeChatModel()).toBe("claude-haiku-4-5");
+  it("unset env changes nothing — anthropic, Haiku for intake, Sonnet for the workbench", () => {
+    expect(aiProviderFor("intake")).toBe("anthropic");
+    expect(aiProviderFor("workbench")).toBe("anthropic");
+    expect(aiModelFor("intake")).toBe("claude-haiku-4-5");
+    expect(aiModelFor("workbench")).toBe("claude-sonnet-5");
   });
 
-  it("INTAKE_AI_PROVIDER=openai flips the provider AND the default model", () => {
+  it("ONE row moves BOTH tiers to Terra — this is the swap", () => {
+    process.env.AI_PROVIDER = "openai";
+    expect(aiProviderFor("intake")).toBe("openai");
+    expect(aiProviderFor("workbench")).toBe("openai");
+    expect(aiModelFor("intake")).toBe("gpt-5.6-terra");
+    expect(aiModelFor("workbench")).toBe("gpt-5.6-terra");
+  });
+
+  it("deleting that row rolls BOTH tiers back — this is the rollback", () => {
+    process.env.AI_PROVIDER = "openai";
+    delete process.env.AI_PROVIDER;
+    expect(aiProviderFor("intake")).toBe("anthropic");
+    expect(aiProviderFor("workbench")).toBe("anthropic");
+    expect(aiModelFor("workbench")).toBe("claude-sonnet-5");
+  });
+
+  it("is case- and whitespace-forgiving on an operator-typed row", () => {
+    process.env.AI_PROVIDER = "  OpenAI ";
+    expect(aiProviderFor("workbench")).toBe("openai");
+  });
+
+  it("a tier can be pinned back for an experiment without dragging the other", () => {
+    process.env.AI_PROVIDER = "openai";
+    process.env.AI_PROVIDER_WORKBENCH = "anthropic";
+    expect(aiProviderFor("intake")).toBe("openai");
+    expect(aiProviderFor("workbench")).toBe("anthropic");
+    expect(aiModelFor("workbench")).toBe("claude-sonnet-5");
+  });
+
+  it("model overrides are per tier and do not cross", () => {
+    process.env.AI_PROVIDER = "openai";
+    process.env.AI_MODEL_INTAKE = "gpt-5.6-luna";
+    process.env.AI_MODEL_WORKBENCH = "gpt-5.6-sol";
+    expect(aiModelFor("intake")).toBe("gpt-5.6-luna");
+    expect(aiModelFor("workbench")).toBe("gpt-5.6-sol");
+  });
+
+  it("pre-consolidation rows still resolve on the anthropic path", () => {
+    process.env.ANTHROPIC_MODEL = "claude-opus-4-8";
+    expect(aiModelFor("workbench")).toBe("claude-opus-4-8");
+    expect(aiModelFor("intake")).toBe("claude-opus-4-8");
+    process.env.ANTHROPIC_INTAKE_MODEL = "claude-haiku-4-5";
+    expect(aiModelFor("intake")).toBe("claude-haiku-4-5");
+    // …and INTAKE_AI_PROVIDER from earlier today still works.
     process.env.INTAKE_AI_PROVIDER = "openai";
+    expect(aiProviderFor("intake")).toBe("openai");
+    expect(aiProviderFor("workbench")).toBe("anthropic");
+  });
+
+  it("ANTHROPIC_* rows do NOT leak onto another provider", () => {
+    process.env.AI_PROVIDER = "openai";
+    process.env.ANTHROPIC_MODEL = "claude-opus-4-8";
+    process.env.ANTHROPIC_INTAKE_MODEL = "claude-haiku-4-5";
+    expect(aiModelFor("intake")).toBe("gpt-5.6-terra");
+    expect(aiModelFor("workbench")).toBe("gpt-5.6-terra");
+  });
+
+  it("an unknown provider FAILS LOUDLY on every tier — no silent fallback", () => {
+    process.env.AI_PROVIDER = "gemini";
+    expect(() => aiProviderFor("intake")).toThrow(IntakeProviderConfigError);
+    expect(() => aiProviderFor("workbench")).toThrow(/not a known provider/);
+    expect(() => aiModelFor("workbench")).toThrow(/not a known provider/);
+  });
+
+  it("the intake aliases still point at the intake tier", () => {
+    process.env.AI_PROVIDER = "openai";
     expect(intakeChatProvider()).toBe("openai");
     expect(intakeChatModel()).toBe("gpt-5.6-terra");
-  });
-
-  it("is case- and whitespace-forgiving on the operator-typed row", () => {
-    process.env.INTAKE_AI_PROVIDER = "  OpenAI ";
-    expect(intakeChatProvider()).toBe("openai");
-  });
-
-  it("INTAKE_MODEL wins outright, on either provider", () => {
-    process.env.INTAKE_MODEL = "gpt-5.6-luna";
-    expect(intakeChatModel()).toBe("gpt-5.6-luna");
-    process.env.INTAKE_AI_PROVIDER = "openai";
-    expect(intakeChatModel()).toBe("gpt-5.6-luna");
-  });
-
-  it("pre-2026-08-01 rows still resolve on the anthropic path", () => {
-    process.env.ANTHROPIC_MODEL = "claude-sonnet-5";
-    expect(intakeChatModel()).toBe("claude-sonnet-5");
-    process.env.ANTHROPIC_INTAKE_MODEL = "claude-opus-4-8";
-    expect(intakeChatModel()).toBe("claude-opus-4-8");
-  });
-
-  it("the legacy ANTHROPIC_* rows do NOT leak onto the openai path", () => {
-    process.env.INTAKE_AI_PROVIDER = "openai";
-    process.env.ANTHROPIC_INTAKE_MODEL = "claude-opus-4-8";
-    process.env.ANTHROPIC_MODEL = "claude-sonnet-5";
-    expect(intakeChatModel()).toBe("gpt-5.6-terra");
-  });
-
-  it("an unknown provider FAILS LOUDLY — no silent fallback to anthropic", () => {
-    process.env.INTAKE_AI_PROVIDER = "gemini";
-    expect(() => intakeChatProvider()).toThrow(IntakeProviderConfigError);
-    expect(() => intakeChatProvider()).toThrow(/not a known provider/);
-    expect(() => intakeChatModel()).toThrow(/not a known provider/);
   });
 });
 
-/* ── SCOPE GUARD ─────────────────────────────────────────────────────── */
+/* ── EVERY call site chooses, explicitly ────────────────────────────── */
 
-describe("the swap is INTAKE BOT only", () => {
-  // Operator directive 2026-07-31 was "intake bot change". callStructured has
-  // three call sites; the other two are the attorney workbench (Sonnet 5) and
-  // internal actions. If a future edit passes `provider` from either of them,
-  // or reads the intake env rows there, the swap has leaked.
-  it("neither the workbench nor internal actions choose a provider", async () => {
+describe("the whole platform moves together", () => {
+  // Operator directive 2026-08-01: "Swap out the API call to GPT Terra… ALL of
+  // it." The earlier intake-only scope guard is superseded. What replaces it is
+  // stricter, not looser: EVERY callStructured call site must name its provider,
+  // so a new call site cannot silently inherit a default nobody chose.
+  it("no call site relies on the implicit default", async () => {
     const { readFileSync } = await import("node:fs");
-    for (const file of ["src/lib/ai/run-action.ts", "src/lib/ai/internal.ts"]) {
+    const files = [
+      "src/lib/intake-chat/orchestrator.ts",
+      "src/lib/ai/run-action.ts",
+      "src/lib/ai/internal.ts",
+    ];
+    let totalCalls = 0;
+    for (const file of files) {
       const src = readFileSync(file, "utf8");
-      expect(src, `${file} must not pass a provider`).not.toMatch(/provider\s*:/);
-      expect(src, `${file} must not read the intake provider row`).not.toContain(
-        "INTAKE_AI_PROVIDER"
-      );
-      expect(src, `${file} must not resolve the intake model`).not.toContain("intakeChatModel");
+      const calls = (src.match(/await callStructured\(\{/g) ?? []).length;
+      const chosen = (src.match(/provider: (intakeChatProvider|aiProviderFor)\(/g) ?? []).length;
+      expect(chosen, `${file}: ${calls} call(s) but ${chosen} provider choice(s)`).toBe(calls);
+      totalCalls += calls;
     }
+    // Guards against the test silently passing if the calls were refactored away.
+    expect(totalCalls).toBeGreaterThanOrEqual(3);
   });
 
-  it("the intake orchestrator DOES choose one, at every provider call", async () => {
+  it("nothing resolves a model from a raw provider-specific env row any more", async () => {
     const { readFileSync } = await import("node:fs");
-    const src = readFileSync("src/lib/intake-chat/orchestrator.ts", "utf8");
-    const calls = src.match(/await callStructured\(\{/g) ?? [];
-    const chosen = src.match(/provider: intakeChatProvider\(\)/g) ?? [];
-    expect(calls.length).toBeGreaterThan(0);
-    expect(chosen.length).toBe(calls.length);
+    for (const file of ["src/lib/ai/responses.ts", "src/lib/ai/internal.ts", "src/lib/ai/run-action.ts"]) {
+      const src = readFileSync(file, "utf8");
+      // Model resolution belongs to config/ai-providers.ts, which is the only
+      // place that knows the legacy rows and the per-provider defaults.
+      expect(src, `${file} must not read ANTHROPIC_MODEL directly`).not.toContain(
+        'envOptional("ANTHROPIC_MODEL")'
+      );
+    }
   });
 });
