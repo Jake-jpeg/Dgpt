@@ -32,6 +32,7 @@ import { GLOSSARY } from "@/config/glossary";
 import { operatingFirmName } from "@/config/branding";
 import { clientItemInPhase, matterIntakePhase, activeIntakePhase, type IntakePhase } from "@/config/intake/phases";
 import { callStructured } from "@/lib/ai/responses";
+import { intakeChatProvider, intakeChatModel } from "@/config/ai-providers";
 import { AiDisabledError } from "@/lib/ai/types";
 import { envOptional } from "@/lib/env";
 import {
@@ -63,22 +64,15 @@ export function intakeChatEnabled(): boolean {
 }
 
 /**
- * The intake chat's model. Operator decision (2026-07-26): Haiku — the
- * fastest current model — because the intake turn is a NARROW job: the
- * sequencer owns question order, the machine owns the gates, the server
- * disposes every proposal; the model only phrases the given step warmly
- * and interprets the reply through the forced INTAKE_TURN schema. Verified
- * current API alias: claude-haiku-4-5 (docs, 2026-07-26).
- * ANTHROPIC_INTAKE_MODEL overrides without a deploy (DO env), then
- * ANTHROPIC_MODEL, then the Haiku default.
+ * The intake bot's provider and model live in @/config/ai-providers so that
+ * /api/health can report them without importing the AI layer. Re-exported
+ * here because this is where every caller already looks.
+ *
+ * SCOPE: INTAKE BOT ONLY. run-action.ts (attorney workbench) and internal.ts
+ * share callStructured but resolve their own model and stay on Anthropic —
+ * the seam is per-call-site precisely so this cannot leak.
  */
-export function intakeChatModel(): string {
-  return (
-    envOptional("ANTHROPIC_INTAKE_MODEL") ||
-    envOptional("ANTHROPIC_MODEL") ||
-    "claude-haiku-4-5"
-  );
-}
+export { intakeChatProvider, intakeChatModel };
 
 function firmContact(): string {
   return envOptional("FIRM_CONTACT") || "the office";
@@ -869,6 +863,7 @@ export async function runIntakeTurn(opts: {
       schemaName: "INTAKE_TURN",
       jsonSchema: INTAKE_TURN_SCHEMA,
       matterId: ctx.matter.id,
+      provider: intakeChatProvider(),
     });
     const coerced = coerceTurn(call.parsed);
     if ("correction" in coerced) {
@@ -940,6 +935,7 @@ async function driveToNextQuestion(
       schemaName: "INTAKE_TURN",
       jsonSchema: INTAKE_TURN_SCHEMA,
       matterId: ctx.matter.id,
+      provider: intakeChatProvider(),
     });
     const turn = call.parsed as unknown as IntakeTurn;
     const say = (turn.say ?? "").trim();

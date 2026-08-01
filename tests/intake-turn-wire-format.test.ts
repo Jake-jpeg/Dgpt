@@ -37,7 +37,8 @@ let sessionId: string;
 
 function mockTurns(...payloads: unknown[]) {
   let i = 0;
-  const mock = vi.fn(async () => {
+  const mock = vi.fn(async (_url: string, init?: { body?: string }) => {
+    void init;
     const payload = payloads[Math.min(i, payloads.length - 1)];
     i += 1;
     return new Response(
@@ -278,7 +279,7 @@ describe("the wire format round-trips through runIntakeTurn", () => {
     expect((await getSession(sessionId))!.state).toBe("GATE_VENUE");
 
     // The retry prompt carried the format lesson.
-    const second = JSON.parse((mock.mock.calls[1][1] as { body: string }).body);
+    const second = JSON.parse(mock.mock.calls[1][1]!.body!);
     expect(second.messages[0].content).toMatch(/value_json/);
   });
 

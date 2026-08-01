@@ -8,6 +8,7 @@ import { getDb } from "@/lib/db/index";
 import { appStage } from "@/config/stage";
 import { pdfServiceHealthy } from "@/lib/pdf-service/client";
 import { syntheticEphemeralStorageActive } from "@/lib/storage";
+import { intakeChatProvider, intakeChatModel, PROVIDER_KEY_ENV } from "@/config/ai-providers";
 
 // Cache the PDF probe briefly so frequent platform health checks don't
 // hammer the RL service.
@@ -33,7 +34,32 @@ export async function GET() {
     db,
     dbEngine: getDb().dialect,
     aiConfigured: process.env.AI_FEATURES_ENABLED === "true" && Boolean(process.env.ANTHROPIC_API_KEY),
+    // The intake bot resolves its own provider (2026-08-01), so a swap that
+    // forgot the key must be visible WITHOUT reading logs. Names and booleans
+    // only — never a key, never a fragment of one. A bad provider name is
+    // reported here rather than thrown: health must answer even when the
+    // intake is misconfigured, because that is exactly when it is read.
+    intakeAi: intakeAiHealth(),
     pdfService: pdfCache.value,
   };
   return Response.json(body, { status: db === "ok" ? 200 : 503 });
+}
+
+function intakeAiHealth(): { provider: string; model: string; keyConfigured: boolean; error?: string } {
+  try {
+    const provider = intakeChatProvider();
+    const keyEnv = PROVIDER_KEY_ENV[provider];
+    return {
+      provider,
+      model: intakeChatModel(),
+      keyConfigured: Boolean(process.env[keyEnv]),
+    };
+  } catch (e) {
+    return {
+      provider: "invalid",
+      model: "unresolved",
+      keyConfigured: false,
+      error: e instanceof Error ? e.message : "intake AI configuration is invalid",
+    };
+  }
 }

@@ -1,10 +1,16 @@
 /**
- * Anthropic Messages API client (B7) — SERVER-ONLY, structured outputs.
+ * Structured-output client (B7) — SERVER-ONLY.
  *
- * Provider decision (operator): the platform's SOLE model provider is
- * Anthropic (Claude Sonnet family). No fallback provider and no fallback
- * model — if the configured model is unavailable the call fails with an
- * INTERNAL configuration error; nothing is exposed to a client.
+ * PROVIDER-AGNOSTIC since 2026-08-01. Everything provider-specific (endpoint,
+ * auth header, forced-tool syntax, response shape) lives in ./providers.ts;
+ * this file owns what must NEVER vary by provider: the retry policy, the
+ * timeout, the error taxonomy, and the rule that there is no fallback.
+ *
+ * Provider is chosen PER CALL SITE, not globally — the intake bot can run on
+ * one provider while the attorney workbench stays on another. There is still
+ * no fallback provider and no fallback model: if the configured model is
+ * unavailable the call fails with an INTERNAL configuration error and nothing
+ * is exposed to a client.
  *
  * - Structured output via a FORCED tool call: the action's JSON schema is
  *   presented as the single available tool and tool_choice pins it, so the
@@ -20,11 +26,18 @@
  * - No extended thinking is requested; no chain-of-thought is stored.
  */
 import { createHmac } from "node:crypto";
-import { envOptional, isProduction } from "@/lib/env";
-import { appStage } from "@/config/stage";
+import { envOptional } from "@/lib/env";
+import {
+  adapterFor,
+  anthropicAdapter,
+  type AiProvider,
+  type ProviderAdapter,
+} from "./providers";
+import { AiConfigError } from "./errors";
 
-const OFFICIAL_MESSAGES_URL = "https://api.anthropic.com/v1/messages";
-const ANTHROPIC_VERSION = "2023-06-01";
+export { AiConfigError };
+export type { AiProvider };
+
 export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5";
 
 /**
@@ -40,12 +53,12 @@ export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5";
  * 0x21–0x7E is a paste artifact. The POSITION is reported so the operator
  * can find it; the key itself is NEVER logged or echoed.
  */
-export function assertApiKeyCharset(key: string): string {
+export function assertApiKeyCharset(key: string, envVar = "ANTHROPIC_API_KEY"): string {
   for (let i = 0; i < key.length; i++) {
     const code = key.charCodeAt(i);
     if (code < 0x21 || code > 0x7e) {
       throw new AiConfigError(
-        `AI_GUARD: ANTHROPIC_API_KEY contains an invalid character at position ${i} — re-enter the key in the environment settings`
+        `AI_GUARD: ${envVar} contains an invalid character at position ${i} — re-enter the key in the environment settings`
       );
     }
   }
@@ -60,14 +73,7 @@ export function assertApiKeyCharset(key: string): string {
  * redirected away from the official endpoint.
  */
 export function messagesUrl(): string {
-  const base = envOptional("ANTHROPIC_BASE_URL");
-  if (!base) return OFFICIAL_MESSAGES_URL;
-  if (isProduction()) {
-    throw new AiConfigError(
-      `AI_GUARD: ANTHROPIC_BASE_URL override is refused in production builds (APP_STAGE=${appStage()}) — development testing only`
-    );
-  }
-  return base.replace(/\/+$/, "") + "/messages";
+  return anthropicAdapter.endpoint();
 }
 
 export function aiModel(): string {
@@ -101,12 +107,13 @@ export interface StructuredCallResult {
   tokensOut: number | null;
 }
 
-export class AiConfigError extends Error {}
-
 /**
- * One structured-output call. Throws AiConfigError for configuration
- * problems (bad key, unknown model) and Error for transport/validation-
- * level failures. Callers own audit logging (metadata only).
+ * One structured-output call. Throws AiConfigError for configuration problems
+ * (bad key, unknown model, base-URL override in production) and Error for
+ * transport/validation-level failures. Callers own audit logging (metadata
+ * only).
+ *
+ * `provider` defaults to anthropic, so every existing call site is unchanged.
  */
 export async function callStructured(opts: {
   model: string;
@@ -115,35 +122,26 @@ export async function callStructured(opts: {
   schemaName: string;
   jsonSchema: Record<string, unknown>;
   matterId: string | null;
+  provider?: AiProvider;
 }): Promise<StructuredCallResult> {
-  const key = envOptional("ANTHROPIC_API_KEY");
-  if (!key) throw new AiConfigError("AI_GUARD: ANTHROPIC_API_KEY is not configured");
-  assertApiKeyCharset(key);
+  const adapter: ProviderAdapter = opts.provider ? adapterFor(opts.provider) : anthropicAdapter;
 
-  const headers: Record<string, string> = {
-    "content-type": "application/json",
-    "x-api-key": key,
-    "anthropic-version": ANTHROPIC_VERSION,
-  };
+  const key = envOptional(adapter.apiKeyEnv);
+  if (!key) throw new AiConfigError(`AI_GUARD: ${adapter.apiKeyEnv} is not configured`);
+  assertApiKeyCharset(key, adapter.apiKeyEnv);
 
-  const body = JSON.stringify({
+  const headers = adapter.headers(key);
+  const body = adapter.body({
     model: opts.model,
-    max_tokens: aiMaxOutputTokens(),
     system: opts.system,
-    messages: [{ role: "user", content: opts.user }],
-    tools: [
-      {
-        name: opts.schemaName,
-        description:
-          "Return the structured report for this action. Respond ONLY by calling this tool with arguments that match the schema exactly.",
-        input_schema: opts.jsonSchema,
-      },
-    ],
-    tool_choice: { type: "tool", name: opts.schemaName },
-    metadata: { user_id: safetyIdentifier(opts.matterId) },
+    user: opts.user,
+    schemaName: opts.schemaName,
+    jsonSchema: opts.jsonSchema,
+    safetyId: safetyIdentifier(opts.matterId),
+    maxOutputTokens: aiMaxOutputTokens(),
   });
+  const endpoint = adapter.endpoint();
 
-  const endpoint = messagesUrl();
   let lastError: Error | null = null;
   for (let attempt = 0; attempt <= aiMaxRetries(); attempt++) {
     const started = Date.now();
@@ -158,7 +156,9 @@ export async function callStructured(opts: {
       });
       clearTimeout(timer);
       if (res.status === 401 || res.status === 403) {
-        throw new AiConfigError("AI_GUARD: provider rejected credentials (check ANTHROPIC_API_KEY)");
+        throw new AiConfigError(
+          `AI_GUARD: provider rejected credentials (check ${adapter.apiKeyEnv})`
+        );
       }
       if (res.status === 404 || res.status === 400) {
         // Model unavailable / bad request: configuration error — status code
@@ -172,23 +172,14 @@ export async function callStructured(opts: {
         lastError = new Error(`AI_GUARD: provider request failed (HTTP ${res.status})`);
         continue; // retry 429/5xx/529
       }
-      const data = (await res.json()) as {
-        id?: string;
-        model?: string;
-        content?: { type: string; name?: string; input?: unknown; text?: string }[];
-        usage?: { input_tokens?: number; output_tokens?: number };
-      };
-      const block = data.content?.find((c) => c.type === "tool_use");
-      if (!block || block.input === undefined || block.input === null) {
-        throw new Error("AI_GUARD: provider returned no structured output");
-      }
+      const out = adapter.parse(await res.json());
       return {
-        parsed: block.input,
-        responseId: data.id ?? null,
-        model: data.model ?? opts.model,
+        parsed: out.parsed,
+        responseId: out.responseId,
+        model: out.model ?? opts.model,
         latencyMs: Date.now() - started,
-        tokensIn: data.usage?.input_tokens ?? null,
-        tokensOut: data.usage?.output_tokens ?? null,
+        tokensIn: out.tokensIn,
+        tokensOut: out.tokensOut,
       };
     } catch (e) {
       clearTimeout(timer);
