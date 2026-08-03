@@ -5,7 +5,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { getDisclosure } from "@/config/disclosure";
-import { operatingFirmName, inquiryEmail } from "@/config/branding";
+import { operatingFirmName, inquiryEmail, nonAffiliationNotice } from "@/config/branding";
 import { clientMatterStatus } from "@/lib/matters/client-view";
 import type { MatterRow } from "@/lib/db/matters";
 
@@ -73,9 +73,24 @@ describe("operating-firm branding is configuration", () => {
     expect(hits).toEqual([]);
   });
 
-  it("the OpenAI non-affiliation statement is retained on the landing page", () => {
-    const page = fs.readFileSync(path.join(__dirname, "..", "src", "app", "page.tsx"), "utf8");
-    expect(page).toMatch(/not affiliated with,\s*\n?\s*sponsored by, or endorsed by any AI provider/);
+  it("the non-affiliation notice names the confusion it exists to answer", () => {
+    const notice = nonAffiliationNotice();
+    expect(notice).toMatch(/OpenAI/);
+    expect(notice).toMatch(/ChatGPT/);
+    expect(notice).toMatch(/not affiliated with, sponsored by, or endorsed by/);
+  });
+
+  it("it never names the AI provider actually in use — that changes by env flip", () => {
+    // A vendor named in client copy becomes FALSE the day AI_PROVIDER moves.
+    // "any AI provider" is true whichever way the switch is set.
+    expect(nonAffiliationNotice()).toMatch(/any AI provider/);
+    expect(nonAffiliationNotice()).not.toMatch(/Anthropic|Claude|Gemini|Terra/i);
+  });
+
+  it("both the landing page and the signed-in portal carry it", () => {
+    const read = (...p: string[]) => fs.readFileSync(path.join(__dirname, "..", ...p), "utf8");
+    expect(read("src", "app", "page.tsx")).toMatch(/nonAffiliationNotice\(\)/);
+    expect(read("src", "components", "shell.tsx")).toMatch(/nonAffiliationNotice\(\)/);
   });
 });
 

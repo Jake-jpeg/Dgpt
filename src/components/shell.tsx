@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { api } from "@/lib/ui/client-api";
+import { nonAffiliationNotice } from "@/config/branding";
 
 export interface Me {
   role: "CLIENT" | "STAFF" | "ATTORNEY" | "ADMIN";
@@ -176,6 +177,7 @@ export function Shell({
           its attorneys. If something is urgent, contact the firm directly —
           do not rely on this portal alone.
         </p>
+        <p>{nonAffiliationNotice()}</p>
       </footer>
     </div>
   );

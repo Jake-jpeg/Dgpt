@@ -1,4 +1,4 @@
-import { copyrightOwner, legalServicesProvider } from "@/config/branding";
+import { copyrightOwner, legalServicesProvider, nonAffiliationNotice } from "@/config/branding";
 import { stageStatusCopy } from "@/config/stage";
 
 // Stage-aware status copy must reflect the RUNTIME environment, not a value
@@ -90,8 +90,7 @@ export default function Landing() {
 
       <footer>
         <p>
-          DivorceGPT.com is an independent project and is not affiliated with,
-          sponsored by, or endorsed by any AI provider.
+          {nonAffiliationNotice()}
         </p>
         <p>
           AI output is internal-only and always subject to attorney review
