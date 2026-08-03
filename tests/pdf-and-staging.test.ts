@@ -444,3 +444,101 @@ describe("health + acceptance gating", () => {
     expect((await acceptancePost(req({ step: "ny-setup" }))).status).toBe(401);
   });
 });
+
+describe("an address written by the CHAT renders, not just one written by the FORM", () => {
+  // WHY THIS EXISTS. Live, 2026-08-03: a matter completed entirely through the
+  // intake chat reported missingRequired: [] and every section answered, and
+  // then every Generate button failed with
+  //   VALIDATION: form data incomplete — missing plaintiffAddress, qualifyingAddress
+  //
+  // The address was there. It was a STRING, because that is what the chat
+  // writes; combinedAddress only understood the OBJECT the portal form writes.
+  //
+  // Every fixture in this file used the object shape, which is exactly why 17
+  // passing tests never saw it. These use both.
+
+  const CHAT_SHAPE = [
+    { questionId: "shared.identity.client_name", value: "Avery Stagingperson" },
+    { questionId: "shared.identity.other_name", value: "Blake Stagingperson" },
+    { questionId: "shared.identity.client_address", value: "12 Synthetic Way, Brooklyn, NY 11201" },
+    { questionId: "shared.identity.other_address", value: "34 Synthetic Row, Brooklyn, NY 11201" },
+    { questionId: "shared.relationship.status_kind", value: "MARRIAGE" },
+    { questionId: "shared.relationship.marriage_date", value: "2015-06-15" },
+    { questionId: "shared.relationship.marriage_state", value: "NY" },
+    { questionId: "ny.case.county", value: "KINGS" },
+  ];
+
+  const asMap = (rows: { questionId: string; value: unknown }[]) =>
+    Object.fromEntries(rows.map((a) => [a.questionId, a.value]));
+
+  it("UD-1 renders from the chat's string address — the live failure, pinned", async () => {
+    const matter = await nyReadyMatter();
+    const p = buildNyUd1Payload(matter, asMap(CHAT_SHAPE));
+    expect(p.plaintiffAddress).toBe("12 Synthetic Way, Brooklyn, NY 11201");
+    expect(p.qualifyingAddress).toBe("12 Synthetic Way, Brooklyn, NY 11201");
+    expect(() => buildRenderPayload("ny", "ud1", matter, asMap(CHAT_SHAPE))).not.toThrow();
+  });
+
+  it("the form's object shape is unchanged", async () => {
+    const matter = await nyReadyMatter();
+    const p = buildNyUd1Payload(matter, asMap(NY_MAPPING_ANSWERS));
+    expect(p.plaintiffAddress).toBe("12 Synthetic Way, Brooklyn, NY 11201");
+    expect(p.qualifyingAddress).toBe("12 Synthetic Way, Brooklyn, NY 11201");
+  });
+
+  it("the two shapes of the same address produce the same payload", async () => {
+    const matter = await nyReadyMatter();
+    const fromForm = buildNyUd1Payload(matter, asMap(NY_MAPPING_ANSWERS));
+    const fromChat = buildNyUd1Payload(matter, asMap(CHAT_SHAPE));
+    expect(fromChat.plaintiffAddress).toBe(fromForm.plaintiffAddress);
+    expect(fromChat.qualifyingAddress).toBe(fromForm.qualifyingAddress);
+  });
+
+  it("the Verified Complaint gets both parties' addresses from strings", async () => {
+    const matter = await nyReadyMatter();
+    const p = buildRenderPayload("ny", "complaint", matter, {
+      ...asMap(CHAT_SHAPE),
+      "ny.case.grounds_facts": "IRRETRIEVABLE_6MO",
+      "ny.case.resident_now": true,
+      "ny.case.resident_since": "2014-03-01",
+    });
+    expect(p.plaintiffAddress).toBe("12 Synthetic Way, Brooklyn, NY 11201");
+    expect(p.defendantAddress).toBe("34 Synthetic Row, Brooklyn, NY 11201");
+  });
+
+  it("an EMPTY or blank address still fails validation — no blank line in a caption", async () => {
+    const matter = await nyReadyMatter();
+    for (const bad of ["", "   ", null, undefined, 42, {}]) {
+      const answers = { ...asMap(CHAT_SHAPE), "shared.identity.client_address": bad };
+      expect(() => buildRenderPayload("ny", "ud1", matter, answers)).toThrow(/VALIDATION/);
+    }
+  });
+
+  it("the exact answer set from the live matter renders", async () => {
+    // Copied verbatim from /api/matters/<id>/intake2 on divorcegpt.com,
+    // 2026-08-03 — the matter that could not produce a document.
+    const matter = await nyReadyMatter();
+    const live = {
+      "shared.identity.client_name": "Jake Kim",
+      "shared.identity.client_address": "60 West 13th Street, Manhattan, NY",
+      "shared.identity.other_name": "Joo Kim",
+      "shared.identity.other_address": "60 West 13th Street, Manhattan, NY",
+      "shared.relationship.status_kind": "MARRIAGE",
+      "shared.relationship.marriage_date": "2016-06-18",
+      "shared.relationship.marriage_place": "New York, New York",
+      "shared.relationship.ceremony_type": "CIVIL",
+      "shared.relationship.prior_matrimonial_actions": false,
+      "shared.children.any": false,
+      "ny.case.resident_now": true,
+      "ny.case.resident_since": "2014-03-01",
+      "ny.case.lived_in_ny_as_spouses": true,
+      "ny.case.county": "New York",
+      "ny.case.grounds_facts": "IRRETRIEVABLE_6MO",
+      "ny.case.grounds_dates": "January 2024",
+    };
+    const ud1 = buildRenderPayload("ny", "ud1", matter, live);
+    expect(ud1.plaintiffAddress).toBe("60 West 13th Street, Manhattan, NY");
+    expect(ud1.filingCounty).toBe("New York");
+    expect(() => buildRenderPayload("ny", "complaint", matter, live)).not.toThrow();
+  });
+});

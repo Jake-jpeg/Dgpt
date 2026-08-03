@@ -22,8 +22,37 @@ interface AddressValue {
   zip?: string;
 }
 
-/** "12 Synthetic Way, Buffalo, NY 14201" from the structured answer. */
+/**
+ * "12 Synthetic Way, Buffalo, NY 14201" from the stored answer.
+ *
+ * TWO SHAPES REACH THIS FUNCTION and until now only one of them worked.
+ *
+ * The portal FORM writes an `address` item as a structured object —
+ * { line1, city, state, zip } (the "address" case in
+ * src/app/portal/intake/page.tsx). The intake CHAT writes whatever the model
+ * proposed, which for an address is one already-combined line:
+ * "60 West 13th Street, Manhattan, NY". Nothing reconciles them:
+ * saveMatterAnswers validates the question id and the actor's role and then
+ * JSON.stringify's the value without ever consulting item.type
+ * (src/lib/db/intake2.ts).
+ *
+ * So an object-only reader silently returned "" for every chat-completed
+ * matter, and the render route rejected it:
+ *
+ *   VALIDATION: form data incomplete — missing plaintiffAddress, qualifyingAddress
+ *
+ * while the intake reported that same matter COMPLETE, missingRequired empty.
+ * Both were telling the truth about one fact in two shapes, and the result was
+ * that a matter finished by chat could not produce a single document.
+ * Observed live 2026-08-03.
+ *
+ * A string is taken as ALREADY COMBINED and passed through. It is deliberately
+ * NOT parsed into line1/city/state: splitting "60 West 13th Street, Manhattan,
+ * NY" means guessing which comma is the city, and a wrong guess prints in a
+ * caption. It goes on the paper as the client wrote it.
+ */
 function combinedAddress(v: unknown): string {
+  if (typeof v === "string") return v.trim();
   if (!v || typeof v !== "object") return "";
   const a = v as AddressValue;
   const parts = [str(a.line1), str(a.city), [str(a.state), str(a.zip)].filter(Boolean).join(" ")];
