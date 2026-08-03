@@ -10,13 +10,14 @@ all substantive work and affirmatively approves any external release.
 **It is not a law firm, not an attorney, not a public legal-advice chatbot,
 not an autonomous drafting service, and not a payment platform.** The
 client-facing intake "bot" is a constrained state machine with retrieval —
-see [Guardrails](#guardrails). Internal AI (OpenAI, staff/attorney-only,
-kill-switched) produces only ATTORNEY_REVIEW_REQUIRED work product.
+see [Guardrails](#guardrails). Internal AI (server-side, staff/attorney-only,
+kill-switched, provider selected by `AI_PROVIDER`) produces only
+ATTORNEY_REVIEW_REQUIRED work product.
 
 2.0 attorney-workflow scope: DB-stored 4-role RBAC (CLIENT/STAFF/ATTORNEY/
 ADMIN), matter-centered model, hashed single-use invitations, versioned
 disclosure consent, attorney-only conflict clearance, accommodations,
-version-exact hash-bound document approval/release, server-only OpenAI
+version-exact hash-bound document approval/release, server-only AI
 layer, retention + legal hold, hash-chained audit. See `docs/ARCHITECTURE.md`
 and `docs/HANDOFF-FOR-OPENAI-AUDIT.md` for the full map. **Not** in scope:
 payments (never in-app), custody tier (deferred), in-app scheduling,
