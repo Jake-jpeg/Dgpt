@@ -11,7 +11,7 @@ const capabilities = [
   "Document and missing-information tracking",
   "Paralegal-guided workflows",
   "Attorney review and approval controls",
-  "New York workflow design",
+  "New York and New Jersey workflow design",
 ];
 
 export default function Landing() {
@@ -37,7 +37,8 @@ export default function Landing() {
             <p className="hero-copy">
               DivorceGPT.com is being developed as a structured matrimonial intake
               and case-preparation workflow for attorneys, legal staff, and
-              legal-service organizations in New York.
+              legal-service organizations — built for New York, now expanding
+              to New Jersey.
             </p>
             <div className="hero-actions">
               <a className="button button-secondary" href="#platform">
@@ -84,7 +85,26 @@ export default function Landing() {
       <section className="institutional-shell">
         <div>
           <p className="eyebrow">Current posture</p>
-          <h2>In active development. Open to early-access partners and pilot discussions with New York matrimonial practices.</h2>
+          <h2>In active development. Open to early-access partners and pilot discussions with New York and New Jersey matrimonial practices.</h2>
+          <div className="jurisdiction-strip">
+            <div className="jurisdiction-row">
+              <span className="jurisdiction-tag">NY</span>
+              <div>
+                <strong>New York</strong> — Supreme Court matrimonial workflow.
+                Uncontested intake, the full UD packet, and attorney-controlled
+                document generation. Deepest coverage today.
+              </div>
+            </div>
+            <div className="jurisdiction-row">
+              <span className="jurisdiction-tag">NJ</span>
+              <div>
+                <strong>New Jersey</strong> — Superior Court, Chancery Division,
+                Family Part. Complaint through Judgment of Divorce, in active
+                build now. Firms practicing in both states run each matter in
+                its own court.
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

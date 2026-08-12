@@ -443,3 +443,32 @@ details.accordion > summary:focus-visible { outline: 2px solid var(--blue); outl
 @media (max-width: 420px) {
   .gate-card { padding: 28px 22px; }
 }
+
+/* Jurisdictions strip — the two-state announcement on the landing page.
+   Same visual family as the workflow card: quiet, institutional, navy. */
+.jurisdiction-strip {
+  margin-top: 1.75rem;
+  display: grid;
+  gap: 0.9rem;
+}
+.jurisdiction-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid rgba(148, 178, 216, 0.22);
+  border-radius: 10px;
+  background: rgba(20, 34, 54, 0.45);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.jurisdiction-tag {
+  flex: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 0.28rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 178, 216, 0.45);
+  color: #bcd2ee;
+}
