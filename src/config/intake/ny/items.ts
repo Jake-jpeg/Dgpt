@@ -48,7 +48,7 @@ export const NY_ITEMS: IntakeItem[] = [
   // alongside § 170(7) misled the client in the 2026-07-26 live test into
   // thinking a six-month physical separation was required. IT IS NOT.
   // Spouses living under the same roof qualify.
-  q({ id: "ny.case.grounds_facts", section: "ny_case", prompt: "Has the relationship between you and the other party been broken down beyond repair for at least six months?", type: "single_select", categories: SUP, required: true, authorityIds: ["NY-DIVORCE-GROUNDS-001"], helpText: "This is what New York asks for in an uncontested divorce (DRL § 170(7)). It does NOT require living apart — you can still be in the same home. Only one of you has to state it, and the other party does not have to agree with the reason.", options: [
+  q({ id: "ny.case.grounds_facts", section: "ny_case", prompt: "Has the relationship between you and the other party been broken down beyond repair for at least six months?", type: "single_select", categories: SUP, required: true, authorityIds: ["NY-DIVORCE-GROUNDS-001"], helpText: "This is what New York asks for in an uncontested divorce. It does NOT require living apart — you can still be in the same home. Only one of you has to state it, and the other party does not have to agree with the reason.", options: [
     { value: "IRRETRIEVABLE_6MO", label: "Yes — it has been broken down beyond repair for six months or more" },
     { value: "OTHER", label: "No, or I'm not sure — I'd like the attorney to look at this" },
   ] }),
