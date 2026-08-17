@@ -65,10 +65,35 @@ describe("Phase 1 intake contract", () => {
       expect(PHASE1_ITEM_IDS.has(i.id), `missing-required leaks ${i.id}`).toBe(true);
     }
     // Sections with no phase-1 items report zero — the form UI hides them.
+    //
+    // 2026-08-17. This allowlist read ["identity", "relationship", "ny_case"]
+    // and had been failing since 2026-07-26, flagging `children` and
+    // `ny_scope` as bloat. Both are in Phase 1 BY OPERATOR DIRECTIVE:
+    // shared.children.any because the Verified Complaint must state whether
+    // there are children of the marriage, and the five ny.scope.* items
+    // because "No to kids → immediately to ED. Is everything resolved.
+    // That's intake part 1."
+    //
+    // The decisive evidence that the product is right and the test was
+    // stale: the item-level fence above leaks NOTHING (asserted again
+    // explicitly below). A genuine phase-filter hole would fail there first.
+    // This check only ever policed which SECTION HEADERS the form shows.
+    const PHASE1_SECTIONS = ["identity", "relationship", "children", "ny_case", "ny_scope"];
     const bloatSections = sectionProgress(schema, answers).filter(
-      (s) => s.total > 0 && !["identity", "relationship", "ny_case"].includes(s.sectionId)
+      (s) => s.total > 0 && !PHASE1_SECTIONS.includes(s.sectionId)
     );
     expect(bloatSections).toEqual([]);
+    // The guarantee that actually matters, stated outright: every section the
+    // client can see is populated ONLY by phase-1 items.
+    for (const section of sectionProgress(schema, answers).filter((s) => s.total > 0)) {
+      const strays = schema.items.filter(
+        (i) => i.section === section.sectionId &&
+               i.audience === "CLIENT" &&
+               !PHASE1_ITEM_IDS.has(i.id) &&
+               visibleItems(schema, answers, "CLIENT").some((v) => v.id === i.id)
+      );
+      expect(strays.map((i) => i.id), `section ${section.sectionId} leaks`).toEqual([]);
+    }
   });
 
   it("attorney surfaces are NEVER phase-filtered", () => {

@@ -37,7 +37,12 @@ import {
   assertLegalContentFlagsValid,
 } from "@/lib/legal/authority";
 import { validateSchema, validateIntakeConfig } from "@/lib/intake2/validate";
-import { getSchemaForCategory, listSchemas, INTAKE_SCHEMA_VERSION } from "@/config/intake/schemas";
+import {
+  getSchemaForCategory,
+  listSchemas,
+  INTAKE_SCHEMA_VERSION,
+  NJ_INTAKE_SCHEMA_VERSION,
+} from "@/config/intake/schemas";
 import { MATTER_CATEGORIES } from "@/lib/intake2/types";
 import {
   itemVisible,
@@ -282,18 +287,46 @@ describe("E2 deterministic branching", () => {
   afterEach(() => {
     delete process.env.INTAKE_PHASE;
   });
-  it("all NY categories produce versioned schemas with the shared core and only NY items", () => {
+  // 2026-08-17. This loop used to walk EVERY category asserting each one was
+  // a NY category at the NY schema version. That was never a NY guarantee —
+  // it was the single-state assumption itself, written when NY was the only
+  // state, and it failed the moment New Jersey was registered. The domain grew
+  // by design; the test's premise expired.
+  //
+  // Rewritten per-state, which is strictly STRONGER than before: each state's
+  // categories must pin that state's version, carry the shared core, carry
+  // their own items, and carry NO other state's items. Plus a new assertion
+  // that no category exists outside the known state prefixes — so a typo'd or
+  // stateless category is still caught, which is what the old loop was
+  // actually protecting.
+  const STATE_CONTRACTS = [
+    { prefix: "NY_", itemPrefix: "ny.", foreign: "nj.", version: INTAKE_SCHEMA_VERSION },
+    { prefix: "NJ_", itemPrefix: "nj.", foreign: "ny.", version: NJ_INTAKE_SCHEMA_VERSION },
+  ];
+
+  it("every category belongs to a known state — no stateless or typo'd categories", () => {
     expect(listSchemas().length).toBe(MATTER_CATEGORIES.length);
     for (const category of MATTER_CATEGORIES) {
-      const schema = getSchemaForCategory(category);
-      expect(schema.version).toBe(INTAKE_SCHEMA_VERSION);
-      expect(category.startsWith("NY_")).toBe(true);
-      const ids = schema.items.map((i) => i.id);
-      expect(ids.some((id) => id.startsWith("shared."))).toBe(true);
-      expect(ids.some((id) => id.startsWith("ny."))).toBe(true);
-      expect(ids.some((id) => id.startsWith("nj."))).toBe(false);
+      const owned = STATE_CONTRACTS.some((s) => category.startsWith(s.prefix));
+      expect(owned, `category ${category} belongs to no known state`).toBe(true);
     }
   });
+
+  it.each(STATE_CONTRACTS)(
+    "$prefix categories produce versioned schemas with the shared core and only their own state's items",
+    ({ prefix, itemPrefix, foreign, version }) => {
+      const categories = MATTER_CATEGORIES.filter((c) => c.startsWith(prefix));
+      expect(categories.length).toBeGreaterThan(0);
+      for (const category of categories) {
+        const schema = getSchemaForCategory(category);
+        expect(schema.version).toBe(version);
+        const ids = schema.items.map((i) => i.id);
+        expect(ids.some((id) => id.startsWith("shared."))).toBe(true);
+        expect(ids.some((id) => id.startsWith(itemPrefix))).toBe(true);
+        expect(ids.some((id) => id.startsWith(foreign))).toBe(false);
+      }
+    }
+  );
 
   it("conditions are engine-evaluated: child items appear only after children.any = true", () => {
     const schema = getSchemaForCategory("NY_SUPREME_UNCONTESTED");
@@ -412,10 +445,27 @@ describe("E3 client-language surface", () => {
     expect(raw).not.toContain("COUNSEL_REVIEW");
     expect(raw).not.toContain("attorney_determination");
     expect(raw).not.toContain("ATTORNEY DETERMINATION");
-    // Statute-citation formats must not leak into client prompts/help.
-    expect(raw).not.toMatch(/N\.?J\.?S\.?A\.?\s*2A/i);
-    expect(raw).not.toMatch(/\bDRL\b|\bFCA\b|\bC\.R\.S\b/);
-    expect(raw).not.toMatch(/§/);
+    // ── Statute citations: banned EVERYWHERE on the client surface ──
+    //
+    // History, because this rule has now moved twice and should not move
+    // again without the operator: the ban had been silently failing since
+    // 2026-07-26 (two DRL citations in helpText; the full suite rarely runs
+    // under the token directive). On 2026-08-17 it was briefly narrowed to
+    // prompts-only; the operator then ruled the client surface stays
+    // CITATION-FREE, so the two helpText citations were removed from the
+    // config and the blanket ban is restored — strict, and now actually
+    // matched by the copy. The per-item loop is kept because its failure
+    // message names the offending item id instead of dumping the payload.
+    const STATUTE = /N\.?J\.?S\.?A\.?\s*2A|\bDRL\b|\bFCA\b|\bC\.R\.S\b|§/i;
+    for (const item of data.items) {
+      for (const field of ["prompt", "helpText"] as const) {
+        expect(
+          STATUTE.test(String(item[field] ?? "")),
+          `client ${field} carries a statute citation: ${String(item.id)}`
+        ).toBe(false);
+      }
+    }
+    expect(raw).not.toMatch(STATUTE);
   });
 
   it("firm view keeps internal metadata (contrast check)", async () => {

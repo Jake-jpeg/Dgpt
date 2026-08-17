@@ -129,10 +129,25 @@ describe("stage-aware status copy", () => {
 
   it("landing footer carries the no-attorney-client-relationship language and the OpenAI statement", () => {
     const landing = fs.readFileSync(path.join(__dirname, "..", "src", "app", "page.tsx"), "utf8");
-    expect(landing).toContain("does not\n          create an attorney-client relationship");
-    expect(landing).toContain("Portal access does not itself");
-    expect(landing).toContain("separate written engagement agreement with");
-    expect(landing).toMatch(/not affiliated with,\s*\n?\s*sponsored by, or endorsed by any AI provider/);
+    // Collapse whitespace before matching. 2026-08-17: this asserted a literal
+    // "does not\n          create an attorney-client relationship" — a bare LF
+    // plus exact JSX indentation. The working tree is CRLF (core.autocrlf=input
+    // keeps git clean while the files on disk keep \r\n), so the assertion could
+    // never match and had been failing unnoticed. Same class of bug as the
+    // pdftotext encoding failure in the RL repo: a test pinned to a platform
+    // detail instead of to the thing it cares about, which here is the LANGUAGE.
+    const prose = landing.replace(/\s+/g, " ");
+    expect(prose).toContain("does not create an attorney-client relationship");
+    expect(prose).toContain("Portal access does not itself");
+    expect(prose).toContain("separate written engagement agreement with");
+    // The non-affiliation notice moved into src/config/branding.ts
+    // (nonAffiliationNotice) in 856e92b so the landing page and the signed-in
+    // portal render the identical sentence. This assertion used to duplicate
+    // the old literal wording and broke silently when the copy moved; the
+    // WORDING is now pinned once, in tests/branding.test.ts (OpenAI, ChatGPT,
+    // "any AI provider", and no vendor name). Here we assert only that the
+    // landing page actually renders it — one owner per fact.
+    expect(landing).toContain("nonAffiliationNotice()");
     // De-emphasized acquisition + new CTAs.
     expect(landing).toContain("View the workflow");
     expect(landing).not.toMatch(/acquisition/i);
