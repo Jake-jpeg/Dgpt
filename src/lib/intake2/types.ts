@@ -75,6 +75,23 @@ export interface IntakeItem {
   prompt: string;
   /** Static, pre-approved explanatory help text (never generated). */
   helpText?: string;
+  /**
+   * Per-state help for a question BOTH states ask.
+   *
+   * A shared item has one id and one stored answer, but the reason a state
+   * asks it can be purely local: New York explains the religious-ceremony
+   * question by the extra step at the end of a NY case, and New Jersey has
+   * no analogue to explain. Before this existed, the NY sentence was the
+   * item's only helpText and would have been served verbatim to New Jersey
+   * clients — the two playbooks reading one row.
+   *
+   * `buildSchema` resolves this to `helpText` for the schema's own
+   * jurisdiction and DELETES the map, so a built schema never carries
+   * another state's copy and no client payload can leak it. A state with no
+   * entry gets no help text at all, which is the honest outcome: silence
+   * beats a hand-waved substitute.
+   */
+  helpTextByJurisdiction?: Partial<Record<"NY" | "NJ", string>>;
   type: AnswerType;
   required: boolean;
   options?: { value: string; label: string }[];

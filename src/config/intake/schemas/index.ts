@@ -33,9 +33,30 @@ function isNewJersey(category: MatterCategory): boolean {
   return category.startsWith("NJ_");
 }
 
+/**
+ * Resolve per-state help to this schema's own jurisdiction, and DROP the map.
+ *
+ * Two things matter here. The built schema must carry the right state's
+ * sentence, and it must not carry the other state's at all — the map is the
+ * one place a NY string could ride into an NJ client payload, so it does not
+ * survive the build. A shared question with no entry for this state ends up
+ * with NO help text, deliberately: New Jersey has no removal-of-barriers
+ * step to describe, and inventing a substitute would be worse than silence.
+ */
+function resolveHelpText(item: IntakeItem, jurisdiction: "NY" | "NJ"): IntakeItem {
+  if (!item.helpTextByJurisdiction) return item;
+  const { helpTextByJurisdiction, ...rest } = item;
+  const resolved = helpTextByJurisdiction[jurisdiction];
+  if (resolved === undefined) {
+    const { helpText: _dropped, ...noHelp } = rest;
+    return noHelp;
+  }
+  return { ...rest, helpText: resolved };
+}
+
 function buildSchema(category: MatterCategory): IntakeSchema {
   const nj = isNewJersey(category);
-  const jurisdiction = nj ? "NJ" : "NY";
+  const jurisdiction: "NY" | "NJ" = nj ? "NJ" : "NY";
   const stateItems = nj ? NJ_ITEMS : NY_ITEMS;
   const stateSections = nj ? NJ_SECTIONS : NY_SECTIONS;
   const stateDocs = nj ? NJ_DOCUMENTS : NY_DOCUMENTS;
@@ -51,7 +72,7 @@ function buildSchema(category: MatterCategory): IntakeSchema {
     items: [
       ...itemsForCategory(SHARED_ITEMS, category),
       ...itemsForCategory(stateItems, category),
-    ],
+    ].map((i) => resolveHelpText(i, jurisdiction)),
     documents: [...SHARED_DOCUMENTS, ...stateDocs],
   };
 }
