@@ -8,25 +8,44 @@ import type { IntakeItem, IntakeSchema, MatterCategory } from "@/lib/intake2/typ
 import { MATTER_CATEGORIES } from "@/lib/intake2/types";
 import { SHARED_DOCUMENTS, SHARED_ITEMS, SHARED_SECTIONS } from "../shared/core";
 import { NY_DOCUMENTS, NY_ITEMS, NY_SECTIONS } from "../ny/items";
+import { NJ_DOCUMENTS, NJ_ITEMS, NJ_SECTIONS } from "../nj/items";
 
 export const INTAKE_SCHEMA_VERSION = "2026.07.1";
 const EFFECTIVE = "2026-07-12";
+
+/**
+ * New Jersey is pinned SEPARATELY. The NY version is a statement about when
+ * the NY questionnaire was last reviewed by counsel, and shipping a second
+ * state must not silently re-date it — a matter's `intakeSchemaVersion`
+ * pins the questions it was interviewed under, and those two review
+ * histories are genuinely independent.
+ */
+export const NJ_INTAKE_SCHEMA_VERSION = "2026.08.1";
+const NJ_EFFECTIVE = "2026-08-12";
 
 function itemsForCategory(items: IntakeItem[], category: MatterCategory): IntakeItem[] {
   return items.filter((i) => !i.categories || i.categories.includes(category));
 }
 
+/** The state module a category is interviewed from. No default: an
+ *  unrecognised prefix is a build-time gap, not something to guess at. */
+function isNewJersey(category: MatterCategory): boolean {
+  return category.startsWith("NJ_");
+}
+
 function buildSchema(category: MatterCategory): IntakeSchema {
-  const jurisdiction = "NY";
-  const stateItems = NY_ITEMS;
-  const stateSections = NY_SECTIONS;
-  const stateDocs = NY_DOCUMENTS;
+  const nj = isNewJersey(category);
+  const jurisdiction = nj ? "NJ" : "NY";
+  const stateItems = nj ? NJ_ITEMS : NY_ITEMS;
+  const stateSections = nj ? NJ_SECTIONS : NY_SECTIONS;
+  const stateDocs = nj ? NJ_DOCUMENTS : NY_DOCUMENTS;
+  const version = nj ? NJ_INTAKE_SCHEMA_VERSION : INTAKE_SCHEMA_VERSION;
   return {
-    id: `${category}@${INTAKE_SCHEMA_VERSION}`,
+    id: `${category}@${version}`,
     category,
     jurisdiction,
-    version: INTAKE_SCHEMA_VERSION,
-    effectiveDate: EFFECTIVE,
+    version,
+    effectiveDate: nj ? NJ_EFFECTIVE : EFFECTIVE,
     reviewStatus: "COUNSEL_REVIEW_REQUIRED",
     sections: [...SHARED_SECTIONS, ...stateSections],
     items: [
