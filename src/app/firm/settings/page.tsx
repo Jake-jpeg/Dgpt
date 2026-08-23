@@ -1,8 +1,11 @@
 "use client";
 
 /**
- * Administration — ADMIN only. Users & roles, retention configuration,
- * disclosure version, audit review. Deliberately restrained: there is no
+ * Practice settings — the administration console, folded into the lawyer
+ * portal (operator, 2026-08-23: "get rid of the admin portal and just have
+ * one for lawyers and clients"). Users & roles, retention configuration,
+ * disclosure version, audit review. Visible to ATTORNEY and ADMIN; the
+ * server re-checks on every call. Deliberately restrained: there is no
  * control here (or anywhere) that can weaken attorney-only rules — the
  * config API accepts an allowlist of retention keys and nothing else, and
  * conflict/approval/release guards re-read roles inside the persistence
@@ -37,9 +40,10 @@ const ROLES = ["CLIENT", "STAFF", "ATTORNEY", "ADMIN"] as const;
 // Client accounts are born only via invitation acceptance — never offered here.
 const CREATE_ROLES = ["STAFF", "ATTORNEY", "ADMIN"] as const;
 
-export default function AdminPage() {
+export default function PracticeSettingsPage() {
   const { me, loading } = useMe();
-  const isAdmin = me?.user?.role === "ADMIN";
+  const role = me?.user?.role;
+  const isAdmin = role === "ADMIN" || role === "ATTORNEY";
 
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [config, setConfig] = useState<ConfigRow[]>([]);
@@ -112,11 +116,11 @@ export default function AdminPage() {
   }
 
   return (
-    <Shell title="Administration">
+    <Shell title="Practice settings">
       <ErrorNotice message={err} />
       {info && <div className="notice notice-good mb-4">{info}</div>}
       {!loading && !isAdmin && (
-        <div className="notice notice-info">This area is for administrators.</div>
+        <div className="notice notice-info">This area is for the firm&apos;s attorney and administrators.</div>
       )}
 
       {isAdmin && (

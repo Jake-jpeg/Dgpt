@@ -10,7 +10,7 @@
  *   - A firm-role account (STAFF / ATTORNEY / ADMIN) is a firm login whether
  *     it arrived via Microsoft Entra or via Google (e.g. a Google Workspace
  *     firm mailbox). It must be ACTIVE; an ATTORNEY must additionally be on
- *     the ATTORNEY_EMAILS allowlist. It lands in /admin (ADMIN) or /firm.
+ *     the ATTORNEY_EMAILS allowlist. It lands in /firm/settings (ADMIN) or /firm.
  *   - These are the exact checks authz.ts re-runs on every later request, so
  *     the login gate and the per-request gate agree.
  *
@@ -74,7 +74,9 @@ export function decideLoginDestination(opts: {
     ) {
       refuseFirmSide("This account is not authorized for attorney access");
     }
-    return boundAccount.role === "ADMIN" ? "/admin" : "/firm";
+    // The separate admin portal is gone (2026-08-23): ADMIN accounts land
+    // on the Practice settings console inside the lawyer portal.
+    return boundAccount.role === "ADMIN" ? "/firm/settings" : "/firm";
   }
 
   // Not a firm-role account.

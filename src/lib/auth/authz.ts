@@ -66,8 +66,20 @@ export async function requireUser(req: Request, roles: Role[]): Promise<AuthedUs
   return { session, account };
 }
 
-/** Convenience wrapper that reads as policy. */
-export const requireAdmin = (req: Request) => requireUser(req, ["ADMIN"]);
+/**
+ * Convenience wrapper that reads as policy.
+ *
+ * ATTORNEY was added 2026-08-23 (operator: "get rid of the admin portal and
+ * just have one for lawyers and clients"). In a solo practice the attorney
+ * IS the administrator, and the separate admin portal made them keep two
+ * hats for one head. This widens ONLY the management surface (users, roles,
+ * retention thresholds, audit review); it moves no attorney power to
+ * admins — conflict clearing and approve/release stay behind the
+ * structural ATTORNEY-only guards in the persistence layer, exactly as
+ * before. Attorneys here are still subject to the attorney email allowlist
+ * enforced by requireUser.
+ */
+export const requireAdmin = (req: Request) => requireUser(req, ["ADMIN", "ATTORNEY"]);
 
 /**
  * Load a matter and verify the caller may access it. 404 on both "does not

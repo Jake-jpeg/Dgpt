@@ -16,7 +16,7 @@ const HOME: Record<Me["role"], string> = {
   CLIENT: "/portal/matter",
   STAFF: "/firm",
   ATTORNEY: "/firm",
-  ADMIN: "/admin",
+  ADMIN: "/firm/settings",
 };
 
 export default function PortalEntry() {

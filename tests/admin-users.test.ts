@@ -165,8 +165,25 @@ describe("admin delete-user: guards", () => {
     expect(await getUserById(a1.id)).toBeNull();
   });
 
-  it("a non-admin cannot delete", async () => {
+  it("an attorney CAN manage users; staff cannot (2026-08-23 fold)", async () => {
+    // The admin portal was folded into the lawyer portal (operator:
+    // "get rid of the admin portal and just have one for lawyers and
+    // clients"): the management surface now accepts ATTORNEY as well as
+    // ADMIN. This moved no attorney power to admins — and STAFF/CLIENT are
+    // still refused outright.
     const victim = await createUser({ email: "clean3@example.test", role: "STAFF" });
+    const staffSession: SessionUser = {
+      subject: "devstub|staff:staff-mgr@example.test",
+      role: "STAFF",
+      email: "staff-mgr@example.test",
+      name: "S",
+    };
+    await provisionAccount(staffSession);
+    const staffCookie = await cookieFor(staffSession);
+    const staffRes = await del(victim.id, staffCookie);
+    expect(staffRes.status).toBe(403);
+    expect(await getUserById(victim.id)).not.toBeNull();
+
     const attorneySession: SessionUser = {
       subject: "devstub|attorney:attorney@example.test",
       role: "ATTORNEY",
@@ -176,8 +193,8 @@ describe("admin delete-user: guards", () => {
     await provisionAccount(attorneySession);
     const attorneyCookie = await cookieFor(attorneySession);
     const res = await del(victim.id, attorneyCookie);
-    expect(res.status).toBe(403);
-    expect(await getUserById(victim.id)).not.toBeNull();
+    expect(res.status).toBe(200);
+    expect(await getUserById(victim.id)).toBeNull();
   });
 });
 

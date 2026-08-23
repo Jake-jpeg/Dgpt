@@ -38,14 +38,14 @@ describe("decideLoginDestination — Google as a firm login", () => {
     expect(dest).toBe("/firm");
   });
 
-  it("routes a Google ADMIN to /admin and STAFF to /firm", () => {
+  it("routes a Google ADMIN to /firm/settings and STAFF to /firm", () => {
     expect(
       decideLoginDestination({
         provider: "google",
         boundAccount: row("ADMIN"),
         attorneyAllowlist: ALLOW,
       })
-    ).toBe("/admin");
+    ).toBe("/firm/settings"); // the admin portal folded into /firm (2026-08-23)
     expect(
       decideLoginDestination({
         provider: "google",
@@ -97,7 +97,7 @@ describe("decideLoginDestination — Google as a firm login", () => {
 });
 
 describe("decideLoginDestination — Microsoft stays firm-only (regression)", () => {
-  it("routes an Entra ATTORNEY (allowlisted) to /firm and ADMIN to /admin", () => {
+  it("routes an Entra ATTORNEY (allowlisted) to /firm and ADMIN to /firm/settings", () => {
     expect(
       decideLoginDestination({
         provider: "entra",
@@ -111,7 +111,7 @@ describe("decideLoginDestination — Microsoft stays firm-only (regression)", ()
         boundAccount: row("ADMIN", { subject: "entra|t:o" }),
         attorneyAllowlist: ALLOW,
       })
-    ).toBe("/admin");
+    ).toBe("/firm/settings"); // the admin portal folded into /firm (2026-08-23)
   });
 
   it("refuses Microsoft auth that is not a firm account (client or none)", () => {
