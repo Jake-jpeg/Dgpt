@@ -21,6 +21,21 @@ export const ALLOWED_RENDERS = [
   // Phase 3 — finalization (post-judgment; firm-side service of the JOD)
   { state: "ny", form: "ud14", label: "NY UD-14 Notice of Entry" },
   { state: "ny", form: "ud15", label: "NY UD-15 Affirmation of Service by Mail" },
+  // ── New Jersey — Superior Court, Chancery Division, Family Part ─────
+  // Form names are the EXACT route keys RL's app.py registers for 'nj'
+  // (verified against STATE_CONFIGS 2026-08-23). Phase 1 — commencement
+  { state: "nj", form: "complaint", label: "NJ Complaint for Divorce (Irreconcilable Differences)" },
+  { state: "nj", form: "summons", label: "NJ Summons" },
+  { state: "nj", form: "verification", label: "NJ Verification and Non-Collusion Certification" },
+  // Phase 2 — the uncontested packet
+  { state: "nj", form: "acknowledgment", label: "NJ Acknowledgment of Service" },
+  { state: "nj", form: "cdr_plaintiff", label: "NJ Certification of Dispute Resolution (Plaintiff)" },
+  { state: "nj", form: "cdr_defendant", label: "NJ Certification of Dispute Resolution (Defendant)" },
+  { state: "nj", form: "insurance", label: "NJ Certification of Insurance Coverage" },
+  // Phase 3 — judgment
+  { state: "nj", form: "jod", label: "NJ Judgment of Divorce" },
+  { state: "nj", form: "jod_cert_plaintiff", label: "NJ JOD Certification (Plaintiff)" },
+  { state: "nj", form: "jod_cert_defendant", label: "NJ JOD Certification (Defendant)" },
 ] as const;
 
 export type AllowedRender = (typeof ALLOWED_RENDERS)[number];

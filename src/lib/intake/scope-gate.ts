@@ -30,8 +30,8 @@
  * answer store only after the step passes — a tripping answer is never
  * persisted at all.
  */
-import { GATE_QUESTIONS } from "@/config/gate-questions";
-import { NY_COUNTIES } from "@/config/intake-fields";
+import { GATE_QUESTIONS, type GateJurisdiction } from "@/config/gate-questions";
+import { NY_COUNTIES, NJ_COUNTIES } from "@/config/intake-fields";
 import { activeIntakePhase } from "@/config/intake/phases";
 import type { MachineState } from "./machine";
 import type { CardId } from "@/config/cards";
@@ -55,19 +55,51 @@ export type GateEvaluation =
 /**
  * Evaluate one gate answer. Pure function: no I/O, fully unit-testable.
  * Throws on malformed input (the API layer converts that to a 400).
+ *
+ * `jurisdiction` selects the playbook ("NY" default keeps every existing
+ * caller byte-identical). New Jersey's residency is one flat rule —
+ * N.J.S.A. 2A:34-10, one year of continuous residence — so its cascade is
+ * one question: yes → venue; no → hard stop to attorney review (there is
+ * no NJ analogue to the § 230 nexus prongs, so nothing softer is honest).
+ * DV / children / complexity evaluate identically in both states.
  */
-export function evaluateGate(state: GateState, rawAnswer: unknown): GateEvaluation {
+export function evaluateGate(
+  state: GateState,
+  rawAnswer: unknown,
+  jurisdiction: GateJurisdiction = "NY"
+): GateEvaluation {
   switch (state) {
     case "GATE_RESIDENCY": {
+      const yes = requireYesNo(rawAnswer);
+      if (jurisdiction === "NJ") {
+        // N.J.S.A. 2A:34-10 — the flat one-year rule, asked as one question.
+        if (yes) return { outcome: "PASS", next: "GATE_VENUE" };
+        return activeIntakePhase() === "ALL"
+          ? {
+              outcome: "PASS",
+              next: "GATE_VENUE",
+              reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"],
+            }
+          : {
+              outcome: "OUT",
+              card: "PHASE1_ATTORNEY_REVIEW",
+              auditEvent: "SCOPE_OUT_RESIDENCY_PHASE1",
+            };
+      }
       // DRL § 230(5): two-year continuous residence — objective, automated.
       // Shorter is not a rejection: the one-year pathways are real law —
       // continue to the one-year question in every phase.
-      const yes = requireYesNo(rawAnswer);
       return yes
         ? { outcome: "PASS", next: "GATE_VENUE" }
         : { outcome: "PASS", next: "GATE_RESIDENCY_1YR" };
     }
     case "GATE_RESIDENCY_1YR": {
+      if (jurisdiction === "NJ") {
+        // Unreachable by construction (the NJ GATE_RESIDENCY never routes
+        // here). Refuse loudly rather than answer New York law to a New
+        // Jersey client.
+        throw new Error("VALIDATION: the NY residency cascade is not part of the NJ interview");
+      }
       // The one-year durational floor shared by § 230(1)-(3).
       // Yes → the nexus question sorts out WHICH prong.
       // No → under one year of residence there is no § 230 pathway left
@@ -90,6 +122,9 @@ export function evaluateGate(state: GateState, rawAnswer: unknown): GateEvaluati
           };
     }
     case "GATE_RESIDENCY_NEXUS": {
+      if (jurisdiction === "NJ") {
+        throw new Error("VALIDATION: the NY residency cascade is not part of the NJ interview");
+      }
       // Objective nexus prongs (§ 230(1)-(2)): married in NY, or lived in NY
       // as spouses — checkbox facts; one year + nexus passes CLEAN.
       // No objective nexus → the remaining basis is § 230(3) (the breakdown
@@ -115,7 +150,8 @@ export function evaluateGate(state: GateState, rawAnswer: unknown): GateEvaluati
           reviewFlags: ["VENUE_UNSURE"],
         };
       }
-      if (!(NY_COUNTIES as readonly string[]).includes(county)) {
+      const counties: readonly string[] = jurisdiction === "NJ" ? NJ_COUNTIES : NY_COUNTIES;
+      if (!counties.includes(county)) {
         throw new Error("VALIDATION: unknown county");
       }
       // County is captured for the attorney; never disqualifies.

@@ -21,7 +21,7 @@ import { recordAudit, listSessionsByMatter } from "@/lib/db/repo";
 import { getUserById } from "@/lib/db/users";
 import { listDocumentsForMatter, listVersions } from "@/lib/db/documents";
 import { attorneySetJurisdictionAndScope } from "@/lib/db/intake2";
-import { UNCONTESTED_CATEGORY } from "@/config/intake/phases";
+import { UNCONTESTED_CATEGORY, NJ_CATEGORY } from "@/config/intake/phases";
 import type { MatterCategory } from "@/lib/intake2/types";
 
 function matterSummary(m: MatterRow) {
@@ -47,6 +47,8 @@ async function firmMatterRow(m: MatterRow) {
   const released = versions.filter((v) => v.status === "RELEASED").length;
   return {
     ...matterSummary(m),
+    // Confirmed state, or the picker's candidate for a staff-opened matter.
+    jurisdiction: m.jurisdictionConfirmed ?? m.jurisdictionCandidate ?? "NY",
     client: client ? { name: client.name || client.email, email: client.email } : null,
     intakeStatus: latestSession?.state ?? "NOT_STARTED",
     documents: { total: versions.length, awaitingReview, released },
@@ -84,6 +86,10 @@ export async function GET(req: Request) {
 
 const createSchema = z.object({
   label: z.string().trim().min(1).max(120),
+  // The state picker (2026-08). Optional and defaulting to NY so every
+  // existing caller — and every existing matter — behaves exactly as before
+  // the second state existed.
+  jurisdiction: z.enum(["NY", "NJ"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -93,28 +99,43 @@ export async function POST(req: Request) {
     const { account } = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const parsed = createSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid matter payload");
-    const matter = (await createMatter({ label: parsed.data.label, createdBy: account.id }));
+    // The state picker (2026-08): NY or NJ, chosen per matter at creation.
+    // Default NY — every pre-picker caller keeps its exact old behavior.
+    const jurisdiction = parsed.data.jurisdiction ?? "NY";
+    const matter = (await createMatter({
+      label: parsed.data.label,
+      createdBy: account.id,
+      jurisdictionCandidate: jurisdiction,
+    }));
     // The creator works this matter: grant access at creation.
     (await grantMatterAccess(matter.id, account.id, account.id));
     (await recordAudit(matter.id, "MATTER_CREATED", undefined, account.id));
-    // There is no track. Every matter on this product is a NY uncontested
-    // matrimonial (operator directive 2026-07-26: "We're not doing contested
-    // at all."). Category assignment is guarded to ATTORNEY, so a matter a
-    // STAFF member opens is categorized the first time an attorney touches it.
-    // Jurisdiction is NEW YORK because this product only does New York. The
-    // attorney no longer fills a jurisdiction form (operator directive
-    // 2026-07-26: "Get rid of the jurisdiction panel… If a lawyer reviews and
-    // fucks up jurisdiction — that's for the lawyer to correct."). The Case
-    // check card shows PASS/REVIEW on the § 230 facts; this line is what
-    // unlocks the NY render allowlist so the forms can actually be produced.
+    // There is no track WITHIN a state: every matter is that state's
+    // uncontested matrimonial (operator directive 2026-07-26: "We're not
+    // doing contested at all."). Confirming jurisdiction is an attorney act
+    // (attorneySetJurisdictionAndScope is attorney-guarded), so a matter a
+    // STAFF member opens carries the picker's choice as the CANDIDATE only
+    // and is confirmed the first time an attorney touches it. The attorney
+    // no longer fills a jurisdiction form (operator directive 2026-07-26:
+    // "Get rid of the jurisdiction panel… If a lawyer reviews and fucks up
+    // jurisdiction — that's for the lawyer to correct."). This confirmation
+    // is what unlocks the state's render allowlist so the forms can
+    // actually be produced — and it is what makes the two playbooks
+    // exclusive: an NY matter can never render an NJ form, or vice versa.
     if (account.role === "ATTORNEY") {
+      const category = (jurisdiction === "NJ" ? NJ_CATEGORY : UNCONTESTED_CATEGORY) as MatterCategory;
       await attorneySetJurisdictionAndScope({
         matterId: matter.id,
         actingUserId: account.id,
-        jurisdictionConfirmed: "NY",
-        matterCategory: UNCONTESTED_CATEGORY as MatterCategory,
+        jurisdictionConfirmed: jurisdiction,
+        matterCategory: category,
       });
-      await recordAudit(matter.id, "JURISDICTION_SCOPE_SET", "jurisdiction=NY category=NY_SUPREME_UNCONTESTED (NY-only product default at creation)", account.id);
+      await recordAudit(
+        matter.id,
+        "JURISDICTION_SCOPE_SET",
+        `jurisdiction=${jurisdiction} category=${category} (attorney's state choice at creation)`,
+        account.id
+      );
     }
     return Response.json({ matter: matterSummary(matter) }, { status: 201 });
   } catch (e) {

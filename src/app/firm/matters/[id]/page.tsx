@@ -11,7 +11,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Shell, useMe, StatusBadge, ErrorNotice, AccordionPanel, type PanelOpenSignal } from "@/components/shell";
+import { Shell, useMe, StatusBadge, StateBadge, ErrorNotice, AccordionPanel, type PanelOpenSignal } from "@/components/shell";
 import { api, fmtWhen } from "@/lib/ui/client-api";
 import FormsRail from "./rail";
 
@@ -19,6 +19,8 @@ interface MatterDetail {
   id: string;
   label: string;
   lifecycle: string;
+  jurisdiction: "NY" | "NJ";
+  jurisdictionConfirmed: string | null;
   conflictStatus: string;
   legalHold: boolean;
   clientUserId: string | null;
@@ -191,12 +193,15 @@ export default function FirmMatterDetail() {
           <div className="panel board">
             <div className="board-head">
               <p className="board-title">{matter.label}</p>
+              <StateBadge value={matter.jurisdiction ?? "NY"} />
               <StatusBadge value={matter.lifecycle} />
               {matter.legalHold && <span className="badge badge-stop">LEGAL HOLD</span>}
             </div>
             <p className="board-sub">
-              Uncontested divorce workflow · created {fmtWhen(matter.createdAt)} · last
-              updated {fmtWhen(matter.updatedAt)}
+              {matter.jurisdiction === "NJ"
+                ? "New Jersey uncontested divorce · Superior Court, Chancery Division, Family Part"
+                : "New York uncontested divorce · Supreme Court"}{" "}
+              · created {fmtWhen(matter.createdAt)} · last updated {fmtWhen(matter.updatedAt)}
             </p>
 
             <div className="chips">
@@ -329,7 +334,13 @@ export default function FirmMatterDetail() {
           {/* ── The forms rail — TurboTax-style; the one control surface
                  for phases and court forms. ── */}
           <div style={{ flex: "0 1 340px", minWidth: 300 }}>
-            <FormsRail matterId={matterId} isAttorney={isAttorney} docs={docs} onChanged={load} />
+            <FormsRail
+              matterId={matterId}
+              state={(matter.jurisdiction ?? "NY").toLowerCase() as "ny" | "nj"}
+              isAttorney={isAttorney}
+              docs={docs}
+              onChanged={load}
+            />
           </div>
         </div>
       )}

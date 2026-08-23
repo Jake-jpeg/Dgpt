@@ -24,7 +24,7 @@
 import type { AnswerMap, IntakeItem, IntakeSchema } from "@/lib/intake2/types";
 import { itemVisible, isAnswered, type ChecklistEntry } from "@/lib/intake2/engine";
 import { clientItemInPhase, activeIntakePhase, type IntakePhase } from "@/config/intake/phases";
-import { GATE_QUESTIONS, type GateQuestion } from "@/config/gate-questions";
+import { gateQuestionsFor, type GateQuestion } from "@/config/gate-questions";
 import type { MachineState } from "@/lib/intake/machine";
 import { isGateState } from "@/lib/intake/scope-gate";
 
@@ -161,7 +161,9 @@ export function nextStep(state: SequencerState): Step {
     return {
       kind: "GATE",
       id: state.machineState,
-      gate: GATE_QUESTIONS[state.machineState],
+      // The schema's jurisdiction picks the playbook: an NJ interview asks
+      // NJ residency and NJ counties, never New York's ("two separate bots").
+      gate: gateQuestionsFor(state.schema.jurisdiction)[state.machineState],
       ...sectionMeta(state, null),
     };
   }

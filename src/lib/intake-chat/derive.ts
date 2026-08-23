@@ -104,7 +104,10 @@ const FOREIGN_HINT =
  * answers in, same derivations out. Callers write these through the normal
  * validated answer store.
  */
-export function deriveImpliedAnswers(answers: AnswerMap): DerivedAnswer[] {
+export function deriveImpliedAnswers(
+  answers: AnswerMap,
+  jurisdiction: "NY" | "NJ" = "NY"
+): DerivedAnswer[] {
   const out: DerivedAnswer[] = [];
   const place = text(answers["shared.relationship.marriage_place"]);
 
@@ -131,7 +134,10 @@ export function deriveImpliedAnswers(answers: AnswerMap): DerivedAnswer[] {
   // positively identified as NY; FALSE only when another US state or a
   // foreign country was positively identified. Ambiguous text derives
   // nothing, and the attorney sees the § 230 prong on the draft either way.
-  if (place && !answered(answers, "ny.case.married_in_ny")) {
+  // NY-ONLY: ny.case.married_in_ny is not in the NJ schema, and answer
+  // saves are all-or-nothing — one rejected id would have silently cost an
+  // NJ matter the shared derivations above.
+  if (jurisdiction === "NY" && place && !answered(answers, "ny.case.married_in_ny")) {
     if (stateAbbr === "NY") {
       out.push({
         questionId: "ny.case.married_in_ny",

@@ -100,6 +100,43 @@ export const PHASE2_ITEM_IDS: ReadonlySet<string> = new Set([
   "shared.relationship.name_restoration_name",
 ]);
 
+/* ── New Jersey (the second playbook) ─────────────────────────────────
+ * Same three-phase pipeline, same mechanics, its OWN lists. The shared.*
+ * ids are the SAME ids in both states (one question, one stored answer),
+ * and they sit in the same phase in both states — so the NJ sets below
+ * carry only the nj.* ids and membership for a shared id resolves through
+ * the NY sets above. An item id's prefix IS its state (guaranteed by
+ * schema composition: an NJ schema contains only shared.* + nj.* items),
+ * which is why `clientItemInPhase` can select the list without being told
+ * the matter's category — and why the NY lists stay byte-identical. */
+
+/** NJ Phase 1 — what the Complaint, Summons, and Verification consume. */
+export const NJ_PHASE1_ITEM_IDS: ReadonlySet<string> = new Set([
+  // Residence facts (N.J.S.A. 2A:34-10 — flat one-year rule; attorney applies it)
+  "nj.case.resident_now",
+  "nj.case.resident_since",
+  "nj.case.county",
+  // Ground (N.J.S.A. 2A:34-2(i) — irreconcilable differences only)
+  "nj.case.grounds_facts",
+  "nj.case.grounds_dates",
+  // Commencement / service posture
+  "nj.case.docket_number",
+  "nj.case.service_facts",
+  // Scope of the uncontested resolution — mirrors ny.scope.* exactly
+  "nj.scope.custody",
+  "nj.scope.child_support",
+  "nj.scope.alimony",
+  "nj.scope.equitable_distribution",
+  "nj.scope.all_resolved",
+]);
+
+/** NJ Phase 2 — settlement facts (cumulative, like NY). The signed-MSA
+ *  question mirrors ny.case.signed_agreement's phase-2 placement. */
+export const NJ_PHASE2_ITEM_IDS: ReadonlySet<string> = new Set([
+  ...NJ_PHASE1_ITEM_IDS,
+  "nj.case.signed_agreement",
+]);
+
 export type IntakePhase = 1 | 2 | 3 | "ALL";
 
 /**
@@ -109,6 +146,10 @@ export type IntakePhase = 1 | 2 | 3 | "ALL";
  * questionnaire on the basis of its category.
  */
 export const UNCONTESTED_CATEGORY = "NY_SUPREME_UNCONTESTED" as const;
+
+/** New Jersey's one category (2026-08: "two separate bots for two separate
+ *  states" — one engine, two playbooks; the category selects the playbook). */
+export const NJ_CATEGORY = "NJ_SUPER_UNCONTESTED" as const;
 
 /**
  * Resolve a matter's effective phase. The per-matter `intake_phase` (set by
@@ -140,6 +181,12 @@ export function clientItemInPhase(
 ): boolean {
   if (phase === "ALL") return true;
   if (item.audience !== "CLIENT") return true;
+  // nj.* ids resolve through the NJ lists; everything else (ny.*, shared.*)
+  // through the NY lists, exactly as before this file knew about New Jersey.
+  if (item.id.startsWith("nj.")) {
+    if (phase === 1) return NJ_PHASE1_ITEM_IDS.has(item.id);
+    return NJ_PHASE2_ITEM_IDS.has(item.id); // phases 2 and 3
+  }
   if (phase === 1) return PHASE1_ITEM_IDS.has(item.id);
   return PHASE2_ITEM_IDS.has(item.id); // phases 2 and 3
 }

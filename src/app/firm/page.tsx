@@ -8,13 +8,14 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Shell, useMe, StatusBadge, ErrorNotice } from "@/components/shell";
+import { Shell, useMe, StatusBadge, StateBadge, ErrorNotice } from "@/components/shell";
 import { api, fmtWhen, STATE_LABELS } from "@/lib/ui/client-api";
 
 interface FirmMatterRow {
   id: string;
   label: string;
   lifecycle: string;
+  jurisdiction: "NY" | "NJ";
   conflictStatus: string;
   legalHold: boolean;
   updatedAt: string;
@@ -22,6 +23,103 @@ interface FirmMatterRow {
   intakeStatus: string;
   documents: { total: number; awaitingReview: number; released: number };
 }
+
+/* ── The state picker (2026-08: "pick a state first") ─────────────────
+ * Two cards, SITE THEME — the navy/slate of the rest of the portal, no
+ * new palette. The choice sets the court, forms, and intake for THIS
+ * matter only; jurisdiction is an attorney act and clients never see it. */
+const NAVY = "#1f4ca8";
+
+const STATE_CARDS: {
+  value: "NY" | "NJ";
+  name: string;
+  court: string;
+  detail: string;
+}[] = [
+  {
+    value: "NY",
+    name: "New York",
+    court: "Supreme Court · Matrimonial",
+    detail: "Uncontested · UD packet · Index number",
+  },
+  {
+    value: "NJ",
+    name: "New Jersey",
+    court: "Superior Court · Chancery Division, Family Part",
+    detail: "Uncontested · Irreconcilable differences · FM docket",
+  },
+];
+
+function StatePicker({
+  value,
+  onChange,
+}: {
+  value: "NY" | "NJ";
+  onChange: (v: "NY" | "NJ") => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Jurisdiction for this matter"
+      style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 8 }}
+    >
+      {STATE_CARDS.map((s) => {
+        const selected = value === s.value;
+        return (
+          <div
+            key={s.value}
+            role="radio"
+            aria-checked={selected}
+            tabIndex={0}
+            onClick={() => onChange(s.value)}
+            onKeyDown={(e) => {
+              if (e.key === " " || e.key === "Enter") {
+                e.preventDefault();
+                onChange(s.value);
+              }
+            }}
+            style={{
+              flex: "1 1 240px",
+              minWidth: 220,
+              cursor: "pointer",
+              borderRadius: 10,
+              padding: "14px 16px",
+              border: selected ? `2px solid ${NAVY}` : "1px solid #cbd5e1",
+              background: selected ? "#eef3fb" : "#ffffff",
+              boxShadow: selected ? `0 0 0 1px ${NAVY} inset` : "none",
+              outline: "none",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+              <span
+                aria-hidden
+                className="badge"
+                style={{
+                  background: selected ? NAVY : "#e2e8f0",
+                  color: selected ? "#fff" : "#334155",
+                  fontWeight: 700,
+                }}
+              >
+                {s.value}
+              </span>
+              <span style={{ fontWeight: 700, letterSpacing: "-.01em" }}>{s.name}</span>
+              {selected && (
+                <span aria-hidden style={{ marginLeft: "auto", color: NAVY, fontWeight: 700 }}>
+                  ✓
+                </span>
+              )}
+            </div>
+            <div className="text-xs" style={{ color: NAVY, marginTop: 6, fontWeight: 600, letterSpacing: ".02em", textTransform: "uppercase" }}>
+              {s.court}
+            </div>
+            <div className="text-xs text-slate-500" style={{ marginTop: 4 }}>{s.detail}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 
 export default function FirmMattersPage() {
   const { me, loading } = useMe();
@@ -54,6 +152,7 @@ export default function FirmMattersPage() {
   }
   const [matters, setMatters] = useState<FirmMatterRow[]>([]);
   const [label, setLabel] = useState("");
+  const [jurisdiction, setJurisdiction] = useState<"NY" | "NJ">("NY");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -80,7 +179,7 @@ export default function FirmMattersPage() {
     setBusy(true);
     setErr(null);
     try {
-      await api.post("/api/matters", { label });
+      await api.post("/api/matters", { label, jurisdiction });
       setLabel("");
       await load();
     } catch (e) {
@@ -108,7 +207,15 @@ export default function FirmMattersPage() {
               Use a working reference (e.g. &quot;Prospect 2026-014&quot;) —
               synthetic/local data only in this build.
             </p>
-            <div className="flex flex-wrap items-end gap-3">
+            <p className="text-sm" style={{ margin: "10px 0 0", fontWeight: 600 }}>
+              Where will this matter proceed?
+            </p>
+            <p className="text-xs text-slate-500" style={{ margin: "2px 0 0" }}>
+              Sets the court, forms, and intake for this matter only — a New York
+              filing and a New Jersey filing can sit side by side on your desk.
+            </p>
+            <StatePicker value={jurisdiction} onChange={setJurisdiction} />
+            <div className="flex flex-wrap items-end gap-3" style={{ marginTop: 14 }}>
               <label className="min-w-64 flex-1 text-sm">
                 <span className="field-label">Firm reference</span>
                 <input
@@ -124,12 +231,13 @@ export default function FirmMattersPage() {
                 onClick={createMatter}
                 disabled={busy || label.trim().length === 0}
               >
-                Create matter
+                {`Create ${jurisdiction === "NJ" ? "New Jersey" : "New York"} matter`}
               </button>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Every matter runs the New York uncontested interview — the facts the
-              Summons and Verified Complaint need, and nothing else.
+              {jurisdiction === "NJ"
+                ? "This matter runs the New Jersey uncontested interview — the facts the Complaint, Summons, and Verification need, and nothing else."
+                : "This matter runs the New York uncontested interview — the facts the Summons and Verified Complaint need, and nothing else."}
             </p>
           </div>
 
@@ -162,6 +270,9 @@ export default function FirmMattersPage() {
                           >
                             {m.label}
                           </Link>
+                          <span className="ml-2">
+                            <StateBadge value={m.jurisdiction ?? "NY"} />
+                          </span>
                           {m.legalHold && (
                             <span className="badge badge-stop ml-2">LEGAL HOLD</span>
                           )}

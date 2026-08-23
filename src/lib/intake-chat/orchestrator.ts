@@ -347,7 +347,19 @@ export function estimateQuestionCount(
   return Math.max(5, Math.round(raw / 5) * 5); // round to nearest 5
 }
 
-export function scriptedWelcome(questionEstimate: number): string {
+export function scriptedWelcome(
+  questionEstimate: number,
+  jurisdiction: "NY" | "NJ" = "NY"
+): string {
+  // The first question is the first gate, in the interview's own state:
+  // New York opens with the § 230(5) two-year prong; New Jersey opens with
+  // the flat N.J.S.A. 2A:34-10 one-year rule. One engine, two playbooks.
+  const firstQuestion =
+    jurisdiction === "NJ"
+      ? `have you or your spouse lived in New Jersey ` +
+        `continuously for at least the past 1 year?`
+      : `have you or your spouse lived in New York State ` +
+        `continuously for at least the past 2 years?`;
   return (
     `Hello — I'm the intake assistant for ${operatingFirmName()}. I'm not a lawyer and I ` +
     `can't give legal advice; a licensed attorney reviews everything we go ` +
@@ -365,8 +377,7 @@ export function scriptedWelcome(questionEstimate: number): string {
     `You can answer in English or Korean (한국어로 답하셔도 됩니다). If you'd ` +
     `rather fill out a form instead of chatting, use the "Prefer a form?" ` +
     `link — your progress carries over either way.\n\n` +
-    `Ready? First question: have you or your spouse lived in New York State ` +
-    `continuously for at least the past 2 years?`
+    `Ready? First question: ${firstQuestion}`
   );
 }
 
@@ -642,7 +653,7 @@ export interface TurnResult {
  * break a turn — the question simply gets asked.
  */
 async function applyDerivations(ctx: ConversationContext, actingUserId: string): Promise<void> {
-  const derived = deriveImpliedAnswers(ctx.answers);
+  const derived = deriveImpliedAnswers(ctx.answers, ctx.schema.jurisdiction);
   if (derived.length === 0) return;
   try {
     await saveMatterAnswers({
@@ -688,7 +699,7 @@ async function applyTurn(
     }
     let evaluation;
     try {
-      evaluation = evaluateGate(current, turn.gate_response.value);
+      evaluation = evaluateGate(current, turn.gate_response.value, ctx.schema.jurisdiction);
     } catch (e) {
       return { correction: `That gate answer was rejected: ${e instanceof Error ? e.message : "invalid"}. Ask the client to answer the question directly.` };
     }
@@ -720,16 +731,19 @@ async function applyTurn(
     // PREFILL (2026-07-26 — never re-ask what a gate already collected):
     // unambiguous gate facts are written straight into the intake answers,
     // so the question phase silently skips them. County = the venue gate's
-    // county; a YES on either residency-duration gate = lives in NY now.
+    // county; a YES on either residency-duration gate = lives in-state now.
+    // The id prefix follows the schema's jurisdiction, so an NJ gate pass
+    // prefills nj.case.* and can never write a New York answer.
+    const idPrefix = ctx.schema.jurisdiction === "NJ" ? "nj" : "ny";
     const prefill: { questionId: string; value: unknown }[] = [];
     if (evaluation.persist?.county) {
-      prefill.push({ questionId: "ny.case.county", value: evaluation.persist.county });
+      prefill.push({ questionId: `${idPrefix}.case.county`, value: evaluation.persist.county });
     }
     if (
       (current === "GATE_RESIDENCY" || current === "GATE_RESIDENCY_1YR") &&
       (turn.gate_response!.value === true || turn.gate_response!.value === "yes")
     ) {
-      prefill.push({ questionId: "ny.case.resident_now", value: true });
+      prefill.push({ questionId: `${idPrefix}.case.resident_now`, value: true });
     }
     if (prefill.length > 0) {
       try {
@@ -870,7 +884,11 @@ export async function runIntakeTurn(opts: {
   });
   ctx = await loadConversation(opts.sessionId);
 
-  const system = buildConstitution({ firmName: operatingFirmName(), firmContact: firmContact() });
+  const system = buildConstitution({
+    firmName: operatingFirmName(),
+    firmContact: firmContact(),
+    stateName: ctx.schema.jurisdiction === "NJ" ? "New Jersey" : "New York",
+  });
 
   // One corrective retry: the model proposes, the server disposes.
   let correction: string | undefined;
@@ -1014,7 +1032,7 @@ function rehydrateView(ctx: ConversationContext): ChatMessageRow[] {
   });
   const out: ChatMessageRow[] = [];
   if (ctx.seqState.welcomed) {
-    out.push(msg(1, scriptedWelcome(estimateQuestionCount(ctx.schema, ctx.seqState.phase))));
+    out.push(msg(1, scriptedWelcome(estimateQuestionCount(ctx.schema, ctx.seqState.phase), ctx.schema.jurisdiction)));
   }
   if (ctx.seqState.stopped) {
     out.push(msg(2, `This intake is paused. Please contact ${firmContact()} to continue.`));

@@ -42,28 +42,46 @@ interface RailDoc {
   versions: RailVersion[];
 }
 
-const PHASE_FORMS: { phase: 1 | 2 | 3; title: string; forms: string[] }[] = [
-  { phase: 1, title: "Phase 1 · Commencement", forms: ["ud1", "complaint"] },
-  {
-    phase: 2,
-    title: "Phase 2 · Settlement packet",
-    forms: ["stipulation", "ud5", "ud6", "ud7", "ud9", "ud10", "ud11", "ud12", "ud4"],
-  },
-  { phase: 3, title: "Phase 3 · Finalization", forms: ["ud14", "ud15"] },
-];
+/** Each state's rail — same three-phase shape, that state's own forms. */
+const PHASE_FORMS_BY_STATE: Record<
+  "ny" | "nj",
+  { phase: 1 | 2 | 3; title: string; forms: string[] }[]
+> = {
+  ny: [
+    { phase: 1, title: "Phase 1 · Commencement", forms: ["ud1", "complaint"] },
+    {
+      phase: 2,
+      title: "Phase 2 · Settlement packet",
+      forms: ["stipulation", "ud5", "ud6", "ud7", "ud9", "ud10", "ud11", "ud12", "ud4"],
+    },
+    { phase: 3, title: "Phase 3 · Finalization", forms: ["ud14", "ud15"] },
+  ],
+  nj: [
+    { phase: 1, title: "Phase 1 · Commencement", forms: ["complaint", "summons", "verification"] },
+    {
+      phase: 2,
+      title: "Phase 2 · Uncontested packet",
+      forms: ["acknowledgment", "cdr_plaintiff", "cdr_defendant", "insurance"],
+    },
+    { phase: 3, title: "Phase 3 · Judgment", forms: ["jod", "jod_cert_plaintiff", "jod_cert_defendant"] },
+  ],
+};
 
-/** Short row label: "UD-1 Summons with Notice" (the "NY " prefix is noise here). */
-function shortLabel(form: string): string {
-  return renderLabel("ny", form).replace(/^NY /, "");
+/** Short row label: "UD-1 Summons with Notice" (the state prefix is noise here). */
+function shortLabel(state: "ny" | "nj", form: string): string {
+  return renderLabel(state, form).replace(/^(NY|NJ) /, "");
 }
 
 export default function FormsRail({
   matterId,
+  state,
   isAttorney,
   docs,
   onChanged,
 }: {
   matterId: string;
+  /** The matter's confirmed (or candidate) state — picks which rail renders. */
+  state: "ny" | "nj";
   isAttorney: boolean;
   docs: RailDoc[];
   onChanged: () => void | Promise<void>;
@@ -89,7 +107,7 @@ export default function FormsRail({
 
   /** Latest rendered version of a form in each format, from the doc list. */
   function generated(form: string): { pdf: RailVersion | null; docx: RailVersion | null; when: string | null } {
-    const label = renderLabel("ny", form);
+    const label = renderLabel(state, form);
     const versions = docs
       .filter((d) => d.docKind === "RENDERED_FORM" && d.title.startsWith(label))
       .flatMap((d) => d.versions)
@@ -105,16 +123,16 @@ export default function FormsRail({
     try {
       // Word first when a Word build exists, then PDF — two bounded
       // requests, never one long one (the 30s gateway landmine).
-      if (docxAvailable("ny", form)) {
+      if (docxAvailable(state, form)) {
         await api.post(`/api/matters/${matterId}/render-pdf`, {
-          state: "ny",
+          state,
           form,
           confirmFormData: true,
           format: "docx",
         });
       }
       await api.post(`/api/matters/${matterId}/render-pdf`, {
-        state: "ny",
+        state,
         form,
         confirmFormData: true,
       });
@@ -142,14 +160,16 @@ export default function FormsRail({
   }
 
   const guide = guidelineYearSummary();
-  const doneCount = ALLOWED_RENDERS.filter((r) => generated(r.form).when !== null).length;
+  const PHASE_FORMS = PHASE_FORMS_BY_STATE[state];
+  const stateRenders = ALLOWED_RENDERS.filter((r) => r.state === state);
+  const doneCount = stateRenders.filter((r) => generated(r.form).when !== null).length;
 
   return (
     <aside className="panel" style={{ position: "sticky", top: 16, padding: "16px 16px 12px" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
         <p style={{ fontWeight: 700, letterSpacing: "-.01em", margin: 0 }}>Where this case is</p>
         <span className="text-xs text-slate-500" style={{ marginLeft: "auto" }}>
-          {doneCount}/{ALLOWED_RENDERS.length} generated
+          {doneCount}/{stateRenders.length} generated
         </span>
       </div>
       <ErrorNotice message={err} />
@@ -181,7 +201,7 @@ export default function FormsRail({
                         <span aria-hidden style={{ color: isDone ? "#15803d" : "#94a3b8" }}>
                           {isDone ? "✓" : "○"}
                         </span>
-                        <span style={{ flex: 1, minWidth: 0 }}>{shortLabel(form)}</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>{shortLabel(state, form)}</span>
                       </summary>
                       <div style={{ padding: "2px 2px 10px 22px", fontSize: ".85rem" }}>
                         {isDone ? (
@@ -206,7 +226,7 @@ export default function FormsRail({
                                 </button>
                               )}
                             </div>
-                            {!gen.docx && docxAvailable("ny", form) && (
+                            {!gen.docx && docxAvailable(state, form) && (
                               <p className="text-xs text-slate-500" style={{ margin: "6px 0 0" }}>
                                 Regenerate to get the Word version.
                               </p>
@@ -214,7 +234,7 @@ export default function FormsRail({
                           </>
                         ) : isAttorney ? (
                           <button className="btn btn-primary" style={{ padding: "4px 12px", fontSize: ".8rem" }} disabled={busyForm !== null} onClick={() => generate(form)}>
-                            {busy ? "Generating…" : `Generate${docxAvailable("ny", form) ? " (Word + PDF)" : " (PDF)"}`}
+                            {busy ? "Generating…" : `Generate${docxAvailable(state, form) ? " (Word + PDF)" : " (PDF)"}`}
                           </button>
                         ) : (
                           <p className="text-xs text-slate-500" style={{ margin: 0 }}>Not generated yet — attorney action.</p>
@@ -255,7 +275,12 @@ export default function FormsRail({
       })}
 
       <p className="text-xs text-slate-500" style={{ marginTop: 14, borderTop: "1px solid var(--line, #e2e8f0)", paddingTop: 8 }}>
-        {guide.maintenance} {guide.childSupport}
+        {state === "nj"
+          ? // NJ publishes no alimony guideline formula or income cap —
+            // N.J.S.A. 2A:34-23(b) is a factor analysis. Printing a number
+            // here would be inventing one.
+            "New Jersey alimony: N.J.S.A. 2A:34-23 factor analysis — no guideline figure applies. Child support guidelines are applied by the attorney."
+          : `${guide.maintenance} ${guide.childSupport}`}
       </p>
     </aside>
   );

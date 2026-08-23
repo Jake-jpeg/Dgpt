@@ -64,6 +64,14 @@ export const NY_COUNTIES = [
   "Warren", "Washington", "Wayne", "Westchester", "Wyoming", "Yates",
 ] as const;
 
+/** All 21 New Jersey counties — the NJ venue gate's option list. */
+export const NJ_COUNTIES = [
+  "Atlantic", "Bergen", "Burlington", "Camden", "Cape May", "Cumberland",
+  "Essex", "Gloucester", "Hudson", "Hunterdon", "Mercer", "Middlesex",
+  "Monmouth", "Morris", "Ocean", "Passaic", "Salem", "Somerset", "Sussex",
+  "Union", "Warren",
+] as const;
+
 /** Retirement clarification tree — the account types the intake distinguishes. */
 export const RETIREMENT_TYPES: FieldOption[] = [
   { value: "401K", label: "401(k) or similar employer plan (403(b), 457)" },

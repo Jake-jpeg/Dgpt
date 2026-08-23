@@ -106,16 +106,24 @@ function rowToMatter(r: Record<string, unknown>): MatterRow {
   };
 }
 
-export async function createMatter(opts: { label: string; createdBy: string }): Promise<MatterRow> {
+export async function createMatter(opts: {
+  label: string;
+  createdBy: string;
+  /** The creator's state choice from the picker. For a STAFF creator this
+   *  is recorded as the CANDIDATE only — confirming jurisdiction remains an
+   *  attorney act (attorneySetJurisdictionAndScope guards that). */
+  jurisdictionCandidate?: "NY" | "NJ";
+}): Promise<MatterRow> {
   const db = getDb();
   const id = newId();
   const t = nowIso();
   await db.run(
-    `INSERT INTO matter (id, label, created_by, created_at, updated_at, last_activity_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO matter (id, label, created_by, jurisdiction_candidate, created_at, updated_at, last_activity_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     id,
     opts.label,
     opts.createdBy,
+    opts.jurisdictionCandidate ?? null,
     t,
     t,
     t

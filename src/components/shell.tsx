@@ -85,11 +85,19 @@ function StagingBanner() {
   );
 }
 
+// Two portals: lawyers (/firm) and clients (/portal). The separate admin
+// portal is gone (operator, 2026-08-23) — its console lives at
+// /firm/settings as "Practice settings", for the attorney and any ADMIN
+// account. Hiding/showing here is convenience only; the server re-checks
+// the role on every API call.
 const NAV: Record<Me["role"], { href: string; label: string }[]> = {
   CLIENT: [{ href: "/portal/matter", label: "My matter" }],
   STAFF: [{ href: "/firm", label: "Matters" }],
-  ATTORNEY: [{ href: "/firm", label: "Matters" }],
-  ADMIN: [{ href: "/admin", label: "Administration" }],
+  ATTORNEY: [
+    { href: "/firm", label: "Matters" },
+    { href: "/firm/settings", label: "Practice settings" },
+  ],
+  ADMIN: [{ href: "/firm/settings", label: "Practice settings" }],
 };
 
 export function Shell({
@@ -180,6 +188,28 @@ export function Shell({
         <p>{nonAffiliationNotice()}</p>
       </footer>
     </div>
+  );
+}
+
+/** Small navy state tag — which state's playbook a matter runs under. */
+export function StateBadge({ value }: { value: "NY" | "NJ" }) {
+  return (
+    <span
+      className="badge"
+      title={
+        value === "NJ"
+          ? "New Jersey — Superior Court, Chancery Division, Family Part"
+          : "New York — Supreme Court, Matrimonial"
+      }
+      style={{
+        background: "#eef3fb",
+        color: "#1f4ca8",
+        border: "1px solid #1f4ca833",
+        fontWeight: 700,
+      }}
+    >
+      {value}
+    </span>
   );
 }
 

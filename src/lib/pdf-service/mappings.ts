@@ -431,6 +431,134 @@ export function buildNyPacketPayload(form: string, matter: MatterRow, answers: A
   }
 }
 
+/* ── New Jersey — Superior Court, Chancery Division, Family Part ───────
+ * The NJ generators take a SPLIT address: `plaintiffAddress` is the street
+ * line and `plaintiffCityStateZip` is its own line (NY's take one combined
+ * string). That difference is the address seam, and it is where commit
+ * 706dab0's lesson applies: the intake CHAT stores ONE combined string.
+ *
+ * THE RULE: split ONLY what is unambiguous. A structured {line1, city,
+ * state, zip} object splits exactly. A combined string splits only when it
+ * ends in an unmistakable ", City, ST 07030" tail (two-letter state + ZIP).
+ * Anything else goes WHOLE into `plaintiffAddress` with the cityStateZip
+ * line left blank for the attorney — a wrong guess about which comma is
+ * the city prints in a court caption; a blank line just gets completed.
+ */
+interface NjAddress {
+  street: string;
+  cityStateZip: string;
+  /** "Hoboken, New Jersey" style city+state, no ZIP — the Complaint's
+   *  fullCityState fields. Blank when the split was not unambiguous. */
+  cityState: string;
+}
+
+function njAddress(v: unknown): NjAddress {
+  if (v && typeof v === "object") {
+    const a = v as AddressValue;
+    const city = str(a.city);
+    const st = str(a.state);
+    const zip = str(a.zip);
+    return {
+      street: str(a.line1),
+      cityStateZip: [city, [st, zip].filter(Boolean).join(" ")].filter(Boolean).join(", "),
+      cityState: [city, st].filter(Boolean).join(", "),
+    };
+  }
+  const s = str(v);
+  if (!s) return { street: "", cityStateZip: "", cityState: "" };
+  // ", City, ST 12345" or ", City, ST 12345-6789" — the only tail we trust.
+  const m = /^(.+),\s*([^,]+),\s*([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)$/.exec(s);
+  if (m) {
+    const [, street, city, st, zip] = m;
+    return {
+      street: street.trim(),
+      cityStateZip: `${city.trim()}, ${st.toUpperCase()} ${zip}`,
+      cityState: `${city.trim()}, ${st.toUpperCase()}`,
+    };
+  }
+  // Ambiguous: the whole string is the address line; nothing is guessed.
+  return { street: s, cityStateZip: "", cityState: "" };
+}
+
+/** The caption vocabulary every NJ form shares (verified against the RL
+ *  generators' data.get keys, 2026-08-23). Docket number is legitimately
+ *  blank until the clerk assigns one — never required. Phone is sensitive
+ *  contact data and deliberately blank, as in New York. */
+function njCaptionFields(answers: AnswerMap): RenderPayload {
+  const p = njAddress(answers["shared.identity.client_address"]);
+  return {
+    plaintiffName: str(answers["shared.identity.client_name"]),
+    defendantName: str(answers["shared.identity.other_name"]),
+    filingCounty: titleCaseCounty(answers["nj.case.county"]),
+    docketNumber: str(answers["nj.case.docket_number"]),
+    plaintiffAddress: p.street,
+    plaintiffCityStateZip: p.cityStateZip,
+    plaintiffPhone: "",
+  };
+}
+
+const NJ_CAPTION_REQUIRED = ["plaintiffName", "defendantName", "filingCounty", "plaintiffAddress"];
+
+export function buildNjComplaintPayload(matter: MatterRow, answers: AnswerMap): RenderPayload {
+  const p = njAddress(answers["shared.identity.client_address"]);
+  const d = njAddress(answers["shared.identity.other_address"]);
+  const ceremonyRaw = str(answers["shared.relationship.ceremony_type"]).toUpperCase();
+  const payload: RenderPayload = {
+    ...njCaptionFields(answers),
+    plaintiffFullCityState: p.cityState,
+    defendantAddress: d.street,
+    defendantCityStateZip: d.cityStateZip,
+    defendantFullCityState: d.cityState,
+    residentParty: "plaintiff",
+    marriageDate: str(answers["shared.relationship.marriage_date"]),
+    ceremonyType: ceremonyRaw === "RELIGIOUS" ? "religious" : "civil",
+    ceremonyLocation: marriagePlaceCombined(answers),
+  };
+  required(payload, [...NJ_CAPTION_REQUIRED, "defendantAddress", "marriageDate", "ceremonyLocation"]);
+  return payload;
+}
+
+export function buildNjSummonsPayload(matter: MatterRow, answers: AnswerMap): RenderPayload {
+  const d = njAddress(answers["shared.identity.other_address"]);
+  const payload: RenderPayload = {
+    ...njCaptionFields(answers),
+    defendantAddress: d.street,
+    defendantCityStateZip: d.cityStateZip,
+  };
+  required(payload, [...NJ_CAPTION_REQUIRED, "defendantAddress"]);
+  return payload;
+}
+
+/** Verification, acknowledgment, both CDRs, insurance cert, and both JOD
+ *  certifications consume exactly the shared caption vocabulary. */
+export function buildNjCaptionOnlyPayload(matter: MatterRow, answers: AnswerMap): RenderPayload {
+  const payload: RenderPayload = njCaptionFields(answers);
+  required(payload, NJ_CAPTION_REQUIRED);
+  return payload;
+}
+
+export function buildNjJodPayload(matter: MatterRow, answers: AnswerMap): RenderPayload {
+  const ceremonyRaw = str(answers["shared.relationship.ceremony_type"]).toUpperCase();
+  const payload: RenderPayload = {
+    ...njCaptionFields(answers),
+    marriageDate: str(answers["shared.relationship.marriage_date"]),
+    ceremonyType: ceremonyRaw === "RELIGIOUS" ? "religious" : "civil",
+    ceremonyLocation: marriagePlaceCombined(answers),
+  };
+  required(payload, [...NJ_CAPTION_REQUIRED, "marriageDate"]);
+  return payload;
+}
+
+const NJ_CAPTION_ONLY_FORMS = [
+  "verification",
+  "acknowledgment",
+  "cdr_plaintiff",
+  "cdr_defendant",
+  "insurance",
+  "jod_cert_plaintiff",
+  "jod_cert_defendant",
+];
+
 /** Dispatch strictly by the allowlisted (state, form) pair. */
 export function buildRenderPayload(
   state: string,
@@ -446,5 +574,11 @@ export function buildRenderPayload(
   }
   if (state === "ny" && form === "ud14") return buildNyUd14Payload(matter, answers);
   if (state === "ny" && form === "ud15") return buildNyUd15Payload(matter, answers);
+  if (state === "nj" && form === "complaint") return buildNjComplaintPayload(matter, answers);
+  if (state === "nj" && form === "summons") return buildNjSummonsPayload(matter, answers);
+  if (state === "nj" && form === "jod") return buildNjJodPayload(matter, answers);
+  if (state === "nj" && NJ_CAPTION_ONLY_FORMS.includes(form)) {
+    return buildNjCaptionOnlyPayload(matter, answers);
+  }
   throw new Error("VALIDATION: unsupported state/form pair");
 }

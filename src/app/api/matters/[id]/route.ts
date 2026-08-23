@@ -53,6 +53,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         id: matter.id,
         label: matter.label,
         lifecycle: matter.lifecycle,
+        // The state this matter proceeds in: the attorney's confirmation,
+        // or (unconfirmed staff-created matters) the picker's candidate.
+        jurisdiction: matter.jurisdictionConfirmed ?? matter.jurisdictionCandidate ?? "NY",
+        jurisdictionConfirmed: matter.jurisdictionConfirmed,
         conflictStatus: matter.conflictStatus,
         conflictStatusSetBy: matter.conflictStatusSetBy,
         conflictStatusSetAt: matter.conflictStatusSetAt,

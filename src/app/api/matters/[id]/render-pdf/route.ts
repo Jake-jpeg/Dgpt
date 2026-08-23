@@ -17,7 +17,7 @@ import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
 import { getMatterAnswers, attorneySetJurisdictionAndScope } from "@/lib/db/intake2";
-import { UNCONTESTED_CATEGORY } from "@/config/intake/phases";
+import { UNCONTESTED_CATEGORY, NJ_CATEGORY } from "@/config/intake/phases";
 import type { MatterCategory } from "@/lib/intake2/types";
 import { recordAudit } from "@/lib/db/repo";
 import { getFileStorage } from "@/lib/storage";
@@ -28,7 +28,7 @@ import { pdfServiceEnabled, renderPdf } from "@/lib/pdf-service/client";
 import { auditFormDataConfirmed, auditPdfRendered } from "@/lib/pdf-service/audit";
 
 const schema = z.object({
-  state: z.enum(["ny"]),
+  state: z.enum(["ny", "nj"]),
   form: z.string().trim().min(1).max(40),
   confirmFormData: z.literal(true),
   // "pdf" (default) or "docx" — Word builds exist for the DOCX_FORMS set
@@ -76,21 +76,33 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (format === "docx" && !docxAvailable(state, form)) {
       throw new HttpError(400, "VALIDATION: no Word build for that form yet — request PDF");
     }
-    // NY-only product. A matter opened by staff can reach an attorney with no
-    // jurisdiction row set, and there is no jurisdiction form any more to set
-    // it (operator directive 2026-07-26). An ATTORNEY asking to render a NY
-    // form on a New York-only product IS the determination — so record it,
-    // audited, instead of dead-ending the render. A confirmed non-NY matter
-    // still refuses: that would be a real conflict, not a blank field.
-    if (!matter.jurisdictionConfirmed && state === "ny") {
+    // A matter opened by staff can reach an attorney with no jurisdiction
+    // row set, and there is no jurisdiction form any more to set it
+    // (operator directive 2026-07-26). An ATTORNEY asking to render a
+    // state's form on such a matter IS the determination — so record it,
+    // audited, instead of dead-ending the render. The picker's candidate is
+    // honored when one was recorded: auto-confirming a state that
+    // CONTRADICTS the recorded candidate would be a silent jurisdiction
+    // flip, so that render refuses instead. A confirmed matter still
+    // refuses any other state's form — the two playbooks are exclusive.
+    if (!matter.jurisdictionConfirmed) {
+      const requested = state.toUpperCase() as "NY" | "NJ";
+      const candidate = matter.jurisdictionCandidate?.toUpperCase() ?? null;
+      if (candidate && candidate !== requested) {
+        throw new HttpError(
+          409,
+          "JURISDICTION_GUARD: this matter was opened for another state — confirm jurisdiction before rendering"
+        );
+      }
+      const category = (requested === "NJ" ? NJ_CATEGORY : UNCONTESTED_CATEGORY) as MatterCategory;
       await attorneySetJurisdictionAndScope({
         matterId: matter.id,
         actingUserId: authed.account.id,
-        jurisdictionConfirmed: "NY",
-        matterCategory: UNCONTESTED_CATEGORY as MatterCategory,
+        jurisdictionConfirmed: requested,
+        matterCategory: category,
       });
-      await recordAudit(matter.id, "JURISDICTION_SCOPE_SET", "jurisdiction=NY (confirmed by the attorney's render request on a NY-only product)", authed.account.id);
-    } else if (!matter.jurisdictionConfirmed || matter.jurisdictionConfirmed.toLowerCase() !== state) {
+      await recordAudit(matter.id, "JURISDICTION_SCOPE_SET", `jurisdiction=${requested} (confirmed by the attorney's render request)`, authed.account.id);
+    } else if (matter.jurisdictionConfirmed.toLowerCase() !== state) {
       throw new HttpError(
         409,
         "JURISDICTION_GUARD: this matter is confirmed to another state — it cannot render that state's forms"

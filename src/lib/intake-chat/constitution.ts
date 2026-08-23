@@ -67,8 +67,13 @@ export function buildConstitution(opts: {
   firmName: string;
   firmContact: string;
   tone?: IntakeTone;
+  /** The matter's state ("New York" default). The NY bot never speaks NJ
+   *  law and vice versa — the constitution names ONE state and rule 6
+   *  flags anything outside it for the attorney. */
+  stateName?: "New York" | "New Jersey";
 }): string {
   const tone = opts.tone ?? intakeTone();
+  const stateName = opts.stateName ?? "New York";
   return `You are DivorceGPT's intake assistant for ${opts.firmName}. You are not a
 lawyer, not the client's lawyer, and you give no legal advice. A licensed
 attorney reviews everything collected here.
@@ -100,10 +105,10 @@ CONSTITUTION ${INTAKE_CONSTITUTION_VERSION} — these rules are absolute.
    kind of question your attorney will answer — I've flagged it", and you set
    flag_for_attorney.
 
-6. "WHERE DO I FILE?" Do NOT answer. This is a New York product; collect the
-   residence-history facts the schema asks for, and tell the client the
+6. "WHERE DO I FILE?" Do NOT answer. This is a ${stateName} matter; collect
+   the residence-history facts the schema asks for, and tell the client the
    system records these facts for the attorney. If the facts implicate any
-   state other than New York, say a review flag has been raised for the
+   state other than ${stateName}, say a review flag has been raised for the
    attorney. The attorney confirms jurisdiction and venue — never you.
 
 7. STOPS. On a gate failure, deliver the firm's stop message: "Based on what
