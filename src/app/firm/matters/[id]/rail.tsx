@@ -16,16 +16,16 @@
  * next question set — deleting the old "Case phase & court forms" panel
  * without rehoming it would have stranded every case in Phase 1.
  *
- * Word first where a Word build exists (DOCX_FORMS — Phase-1 forms today);
- * generating those forms produces BOTH files in two sequential requests so
- * no single request flirts with the 30-second gateway timeout. Every
- * generated version still lands ATTORNEY_REVIEW_REQUIRED server-side —
- * that machinery is unchanged, it just no longer has its own panel.
+ * Word only (operator, 2026-09-12): every form is built in-process as a
+ * .docx the lawyer opens and edits; the PDF service is retired. Older
+ * PDF versions already on a matter still download. Every generated version
+ * still lands ATTORNEY_REVIEW_REQUIRED server-side — that machinery is
+ * unchanged, it just no longer has its own panel.
  */
 import { useCallback, useEffect, useState } from "react";
 import { api, fmtWhen } from "@/lib/ui/client-api";
 import { ErrorNotice } from "@/components/shell";
-import { ALLOWED_RENDERS, docxAvailable, renderLabel } from "@/lib/pdf-service/types";
+import { ALLOWED_RENDERS, renderLabel } from "@/lib/pdf-service/types";
 import { guidelineYearSummary } from "@/config/legal/ny-guidelines-2026";
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -121,20 +121,12 @@ export default function FormsRail({
     setBusyForm(form);
     setErr(null);
     try {
-      // Word first when a Word build exists, then PDF — two bounded
-      // requests, never one long one (the 30s gateway landmine).
-      if (docxAvailable(state, form)) {
-        await api.post(`/api/matters/${matterId}/render-pdf`, {
-          state,
-          form,
-          confirmFormData: true,
-          format: "docx",
-        });
-      }
+      // One request: the Word document is built in-process.
       await api.post(`/api/matters/${matterId}/render-pdf`, {
         state,
         form,
         confirmFormData: true,
+        format: "docx",
       });
       await onChanged();
     } catch (e) {
@@ -226,7 +218,7 @@ export default function FormsRail({
                                 </button>
                               )}
                             </div>
-                            {!gen.docx && docxAvailable(state, form) && (
+                            {!gen.docx && (
                               <p className="text-xs text-slate-500" style={{ margin: "6px 0 0" }}>
                                 Regenerate to get the Word version.
                               </p>
@@ -234,7 +226,7 @@ export default function FormsRail({
                           </>
                         ) : isAttorney ? (
                           <button className="btn btn-primary" style={{ padding: "4px 12px", fontSize: ".8rem" }} disabled={busyForm !== null} onClick={() => generate(form)}>
-                            {busy ? "Generating…" : `Generate${docxAvailable(state, form) ? " (Word + PDF)" : " (PDF)"}`}
+                            {busy ? "Generating…" : "Generate (Word)"}
                           </button>
                         ) : (
                           <p className="text-xs text-slate-500" style={{ margin: 0 }}>Not generated yet — attorney action.</p>

@@ -1,8 +1,10 @@
 /**
- * Deterministic PDF rendering — types + explicit allowlist (Part 3).
+ * Deterministic court-form rendering — types + explicit allowlist (Part 3).
  * The allowlist is the ONLY set of state/form pairs the application will
- * ever ask the ReportLab service to render. The AI layer has no input here: not
- * the endpoint, not the state, not the form, not the filename.
+ * ever render. Since 2026-09-12 the renderer is the in-app Word engine
+ * (src/lib/word); the ReportLab PDF service is retired. The module keeps
+ * its historical name so the audit vocabulary and imports stay stable. The
+ * AI layer has no input here: not the state, not the form, not the filename.
  */
 export const ALLOWED_RENDERS = [
   // Phase 1 — commencement
@@ -44,17 +46,11 @@ export function isAllowedRender(state: string, form: string): boolean {
   return ALLOWED_RENDERS.some((r) => r.state === state && r.form === form);
 }
 
-/**
- * Forms with an editable Word (.docx) build on the RL side. Phase-1 first
- * (operator directive 2026-07-27); grows form by form as each build is
- * proven. PDF exists for every allowlisted form regardless.
- */
-export const DOCX_FORMS: ReadonlySet<string> = new Set(["ny/ud1", "ny/complaint"]);
-
-export type RenderFormat = "pdf" | "docx";
+/** Every allowlisted form is a Word document (operator, 2026-09-12: Word only). */
+export type RenderFormat = "docx";
 
 export function docxAvailable(state: string, form: string): boolean {
-  return DOCX_FORMS.has(`${state}/${form}`);
+  return isAllowedRender(state, form);
 }
 
 export function renderLabel(state: string, form: string): string {
@@ -70,13 +66,4 @@ export interface PdfRenderResult {
   sha256: string;
   latencyMs: number;
   retried: boolean;
-}
-
-export class PdfServiceError extends Error {
-  constructor(
-    message: string,
-    readonly status: number | null = null
-  ) {
-    super(message);
-  }
 }

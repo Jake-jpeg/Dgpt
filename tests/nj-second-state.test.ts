@@ -206,12 +206,12 @@ describe("render allowlist — the ten NJ forms, by RL's exact route names", () 
     "jod", "jod_cert_plaintiff", "jod_cert_defendant",
   ];
 
-  it("exactly these ten nj pairs are allowlisted; no Word build claimed for any", () => {
+  it("exactly these ten nj pairs are allowlisted, every one buildable as Word", () => {
     const nj = ALLOWED_RENDERS.filter((r) => r.state === "nj").map((r) => r.form);
     expect(nj).toEqual(NJ_FORMS);
     for (const f of NJ_FORMS) {
       expect(isAllowedRender("nj", f)).toBe(true);
-      expect(docxAvailable("nj", f)).toBe(false); // RL has no NJ Word builds yet
+      expect(docxAvailable("nj", f)).toBe(true); // every form is Word since 2026-09-12
     }
     expect(isAllowedRender("nj", "ud1")).toBe(false); // NY forms never leak into NJ
     expect(isAllowedRender("ny", "jod")).toBe(false); // and vice versa
@@ -345,10 +345,6 @@ describe("render route — the jurisdiction guard cuts both ways", () => {
   }
 
   it("an NJ matter cannot render a NY form → 409; a NY matter cannot render an NJ form → 409", async () => {
-    process.env.PDF_SERVICE_ENABLED = "true";
-    process.env.PDF_SERVICE_URL = "http://rl.test";
-    process.env.PDF_SERVICE_TOKEN = "synthetic-service-token-never-real";
-
     const nj = await njReadyMatter();
     freshLimits();
     const crossNy = await renderReq(nj.id, "ny", "ud1");

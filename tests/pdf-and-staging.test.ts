@@ -1,9 +1,9 @@
 /**
- * Online-staging additions (offline regression): deterministic PDF
- * mappings, the server-only RL client contract, the ATTORNEY-only render
- * route + lifecycle, the synthetic-ephemeral-storage guard, the health
- * endpoint, and the staging acceptance endpoint's gating.
- * NO network: the RL service is a mocked fetch.
+ * Online-staging additions (offline regression): deterministic form
+ * mappings, the in-app Word engine contract (the ReportLab PDF service was
+ * retired 2026-09-12), the ATTORNEY-only render route + lifecycle, the
+ * synthetic-ephemeral-storage guard, the health endpoint, and the staging
+ * acceptance endpoint's gating. NO network: rendering is in-process.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { resetDbForTests } from "@/lib/db/index";
@@ -20,11 +20,11 @@ import {
   type MatterContext,
 } from "./helpers";
 import { getMatter } from "@/lib/db/matters";
-import { docxAvailable } from "@/lib/pdf-service/types";
+import { docxAvailable, ALLOWED_RENDERS } from "@/lib/pdf-service/types";
 import { saveMatterAnswers, attorneySetJurisdictionAndScope } from "@/lib/db/intake2";
 import { buildRenderPayload, buildNyUd1Payload } from "@/lib/pdf-service/mappings";
-import { renderPdf, pdfServiceEnabled } from "@/lib/pdf-service/client";
-import { PdfServiceError } from "@/lib/pdf-service/types";
+import { renderWord, wordFormExists, DOCX_MIME as WORD_MIME } from "@/lib/word";
+import { docxText } from "./word-helpers";
 import { listDocumentsForMatter, listVersions } from "@/lib/db/documents";
 import { GET as renderGet, POST as renderPost } from "@/app/api/matters/[id]/render-pdf/route";
 import { GET as docsGet } from "@/app/api/matters/[id]/documents/route";
@@ -36,30 +36,7 @@ let ctx: MatterContext;
 let attorneyCookie: string;
 let clientCookie: string;
 
-const PDF_BYTES = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x0a]); // "%PDF-1.4\n"
-const DOCX_BYTES = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00]); // PK\x03\x04 zip magic
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-
-function mockRlFetch(status = 200, body: BodyInit = PDF_BYTES, headers: Record<string, string> = {}) {
-  const mock = vi.fn(async () =>
-    new Response(body, {
-      status,
-      headers: {
-        "content-type": "application/pdf",
-        "content-disposition": 'attachment; filename="NY_UD1_Avery.pdf"',
-        ...headers,
-      },
-    })
-  );
-  vi.stubGlobal("fetch", mock);
-  return mock;
-}
-
-function enablePdfService() {
-  process.env.PDF_SERVICE_ENABLED = "true";
-  process.env.PDF_SERVICE_URL = "http://rl.test";
-  process.env.PDF_SERVICE_TOKEN = "synthetic-service-token-never-real";
-}
 
 const NY_MAPPING_ANSWERS = [
   { questionId: "shared.identity.client_name", value: "Avery Stagingperson" },
@@ -201,76 +178,61 @@ describe("deterministic mappings", () => {
   });
 });
 
-describe("RL client contract", () => {
-  it("sends the bearer token server-to-server and validates the PDF magic", async () => {
-    enablePdfService();
-    const mock = mockRlFetch();
-    const result = await renderPdf({ state: "ny", form: "ud1", payload: { plaintiffName: "A" } });
-    expect(result.sha256).toHaveLength(64);
-    expect(result.filename).toBe("NY_UD1_Avery.pdf");
-    const [url, init] = mock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(String(url)).toBe("http://rl.test/generate/ny/ud1");
-    expect((init.headers as Record<string, string>).authorization).toBe("Bearer synthetic-service-token-never-real");
-  });
-
-  it("401 from RL fails immediately (no retry); 5xx retries exactly once", async () => {
-    enablePdfService();
-    const unauth = vi.fn(async () => new Response("{}", { status: 401 }));
-    vi.stubGlobal("fetch", unauth);
-    await expect(renderPdf({ state: "ny", form: "ud1", payload: {} })).rejects.toBeInstanceOf(PdfServiceError);
-    expect(unauth).toHaveBeenCalledTimes(1);
-
-    const flaky = vi.fn(async () => new Response("{}", { status: 500 }));
-    vi.stubGlobal("fetch", flaky);
-    await expect(renderPdf({ state: "ny", form: "ud1", payload: {} })).rejects.toBeInstanceOf(PdfServiceError);
-    expect(flaky).toHaveBeenCalledTimes(2);
-  });
-
-  it("docx format: ?format=docx on the URL, PK magic + Word mime validated, .docx filename", async () => {
-    enablePdfService();
-    const mock = mockRlFetch(200, DOCX_BYTES, {
-      "content-type": DOCX_MIME,
-      "content-disposition": 'attachment; filename="NY_UD1_Avery.docx"',
-    });
-    const result = await renderPdf({ state: "ny", form: "ud1", payload: {}, format: "docx" });
-    expect(result.filename).toBe("NY_UD1_Avery.docx");
-    const [url] = mock.mock.calls[0] as unknown as [string];
-    expect(String(url)).toBe("http://rl.test/generate/ny/ud1?format=docx");
-  });
-
-  it("docx format: a PDF body answering a docx request is refused", async () => {
-    enablePdfService();
-    mockRlFetch(200, PDF_BYTES); // pdf magic + pdf mime, but we asked for docx
-    await expect(renderPdf({ state: "ny", form: "ud1", payload: {}, format: "docx" })).rejects.toThrow(/non-DOCX/);
-  });
-
-  it("docx availability is pinned: Phase-1 forms only (today)", async () => {
-    expect(docxAvailable("ny", "ud1")).toBe(true);
-    expect(docxAvailable("ny", "complaint")).toBe(true);
-    expect(docxAvailable("ny", "stipulation")).toBe(false);
-    expect(docxAvailable("ny", "ud14")).toBe(false);
-  });
-
-  it("a non-PDF body is rejected even with a 200", async () => {
-    enablePdfService();
-    mockRlFetch(200, JSON.stringify({ nope: true }), { "content-type": "application/json" });
-    await expect(renderPdf({ state: "ny", form: "ud1", payload: {} })).rejects.toThrow(/non-PDF/);
-  });
-
-  it("disabled service refuses locally without any fetch", async () => {
+describe("Word engine contract (the PDF service is retired)", () => {
+  it("builds a real .docx in-process — no fetch, no service, no token", async () => {
     const mock = vi.fn();
     vi.stubGlobal("fetch", mock);
-    expect(pdfServiceEnabled()).toBe(false);
-    await expect(renderPdf({ state: "ny", form: "ud1", payload: {} })).rejects.toThrow(/not configured/);
+    const result = await renderWord("ny", "ud1", {
+      plaintiffName: "Avery Stagingperson",
+      defendantName: "Blake Stagingperson",
+      county: "Kings",
+      qualifyingParty: "plaintiff",
+      qualifyingAddress: "12 Synthetic Way, Brooklyn, NY 11201",
+      plaintiffAddress: "12 Synthetic Way, Brooklyn, NY 11201",
+    });
     expect(mock).not.toHaveBeenCalled();
+    expect(result.sha256).toHaveLength(64);
+    expect(result.filename).toBe("NY_UD1_Stagingperson.docx");
+    // PK zip magic — a Word file, not a PDF
+    expect(Array.from(result.bytes.slice(0, 2))).toEqual([0x50, 0x4b]);
+    expect(await docxText(result.bytes)).toContain("SUMMONS WITH NOTICE");
+    expect(WORD_MIME).toBe(DOCX_MIME);
+  });
+
+  it("is deterministic: the same payload yields the same words (bytes differ only by the docx timestamp)", async () => {
+    const payload = {
+      plaintiffName: "Avery Stagingperson",
+      defendantName: "Blake Stagingperson",
+      county: "Kings",
+      qualifyingParty: "plaintiff",
+      qualifyingAddress: "12 Synthetic Way, Brooklyn, NY 11201",
+      plaintiffAddress: "12 Synthetic Way, Brooklyn, NY 11201",
+    };
+    const a = await renderWord("ny", "ud1", payload);
+    const b = await renderWord("ny", "ud1", payload);
+    expect(await docxText(a.bytes)).toBe(await docxText(b.bytes));
+  });
+
+  it("every allowlisted form has a Word generator, and Word is available for all of them", () => {
+    for (const r of ALLOWED_RENDERS) {
+      expect(wordFormExists(r.state, r.form), `${r.state}/${r.form}`).toBe(true);
+      expect(docxAvailable(r.state, r.form)).toBe(true);
+    }
+    expect(wordFormExists("ny", "nonsense")).toBe(false);
+  });
+
+  it("an unknown pair refuses before any document is built", async () => {
+    await expect(renderWord("ny", "nonsense", {})).rejects.toThrow(/unsupported/);
+  });
+
+  it("missing critical facts refuse loudly — nothing is invented into a caption", async () => {
+    await expect(renderWord("ny", "ud1", { plaintiffName: "A" })).rejects.toThrow(/VALIDATION/);
   });
 });
 
 describe("render route lifecycle", () => {
   it("CLIENT and STAFF cannot render; ATTORNEY renders ATTORNEY_REVIEW_REQUIRED; client cannot see it; release refused pre-approval", async () => {
     const matter = await nyReadyMatter();
-    enablePdfService();
-    mockRlFetch();
 
     freshLimits();
     const clientTry = await renderPost(
@@ -318,7 +280,8 @@ describe("render route lifecycle", () => {
     delete process.env.APP_STAGE;
 
     const version = (await listVersions(rendered.id))[0];
-    expect(version.mime).toBe("application/pdf");
+    expect(version.mime).toBe(DOCX_MIME); // Word only — the PDF service is retired
+    expect(version.originalFilename).toMatch(/\.docx$/);
     expect(version.sha256).toBe(data.artifact.sha256);
 
     // Client documents view must not include the unreleased rendered form.
@@ -353,8 +316,6 @@ describe("render route lifecycle", () => {
     await clearMatter(ctx.matterId);
     const blank = (await getMatter(ctx.matterId))!;
     expect(blank.jurisdictionConfirmed).toBeNull();
-    enablePdfService();
-    mockRlFetch();
     freshLimits();
     const res = await renderPost(
       jsonRequest(`/api/matters/${blank.id}/render-pdf`, {
@@ -370,7 +331,25 @@ describe("render route lifecycle", () => {
     expect((await getMatter(blank.id))!.jurisdictionConfirmed).toBe("NY");
   });
 
-  it("service disabled ⇒ 503 and the manual workflow is unaffected", async () => {
+  it("a PDF request is refused loudly — the product is Word only", async () => {
+    const matter = await nyReadyMatter();
+    freshLimits();
+    const res = await renderPost(
+      jsonRequest(`/api/matters/${matter.id}/render-pdf`, {
+        cookie: attorneyCookie,
+        body: { state: "ny", form: "ud1", confirmFormData: true, format: "pdf" },
+      }),
+      params({ id: matter.id })
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("the render works with NO PDF-service configuration at all", async () => {
+    delete process.env.PDF_SERVICE_ENABLED;
+    delete process.env.PDF_SERVICE_URL;
+    delete process.env.PDF_SERVICE_TOKEN;
+    const mock = vi.fn();
+    vi.stubGlobal("fetch", mock);
     const matter = await nyReadyMatter();
     freshLimits();
     const res = await renderPost(
@@ -380,7 +359,8 @@ describe("render route lifecycle", () => {
       }),
       params({ id: matter.id })
     );
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(201);
+    expect(mock).not.toHaveBeenCalled();
   });
 
   it("allowlist inspection GET is staff/attorney only", async () => {
@@ -427,6 +407,8 @@ describe("health + acceptance gating", () => {
     const body = (await res.json()) as Record<string, unknown>;
     expect(body.stage).toBe("staging");
     expect(typeof body.aiConfigured).toBe("boolean");
+    expect(body.pdfService).toBe("retired");
+    expect((body.documents as { engine: string }).engine).toBe("word");
     const raw = JSON.stringify(body);
     expect(raw).not.toMatch(/sk-[A-Za-z0-9]/);
     expect(raw).not.toContain("OPENAI_API_KEY");

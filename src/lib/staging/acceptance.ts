@@ -495,28 +495,9 @@ async function negativeStep(origin: string, matterId: string, aiVersionId: strin
     ck(checks, `no payment route ${path}`, r.status === 404, `HTTP ${r.status}`);
   }
 
-  // RL direct access must be rejected without/with-wrong token.
-  const rlUrl = (process.env.PDF_SERVICE_URL ?? "").replace(/\/+$/, "");
-  if (rlUrl) {
-    try {
-      const noTok = await fetch(`${rlUrl}/generate/ny/ud1`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ plaintiffName: "X" }),
-      });
-      ck(checks, "RL rejects unauthenticated generation", noTok.status === 401, `HTTP ${noTok.status}`);
-      const badTok = await fetch(`${rlUrl}/generate/ny/ud1`, {
-        method: "POST",
-        headers: { "content-type": "application/json", authorization: "Bearer not-the-real-token" },
-        body: JSON.stringify({ plaintiffName: "X" }),
-      });
-      ck(checks, "RL rejects invalid token", badTok.status === 401, `HTTP ${badTok.status}`);
-    } catch {
-      ck(checks, "RL negative probes reachable", false, "RL unreachable from staging");
-    }
-  } else {
-    ck(checks, "RL negative probes", false, "PDF_SERVICE_URL not set");
-  }
+  // 2026-09-12: the ReportLab service is retired — court forms are built
+  // in-process as Word documents, so there is no second service to probe.
+  ck(checks, "PDF service retired — Word engine in-app", true, "docx");
 
   // AI-disabled continuity: flip the in-process flag briefly (single
   // instance, synthetic staging), verify 503 + portal functionality,

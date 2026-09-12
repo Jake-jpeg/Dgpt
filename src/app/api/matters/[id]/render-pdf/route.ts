@@ -1,13 +1,19 @@
 /**
- * Deterministic PDF rendering (Parts 3–4) — ATTORNEY ONLY.
+ * Deterministic court-form rendering (Parts 3–4) — ATTORNEY ONLY.
  *
  * POST { state, form, confirmFormData: true }
  *
+ * 2026-09-12: the ReportLab PDF service is RETIRED. Forms are built as Word
+ * documents by the in-app engine (src/lib/word) from the SAME deterministic
+ * payload the service used to receive — "retire ReportLab as the
+ * technology, not the determinism." The route path keeps its historical
+ * name so the rail, the audit trail and the tests are unchanged.
+ *
  * The attorney's request IS the confirmation of the deterministic form
  * data (audited FORM_DATA_CONFIRMED with a payload fingerprint). The
- * rendered PDF is stored as a NEW document version in
+ * rendered document is stored as a NEW document version in
  * ATTORNEY_REVIEW_REQUIRED — approval of the source data never approves
- * the PDF; the PDF needs its own exact-version approval before any
+ * the document; it needs its own exact-version approval before any
  * release. Nothing here releases automatically, and the AI layer has no input
  * into endpoint, state, form, filename, or permissions.
  */
@@ -22,18 +28,19 @@ import type { MatterCategory } from "@/lib/intake2/types";
 import { recordAudit } from "@/lib/db/repo";
 import { getFileStorage } from "@/lib/storage";
 import { addDocumentVersion, createDocument } from "@/lib/db/documents";
-import { isAllowedRender, renderLabel, docxAvailable, PdfServiceError, ALLOWED_RENDERS } from "@/lib/pdf-service/types";
+import { isAllowedRender, renderLabel, ALLOWED_RENDERS } from "@/lib/pdf-service/types";
 import { buildRenderPayload } from "@/lib/pdf-service/mappings";
-import { pdfServiceEnabled, renderPdf } from "@/lib/pdf-service/client";
+import { renderWord, wordFormExists, DOCX_MIME } from "@/lib/word";
 import { auditFormDataConfirmed, auditPdfRendered } from "@/lib/pdf-service/audit";
 
 const schema = z.object({
   state: z.enum(["ny", "nj"]),
   form: z.string().trim().min(1).max(40),
   confirmFormData: z.literal(true),
-  // "pdf" (default) or "docx" — Word builds exist for the DOCX_FORMS set
-  // only (operator directive 2026-07-27: attorneys download forms in Word).
-  format: z.enum(["pdf", "docx"]).optional(),
+  // Word only (operator, 2026-09-12: "We will produce WORD documents only
+  // and the lawyers are free to edit however they see fit"). A "pdf" request
+  // is refused loudly rather than silently served as something else.
+  format: z.enum(["docx"]).optional(),
 });
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -44,13 +51,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const { id } = await ctx.params;
     const matter = (await requireMatterAccess(authed, id));
     return Response.json({
-      enabled: pdfServiceEnabled(),
+      enabled: true, // the Word engine is in-process; there is no service to be down
+      engine: "word",
       jurisdictionConfirmed: matter.jurisdictionConfirmed,
       allowedRenders: ALLOWED_RENDERS.filter(
         (r) => !matter.jurisdictionConfirmed || r.state === matter.jurisdictionConfirmed.toLowerCase()
       ),
       note:
-        "Rendering is an attorney action. The rendered PDF starts ATTORNEY_REVIEW_REQUIRED and needs its own exact-version approval before any release.",
+        "Rendering is an attorney action. The rendered Word document starts ATTORNEY_REVIEW_REQUIRED and needs its own exact-version approval before any release.",
     });
   } catch (e) {
     return errorResponse(e);
@@ -68,13 +76,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const parsed = schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid render request");
     const { state, form } = parsed.data;
-    const format = parsed.data.format === "docx" ? "docx" : "pdf";
 
-    if (!isAllowedRender(state, form)) {
+    if (!isAllowedRender(state, form) || !wordFormExists(state, form)) {
       throw new HttpError(400, "VALIDATION: that state/form pair is not on the render allowlist");
-    }
-    if (format === "docx" && !docxAvailable(state, form)) {
-      throw new HttpError(400, "VALIDATION: no Word build for that form yet — request PDF");
     }
     // A matter opened by staff can reach an attorney with no jurisdiction
     // row set, and there is no jurisdiction form any more to set it
@@ -111,23 +115,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (matter.conflictStatus !== "CLEARED" && matter.conflictStatus !== "EXTERNAL") {
       throw new HttpError(409, "CONFLICT_GUARD: matter is not cleared");
     }
-    if (!pdfServiceEnabled()) {
-      return Response.json(
-        { error: "PDF rendering is currently disabled. Manual document workflows are unaffected." },
-        { status: 503 }
-      );
-    }
-
     // Deterministic mapping from SAVED answers — the attorney's request is
     // the confirmation of this data (fingerprint audited).
     const payload = buildRenderPayload(state, form, matter, (await getMatterAnswers(matter.id)));
     (await auditFormDataConfirmed({ matterId: matter.id, userId: authed.account.id, state, form, payload }));
 
-    const result = await renderPdf({ state, form, payload, format });
+    const result = await renderWord(state, form, payload);
 
     const stored = await getFileStorage().put(result.bytes);
     if (stored.sha256 !== result.sha256) {
-      throw new PdfServiceError("PDF_GUARD: stored bytes do not match the rendered hash");
+      throw new HttpError(500, "RENDER_GUARD: stored bytes do not match the rendered hash");
     }
     // Stage-aware labeling: staging keeps the loud synthetic marker; every
     // other stage uses the production label. Review posture never changes —
@@ -138,7 +135,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         : " — attorney review required";
     const doc = (await createDocument({
           matterId: matter.id,
-          title: `${renderLabel(state, form)}${format === "docx" ? " (Word)" : ""}${stageMarker}`,
+          title: `${renderLabel(state, form)}${stageMarker}`,
           docKind: "RENDERED_FORM",
           createdBy: authed.account.id,
         }));
@@ -146,10 +143,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
           documentId: doc.id,
           storageKey: stored.storageKey,
           sha256: stored.sha256,
-          mime:
-            format === "docx"
-              ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              : "application/pdf",
+          mime: DOCX_MIME,
           sizeBytes: stored.sizeBytes,
           originalFilename: result.filename,
           source: "INTERNAL",
@@ -165,7 +159,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
             sha256: stored.sha256,
             sizeBytes: stored.sizeBytes,
             latencyMs: result.latencyMs,
-            retried: result.retried,
+            retried: false,
           }));
 
     return Response.json(
@@ -182,9 +176,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       { status: 201 }
     );
   } catch (e) {
-    if (e instanceof PdfServiceError) {
-      return Response.json({ error: e.message }, { status: 502 });
-    }
     return errorResponse(e);
   }
 }

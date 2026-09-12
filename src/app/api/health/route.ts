@@ -1,18 +1,14 @@
 /**
  * Deployment health check (Part 7) — unauthenticated, booleans/labels only.
  * Confirms: app running, database accessible, AI configuration PRESENT
- * (never values), PDF service reachable, stage. No secrets, no client
+ * (never values), document engine, stage. No secrets, no client
  * data, no counts that could leak activity.
  */
 import { getDb } from "@/lib/db/index";
 import { appStage } from "@/config/stage";
-import { pdfServiceHealthy } from "@/lib/pdf-service/client";
+import { ALLOWED_RENDERS } from "@/lib/pdf-service/types";
 import { syntheticEphemeralStorageActive } from "@/lib/storage";
 import { aiProviderFor, aiModelFor, PROVIDER_KEY_ENV, AI_TIERS, type AiTier } from "@/config/ai-providers";
-
-// Cache the PDF probe briefly so frequent platform health checks don't
-// hammer the RL service.
-let pdfCache: { at: number; value: "disabled" | "ok" | "unreachable" } | null = null;
 
 export async function GET() {
   let db = "ok";
@@ -22,9 +18,6 @@ export async function GET() {
     await getDb().get("SELECT 1 AS one");
   } catch {
     db = "error";
-  }
-  if (!pdfCache || Date.now() - pdfCache.at > 30_000) {
-    pdfCache = { at: Date.now(), value: await pdfServiceHealthy() };
   }
   const body = {
     status: db === "ok" ? "ok" : "degraded",
@@ -43,7 +36,10 @@ export async function GET() {
     // thrown: health must answer even when the AI is misconfigured, because
     // that is exactly when it gets read.
     ai: aiTierHealth(),
-    pdfService: pdfCache.value,
+    // 2026-09-12: the ReportLab PDF service is retired; court forms are built
+    // in-process as Word documents. Reported as a label, never a URL.
+    documents: { engine: "word", forms: ALLOWED_RENDERS.length },
+    pdfService: "retired",
   };
   return Response.json(body, { status: db === "ok" ? 200 : 503 });
 }
