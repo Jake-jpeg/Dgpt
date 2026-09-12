@@ -571,6 +571,16 @@ function ConnectClientPanel({
     loadClients();
   }, [loadClients]);
 
+  // While the client is not connected, re-check registrations every 20s so
+  // the attorney sees them arrive without reloading the page (the live run
+  // of 2026-09-12 had the client registered while this card still read
+  // "not connected yet" with nothing below it). Read-only; stops once linked.
+  useEffect(() => {
+    if (clientConnected) return;
+    const t = setInterval(loadClients, 20_000);
+    return () => clearInterval(t);
+  }, [clientConnected, loadClients]);
+
   const unlinked = clients.filter((c) => !c.linked && c.registered);
   // The registration that matches the address the attorney added, if it has
   // shown up yet. Sorted first so the expected person is never buried.
@@ -579,6 +589,12 @@ function ConnectClientPanel({
   const queue = [...unlinked].sort(
     (a, b) => Number(isExpected(b.email)) - Number(isExpected(a.email))
   );
+  // The registration for the address the attorney added, once it exists —
+  // the card offers "Connect to this matter" directly on it (operator,
+  // 2026-09-12: "instead of the Change button, just give it the connect
+  // button"). Same connect() as the table row; the table stays for anyone
+  // who registered under a different address.
+  const expectedRegistration = clientConnected ? undefined : queue.find((c) => isExpected(c.email));
 
   async function saveExpectedEmail(email: string | null) {
     setSavingEmail(true);
@@ -711,28 +727,55 @@ function ConnectClientPanel({
                 <span className="badge badge-good" style={{ marginLeft: 8 }}>
                   connected
                 </span>
+              ) : expectedRegistration ? (
+                <span className="badge badge-good" style={{ marginLeft: 8 }}>
+                  signed in — ready to connect
+                </span>
               ) : (
                 <span className="badge badge-warn" style={{ marginLeft: 8 }}>
                   not connected yet
                 </span>
               )}
             </span>
-            {!clientConnected && (
+            {!clientConnected && !expectedRegistration && (
               <p
                 className="text-xs"
                 style={{ flexBasis: "100%", margin: 0, color: "#b45309" }}
               >
-                Adding the email does not connect them. Once they sign in they
-                appear below — you still have to click <strong>Connect to this
-                matter</strong>. Until you do, they see a waiting screen and cannot
-                start the questionnaire.
+                Adding the email does not connect them. Once they sign in, a{" "}
+                <strong>Connect to this matter</strong> button appears here. Until
+                you click it, they see a waiting screen and cannot start the
+                questionnaire.
               </p>
+            )}
+            {!clientConnected && expectedRegistration && (
+              <p
+                className="text-xs"
+                style={{ flexBasis: "100%", margin: 0, color: "#166534" }}
+              >
+                {expectedRegistration.email} signed in {fmtWhen(expectedRegistration.createdAt)}.
+                Connecting opens their questionnaire.
+              </p>
+            )}
+            {isAttorney && expectedRegistration && (
+              <button
+                className="btn btn-primary"
+                style={{ padding: "4px 12px", fontSize: ".8rem", marginLeft: "auto" }}
+                disabled={busy !== null || savingEmail}
+                onClick={() => connect(expectedRegistration.id, expectedRegistration.email)}
+              >
+                {busy === expectedRegistration.id ? "Connecting…" : "Connect to this matter"}
+              </button>
             )}
             {isAttorney && (
               <button
                 className="btn btn-quiet"
-                style={{ padding: "3px 10px", fontSize: ".75rem", marginLeft: "auto" }}
-                disabled={savingEmail}
+                style={{
+                  padding: "3px 10px",
+                  fontSize: ".75rem",
+                  marginLeft: expectedRegistration ? undefined : "auto",
+                }}
+                disabled={savingEmail || busy !== null}
                 onClick={() => saveExpectedEmail(null)}
               >
                 Change
@@ -791,8 +834,8 @@ function ConnectClientPanel({
       </div>
       {unlinked.length === 0 && (
         <p className="mt-3 text-sm text-slate-500">
-          No registrations waiting. When your client signs in, they&apos;ll appear here —
-          refresh the page.
+          No registrations waiting. When your client signs in, they&apos;ll appear here
+          within a minute — no need to reload.
         </p>
       )}
       {unlinked.length > 0 && (

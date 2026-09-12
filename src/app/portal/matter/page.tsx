@@ -219,11 +219,14 @@ function WaitingRoom({ email }: { email: string }) {
   return (
     <div className="panel">
       <h2>You&apos;re registered — one last step</h2>
+      {/* Spaces around the firm name and after </strong> are explicit
+          strings: a JSX line break next to an expression or a closing tag
+          swallows the space ("Jake Kim Law Firmto", "registered— your"),
+          which is what shipped (operator, 2026-09-12). */}
       <p className="panel-sub">
-        Your sign-in worked. <strong>Now email {firm} to let them know you&apos;ve
-        registered</strong> — your attorney connects your case by hand, and your
-        email is what tells them you&apos;re ready. Once they connect it, your
-        questionnaire will be waiting the next time you log in.
+        {"Your sign-in worked. "}
+        <strong>{`Now email ${firm} to let them know you've registered`}</strong>
+        {" — your attorney connects your case by hand, and your email is what tells them you're ready. Once they connect it, your questionnaire will be waiting the next time you log in."}
       </p>
       {to ? (
         <a

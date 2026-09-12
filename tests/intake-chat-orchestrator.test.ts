@@ -135,6 +135,23 @@ describe("scripted opening", () => {
     expect(after.filter((m) => m.content === "welcome delivered")).toHaveLength(1);
     expect(after.some((m) => m.role === "ASSISTANT")).toBe(false);
   });
+
+  it("no 'Where we left off' while the client is still on the first question (2026-09-12)", async () => {
+    await ensureWelcomed(sessionId);
+    const fresh = await conversationView(sessionId);
+    // The welcome already ends with the first question; repeating it under
+    // a resume heading before anything was answered read as a bug.
+    expect(fresh.transcript).toHaveLength(1);
+    expect(fresh.transcript[0].content).toMatch(/First question:/);
+    expect(fresh.transcript.some((m) => m.content.startsWith("Where we left off"))).toBe(false);
+
+    // One answer in → the resume line appears for the step that is pending.
+    mockTurns(turnPayload({ gate_response: { gateId: "GATE_RESIDENCY", value: true } }));
+    await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "Yes, over ten years." });
+    const resumed = await conversationView(sessionId);
+    expect(resumed.transcript).toHaveLength(2);
+    expect(resumed.transcript[1].content).toMatch(/^Where we left off — /);
+  });
 });
 
 describe("gates ride the real machine", () => {

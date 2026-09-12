@@ -1034,11 +1034,18 @@ function rehydrateView(ctx: ConversationContext): ChatMessageRow[] {
   if (ctx.seqState.welcomed) {
     out.push(msg(1, scriptedWelcome(estimateQuestionCount(ctx.schema, ctx.seqState.phase), ctx.schema.jurisdiction)));
   }
+  // The scripted welcome ENDS with the first question ("Ready? First
+  // question: …" = the GATE_RESIDENCY prompt). While the client is still on
+  // that very first gate nothing has been answered, so there is no "where
+  // we left off" — re-asking it under that heading right below the welcome
+  // read as a bug (operator, 2026-09-12). From the second step on, the
+  // resume line is what shows them their place.
+  const onFirstQuestion = ctx.seqState.welcomed && ctx.session.state === "GATE_RESIDENCY";
   if (ctx.seqState.stopped) {
     out.push(msg(2, `This intake is paused. Please contact ${firmContact()} to continue.`));
   } else if (ctx.step.kind === "GATE") {
     const prompt = ctx.step.gate?.prompt;
-    if (prompt) out.push(msg(2, `Where we left off — ${prompt}`));
+    if (prompt && !onFirstQuestion) out.push(msg(2, `Where we left off — ${prompt}`));
   } else if (ctx.step.kind === "QUESTION") {
     const prompt = ctx.step.item?.prompt;
     if (prompt) out.push(msg(2, `Where we left off — ${prompt}`));
