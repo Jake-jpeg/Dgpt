@@ -110,15 +110,18 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
       JSON.stringify({ label: matter.label, lifecycle: matter.lifecycle }),
       authed.account.id
     );
-    if (result.clientAccountDeleted && result.clientEmail) {
+    // The client's login survives the deletion (2026-09-13) — they drop back
+    // to an unlinked registration in the attorney's queue. Audit the unbind
+    // so the trail explains why a registration reappeared.
+    if (result.clientEmail) {
       await recordAudit(
         id,
-        "USER_DELETED",
-        JSON.stringify({ email: result.clientEmail, role: "CLIENT", reason: "orphaned by matter deletion" }),
+        "CLIENT_UNBOUND",
+        JSON.stringify({ email: result.clientEmail, reason: "matter deleted; account kept" }),
         authed.account.id
       );
     }
-    return Response.json({ deleted: true, clientAccountDeleted: result.clientAccountDeleted });
+    return Response.json({ deleted: true, clientAccountDeleted: false, clientUnbound: Boolean(result.clientEmail) });
   } catch (e) {
     return errorResponse(e);
   }

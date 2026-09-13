@@ -90,17 +90,35 @@ export default function ClientMatterPage() {
       <ErrorNotice message={err} />
       {info && <div className="notice notice-good mb-4">{info}</div>}
 
+      {/* Signed in, but no account behind the session: the attorney declined
+          this registration (or an admin removed the account) while the
+          browser still carried a valid session. Signing in again re-registers
+          them — the button does it. (Matter deletion no longer removes the
+          client's login — 2026-09-13 — so this panel is now rare.) The old
+          copy told them to "open the invitation link the firm sent", a flow
+          retired 2026-07-26, and sent the live run of 2026-09-12 nowhere.
+          Deliberately NOT self-healed server-side: re-creating the account
+          from the session would undo an attorney's Decline on the client's
+          next reload. */}
       {!loading && !me?.user && me?.identity && (
         <div className="panel">
-          <h2>An invitation is needed</h2>
+          <h2>Please sign in again</h2>
           <p className="panel-sub">
-            You are signed in as {me.identity.email}, but this account isn&apos;t
-            linked to a matter yet. Open the invitation link the firm sent you
-            (and sign in with the email it was addressed to), or contact the firm.
+            {`You are signed in as ${me.identity.email}, but this sign-in is not registered with ${operatingFirmName()} right now. Sign out and sign back in with the email address the firm has for you — that registers you. If it still does not work, contact the firm.`}
           </p>
-          <Link className="btn btn-quiet mt-2" href="/invite">
-            About invitations
-          </Link>
+          <button
+            className="btn btn-primary mt-2"
+            onClick={async () => {
+              try {
+                await api.post("/api/auth/logout");
+              } catch {
+                /* cookie may already be gone */
+              }
+              window.location.replace("/portal");
+            }}
+          >
+            Sign out and start over
+          </button>
         </div>
       )}
 

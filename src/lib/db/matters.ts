@@ -353,14 +353,21 @@ export async function matterConflictCleared(matterId: string): Promise<boolean> 
  * RETAINED: the tamper-evident audit_event chain and bot_interaction_log
  * (opaque refs, no PII), exactly like the admin cascade.
  *
- * If the bound client account is left owning NOTHING (no other matter, no
- * sessions, no submissions), it is removed too — an invited client whose only
- * matter is deleted should not linger as a login with nowhere to go. The
- * caller (route) enforces the ATTORNEY role and refuses legal holds.
+ * THE CLIENT'S LOGIN IS KEPT (operator, 2026-09-13: "just let me delete it —
+ * that's what a normal human without any coding experience would do").
+ * Until then an orphaned client account was removed with its only matter,
+ * and the client's browser kept a valid session for an identity the
+ * database no longer knew: every page said "no account", the attorney's
+ * registration queue never showed them, and nothing changed until someone
+ * signed out. Now deleting a matter simply UNBINDS the client: their account
+ * drops back to an unlinked registration, they see the waiting room again,
+ * and the attorney can connect them to the next matter (or decline them
+ * from the queue — that route still deletes a shell on purpose). The caller
+ * (route) enforces the ATTORNEY role and refuses legal holds.
  */
 export async function deleteMatterCascade(matterId: string): Promise<{
   deleted: boolean;
-  clientAccountDeleted: boolean;
+  /** The unbound client's email, for the audit line — the account survives. */
   clientEmail: string | null;
 }> {
   const db = getDb();
@@ -383,23 +390,16 @@ export async function deleteMatterCascade(matterId: string): Promise<{
     return { deleted: true, clientUserId: m.client_user_id };
   });
 
-  if (!result.deleted) return { deleted: false, clientAccountDeleted: false, clientEmail: null };
+  if (!result.deleted) return { deleted: false, clientEmail: null };
 
-  // Orphan cleanup: a CLIENT account with zero remaining case references.
-  let clientAccountDeleted = false;
+  // The bound client (if any) is now simply unlinked — account untouched.
   let clientEmail: string | null = null;
   if (result.clientUserId) {
-    const { getUserById, countUserReferences } = await import("./users");
+    const { getUserById } = await import("./users");
     const user = await getUserById(result.clientUserId);
-    if (user && user.role === "CLIENT") {
-      clientEmail = user.email;
-      if ((await countUserReferences(user)) === 0) {
-        await db.run(`DELETE FROM app_user WHERE id = ?`, user.id);
-        clientAccountDeleted = true;
-      }
-    }
+    if (user && user.role === "CLIENT") clientEmail = user.email;
   }
-  return { deleted: true, clientAccountDeleted, clientEmail };
+  return { deleted: true, clientEmail };
 }
 
 /**

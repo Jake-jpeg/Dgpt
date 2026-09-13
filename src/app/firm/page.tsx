@@ -127,12 +127,13 @@ export default function FirmMattersPage() {
   const [busyDelete, setBusyDelete] = useState<string | null>(null);
 
   /** Attorney matter deletion from the list (2026-07-26 operator directive).
-   *  Typed-label confirmation; cascades the matter and an orphaned client
-   *  login; LEGAL HOLD is refused by the server regardless. */
+   *  Typed-label confirmation; cascades the matter. The client's login is
+   *  KEPT (2026-09-13) — they drop back to the registration queue, ready to
+   *  be connected to the next matter. LEGAL HOLD is refused by the server. */
   async function deleteMatter(id: string, label: string) {
     const typed = window.prompt(
       `Permanently delete "${label}" and everything in it (intake, transcript, documents)? ` +
-        `If the client has no other case, their login is removed too. This cannot be undone.\n\n` +
+        `The client's login is kept — they go back to your "Connect the client" queue. This cannot be undone.\n\n` +
         `Type the matter reference to confirm:`
     );
     if (typed === null) return;
