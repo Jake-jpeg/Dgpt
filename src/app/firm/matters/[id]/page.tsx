@@ -27,7 +27,7 @@ interface MatterDetail {
   expectedClientEmail: string | null;
   createdAt: string;
   updatedAt: string;
-  sessions: { id: string; state: string; tier: string | null; updatedAt: string }[];
+  sessions: { id: string; state: string; tier: string | null; updatedAt: string; attorneyFlags?: string[] }[];
   intakeLock?: IntakeLock;
 }
 /** Reason CODE only — never the client's free text. */
@@ -68,6 +68,19 @@ interface Doc {
   createdAt: string;
   versions: Version[];
 }
+/** Plain-language text for the review flags the interview can raise. */
+const REVIEW_FLAG_TEXT: Record<string, string> = {
+  DV_DISCLOSED_ATTORNEY_REVIEW:
+    "Client disclosed domestic violence or a restraining order — review personally before anything is drafted",
+  CHILDREN_PRESENT_ATTORNEY_REVIEW:
+    "Children of the marriage — custody, parenting time, and support need your review",
+  COMPLEXITY_ATTORNEY_REVIEW:
+    "Client is unsure or the parties disagree on the division — not fully uncontested as answered",
+  RESIDENCY_ATTORNEY_REVIEW:
+    "Residency basis needs your confirmation before the complaint is signed",
+  VENUE_UNSURE: "Client was not sure of their county — confirm venue",
+};
+
 export default function FirmMatterDetail() {
   const params = useParams<{ id: string }>();
   const matterId = params.id;
@@ -159,6 +172,16 @@ export default function FirmMatterDetail() {
         panel: "intake-lock",
         link: "Open matter",
       });
+    }
+    // Review flags from the interview (2026-09-13: the gates no longer stop
+    // anyone — they flag, and this is where the flag lands). One line per
+    // distinct flag across the matter's sessions, in plain words.
+    const flagged = new Set<string>();
+    for (const s of matter?.sessions ?? []) for (const f of s.attorneyFlags ?? []) flagged.add(f);
+    for (const f of flagged) {
+      const text = REVIEW_FLAG_TEXT[f] ?? (f.startsWith("CHAT_FLAG: ") ? `The intake assistant flagged: ${f.slice(11)}` : null);
+      if (!text) continue;
+      attention.push({ key: `flag-${f}`, text, panel: "intake-lock", link: "Review" });
     }
   }
 
@@ -767,20 +790,11 @@ function ConnectClientPanel({
                 {busy === expectedRegistration.id ? "Connecting…" : "Connect to this matter"}
               </button>
             )}
-            {isAttorney && (
-              <button
-                className="btn btn-quiet"
-                style={{
-                  padding: "3px 10px",
-                  fontSize: ".75rem",
-                  marginLeft: expectedRegistration ? undefined : "auto",
-                }}
-                disabled={savingEmail || busy !== null}
-                onClick={() => saveExpectedEmail(null)}
-              >
-                Change
-              </button>
-            )}
+            {/* No "Change" button (operator, 2026-09-13: "either the lawyer
+                confirms the client or he doesn't"). A wrong address costs
+                nothing: whoever actually signs in appears in the table
+                below with a Connect button and a "not the address you
+                added" note, and connecting them is what binds the matter. */}
           </div>
         ) : isAttorney ? (
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 10 }}>

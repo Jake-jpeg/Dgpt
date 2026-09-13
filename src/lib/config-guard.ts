@@ -11,13 +11,18 @@
  * contains placeholder text (see src/instrumentation.ts). In development it
  * logs a loud warning instead.
  */
-import { CARDS, type StaticCard } from "@/config/cards";
+import { getCard, type StaticCard } from "@/config/cards";
 import { isProduction } from "@/lib/env";
 import { betaGateEnabled } from "@/lib/beta";
 
-const PLACEHOLDER = /\[ATTORNEY TO SUPPLY/i;
+// A legacy [ATTORNEY TO SUPPLY] marker, an unresolved [FIRM_CONTACT_LINE]
+// token, or the neutral fallback getCard substitutes when no firm contact
+// is configured (2026-09-13: the DV card is now served with the firm's
+// contact line from env — FIRM_CONTACT, or FIRM_ATTORNEY_FIRM/PHONE +
+// NEXT_PUBLIC_INQUIRY_EMAIL — so "filled in" means "configured").
+const PLACEHOLDER = /\[ATTORNEY TO SUPPLY|\[FIRM_CONTACT_LINE\]|^the firm directly$/i;
 
-export function dvCardHasPlaceholder(card: StaticCard = CARDS.DV_RESOURCES): boolean {
+export function dvCardHasPlaceholder(card: StaticCard = getCard("DV_RESOURCES")): boolean {
   if (PLACEHOLDER.test(card.body) || PLACEHOLDER.test(card.title)) return true;
   return (card.resources ?? []).some(
     (r) => PLACEHOLDER.test(r.label) || PLACEHOLDER.test(r.value)
@@ -27,9 +32,9 @@ export function dvCardHasPlaceholder(card: StaticCard = CARDS.DV_RESOURCES): boo
 export function assertCriticalCopyReady(card?: StaticCard): void {
   if (!dvCardHasPlaceholder(card)) return;
   const msg =
-    "DV exit card (src/config/cards.ts → DV_RESOURCES) still contains " +
-    "[ATTORNEY TO SUPPLY] placeholder text. The firm name/phone must be " +
-    "filled in before this can serve real users.";
+    "DV resources card (src/config/cards.ts → DV_RESOURCES) has no firm " +
+    "contact: set FIRM_CONTACT, or FIRM_ATTORNEY_FIRM + FIRM_ATTORNEY_PHONE " +
+    "(and NEXT_PUBLIC_INQUIRY_EMAIL), before this can serve real users.";
   // "Shipping" means serving the public. A production deployment behind the
   // beta access gate (FREE_ACCESS_KEYS set) is closed testing, not shipping —
   // warn loudly but let it boot. A production deployment with the gate OFF

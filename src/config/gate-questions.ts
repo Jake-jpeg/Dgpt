@@ -1,10 +1,10 @@
 /**
  * ATTORNEY-CONTROLLED CONFIG — the scope-gate questions, in the fixed order
- * the server walks them. These are blunt coded filters, not legal judgment:
- * a DV disclosure is out, complexity/children trips are out, and the NY
- * residency cascade FLAGS for attorney review but never rejects a client on
- * residency alone. The server (src/lib/intake/scope-gate.ts) owns the
- * evaluation; this file owns the wording.
+ * the server walks them. NO GATE TURNS A CLIENT AWAY (operator, 2026-09-13):
+ * a DV disclosure, children, disagreement, or a short time in the state is
+ * recorded, FLAGGED for attorney review, and the interview continues. The
+ * server (src/lib/intake/scope-gate.ts) owns the evaluation; this file owns
+ * the wording. `outCard` is retired (kept optional for old configs).
  *
  * [ATTORNEY REVIEW REQUIRED — NY] Residency cascade implemented per the
  * approved DRL § 230 design: the objective paths (two-year residence;
@@ -79,13 +79,15 @@ export const GATE_QUESTIONS: Record<GateQuestion["state"], GateQuestion> = {
   GATE_DV: {
     state: "GATE_DV",
     // Deliberately broad and plain: past or present, resolved or active.
-    // The software's only job at this question is to recognize DV, stop,
-    // and direct to a person. It never assesses severity, never proceeds.
+    // The software's only job at this question is to recognize DV, flag it
+    // for the attorney, and put a person in front of the client. It never
+    // assesses severity.
     prompt:
       "Is there now, or has there ever been, domestic violence or a restraining order between you and your spouse?",
     whyId: "WHY_DV",
     kind: "yesno",
-    outCard: "DV_RESOURCES", // ANY "yes" → hard out, human handoff, no data retained
+    // ANY "yes" → attorney-review flag + the state's DV resources card; the
+    // interview continues (2026-09-13).
   },
   GATE_CHILDREN: {
     state: "GATE_CHILDREN",
@@ -93,7 +95,7 @@ export const GATE_QUESTIONS: Record<GateQuestion["state"], GateQuestion> = {
       "Do you and your spouse have any children together who are under 18 or still dependent?",
     whyId: "WHY_CHILDREN",
     kind: "yesno",
-    outCard: "NY_BAR_REFERRAL", // custody tier is deferred — out for now
+    // Children are in scope: flag + continue; the packet recites them.
   },
   GATE_COMPLEXITY: {
     state: "GATE_COMPLEXITY",
@@ -110,7 +112,7 @@ export const GATE_QUESTIONS: Record<GateQuestion["state"], GateQuestion> = {
         label: "We'd need an accountant, appraiser, or business valuation",
       },
     ],
-    outCard: "NY_BAR_REFERRAL", // anything but FULLY_AGREE → out
+    // Anything but FULLY_AGREE → attorney-review flag; the facts still get collected.
   },
 };
 
@@ -126,7 +128,7 @@ const NJ_GATE_OVERRIDES: Partial<Record<GateQuestion["state"], GateQuestion>> = 
   GATE_RESIDENCY: {
     state: "GATE_RESIDENCY",
     // N.J.S.A. 2A:34-10 flat one-year rule. "Yes" satisfies residency
-    // outright; "no" is a hard stop to attorney review (no second question).
+    // outright; "no" flags for attorney review and continues (no second question).
     prompt:
       "Have you or your spouse lived in New Jersey continuously for at least the past 1 year?",
     whyId: "WHY_RESIDENCY",

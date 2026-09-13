@@ -32,10 +32,19 @@ afterEach(() => {
 
 const FIRM = { firmName: "Jake Kim Law Firm", firmContact: "(201) 555-0100" };
 
-describe("constitution 2026-07.6 — drive + count + why + no-documents", () => {
-  it("is versioned 2026-07.6 and states the version in the prompt", () => {
-    expect(INTAKE_CONSTITUTION_VERSION).toBe("2026-07.6");
-    expect(buildConstitution(FIRM)).toContain("CONSTITUTION 2026-07.6");
+describe("constitution 2026-09.1 — drive + count + why + no-documents + nothing stops", () => {
+  it("is versioned 2026-09.1 and states the version in the prompt", () => {
+    expect(INTAKE_CONSTITUTION_VERSION).toBe("2026-09.1");
+    expect(buildConstitution(FIRM)).toContain("CONSTITUTION 2026-09.1");
+  });
+
+  it("Rule 7 never stops the interview: DV / children / disagreement are recorded and continue (2026-09-13)", () => {
+    const text = buildConstitution(FIRM);
+    expect(text).toContain("7. NOTHING STOPS THE INTERVIEW");
+    expect(text).toMatch(/NEVER tell a client the intake can't continue\s+online/);
+    expect(text).toMatch(/reach a person any time at \(201\) 555-0100/);
+    expect(text).toMatch(/STOPPED_SCOPE \/ STOPPED_DV are retired/);
+    expect(text).not.toMatch(/set control STOPPED_SCOPE, and\s+stop asking/);
   });
 
   it("carries Rule 11 with its example and all four constraints", () => {
@@ -66,7 +75,7 @@ describe("constitution 2026-07.6 — drive + count + why + no-documents", () => 
       "4. DEFINITIONS",
       "5. DEFLECT LEGAL QUESTIONS",
       "6. \"WHERE DO I FILE",
-      "7. STOPS",
+      "7. NOTHING STOPS THE INTERVIEW",
       "8. EXHAUSTIVENESS",
       "9. LANGUAGE",
       "10. TONE",
@@ -138,11 +147,11 @@ describe("INTAKE_TONE configuration", () => {
   it("records tone AND version in the session marker", () => {
     delete process.env.INTAKE_TONE;
     expect(constitutionEventText()).toBe(
-      "intake assistant started (constitution 2026-07.6, tone WARM)"
+      "intake assistant started (constitution 2026-09.1, tone WARM)"
     );
     process.env.INTAKE_TONE = "NEUTRAL";
     expect(constitutionEventText()).toContain("tone NEUTRAL");
-    expect(constitutionEventText()).toContain("2026-07.6");
+    expect(constitutionEventText()).toContain("2026-09.1");
   });
 });
 

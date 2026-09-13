@@ -42,6 +42,46 @@ export function itemVisible(item: IntakeItem, answers: AnswerMap): boolean {
   return item.condition ? evaluateCondition(item.condition, answers) : true;
 }
 
+/**
+ * Could this item STILL become visible? Three-valued visibility for the
+ * progress DENOMINATOR (2026-09-13; open finding since 07-31: "0 of 15"
+ * became "5 of 19" as the children questions unlocked, after the welcome
+ * had promised "possibly fewer"). An item whose condition depends on a
+ * question not yet answered counts as pending; once the parent is answered
+ * the condition is evaluated for real. So the total starts at its ceiling
+ * and only ever SHRINKS — the promise the interview makes is kept.
+ *
+ * A dependency on a question that can itself never become visible (its
+ * own parent already answered the other way) resolves to false.
+ */
+export function itemMayBecomeVisible(item: IntakeItem, answers: AnswerMap, schema: IntakeSchema): boolean {
+  if (item.deprecated) return false;
+  if (!item.condition) return true;
+  return conditionMayHold(item.condition, answers, schema, new Set<string>());
+}
+
+function answeredValue(v: unknown): boolean {
+  return v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0);
+}
+
+function conditionMayHold(cond: Condition, answers: AnswerMap, schema: IntakeSchema, seen: Set<string>): boolean {
+  switch (cond.kind) {
+    case "all":
+      return cond.conditions.every((c) => conditionMayHold(c, answers, schema, seen));
+    case "any":
+      return cond.conditions.some((c) => conditionMayHold(c, answers, schema, seen));
+    default: {
+      if (answeredValue(answers[cond.questionId])) return evaluateCondition(cond, answers);
+      // Unanswered: it may hold if the question it depends on can still be
+      // asked at all (guarding against cycles in a hand-written schema).
+      if (seen.has(cond.questionId)) return false;
+      seen.add(cond.questionId);
+      const parent = schema.items.find((i) => i.id === cond.questionId);
+      return parent ? itemMayBecomeVisible(parent, answers, schema) : true;
+    }
+  }
+}
+
 /** Items visible to a given audience under current answers. */
 export function visibleItems(
   schema: IntakeSchema,
@@ -113,14 +153,17 @@ export function sectionProgress(
     .slice()
     .sort((a, b) => a.order - b.order)
     .map((sec) => {
-      const items = schema.items.filter(
+      const clientItems = schema.items.filter(
         (i) =>
           i.section === sec.id &&
           i.audience === "CLIENT" &&
           i.type !== "attorney_determination" &&
-          clientItemInPhase(i, phase) &&
-          itemVisible(i, answers)
+          clientItemInPhase(i, phase)
       );
+      const items = clientItems.filter((i) => itemVisible(i, answers));
+      // Denominator = everything that may still be asked (see
+      // itemMayBecomeVisible); answered / missing count only what IS asked.
+      const ceiling = clientItems.filter((i) => itemMayBecomeVisible(i, answers, schema));
       const answered = items.filter((i) => isAnswered(i, answers)).length;
       const missing = items.filter(
         (i) => i.required && i.type !== "document_request" && !isAnswered(i, answers)
@@ -128,7 +171,7 @@ export function sectionProgress(
       return {
         sectionId: sec.id,
         title: sec.title,
-        total: items.length,
+        total: ceiling.length,
         answered,
         missingRequired: missing,
       };

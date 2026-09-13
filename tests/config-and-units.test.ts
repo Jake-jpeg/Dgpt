@@ -6,7 +6,7 @@
  * Plus unit tests for the pure gate/routing/classifier functions.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { CARDS } from "@/config/cards";
+import { CARDS, getCard } from "@/config/cards";
 import { GLOSSARY } from "@/config/glossary";
 import { PROCESS_COPY } from "@/config/process-copy";
 import { CLARIFICATIONS } from "@/config/clarifications";
@@ -65,21 +65,23 @@ describe("scope gate unit behavior", () => {
   it("residency cascade: 2-year yes passes straight to venue", () => {
     expect(evaluateGate("GATE_RESIDENCY", true)).toMatchObject({ outcome: "PASS", next: "GATE_VENUE" });
   });
-  // ── PHASE 1 residency policy (operator decision 2026-07-22, rev 2):
+  // ── Residency policy (2026-09-13 — NOTHING STOPS THE CLIENT):
   //    2yr → clean pass; 1yr + objective nexus (§230(1)/(2)) → clean pass;
   //    1yr no nexus (§230(3) cause-in-NY) → pass FLAGGED for attorney;
-  //    under 1 year → HARD STOP (durational residency is jurisdictional).
+  //    under 1 year → pass FLAGGED (only §230(4) could remain — the
+  //    attorney's determination, made on a case they can see).
   it("PHASE 1: 2-year no → continues to the one-year question (the 1-yr prongs are real law)", () => {
     expect(evaluateGate("GATE_RESIDENCY", false)).toMatchObject({
       outcome: "PASS",
       next: "GATE_RESIDENCY_1YR",
     });
   });
-  it("PHASE 1: under one year → HARD STOP to attorney review", () => {
+  it("under one year → flag for attorney review, interview continues (never a stop, 2026-09-13)", () => {
     expect(evaluateGate("GATE_RESIDENCY_1YR", false)).toMatchObject({
-      outcome: "OUT",
-      card: "PHASE1_ATTORNEY_REVIEW",
-      auditEvent: "SCOPE_OUT_RESIDENCY_PHASE1",
+      outcome: "PASS",
+      next: "GATE_VENUE",
+      reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"],
+      auditEvent: "GATE_FLAG_RESIDENCY",
     });
   });
   it("PHASE 1: 1yr + objective nexus passes CLEAN; 1yr without nexus passes FLAGGED (§230(3))", () => {
@@ -135,9 +137,44 @@ describe("scope gate unit behavior", () => {
       outcome: "PASS", next: "GATE_DV", reviewFlags: ["VENUE_UNSURE"],
     });
   });
-  it("DV: any yes → hard out with the DV card", () => {
-    expect(evaluateGate("GATE_DV", true)).toMatchObject({ outcome: "OUT", card: "DV_RESOURCES" });
-    expect(evaluateGate("GATE_DV", false)).toMatchObject({ outcome: "PASS" });
+  // ── NOTHING STOPS THE CLIENT (operator, 2026-09-13: "EVERYTHING is fair
+  //    game… even DV, because a lawyer is reviewing the whole thing").
+  it("DV: any yes → PASS + attorney flag + the state's resources card; the interview continues", () => {
+    expect(evaluateGate("GATE_DV", true)).toMatchObject({
+      outcome: "PASS", next: "GATE_CHILDREN", reviewFlags: ["DV_DISCLOSED_ATTORNEY_REVIEW"], card: "DV_RESOURCES",
+    });
+    expect(evaluateGate("GATE_DV", true, "NJ")).toMatchObject({ outcome: "PASS", card: "DV_RESOURCES_NJ" });
+    const no = evaluateGate("GATE_DV", false);
+    expect(no).toMatchObject({ outcome: "PASS", next: "GATE_CHILDREN" });
+    expect(no.card).toBeUndefined();
+    expect(no.reviewFlags).toBeUndefined();
+  });
+  it("children: yes → PASS + attorney flag (the packet recites them); no → clean pass", () => {
+    expect(evaluateGate("GATE_CHILDREN", true)).toMatchObject({
+      outcome: "PASS", next: "GATE_COMPLEXITY", reviewFlags: ["CHILDREN_PRESENT_ATTORNEY_REVIEW"],
+    });
+    expect(evaluateGate("GATE_CHILDREN", true, "NJ")).toMatchObject({ outcome: "PASS", next: "GATE_COMPLEXITY" });
+    expect(evaluateGate("GATE_CHILDREN", false)).toMatchObject({ outcome: "PASS", next: "GATE_COMPLEXITY" });
+  });
+  it("complexity: anything but FULLY_AGREE → PASS + attorney flag; never a referral card", () => {
+    expect(evaluateGate("GATE_COMPLEXITY", "FULLY_AGREE")).toMatchObject({ outcome: "PASS", next: "TIER_BRANCH" });
+    for (const v of ["SOME_UNCERTAINTY", "DISAGREEMENT", "NEED_VALUATION"]) {
+      const r = evaluateGate("GATE_COMPLEXITY", v);
+      expect(r).toMatchObject({ outcome: "PASS", next: "TIER_BRANCH", reviewFlags: ["COMPLEXITY_ATTORNEY_REVIEW"] });
+      expect(r.card).toBeUndefined();
+    }
+    expect(() => evaluateGate("GATE_COMPLEXITY", "MAYBE")).toThrow(/VALIDATION/);
+  });
+  it("no gate, in either state, can produce anything but PASS", () => {
+    const answers: [Parameters<typeof evaluateGate>[0], unknown][] = [
+      ["GATE_RESIDENCY", false], ["GATE_RESIDENCY_1YR", false], ["GATE_RESIDENCY_NEXUS", false],
+      ["GATE_VENUE", "UNSURE"], ["GATE_DV", true], ["GATE_CHILDREN", true], ["GATE_COMPLEXITY", "DISAGREEMENT"],
+    ];
+    for (const [g, v] of answers) expect(evaluateGate(g, v, "NY").outcome).toBe("PASS");
+    for (const [g, v] of answers) {
+      if (g === "GATE_RESIDENCY_1YR" || g === "GATE_RESIDENCY_NEXUS") continue; // not in the NJ cascade
+      expect(evaluateGate(g, v, "NJ").outcome).toBe("PASS");
+    }
   });
   it("malformed answers throw instead of passing", () => {
     expect(() => evaluateGate("GATE_DV", "maybe")).toThrow(/VALIDATION/);
@@ -229,13 +266,41 @@ describe("DV card ship-blocker guard", () => {
     resources: [{ label: "Contact the firm", value: "Example Law LLC — (201) 555-0100" }],
   };
 
-  it("detects the unfilled placeholder in the shipped DV card", () => {
-    expect(dvCardHasPlaceholder()).toBe(true); // Stage 1 ships unfilled — by design
-    expect(dvCardHasPlaceholder(filledCard)).toBe(false);
+  it("detects an unconfigured firm contact on the served DV card; env fills it (2026-09-13)", () => {
+    vi.stubEnv("FIRM_CONTACT", "");
+    vi.stubEnv("FIRM_ATTORNEY_FIRM", "");
+    vi.stubEnv("FIRM_ATTORNEY_PHONE", "");
+    vi.stubEnv("NEXT_PUBLIC_INQUIRY_EMAIL", "");
+    try {
+      expect(dvCardHasPlaceholder()).toBe(true); // nothing configured → neutral "the firm directly"
+      expect(getCard("DV_RESOURCES").resources![0].value).toBe("the firm directly");
+      expect(dvCardHasPlaceholder(filledCard)).toBe(false);
+      // The signature-block env the Word engine already requires fills the card.
+      vi.stubEnv("FIRM_ATTORNEY_FIRM", "Example Law LLC");
+      vi.stubEnv("FIRM_ATTORNEY_PHONE", "(201) 555-0100");
+      const served = getCard("DV_RESOURCES");
+      expect(served.resources![0].value).toBe("Example Law LLC — (201) 555-0100");
+      expect(served.body).toContain("Example Law LLC — (201) 555-0100");
+      expect(served.body).not.toContain("[FIRM_CONTACT_LINE]");
+      expect(dvCardHasPlaceholder()).toBe(false);
+      // NJ card carries the same contact and the state's own hotline.
+      const nj = getCard("DV_RESOURCES_NJ");
+      expect(nj.resources![0].value).toBe("Example Law LLC — (201) 555-0100");
+      expect(nj.resources!.some((r) => r.value.includes("1-800-572-SAFE"))).toBe(true);
+      // Neither card tells the client the intake will not continue.
+      expect(served.body).not.toMatch(/will not continue/i);
+      expect(nj.body).not.toMatch(/will not continue/i);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
-  it("production boot REFUSES while the DV card is unfilled", () => {
+  it("production boot REFUSES while the DV card has no firm contact", () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("FIRM_CONTACT", "");
+    vi.stubEnv("FIRM_ATTORNEY_FIRM", "");
+    vi.stubEnv("FIRM_ATTORNEY_PHONE", "");
+    vi.stubEnv("NEXT_PUBLIC_INQUIRY_EMAIL", "");
     try {
       expect(() => assertCriticalCopyReady()).toThrowError(/SHIP_BLOCKER/);
       expect(() => assertCriticalCopyReady(filledCard)).not.toThrow();

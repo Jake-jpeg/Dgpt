@@ -1,38 +1,41 @@
 /**
- * Scope gate — blunt coded filters, run after a conflict CLEAR and before any
- * substantive intake. DV / children / complexity trips = out, with the mapped
- * static card; the session is purged (no substantive data ever persists for
- * out-of-scope users).
+ * Scope gate — the short eligibility check that opens every interview.
  *
- * PHASE 1 residency policy (operator decision 2026-07-22, second revision):
- *   § 230(5) two years .................... automated PASS (objective).
- *   § 230(1)/(2) one year + married-in-NY
- *     or lived-here-as-spouses ............ automated PASS (objective nexus).
- *   § 230(3) one year, no objective nexus
- *     (breakdown occurred in NY) .......... PASS + RESIDENCY_ATTORNEY_REVIEW
- *     flag — valid law, but "where the breakdown occurred" is a
- *     characterization the attorney verifies before signing.
- *   Under one year ........................ HARD STOP to attorney review
- *     (only § 230(4) could remain — a genuine attorney determination;
- *     durational residency is jurisdictional and courts are unforgiving).
- * Children present is a stop to attorney review: Phase 1 is the
- * no-unemancipated-children lane; child cases are handled by counsel.
+ * NOTHING STOPS THE CLIENT (operator ruling 2026-09-13: "EVERYTHING is fair
+ * game. Even DV is fair game because a lawyer is reviewing the whole
+ * thing."). Every gate answer is recorded and the interview continues; what
+ * used to be a hard stop is now an ATTORNEY-REVIEW FLAG on the session, and
+ * the attorney sees those flags on the matter before anything is drafted.
+ * The gates still shape the interview (residency branches, county is
+ * captured, the DV resources card is shown) — they just never turn a
+ * prospective client away from their own firm's intake.
  *
- * Under INTAKE_PHASE=ALL the legacy behavior applies: the residency cascade
- * never terminates (under-one-year flags + continues) and children route to
- * the bar referral card.
+ * Why the stops went: the first NJ live run (2026-09-12) died at the
+ * children gate. Everything built since July — the child recitals, UD-10 /
+ * UD-11 child relief, the Word engine's children.ts — sat behind a gate that
+ * would not let a case with a child through, and the copy on the stop card
+ * gave the client nobody to call. A lawyer reviews every packet; the gate
+ * has no business making that call for them.
  *
- * Venue is collect-only — "not sure" flags and continues; a county answer is
- * captured for the attorney, never judged.
+ * Residency (kept as a branch, not a stop):
+ *   NY § 230(5) two years .................. PASS.
+ *   NY § 230(1)/(2) one year + nexus ....... PASS.
+ *   NY § 230(3) one year, no nexus ......... PASS + RESIDENCY_ATTORNEY_REVIEW.
+ *   NY under one year ...................... PASS + RESIDENCY_ATTORNEY_REVIEW
+ *     (only § 230(4) could remain — the attorney decides).
+ *   NJ N.J.S.A. 2A:34-10 one year: yes ..... PASS; no → PASS + review flag.
+ * Venue: collect-only — "not sure" flags; a county is captured, never judged.
+ * DV: PASS + DV_DISCLOSED_ATTORNEY_REVIEW, and the jurisdiction's DV
+ *   resources card is shown once (the session continues).
+ * Children: PASS + CHILDREN_PRESENT_ATTORNEY_REVIEW (the packet handles
+ *   children; the attorney reviews custody/support).
+ * Complexity: anything but "fully agree" → PASS + COMPLEXITY_ATTORNEY_REVIEW.
  *
  * The server owns gate order via the state machine; a client cannot skip or
- * reorder steps. Gate answers for PASSING steps are held on the session row /
- * answer store only after the step passes — a tripping answer is never
- * persisted at all.
+ * reorder steps.
  */
 import { GATE_QUESTIONS, type GateJurisdiction } from "@/config/gate-questions";
 import { NY_COUNTIES, NJ_COUNTIES } from "@/config/intake-fields";
-import { activeIntakePhase } from "@/config/intake/phases";
 import type { MachineState } from "./machine";
 import type { CardId } from "@/config/cards";
 
@@ -42,15 +45,27 @@ export function isGateState(s: MachineState): s is GateState {
   return s in GATE_QUESTIONS;
 }
 
-export type GateEvaluation =
-  | {
-      outcome: "PASS";
-      next: MachineState;
-      persist?: { county?: string };
-      /** Attorney-review flags raised by this answer (session continues). */
-      reviewFlags?: string[];
-    }
-  | { outcome: "OUT"; card: CardId; auditEvent: string };
+/** Every gate PASSES. What varies is where it goes next and what it flags. */
+export interface GateEvaluation {
+  outcome: "PASS";
+  next: MachineState;
+  persist?: { county?: string };
+  /** Attorney-review flags raised by this answer (session continues). */
+  reviewFlags?: string[];
+  /** An informational card to show the client once (e.g. DV resources). */
+  card?: CardId;
+  /** Audit event name for a flagged answer (recorded alongside GATE_PASSED). */
+  auditEvent?: string;
+}
+
+/** Flag names — what the attorney reads on the matter. */
+export const GATE_REVIEW_FLAGS = {
+  RESIDENCY: "RESIDENCY_ATTORNEY_REVIEW",
+  VENUE_UNSURE: "VENUE_UNSURE",
+  DV: "DV_DISCLOSED_ATTORNEY_REVIEW",
+  CHILDREN: "CHILDREN_PRESENT_ATTORNEY_REVIEW",
+  COMPLEXITY: "COMPLEXITY_ATTORNEY_REVIEW",
+} as const;
 
 /**
  * Evaluate one gate answer. Pure function: no I/O, fully unit-testable.
@@ -59,9 +74,8 @@ export type GateEvaluation =
  * `jurisdiction` selects the playbook ("NY" default keeps every existing
  * caller byte-identical). New Jersey's residency is one flat rule —
  * N.J.S.A. 2A:34-10, one year of continuous residence — so its cascade is
- * one question: yes → venue; no → hard stop to attorney review (there is
- * no NJ analogue to the § 230 nexus prongs, so nothing softer is honest).
- * DV / children / complexity evaluate identically in both states.
+ * one question. DV / children / complexity evaluate identically in both
+ * states; only the DV resources card is state-specific.
  */
 export function evaluateGate(
   state: GateState,
@@ -73,22 +87,19 @@ export function evaluateGate(
       const yes = requireYesNo(rawAnswer);
       if (jurisdiction === "NJ") {
         // N.J.S.A. 2A:34-10 — the flat one-year rule, asked as one question.
-        if (yes) return { outcome: "PASS", next: "GATE_VENUE" };
-        return activeIntakePhase() === "ALL"
-          ? {
+        // "No" is the attorney's problem to solve, not a door closing.
+        return yes
+          ? { outcome: "PASS", next: "GATE_VENUE" }
+          : {
               outcome: "PASS",
               next: "GATE_VENUE",
-              reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"],
-            }
-          : {
-              outcome: "OUT",
-              card: "PHASE1_ATTORNEY_REVIEW",
-              auditEvent: "SCOPE_OUT_RESIDENCY_PHASE1",
+              reviewFlags: [GATE_REVIEW_FLAGS.RESIDENCY],
+              auditEvent: "GATE_FLAG_RESIDENCY",
             };
       }
-      // DRL § 230(5): two-year continuous residence — objective, automated.
-      // Shorter is not a rejection: the one-year pathways are real law —
-      // continue to the one-year question in every phase.
+      // DRL § 230(5): two-year continuous residence — objective. Shorter is
+      // not a rejection: the one-year pathways are real law — continue to
+      // the one-year question.
       return yes
         ? { outcome: "PASS", next: "GATE_VENUE" }
         : { outcome: "PASS", next: "GATE_RESIDENCY_1YR" };
@@ -102,23 +113,16 @@ export function evaluateGate(
       }
       // The one-year durational floor shared by § 230(1)-(3).
       // Yes → the nexus question sorts out WHICH prong.
-      // No → under one year of residence there is no § 230 pathway left
-      // that an automated intake should carry (only § 230(4), cause +
-      // both-resident-now — a genuine attorney determination). PHASE 1:
-      // HARD STOP to attorney review (operator directive 2026-07-22 —
-      // durational residency is jurisdictional). Legacy ALL: flag+continue.
+      // No → only § 230(4) (cause + both resident now) could remain: a
+      // genuine attorney determination. Flag it and keep going.
       const yes = requireYesNo(rawAnswer);
-      if (yes) return { outcome: "PASS", next: "GATE_RESIDENCY_NEXUS" };
-      return activeIntakePhase() === "ALL"
-        ? {
+      return yes
+        ? { outcome: "PASS", next: "GATE_RESIDENCY_NEXUS" }
+        : {
             outcome: "PASS",
             next: "GATE_VENUE",
-            reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"],
-          }
-        : {
-            outcome: "OUT",
-            card: "PHASE1_ATTORNEY_REVIEW",
-            auditEvent: "SCOPE_OUT_RESIDENCY_PHASE1",
+            reviewFlags: [GATE_REVIEW_FLAGS.RESIDENCY],
+            auditEvent: "GATE_FLAG_RESIDENCY",
           };
     }
     case "GATE_RESIDENCY_NEXUS": {
@@ -129,15 +133,15 @@ export function evaluateGate(
       // as spouses — checkbox facts; one year + nexus passes CLEAN.
       // No objective nexus → the remaining basis is § 230(3) (the breakdown
       // occurred in NY): valid law, but "where a breakdown occurred" is a
-      // characterization the attorney verifies before signing the verified
-      // complaint — PASS with the review flag, in every phase.
+      // characterization the attorney verifies before signing.
       const yes = requireYesNo(rawAnswer);
       return yes
         ? { outcome: "PASS", next: "GATE_VENUE" }
         : {
             outcome: "PASS",
             next: "GATE_VENUE",
-            reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"],
+            reviewFlags: [GATE_REVIEW_FLAGS.RESIDENCY],
+            auditEvent: "GATE_FLAG_RESIDENCY",
           };
     }
     case "GATE_VENUE": {
@@ -147,7 +151,8 @@ export function evaluateGate(
         return {
           outcome: "PASS",
           next: "GATE_DV",
-          reviewFlags: ["VENUE_UNSURE"],
+          reviewFlags: [GATE_REVIEW_FLAGS.VENUE_UNSURE],
+          auditEvent: "GATE_FLAG_VENUE",
         };
       }
       const counties: readonly string[] = jurisdiction === "NJ" ? NJ_COUNTIES : NY_COUNTIES;
@@ -159,34 +164,46 @@ export function evaluateGate(
     }
     case "GATE_DV": {
       const yes = requireYesNo(rawAnswer);
-      // ANY DV → hard out, DV-resource card (distinct from the bar referral).
+      // ANY DV → the attorney reviews personally; the client sees the
+      // state's DV resources once and the interview continues.
       return yes
-        ? { outcome: "OUT", card: "DV_RESOURCES", auditEvent: "SCOPE_OUT_DV" }
+        ? {
+            outcome: "PASS",
+            next: "GATE_CHILDREN",
+            reviewFlags: [GATE_REVIEW_FLAGS.DV],
+            card: jurisdiction === "NJ" ? "DV_RESOURCES_NJ" : "DV_RESOURCES",
+            auditEvent: "GATE_FLAG_DV",
+          }
         : { outcome: "PASS", next: "GATE_CHILDREN" };
     }
     case "GATE_CHILDREN": {
       const yes = requireYesNo(rawAnswer);
-      // Phase 1 is the no-unemancipated-children lane: children present →
-      // stop to ATTORNEY REVIEW (the firm handles child cases with counsel —
-      // custody/support in a later supervised phase). Legacy (ALL): bar
-      // referral card.
-      if (!yes) return { outcome: "PASS", next: "GATE_COMPLEXITY" };
-      return activeIntakePhase() === "ALL"
-        ? { outcome: "OUT", card: "NY_BAR_REFERRAL", auditEvent: "SCOPE_OUT_CHILDREN" }
-        : {
-            outcome: "OUT",
-            card: "PHASE1_ATTORNEY_REVIEW",
-            auditEvent: "SCOPE_OUT_CHILDREN",
-          };
+      // Children are IN scope: the packet recites them (¶FIFTH, UD-10 /
+      // UD-11 child relief, NJ complaint). The attorney reviews custody and
+      // support; the interview goes on to collect the children's details.
+      return yes
+        ? {
+            outcome: "PASS",
+            next: "GATE_COMPLEXITY",
+            reviewFlags: [GATE_REVIEW_FLAGS.CHILDREN],
+            auditEvent: "GATE_FLAG_CHILDREN",
+          }
+        : { outcome: "PASS", next: "GATE_COMPLEXITY" };
     }
     case "GATE_COMPLEXITY": {
       const v = String(rawAnswer ?? "");
       const valid = GATE_QUESTIONS.GATE_COMPLEXITY.options!.map((o) => o.value);
       if (!valid.includes(v)) throw new Error("VALIDATION: invalid complexity answer");
-      // Any disagreement, uncertainty, or valuation need → out.
+      // Disagreement, uncertainty, or a valuation need → the attorney's
+      // judgment, flagged; the facts still get collected.
       return v === "FULLY_AGREE"
         ? { outcome: "PASS", next: "TIER_BRANCH" }
-        : { outcome: "OUT", card: "NY_BAR_REFERRAL", auditEvent: "SCOPE_OUT_COMPLEXITY" };
+        : {
+            outcome: "PASS",
+            next: "TIER_BRANCH",
+            reviewFlags: [GATE_REVIEW_FLAGS.COMPLEXITY],
+            auditEvent: "GATE_FLAG_COMPLEXITY",
+          };
     }
   }
 }

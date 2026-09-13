@@ -22,14 +22,16 @@
 import { getSession, updateSession, recordAudit, addAttorneyFlag, touchSession, type SessionRow } from "@/lib/db/repo";
 import { getMatter, type MatterRow } from "@/lib/db/matters";
 import { getMatterAnswers, saveMatterAnswers, schemaForMatter } from "@/lib/db/intake2";
-import { deriveChecklist, isAnswered, itemVisible, type ChecklistEntry } from "@/lib/intake2/engine";
+import { deriveChecklist, isAnswered, itemVisible, isAffirmative, type ChecklistEntry } from "@/lib/intake2/engine";
 import { deriveImpliedAnswers } from "./derive";
 import { getConfigChecklistState } from "@/lib/db/checklist";
-import { evaluateGate, isGateState } from "@/lib/intake/scope-gate";
+import { evaluateGate, isGateState, type GateEvaluation, type GateState } from "@/lib/intake/scope-gate";
 import { assertTransition, type MachineState } from "@/lib/intake/machine";
-import { getCard, type CardId } from "@/config/cards";
+import { getCard, type StaticCard } from "@/config/cards";
 import { GLOSSARY } from "@/config/glossary";
 import { operatingFirmName } from "@/config/branding";
+import { firmContactLine } from "@/config/firm-contact";
+import { NY_COUNTIES, NJ_COUNTIES } from "@/config/intake-fields";
 import { clientItemInPhase, matterIntakePhase, activeIntakePhase, type IntakePhase } from "@/config/intake/phases";
 import { callStructured } from "@/lib/ai/responses";
 import { intakeChatProvider, intakeChatModel } from "@/config/ai-providers";
@@ -75,7 +77,10 @@ export function intakeChatEnabled(): boolean {
 export { intakeChatProvider, intakeChatModel };
 
 function firmContact(): string {
-  return envOptional("FIRM_CONTACT") || "the office";
+  // FIRM_CONTACT, else the signature-block env (firm · phone · inquiry
+  // mailbox) — see src/config/firm-contact.ts. "the office" only when the
+  // firm has configured nothing at all.
+  return firmContactLine() || "the office";
 }
 
 function expectedHours(): string {
@@ -435,6 +440,12 @@ function describeStep(step: Step, ctx: ConversationContext): string {
         `When the client answers, set gate_response ` +
         `{gateId: "${step.id}", value_json: <their answer as JSON TEXT>} — ` +
         `true or false for yes/no, a QUOTED string for a coded value ("KINGS").\n` +
+        `A compound answer STILL answers the question: "Yes — just Aaron, born March 4 2018" ` +
+        `is a YES (set gate_response) AND the child's details (record them below). ` +
+        `Never re-ask a scope question the client has answered in any form; if you are ` +
+        `unsure only of the details, set gate_response and ask about the details.\n` +
+        `Every answer is welcome — domestic violence, children, disagreement, a short time in ` +
+        `the state — record it as given; the attorney reviews everything. Nothing here ends the interview.\n` +
         // THE GATE PHASE RECORDS TOO (2026-08-01). Clients open with a
         // paragraph — "my name is X, my wife is Y, we married on Z, we live
         // at ADDRESS" — and the gates are the first thing they meet. Until
@@ -628,14 +639,6 @@ function buildAdvancePrompt(ctx: ConversationContext, nextStepToAsk: Step): stri
 
 /* ── applying a validated turn ──────────────────────────────────────── */
 
-// Reason CODES from LOCK_REASONS — what the attorney reads on the lock panel
-// and says out loud when they call the client (operator, 2026-07-31).
-const GATE_CARD_EVENT: Record<string, string> = {
-  DV_RESOURCES: "stopped: DV",
-  NY_BAR_REFERRAL: "stopped: SCOPE_COMPLEXITY",
-  PHASE1_ATTORNEY_REVIEW: "stopped: SCOPE_CHILDREN",
-};
-
 export interface TurnResult {
   say: string;
   lang: ChatLang;
@@ -675,6 +678,123 @@ async function applyDerivations(ctx: ConversationContext, actingUserId: string):
 }
 
 /**
+ * Pass ONE gate through the real machine — the single code path for a gate
+ * answered by the client this turn ("answered") or settled from a saved
+ * answer ("from facts"). Transition, county/residency/children prefill,
+ * attorney-review flags, audit, and the informational card (DV resources)
+ * all happen here, and nowhere else.
+ *
+ * NOTHING STOPS THE CLIENT (2026-09-13): evaluateGate never returns OUT any
+ * more, so this never pauses a session — a flagged answer is an
+ * attorney-review flag on the session, the card (if any) is shown once, and
+ * the interview continues.
+ */
+async function passGate(
+  ctx: ConversationContext,
+  current: GateState,
+  value: unknown,
+  actingUserId: string,
+  source: "answered" | "from facts"
+): Promise<{ card: StaticCard | null } | { correction: string }> {
+  const sessionId = ctx.session.id;
+  let evaluation: GateEvaluation;
+  try {
+    evaluation = evaluateGate(current, value, ctx.schema.jurisdiction);
+  } catch (e) {
+    return { correction: `That gate answer was rejected: ${e instanceof Error ? e.message : "invalid"}. Ask the client to answer the question directly.` };
+  }
+  assertTransition(current, evaluation.next);
+  await updateSession(sessionId, {
+    state: evaluation.next,
+    ...(evaluation.persist?.county ? { county: evaluation.persist.county } : {}),
+  });
+  // PREFILL (2026-07-26 — never re-ask what a gate already collected):
+  // unambiguous gate facts are written straight into the intake answers,
+  // so the question phase silently skips them. County = the venue gate's
+  // county; a YES on either residency-duration gate = lives in-state now;
+  // the children gate IS the schema's "children together?" question
+  // (2026-09-13). The id prefix follows the schema's jurisdiction, so an NJ
+  // gate pass prefills nj.case.* and can never write a New York answer.
+  const idPrefix = ctx.schema.jurisdiction === "NJ" ? "nj" : "ny";
+  const prefill: { questionId: string; value: unknown }[] = [];
+  const yes = value === true || value === "yes";
+  if (evaluation.persist?.county && !isAnsweredId(ctx, `${idPrefix}.case.county`)) {
+    prefill.push({ questionId: `${idPrefix}.case.county`, value: evaluation.persist.county });
+  }
+  if ((current === "GATE_RESIDENCY" || current === "GATE_RESIDENCY_1YR") && yes && !isAnsweredId(ctx, `${idPrefix}.case.resident_now`)) {
+    prefill.push({ questionId: `${idPrefix}.case.resident_now`, value: true });
+  }
+  if (current === "GATE_CHILDREN" && source === "answered" && !isAnsweredId(ctx, "shared.children.any")) {
+    prefill.push({ questionId: "shared.children.any", value: yes });
+  }
+  if (prefill.length > 0) {
+    try {
+      await saveMatterAnswers({ matterId: ctx.matter.id, actingUserId, answers: prefill });
+    } catch {
+      /* prefill is a convenience — a schema mismatch must never break a gate pass */
+    }
+    ctx.answers = await getMatterAnswers(ctx.matter.id);
+    ctx.seqState.answers = ctx.answers;
+  }
+  for (const flag of evaluation.reviewFlags ?? []) {
+    await addAttorneyFlag(sessionId, flag);
+    await recordAudit(sessionId, "GATE_FLAGGED_FOR_ATTORNEY", `${current}:${flag}`);
+  }
+  if (evaluation.auditEvent) await recordAudit(sessionId, evaluation.auditEvent, current);
+  await recordAudit(sessionId, "GATE_PASSED", current);
+  await appendSystemEvent(sessionId, `gate ${current} ${source === "answered" ? "answered" : "settled from the facts on file"}`);
+  ctx.session = (await getSession(sessionId))!;
+  ctx.seqState.machineState = ctx.session.state as MachineState;
+  ctx.step = nextStep(ctx.seqState);
+  return { card: evaluation.card ? getCard(evaluation.card) : null };
+}
+
+function isAnsweredId(ctx: ConversationContext, questionId: string): boolean {
+  const item = ctx.schema.items.find((i) => i.id === questionId);
+  return item ? isAnswered(item, ctx.answers) : false;
+}
+
+/**
+ * What a saved answer says about the CURRENT gate, if anything. Only the
+ * gates that have an exact counterpart in the schema are settled this way —
+ * a guess would be a gate the client never answered.
+ */
+function gateValueFromFacts(ctx: ConversationContext, gate: GateState): unknown {
+  const idPrefix = ctx.schema.jurisdiction === "NJ" ? "nj" : "ny";
+  switch (gate) {
+    case "GATE_CHILDREN": {
+      if (!isAnsweredId(ctx, "shared.children.any")) return undefined;
+      return isAffirmative(ctx.answers["shared.children.any"]);
+    }
+    case "GATE_VENUE": {
+      const county = ctx.answers[`${idPrefix}.case.county`];
+      const list: readonly string[] = ctx.schema.jurisdiction === "NJ" ? NJ_COUNTIES : NY_COUNTIES;
+      return typeof county === "string" && list.includes(county) ? county : undefined;
+    }
+    default:
+      return undefined;
+  }
+}
+
+/** Walk the gates the facts on file already settle (in machine order). */
+async function passGatesFromFacts(
+  ctx: ConversationContext,
+  actingUserId: string
+): Promise<{ card: StaticCard | null }> {
+  let card: StaticCard | null = null;
+  for (let guard = 0; guard < 8; guard++) {
+    const current = ctx.session.state as MachineState;
+    if (!isGateState(current)) break;
+    const value = gateValueFromFacts(ctx, current);
+    if (value === undefined) break;
+    const passed = await passGate(ctx, current, value, actingUserId, "from facts");
+    if ("correction" in passed) break;
+    if (passed.card) card = passed.card;
+  }
+  return { card };
+}
+
+/**
  * Validate + apply one INTAKE_TURN proposal. Returns null when the proposal
  * is invalid (caller retries with the correction), or the applied result.
  */
@@ -692,76 +812,15 @@ async function applyTurn(
 
   // 1. Gate response — through the REAL machine. Never trust gateId blindly:
   //    only the machine's current gate is answerable.
+  let card: StaticCard | null = null;
   if (turn.gate_response) {
     const current = ctx.session.state as MachineState;
     if (!isGateState(current) || turn.gate_response.gateId !== current) {
       return { correction: `The current scope question is ${current}; you proposed ${turn.gate_response.gateId}. Re-ask the current question.` };
     }
-    let evaluation;
-    try {
-      evaluation = evaluateGate(current, turn.gate_response.value, ctx.schema.jurisdiction);
-    } catch (e) {
-      return { correction: `That gate answer was rejected: ${e instanceof Error ? e.message : "invalid"}. Ask the client to answer the question directly.` };
-    }
-    if (evaluation.outcome === "OUT") {
-      // Chat stop: serve the card, PAUSE (transcript retained for the
-      // attorney; retention purges it with the session).
-      const card = getCard(evaluation.card as CardId);
-      await recordAudit(sessionId, evaluation.auditEvent, `card=${evaluation.card}`);
-      await appendSystemEvent(sessionId, GATE_CARD_EVENT[evaluation.card] ?? "stopped: scope");
-      await addAttorneyFlag(sessionId, `INTAKE_STOPPED_${evaluation.auditEvent}`);
-      const say = turn.say?.trim() || card.body;
-      return {
-        advanced: false,
-        result: {
-          say,
-          lang: turn.lang,
-          stopped: evaluation.card === "DV_RESOURCES" ? "DV" : "SCOPE",
-          complete: false,
-          card,
-          progress: progress(ctx.seqState),
-        },
-      };
-    }
-    assertTransition(current, evaluation.next);
-    await updateSession(sessionId, {
-      state: evaluation.next,
-      ...(evaluation.persist?.county ? { county: evaluation.persist.county } : {}),
-    });
-    // PREFILL (2026-07-26 — never re-ask what a gate already collected):
-    // unambiguous gate facts are written straight into the intake answers,
-    // so the question phase silently skips them. County = the venue gate's
-    // county; a YES on either residency-duration gate = lives in-state now.
-    // The id prefix follows the schema's jurisdiction, so an NJ gate pass
-    // prefills nj.case.* and can never write a New York answer.
-    const idPrefix = ctx.schema.jurisdiction === "NJ" ? "nj" : "ny";
-    const prefill: { questionId: string; value: unknown }[] = [];
-    if (evaluation.persist?.county) {
-      prefill.push({ questionId: `${idPrefix}.case.county`, value: evaluation.persist.county });
-    }
-    if (
-      (current === "GATE_RESIDENCY" || current === "GATE_RESIDENCY_1YR") &&
-      (turn.gate_response!.value === true || turn.gate_response!.value === "yes")
-    ) {
-      prefill.push({ questionId: `${idPrefix}.case.resident_now`, value: true });
-    }
-    if (prefill.length > 0) {
-      try {
-        await saveMatterAnswers({ matterId: ctx.matter.id, actingUserId, answers: prefill });
-      } catch {
-        /* prefill is a convenience — a schema mismatch must never break a gate pass */
-      }
-      ctx.answers = await getMatterAnswers(ctx.matter.id);
-      ctx.seqState.answers = ctx.answers;
-    }
-    for (const flag of evaluation.reviewFlags ?? []) {
-      await addAttorneyFlag(sessionId, flag);
-      await recordAudit(sessionId, "GATE_FLAGGED_FOR_ATTORNEY", `${current}:${flag}`);
-    }
-    await recordAudit(sessionId, "GATE_PASSED", current);
-    await appendSystemEvent(sessionId, `gate ${current} answered`);
-    ctx.session = (await getSession(sessionId))!;
-    ctx.seqState.machineState = ctx.session.state as MachineState;
+    const passed = await passGate(ctx, current, turn.gate_response.value, actingUserId, "answered");
+    if ("correction" in passed) return passed;
+    if (passed.card) card = passed.card;
     advanced = true;
   }
 
@@ -789,6 +848,14 @@ async function applyTurn(
     ctx.seqState.answers = ctx.answers;
     advanced = true;
     await applyDerivations(ctx, actingUserId);
+    // GATES READ THE FACTS ON FILE (2026-09-13). The client who says "yes —
+    // just Aaron, born 2018" at the children gate has the child RECORDED by
+    // this turn but the gate itself left unanswered when the model omits
+    // gate_response; the next turn then asked the same gate again — four
+    // times, in the first NJ live run. If a saved answer already settles the
+    // current gate, pass it here, from the record, without asking.
+    const auto = await passGatesFromFacts(ctx, actingUserId);
+    if (auto.card) card = auto.card;
   }
 
   // 3. Attorney flag.
@@ -836,7 +903,7 @@ async function applyTurn(
       lang: turn.lang,
       stopped: null,
       complete,
-      card: null,
+      card,
       progress: progress({ ...ctx.seqState }),
     },
   };
@@ -985,7 +1052,9 @@ async function driveToNextQuestion(
       lang: turn.lang ?? phase1.lang,
       stopped: null,
       complete: false,
-      card: null,
+      // An informational card raised while recording (the DV resources
+      // card) rides along with the next question — it is shown once.
+      card: phase1.card,
       progress: progress(ctx.seqState),
     };
   } catch {

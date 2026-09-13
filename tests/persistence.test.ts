@@ -32,8 +32,8 @@ async function expectFullyPurged(id: string) {
   expect(events).toContain("SESSION_PURGED");
 }
 
-describe("out-of-scope sessions leave no substantive data (DB level)", () => {
-  it("PHASE 1: 1yr + NY nexus passes clean; under one year → attorney-review stop, purged", async () => {
+describe("gates never turn a client away — flag and continue (2026-09-13)", () => {
+  it("1yr + NY nexus passes clean; under one year → RESIDENCY flag, session continues (nothing purged)", async () => {
     // Clean 1-year + nexus path: § 230(1)/(2) — objective, no flag.
     const ok = await startSession(cookie);
     await runIdentityAndClear(cookie, ok);
@@ -45,16 +45,19 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
     const { getSession } = await import("@/lib/db/repo");
     expect(((await getSession(ok))?.attorneyFlags ?? [])).not.toContain("RESIDENCY_ATTORNEY_REVIEW");
 
-    // Under one year: hard stop, purged.
+    // Under one year: flagged for the attorney, the interview goes on.
     const id = await startSession(cookie);
     await runIdentityAndClear(cookie, id);
     await runGate(cookie, id, false); // 2-year: no
-    const r1 = await runGate(cookie, id, false); // 1-year: no → HARD STOP
-    expect(r1.data.status).toBe("TERMINATED");
-    expect(r1.data.card.id).toBe("PHASE1_ATTORNEY_REVIEW");
-    await expectFullyPurged(id);
+    const r1 = await runGate(cookie, id, false); // 1-year: no → flag + continue
+    expect(r1.status).toBe(200);
+    expect(r1.data.status).toBeUndefined(); // never TERMINATED
+    expect(r1.data.state).toBe("GATE_VENUE");
+    expect((await getSession(id))?.attorneyFlags).toContain("RESIDENCY_ATTORNEY_REVIEW");
+    expect((await countRows("intake_session", id))).toBe(1);
     const events = (await getAuditEvents(id)).map((e) => e.event);
-    expect(events).toContain("SCOPE_OUT_RESIDENCY_PHASE1");
+    expect(events).toContain("GATE_FLAG_RESIDENCY");
+    expect(events).not.toContain("SESSION_PURGED");
   });
 
   describe("legacy residency cascade under INTAKE_PHASE=ALL", () => {
@@ -94,59 +97,61 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
     });
   });
 
-  it("DV trip → DV-resource card (distinct from bar referral), purged", async () => {
+  it("DV: yes → the DV resources card comes back WITH the next state; flagged; nothing purged", async () => {
     const id = await startSession(cookie);
     await runIdentityAndClear(cookie, id);
     await runGate(cookie, id, true); // residency ok
     await runGate(cookie, id, "Kings"); // venue
     const r = await runGate(cookie, id, true); // DV: yes
-    expect(r.data.status).toBe("TERMINATED");
+    expect(r.status).toBe(200);
+    expect(r.data.status).toBeUndefined();
+    expect(r.data.state).toBe("GATE_CHILDREN");
     expect(r.data.card.id).toBe("DV_RESOURCES");
     expect(r.data.card.id).not.toBe("NY_BAR_REFERRAL");
-    await expectFullyPurged(id);
+    expect(JSON.stringify(r.data.card)).toContain("800-942-6906");
+    expect(r.data.card.body).not.toMatch(/will not continue/i);
+    const { getSession } = await import("@/lib/db/repo");
+    expect((await getSession(id))?.attorneyFlags).toContain("DV_DISCLOSED_ATTORNEY_REVIEW");
+    expect((await countRows("intake_session", id))).toBe(1);
     const events = (await getAuditEvents(id)).map((e) => e.event);
-    expect(events).toContain("SCOPE_OUT_DV");
+    expect(events).toContain("GATE_FLAG_DV");
+    expect(events).not.toContain("SESSION_PURGED");
   });
 
-  it("DV exit retains EXACTLY what a conflict hit retains: audit event codes only, nothing about the person or situation", async () => {
+  it("the audit trail of a DV disclosure is bare codes only — nothing about the person or situation", async () => {
     const id = await startSession(cookie);
     await runIdentityAndClear(cookie, id);
     await runGate(cookie, id, true);
     await runGate(cookie, id, "Kings");
     await runGate(cookie, id, true); // DV disclosure
 
-    // Same no-retention behavior as a conflict hit, verified at the DB level:
-    // no session row, no identity, no answers — the "yes" itself is nowhere.
-    expect((await countRows("intake_session", id))).toBe(0);
-    expect((await countRows("party_identity", id))).toBe(0);
-    expect((await countRows("intake_answer", id))).toBe(0);
-
-    // The surviving audit trail is bare event codes; details carry only
-    // card/state identifiers — no free text, no names, no disclosure content.
+    // Details carry only card/state/flag identifiers — no free text, no
+    // names, no disclosure content.
     const events = (await getAuditEvents(id));
     const allowedDetail =
-      /^(card=[A-Z_]+|GATE_[A-Z_]+|SCOPE_OUT_[A-Z_]+|initiatedBy=(CLIENT|STAFF|ATTORNEY)|matter=[0-9a-f-]+|\{"result":"(NO_APPARENT_MATCH|POTENTIAL_MATCH)","clientHash":"[0-9a-f]+","adverseHash":"[0-9a-f]+"\})$/;
+      /^(card=[A-Z_]+|GATE_[A-Z_]+(:[A-Z_]+)?|initiatedBy=(CLIENT|STAFF|ATTORNEY)|matter=[0-9a-f-]+|\{"result":"(NO_APPARENT_MATCH|POTENTIAL_MATCH)","clientHash":"[0-9a-f]+","adverseHash":"[0-9a-f]+"\})$/;
     for (const e of events) {
       if (e.detail) expect(e.detail).toMatch(allowedDetail);
     }
-    expect(events.map((e) => e.event)).toContain("SESSION_PURGED");
+    expect(events.map((e) => e.event)).toContain("GATE_FLAGGED_FOR_ATTORNEY");
   });
 
-  it("children → attorney-review stop (Phase 1 is the no-children lane), purged", async () => {
+  it("children: yes → CHILDREN flag, interview continues to complexity", async () => {
     const id = await startSession(cookie);
     await runIdentityAndClear(cookie, id);
     await runGate(cookie, id, true);
     await runGate(cookie, id, "Kings");
     await runGate(cookie, id, false); // no DV
     const r = await runGate(cookie, id, true); // children: yes
-    expect(r.data.status).toBe("TERMINATED");
-    expect(r.data.card.id).toBe("PHASE1_ATTORNEY_REVIEW");
-    await expectFullyPurged(id);
-    const events = (await getAuditEvents(id)).map((e) => e.event);
-    expect(events).toContain("SCOPE_OUT_CHILDREN");
+    expect(r.data.status).toBeUndefined();
+    expect(r.data.state).toBe("GATE_COMPLEXITY");
+    expect(r.data.card).toBeUndefined();
+    const { getSession } = await import("@/lib/db/repo");
+    expect((await getSession(id))?.attorneyFlags).toContain("CHILDREN_PRESENT_ATTORNEY_REVIEW");
+    expect((await countRows("intake_session", id))).toBe(1);
   });
 
-  it("complexity trip (any non-'fully agree') → NY bar-referral card, purged", async () => {
+  it("complexity (any non-'fully agree') → COMPLEXITY flag, never a bar-referral card", async () => {
     for (const answer of ["SOME_UNCERTAINTY", "DISAGREEMENT", "NEED_VALUATION"]) {
       const id = await startSession(cookie);
       await runIdentityAndClear(cookie, id);
@@ -155,12 +160,19 @@ describe("out-of-scope sessions leave no substantive data (DB level)", () => {
       await runGate(cookie, id, false);
       await runGate(cookie, id, false);
       const r = await runGate(cookie, id, answer);
-      expect(r.data.status).toBe("TERMINATED");
-      expect(r.data.card.id).toBe("NY_BAR_REFERRAL");
-      await expectFullyPurged(id);
+      expect(r.data.status).toBeUndefined();
+      expect(r.data.state).toBe("TIER_BRANCH");
+      expect(r.data.card).toBeUndefined();
+      const { getSession } = await import("@/lib/db/repo");
+      expect((await getSession(id))?.attorneyFlags).toContain("COMPLEXITY_ATTORNEY_REVIEW");
+      expect((await countRows("intake_session", id))).toBe(1);
     }
   });
 
+  // ── The legacy TIER form path below still has its own out-of-scope
+  //    routing (branch uncertainty, business interest, retirement
+  //    disagreement). That path is not the client's interview any more
+  //    (the portal chat/form runs on the matter schema); left as-is.
   it("tier-branch uncertainty → out, purged", async () => {
     const id = await startSession(cookie);
     await runToTierBranch(cookie, id);

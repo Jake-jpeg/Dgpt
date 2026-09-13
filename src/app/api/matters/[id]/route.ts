@@ -70,6 +70,11 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
           state: s.state,
           tier: s.tier,
           updatedAt: s.updatedAt,
+          // Attorney-review flags raised by the gates and the chat
+          // (2026-09-13: nothing stops the client any more, so these are
+          // how the attorney learns about DV / children / disagreement /
+          // short residency before drafting). Codes only — never client text.
+          attorneyFlags: s.attorneyFlags,
         })),
         // A locked-out client is the single most urgent thing on a matter and
         // used to be invisible: the session sits at its gate state, which the

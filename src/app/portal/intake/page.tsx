@@ -258,29 +258,30 @@ function IntakeChat({
         card: { title: string; body: string; resources?: { label: string; value: string }[] } | null;
         progress: ChatProgress;
       };
+      // The resources card (a DV disclosure) is shown FIRST — the person to
+      // call comes before the next question — then the assistant's reply,
+      // which carries the interview on (2026-09-13: nothing stops it).
+      const cardMsg = r.card
+        ? {
+            id: `card-${Date.now()}`,
+            role: "ASSISTANT" as const,
+            content:
+              `${r.card.title}\n\n${r.card.body}` +
+              (r.card.resources
+                ? "\n\n" + r.card.resources.map((x) => `${x.label}: ${x.value}`).join("\n")
+                : ""),
+            lang: "en" as const,
+          }
+        : null;
       setMessages((m) => [
         ...m,
+        ...(cardMsg ? [cardMsg] : []),
         { id: `a-${Date.now()}`, role: "ASSISTANT", content: r.say, lang: "en" },
       ]);
       setProg(r.progress);
       loadRail();
       setStopped(r.stopped);
       if (r.complete) setComplete(true);
-      if (r.card) {
-        setMessages((m) => [
-          ...m,
-          {
-            id: `card-${Date.now()}`,
-            role: "ASSISTANT",
-            content:
-              `${r.card!.title}\n\n${r.card!.body}` +
-              (r.card!.resources
-                ? "\n\n" + r.card!.resources.map((x) => `${x.label}: ${x.value}`).join("\n")
-                : ""),
-            lang: "en",
-          },
-        ]);
-      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Something went wrong";
       if (msg.includes("unavailable") || msg.includes("form")) {

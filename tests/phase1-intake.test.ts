@@ -96,6 +96,33 @@ describe("Phase 1 intake contract", () => {
     }
   });
 
+  it("the progress DENOMINATOR never grows: conditionals count until their parent rules them out (2026-09-13)", () => {
+    // Open finding since 07-31 ("0 of 15" → "5 of 19" once the children
+    // questions unlocked, after the welcome promised "possibly fewer").
+    const schema = getSchemaForCategory(CATEGORY);
+    const totalOf = (answers: Record<string, unknown>) =>
+      sectionProgress(schema, answers).reduce((n, s) => n + s.total, 0);
+    const children = (answers: Record<string, unknown>) =>
+      sectionProgress(schema, answers).find((s) => s.sectionId === "children")!;
+
+    const start = totalOf({});
+    const withKids = totalOf({ "shared.children.any": true });
+    const noKids = totalOf({ "shared.children.any": false });
+    // Saying "yes" to children does not ADD questions to the total — they
+    // were already counted; saying "no" removes them.
+    expect(withKids).toBe(start);
+    expect(noKids).toBeLessThan(start);
+    // The children section itself: ceiling up front, then resolved.
+    expect(children({}).total).toBeGreaterThan(1);
+    expect(children({ "shared.children.any": false })).toMatchObject({ total: 1, answered: 1 });
+    // Answered / missing count only what is actually asked right now.
+    expect(children({}).answered).toBe(0);
+    expect(children({}).missingRequired).toBe(1); // only children.any is askable and required yet
+    // A conditional whose parent is itself unreachable is NOT counted
+    // (no phantom questions): everything under children.any = false is gone.
+    expect(children({ "shared.children.any": false }).total).toBe(1);
+  });
+
   it("attorney surfaces are NEVER phase-filtered", () => {
     const schema = getSchemaForCategory(CATEGORY);
     const attorneyItems = visibleItems(schema, {}, "ATTORNEY");

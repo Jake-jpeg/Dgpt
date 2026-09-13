@@ -121,14 +121,22 @@ describe("phases — two playbooks, one filter", () => {
 /* ── gates: NJ's flat residency rule; NY's cascade untouched ──────────── */
 
 describe("gates — NJ flat 12-month residency, shared DV", () => {
-  it("NJ residency: yes → venue; no → hard OUT to attorney review (no cascade)", () => {
+  it("NJ residency: yes → venue; no → venue FLAGGED for attorney review (no cascade, no stop — 2026-09-13)", () => {
     expect(evaluateGate("GATE_RESIDENCY", true, "NJ")).toEqual({ outcome: "PASS", next: "GATE_VENUE" });
-    const out = evaluateGate("GATE_RESIDENCY", false, "NJ");
-    expect(out.outcome).toBe("OUT");
-    if (out.outcome === "OUT") {
-      expect(out.card).toBe("PHASE1_ATTORNEY_REVIEW");
-      expect(out.auditEvent).toBe("SCOPE_OUT_RESIDENCY_PHASE1");
-    }
+    expect(evaluateGate("GATE_RESIDENCY", false, "NJ")).toMatchObject({
+      outcome: "PASS",
+      next: "GATE_VENUE",
+      reviewFlags: ["RESIDENCY_ATTORNEY_REVIEW"],
+    });
+  });
+
+  it("NJ children: yes → PASS + flag — the case the first NJ live run died on (2026-09-12)", () => {
+    expect(evaluateGate("GATE_CHILDREN", true, "NJ")).toMatchObject({
+      outcome: "PASS",
+      next: "GATE_COMPLEXITY",
+      reviewFlags: ["CHILDREN_PRESENT_ATTORNEY_REVIEW"],
+    });
+    expect(evaluateGate("GATE_DV", true, "NJ")).toMatchObject({ outcome: "PASS", card: "DV_RESOURCES_NJ" });
   });
 
   it("the NY cascade states REFUSE an NJ jurisdiction — never NY law to an NJ client", () => {

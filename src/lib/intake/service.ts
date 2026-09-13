@@ -215,36 +215,35 @@ export async function answerGate(
   user: SessionUser,
   sessionId: string,
   rawAnswer: unknown
-): Promise<{ next: MachineState } | TerminatedView> {
+): Promise<{ next: MachineState; card?: StaticCard }> {
   const s = await requireOwnedSession(user, sessionId);
   if (!s.conflictClear) throw new HttpError(409, "Conflict check has not cleared");
   if (!isGateState(s.state)) {
     throw new HttpError(409, `No gate question pending in state ${s.state}`);
   }
 
+  // NOTHING STOPS THE CLIENT (2026-09-13): every gate passes; a DV /
+  // children / complexity / short-residency answer raises an attorney-review
+  // flag and the interview continues. The DV resources card rides along
+  // for the client to see once.
   const evaluation = evaluateGate(s.state, rawAnswer);
-
-  if (evaluation.outcome === "OUT") {
-    // Out-of-scope: serve the mapped static card, keep minimal audit, purge
-    // everything substantive (including the tripping answer — never stored).
-    (await recordAudit(sessionId, evaluation.auditEvent, `card=${evaluation.card}`));
-    (await purgeSession(sessionId, evaluation.auditEvent));
-    return { status: "TERMINATED", card: getCard(evaluation.card) };
-  }
 
   assertTransition(s.state, evaluation.next);
   (await updateSession(sessionId, {
         state: evaluation.next,
         ...(evaluation.persist?.county ? { county: evaluation.persist.county } : {}),
       }));
-  // NY cascade / venue flags: attorney review, session continues. Flags ride
-  // the existing attorney-flag store; the audit trail records each raise.
+  // Flags ride the existing attorney-flag store; the audit trail records
+  // each raise.
   for (const flag of evaluation.reviewFlags ?? []) {
     (await addAttorneyFlag(sessionId, flag));
     (await recordAudit(sessionId, "GATE_FLAGGED_FOR_ATTORNEY", `${s.state}:${flag}`));
   }
+  if (evaluation.auditEvent) (await recordAudit(sessionId, evaluation.auditEvent, s.state));
   (await recordAudit(sessionId, "GATE_PASSED", s.state));
-  return { next: evaluation.next };
+  return evaluation.card
+    ? { next: evaluation.next, card: getCard(evaluation.card) }
+    : { next: evaluation.next };
 }
 
 /** Answer the two tier-branch questions (assets / alimony). */

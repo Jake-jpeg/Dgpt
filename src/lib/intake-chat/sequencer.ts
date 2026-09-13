@@ -22,7 +22,7 @@
  * interrogated about it.
  */
 import type { AnswerMap, IntakeItem, IntakeSchema } from "@/lib/intake2/types";
-import { itemVisible, isAnswered, type ChecklistEntry } from "@/lib/intake2/engine";
+import { itemVisible, itemMayBecomeVisible, isAnswered, type ChecklistEntry } from "@/lib/intake2/engine";
 import { clientItemInPhase, activeIntakePhase, type IntakePhase } from "@/config/intake/phases";
 import { gateQuestionsFor, type GateQuestion } from "@/config/gate-questions";
 import type { MachineState } from "@/lib/intake/machine";
@@ -217,11 +217,24 @@ export function progress(state: SequencerState): {
   sectionIndex: number | null;
   sectionCount: number;
 } {
-  const askable = askableItems(state.schema, state.answers, state.phase ?? activeIntakePhase());
+  const phase = state.phase ?? activeIntakePhase();
+  const askable = askableItems(state.schema, state.answers, phase);
+  // Denominator = every client item that may STILL be asked (a conditional
+  // whose parent is unanswered counts), so the total only ever shrinks —
+  // the header, the rail, and the model's "about N, possibly fewer" agree
+  // (2026-09-13; see itemMayBecomeVisible).
+  const ceiling = state.schema.items.filter(
+    (i) =>
+      i.audience === "CLIENT" &&
+      i.type !== "document_request" &&
+      i.type !== "attorney_determination" &&
+      clientItemInPhase(i, phase) &&
+      itemMayBecomeVisible(i, state.answers, state.schema)
+  );
   const step = nextStep(state);
   return {
     answered: askable.filter((i) => isAnswered(i, state.answers)).length,
-    total: askable.length,
+    total: ceiling.length,
     sectionTitle: step.sectionTitle,
     sectionIndex: step.sectionIndex,
     sectionCount: step.sectionCount,

@@ -8,8 +8,11 @@
  *  - answers persist ONLY through the validated store (an invalid proposal
  *    triggers one corrective retry, and nothing invalid is ever saved);
  *  - gate answers drive the REAL machine (cascade transitions + flags);
- *  - a DV disclosure serves the exit card, pauses the session, and stops
- *    further turns without a provider call;
+ *  - NOTHING STOPS THE CLIENT (2026-09-13): a DV disclosure shows the
+ *    resources card, flags the session for the attorney, and CONTINUES;
+ *    children / disagreement / short residency flag and continue;
+ *  - gates read the facts on file: a child recorded at the children gate
+ *    settles the gate without re-asking (the NJ live run asked it 4×);
  *  - completion → READY_FOR_REVIEW only via the sequencer's say-so;
  *  - RBAC: clients only touch their own session; staff/attorney read the
  *    transcript through matter access; the kill switch 503s the POST.
@@ -164,32 +167,29 @@ describe("gates ride the real machine", () => {
     expect((await getSession(sessionId))!.state).toBe("GATE_VENUE");
   });
 
-  it("PHASE 1: 1yr + nexus passes clean; under one year → attorney-review card, session pauses", async () => {
+  it("under one year → attorney-review FLAG, the interview continues (nothing stops the client, 2026-09-13)", async () => {
     mockTurns(turnPayload({ gate_response: { gateId: "GATE_RESIDENCY", value: false } }));
     await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "No, about 18 months." });
     expect((await getSession(sessionId))!.state).toBe("GATE_RESIDENCY_1YR");
 
     mockTurns(turnPayload({ gate_response: { gateId: "GATE_RESIDENCY_1YR", value: false } }));
     const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "Actually just moved here." });
-    // Under one year: durational residency is jurisdictional — the phase-1
-    // lane stops and an attorney reviews before anything proceeds.
-    expect(r.stopped).toBe("SCOPE");
-    expect(r.card?.title).toContain("attorney needs to look");
-    expect(r.card?.body).toContain("isn't a rejection");
+    expect(r.stopped).toBeNull();
+    expect(r.card).toBeNull();
     const s = (await getSession(sessionId))!;
-    expect(s.attorneyFlags.some((f) => f.startsWith("INTAKE_STOPPED_"))).toBe(true);
+    expect(s.state).toBe("GATE_VENUE");
+    expect(s.attorneyFlags).toContain("RESIDENCY_ATTORNEY_REVIEW");
+    expect(s.attorneyFlags.some((f) => f.startsWith("INTAKE_STOPPED_"))).toBe(false);
   });
 
-  it("legacy (INTAKE_PHASE=ALL): the no/no cascade path flags for attorney review and CONTINUES", async () => {
+  it("INTAKE_PHASE=ALL behaves identically — there is one policy now", async () => {
     process.env.INTAKE_PHASE = "ALL";
     try {
       mockTurns(turnPayload({ gate_response: { gateId: "GATE_RESIDENCY", value: false } }));
       await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "No, we moved recently." });
-      expect((await getSession(sessionId))!.state).toBe("GATE_RESIDENCY_1YR");
-
       mockTurns(turnPayload({ gate_response: { gateId: "GATE_RESIDENCY_1YR", value: false } }));
       const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "Less than a year." });
-      expect(r.stopped).toBeNull(); // legacy: residency NEVER terminates
+      expect(r.stopped).toBeNull();
       const s = (await getSession(sessionId))!;
       expect(s.state).toBe("GATE_VENUE");
       expect(s.attorneyFlags).toContain("RESIDENCY_ATTORNEY_REVIEW");
@@ -210,27 +210,112 @@ describe("gates ride the real machine", () => {
     expect((await getSession(sessionId))!.state).toBe("GATE_VENUE");
   });
 
-  it("a DV disclosure serves the exit card and pauses the session; later turns need no provider", async () => {
-    // Walk to GATE_DV: residency yes, venue Kings.
-    mockTurns(turnPayload({ gate_response: { gateId: "GATE_RESIDENCY", value: true } }));
-    await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "yes" });
-    mockTurns(turnPayload({ gate_response: { gateId: "GATE_VENUE", value: "Kings" } }));
-    await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "Brooklyn — Kings county" });
+  it("a DV disclosure shows the resources card WITH the firm's contact, flags the attorney, and CONTINUES", async () => {
+    process.env.FIRM_ATTORNEY_FIRM = "Example Law LLC";
+    process.env.FIRM_ATTORNEY_PHONE = "(201) 555-0199";
+    try {
+      // Walk to GATE_DV: residency yes, venue Kings.
+      mockTurns(turnPayload({ gate_response: { gateId: "GATE_RESIDENCY", value: true } }));
+      await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "yes" });
+      mockTurns(turnPayload({ gate_response: { gateId: "GATE_VENUE", value: "Kings" } }));
+      await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "Brooklyn — Kings county" });
 
-    mockTurns(turnPayload({ gate_response: { gateId: "GATE_DV", value: true }, control: "STOPPED_DV" }));
-    const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "yes, there was" });
-    expect(r.stopped).toBe("DV");
-    expect(r.card?.title).toContain("person");
-    expect(JSON.stringify(r.card)).toContain("800-942-6906"); // NYS hotline
+      mockTurns(
+        turnPayload({ gate_response: { gateId: "GATE_DV", value: true }, say: "I'm so sorry. An attorney will review this personally." }),
+        turnPayload({ say: "Whenever you're ready — do you and your spouse have children together?" })
+      );
+      const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "yes, there was" });
+      expect(r.stopped).toBeNull();
+      // The interview moved on to the children gate.
+      const s = (await getSession(sessionId))!;
+      expect(s.state).toBe("GATE_CHILDREN");
+      expect(s.attorneyFlags).toContain("DV_DISCLOSED_ATTORNEY_REVIEW");
+      // The card rides along for the client to see once — firm contact
+      // filled from env (FIRM_CONTACT wins when set; enableChat sets it).
+      expect(r.card?.title).toContain("your attorney will review this personally");
+      expect(JSON.stringify(r.card)).toContain("800-942-6906"); // NYS hotline
+      expect(r.card?.resources?.[0].value).toBe("(201) 555-0100");
+      expect(r.card?.body).not.toMatch(/will not continue/i);
 
-    // Paused: the next turn answers WITHOUT calling the provider.
-    const boom = vi.fn(() => {
-      throw new Error("no provider call while paused");
-    });
-    vi.stubGlobal("fetch", boom);
-    const r2 = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "hello?" });
-    expect(r2.stopped).toBe("DV");
-    expect(boom).not.toHaveBeenCalled();
+      // Not paused: the next turn goes to the provider like any other.
+      const mock = mockTurns(turnPayload({ gate_response: { gateId: "GATE_CHILDREN", value: false } }));
+      const r2 = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "no children" });
+      expect(r2.stopped).toBeNull();
+      expect(mock).toHaveBeenCalled();
+      expect((await getSession(sessionId))!.state).toBe("GATE_COMPLEXITY");
+    } finally {
+      delete process.env.FIRM_ATTORNEY_FIRM;
+      delete process.env.FIRM_ATTORNEY_PHONE;
+    }
+  });
+
+  it("children: yes → flag + continue, and the gate answer prefills shared.children.any (never re-asked)", async () => {
+    for (const [gate, value] of [
+      ["GATE_RESIDENCY", true],
+      ["GATE_VENUE", "Kings"],
+      ["GATE_DV", false],
+    ] as const) {
+      mockTurns(turnPayload({ gate_response: { gateId: gate, value } }));
+      await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "…" });
+    }
+    mockTurns(turnPayload({ gate_response: { gateId: "GATE_CHILDREN", value: true } }));
+    const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "Yes, one son." });
+    expect(r.stopped).toBeNull();
+    const s = (await getSession(sessionId))!;
+    expect(s.state).toBe("GATE_COMPLEXITY");
+    expect(s.attorneyFlags).toContain("CHILDREN_PRESENT_ATTORNEY_REVIEW");
+    expect((await getMatterAnswers(ctx.matterId))["shared.children.any"]).toBe(true);
+  });
+
+  it("the gate reads the facts on file: a child RECORDED at the children gate settles the gate without gate_response (the 4× re-ask)", async () => {
+    for (const [gate, value] of [
+      ["GATE_RESIDENCY", true],
+      ["GATE_VENUE", "Kings"],
+      ["GATE_DV", false],
+    ] as const) {
+      mockTurns(turnPayload({ gate_response: { gateId: gate, value } }));
+      await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "…" });
+    }
+    expect((await getSession(sessionId))!.state).toBe("GATE_CHILDREN");
+    // The model records the child but omits gate_response — exactly what
+    // happened live on 2026-09-12 ("Yes - just Aaron, born March 4 2018").
+    const mock = mockTurns(
+      turnPayload({
+        gate_response: null,
+        record_answers: [
+          { questionId: "shared.children.any", value_json: "true" },
+          { questionId: "shared.children.records", value_json: JSON.stringify([{ fullName: "Aaron Test", dateOfBirth: "2018-03-04" }]) },
+        ],
+      }),
+      turnPayload({ say: "Thanks. Do you fully agree on how everything is divided?" })
+    );
+    const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "Yes - just Aaron, born March 4 2018" });
+    expect(r.stopped).toBeNull();
+    const s = (await getSession(sessionId))!;
+    expect(s.state).toBe("GATE_COMPLEXITY"); // settled from the record, not re-asked
+    expect(s.attorneyFlags).toContain("CHILDREN_PRESENT_ATTORNEY_REVIEW");
+    expect(mock).toHaveBeenCalledTimes(2); // record turn + the drive-forward ask
+    const events = (await listChatMessages(sessionId)).filter((m) => m.role === "SYSTEM_EVENT").map((m) => m.content);
+    expect(events).toContain("gate GATE_CHILDREN settled from the facts on file");
+  });
+
+  it("complexity: disagreement → flag + continue into the questions", async () => {
+    for (const [gate, value] of [
+      ["GATE_RESIDENCY", true],
+      ["GATE_VENUE", "Kings"],
+      ["GATE_DV", false],
+      ["GATE_CHILDREN", false],
+    ] as const) {
+      mockTurns(turnPayload({ gate_response: { gateId: gate, value } }));
+      await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "…" });
+    }
+    mockTurns(turnPayload({ gate_response: { gateId: "GATE_COMPLEXITY", value: "DISAGREEMENT" } }));
+    const r = await runIntakeTurn({ sessionId, actingUserId: clientUserId, message: "we disagree about the house" });
+    expect(r.stopped).toBeNull();
+    expect(r.card).toBeNull(); // no bar-referral card, ever
+    const s = (await getSession(sessionId))!;
+    expect(s.state).toBe("TIER_BRANCH");
+    expect(s.attorneyFlags).toContain("COMPLEXITY_ATTORNEY_REVIEW");
   });
 });
 

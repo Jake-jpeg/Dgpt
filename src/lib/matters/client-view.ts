@@ -13,7 +13,11 @@ export function clientMatterStatus(m: MatterRow): string {
   if (m.conflictStatus === "NOT_STARTED") {
     return "Your matter is set up. The next step is to provide the initial information the firm has requested.";
   }
-  if (m.conflictStatus === "CLEARED") {
+  // CLEARED by the attorney, or EXTERNAL (the attorney connected the client
+  // and runs the conflict check outside this software): both are "go".
+  // EXTERNAL used to fall through to "submitted for review", which the
+  // client read beside a 0-of-19 questionnaire (live run, 2026-09-12).
+  if (m.conflictStatus === "CLEARED" || m.conflictStatus === "EXTERNAL") {
     return "Your matter is active. You can continue with the steps shown below.";
   }
   if (m.conflictStatus === "DECLINED") {
