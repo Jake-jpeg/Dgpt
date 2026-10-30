@@ -25,6 +25,8 @@ export interface SessionRow {
   initiatedBy: "CLIENT" | "STAFF" | "ATTORNEY";
   ownerSubject: string;
   matterId: string | null;
+  /** Which spouse this interview belongs to (2026-10-30). Legacy rows are 'A'. */
+  partyId: "A" | "B";
   conflictClear: boolean;
   county: string | null;
   qdroFlag: boolean;
@@ -42,6 +44,7 @@ function rowToSession(r: Record<string, unknown>): SessionRow {
     initiatedBy: r.initiated_by as SessionRow["initiatedBy"],
     ownerSubject: r.owner_subject as string,
     matterId: (r.matter_id as string | null) ?? null,
+    partyId: r.party_id === "B" ? "B" : "A",
     conflictClear: r.conflict_clear === 1,
     county: (r.county as string | null) ?? null,
     qdroFlag: r.qdro_flag === 1,
@@ -57,6 +60,8 @@ export async function createSession(opts: {
   ownerSubject: string;
   initialState: MachineState;
   matterId?: string;
+  /** Which spouse's interview this is; defaults to A (the starting spouse). */
+  partyId?: "A" | "B";
   /** Invited-client flow: the firm runs conflicts in its own system, so a
    *  session may be born past the (retired) in-app conflict wall. */
   conflictClear?: boolean;
@@ -66,13 +71,14 @@ export async function createSession(opts: {
   const t = nowIso();
   await db.run(
     `INSERT INTO intake_session
-     (id, state, initiated_by, owner_subject, matter_id, conflict_clear, created_at, updated_at, last_activity_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, state, initiated_by, owner_subject, matter_id, party_id, conflict_clear, created_at, updated_at, last_activity_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     opts.initialState,
     opts.initiatedBy,
     opts.ownerSubject,
     opts.matterId ?? null,
+    opts.partyId ?? "A",
     opts.conflictClear ? 1 : 0,
     t,
     t,

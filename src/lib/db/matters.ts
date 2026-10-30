@@ -141,12 +141,46 @@ export async function listAllMatters(): Promise<MatterRow[]> {
   return rows.map(rowToMatter);
 }
 
+/**
+ * The matters a client user belongs to: as the bound client (A) or as either
+ * seated party (2026-10-30 — the invited spouse B reaches the matter too).
+ */
 export async function listMattersForClient(clientUserId: string): Promise<MatterRow[]> {
   const rows = await getDb().all(
-    `SELECT * FROM matter WHERE client_user_id = ? ORDER BY updated_at DESC`,
+    `SELECT DISTINCT m.* FROM matter m
+     LEFT JOIN matter_party p ON p.matter_id = m.id AND p.user_id = ?
+     WHERE m.client_user_id = ? OR p.user_id IS NOT NULL
+     ORDER BY m.updated_at DESC`,
+    clientUserId,
     clientUserId
   );
   return rows.map(rowToMatter);
+}
+
+/**
+ * Pin the state and schema of a matter the CLIENT started with June
+ * (2026-10-30). Not an attorney act: it records the CANDIDATE jurisdiction
+ * and the matching intake schema so the two interviews can begin; the
+ * attorney's confirmation (attorneySetJurisdictionAndScope) still happens
+ * on review, exactly as for a staff-created matter.
+ */
+export async function pinMatterCategoryAtCreation(
+  matterId: string,
+  jurisdiction: "NY" | "NJ",
+  category: string,
+  schemaVersion: string
+): Promise<void> {
+  const t = nowIso();
+  await getDb().run(
+    `UPDATE matter SET jurisdiction_candidate = ?, matter_category = ?, intake_schema_version = ?,
+       updated_at = ?, last_activity_at = ? WHERE id = ?`,
+    jurisdiction,
+    category,
+    schemaVersion,
+    t,
+    t,
+    matterId
+  );
 }
 
 export async function listMattersForGrantee(userId: string): Promise<MatterRow[]> {
@@ -201,9 +235,17 @@ export async function hasMatterGrant(matterId: string, userId: string): Promise<
 export async function canAccessMatter(user: UserRow, matter: MatterRow): Promise<boolean> {
   if (!user.active) return false;
   switch (user.role) {
-    case "CLIENT":
-      // A client sees ONLY their own matter — never another client's.
-      return matter.clientUserId === user.id;
+    case "CLIENT": {
+      // A client sees ONLY a matter they are a party to — never another
+      // client's. Either the bound client (A) or a seated party (A or B).
+      if (matter.clientUserId === user.id) return true;
+      const seat = await getDb().get(
+        `SELECT 1 AS one FROM matter_party WHERE matter_id = ? AND user_id = ?`,
+        matter.id,
+        user.id
+      );
+      return Boolean(seat);
+    }
     case "STAFF":
     case "ATTORNEY":
       // Firm-wide (2026-07-21 directive, solo/small-firm model): any active

@@ -103,10 +103,10 @@ describe("intake chat model (operator decision 2026-07-26: Haiku for speed)", ()
     delete process.env.ANTHROPIC_MODEL;
   });
 
-  it("defaults to claude-haiku-4-5 — the fastest current model", () => {
+  it("defaults to claude-opus-5-5 — June runs on Opus (operator, 2026-10-30)", () => {
     delete process.env.ANTHROPIC_INTAKE_MODEL;
     delete process.env.ANTHROPIC_MODEL;
-    expect(intakeChatModel()).toBe("claude-haiku-4-5");
+    expect(intakeChatModel()).toBe("claude-opus-5-5");
   });
 
   it("ANTHROPIC_INTAKE_MODEL overrides without a deploy; ANTHROPIC_MODEL is the middle fallback", () => {

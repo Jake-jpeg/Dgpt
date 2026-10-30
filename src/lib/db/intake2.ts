@@ -42,10 +42,18 @@ export function schemaForMatter(matter: MatterRow): IntakeSchema {
   return sharedCoreSchema();
 }
 
-export async function getMatterAnswers(matterId: string): Promise<AnswerMap> {
+/**
+ * One party's answers (2026-10-30: each spouse answers separately). The
+ * default party is A — the starting spouse, the firm's client — so every
+ * single-party caller (documents, checklist, derivations) is unchanged.
+ * There is deliberately no "all parties" accessor: the firm reads A and B
+ * as two maps and compares them (src/lib/compare); a party reads only its own.
+ */
+export async function getMatterAnswers(matterId: string, partyId: "A" | "B" = "A"): Promise<AnswerMap> {
   const rows = await getDb().all<{ question_id: string; value: string }>(
-    `SELECT question_id, value FROM matter_intake_answer WHERE matter_id = ?`,
-    matterId
+    `SELECT question_id, value FROM matter_intake_answer WHERE matter_id = ? AND party_id = ?`,
+    matterId,
+    partyId
   );
   const out: AnswerMap = {};
   for (const r of rows) out[r.question_id] = JSON.parse(r.value);
@@ -60,8 +68,11 @@ export async function getMatterAnswers(matterId: string): Promise<AnswerMap> {
 export async function saveMatterAnswers(opts: {
   matterId: string;
   actingUserId: string;
+  /** Whose answers these are; defaults to A. The route layer derives it from the signed-in party. */
+  partyId?: "A" | "B";
   answers: { questionId: string; value: unknown }[];
 }): Promise<{ saved: number }> {
+  const partyId = opts.partyId ?? "A";
   const matter = await getMatter(opts.matterId);
   if (!matter) throw new Error("PERSISTENCE_GUARD: matter not found");
   if (matter.conflictStatus !== "CLEARED" && matter.conflictStatus !== "EXTERNAL") {
@@ -92,21 +103,23 @@ export async function saveMatterAnswers(opts: {
     }
     const value = JSON.stringify(a.value);
     await db.run(
-      `INSERT INTO matter_intake_answer (matter_id, question_id, value, updated_at, updated_by)
-       VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(matter_id, question_id)
+      `INSERT INTO matter_intake_answer (matter_id, party_id, question_id, value, updated_at, updated_by)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(matter_id, party_id, question_id)
        DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
       opts.matterId,
+      partyId,
       a.questionId,
       value,
       t,
       actor.id
     );
     await db.run(
-      `INSERT INTO matter_intake_answer_history (id, matter_id, question_id, value, changed_at, changed_by)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO matter_intake_answer_history (id, matter_id, party_id, question_id, value, changed_at, changed_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       newId(),
       opts.matterId,
+      partyId,
       a.questionId,
       value,
       t,

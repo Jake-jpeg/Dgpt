@@ -31,13 +31,15 @@
  * ── TIERS ───────────────────────────────────────────────────────────────
  * Two jobs, two default models, because they are genuinely different work:
  *
- *   intake     — narrow. The sequencer owns question order, the machine owns
- *                the gates, the server disposes every proposal. The model only
- *                phrases the given step and interprets one reply through a
- *                forced schema. Cheapest tier that can do that.
- *   workbench  — the attorney's document analysis and internal actions.
- *                Reads real case material and produces work product a lawyer
- *                relies on. Stronger tier.
+ *   intake     — June, the client-facing assistant (the start conversation
+ *                and the questionnaire). The sequencer owns question order,
+ *                the machine owns the gates, the server disposes every
+ *                proposal. Operator, 2026-10-30: "Our standard AI is no
+ *                longer Sonnet. It will be Opus. Opus for everything except
+ *                drafting." → Opus.
+ *   workbench  — the attorney's drafting: memos, chronologies, inventories,
+ *                reports that land as AI_DRAFT document versions. Operator,
+ *                2026-10-30: "Fable drafts. Final decision." → Fable.
  */
 import { envOptional } from "@/lib/env";
 
@@ -64,19 +66,20 @@ export const PROVIDER_BASE_URL_ENV: Record<AiProvider, string> = {
 };
 
 /**
- * Verified current API model ids (Anthropic docs 2026-07-26; OpenAI docs
- * 2026-08-01). Operator directive 2026-08-01 put BOTH tiers on Terra.
+ * Verified current API model ids. Anthropic: platform.claude.com/docs/en/
+ * models/overview read 2026-10-30 — `claude-opus-5-5` (Opus 5.5) and
+ * `claude-fable-5-1` (Fable 5.1, status Active). OpenAI ids from the docs of
+ * 2026-08-01.
  *
- * Worth knowing when reviewing this table: on the OpenAI side the closest
- * analogue to Sonnet for the workbench tier is Sol, not Terra — Terra is the
- * "balanced production" tier and Sol is the one described for deep reasoning.
- * Terra is what was asked for; AI_MODEL_WORKBENCH=gpt-5.6-sol is a one-row
- * change if the workbench output turns out thinner than Sonnet's.
+ * Deployment note: the legacy rows ANTHROPIC_INTAKE_MODEL / ANTHROPIC_MODEL
+ * OVERRIDE these defaults when set (see aiModelFor). The production app
+ * still carried ANTHROPIC_INTAKE_MODEL=claude-haiku-4-5 on 2026-10-30; it
+ * must be deleted for June to run on Opus.
  */
 export const DEFAULT_MODELS: Record<AiProvider, Record<AiTier, string>> = {
   anthropic: {
-    intake: "claude-haiku-4-5",
-    workbench: "claude-sonnet-5",
+    intake: "claude-opus-5-5",
+    workbench: "claude-fable-5-1",
   },
   openai: {
     intake: "gpt-5.6-terra",

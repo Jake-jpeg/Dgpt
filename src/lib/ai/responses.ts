@@ -41,7 +41,7 @@ import { AiConfigError } from "./errors";
 export { AiConfigError };
 export type { AiProvider };
 
-export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5";
+export const DEFAULT_ANTHROPIC_MODEL = "claude-fable-5-1";
 
 /**
  * Fail loudly on a key that cannot legally become an HTTP header value.

@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS intake_session (
   initiated_by     TEXT NOT NULL,            -- CLIENT | STAFF | ATTORNEY
   owner_subject    TEXT NOT NULL,            -- opaque auth subject (provider|sub)
   matter_id        TEXT,                     -- 2.0: the matter this intake belongs to
+  party_id         TEXT NOT NULL DEFAULT 'A', -- 2026-10-30: which spouse this interview belongs to
   conflict_clear   INTEGER NOT NULL DEFAULT 0,
   county           TEXT,
   qdro_flag        INTEGER NOT NULL DEFAULT 0,
@@ -177,6 +178,42 @@ CREATE TABLE IF NOT EXISTS matter (
 CREATE INDEX IF NOT EXISTS idx_matter_client ON matter(client_user_id);
 CREATE INDEX IF NOT EXISTS idx_matter_lifecycle ON matter(lifecycle);
 
+-- ── G2. Parties (2026-10-30 — the two-spouse model) ───────────────────
+-- Every matter has two parties: A, the spouse who starts the case with June
+-- (the firm's client — matter.client_user_id stays in step with A), and B,
+-- the spouse A invites. user_id is NULL until that person has signed in and
+-- accepted. Answers and intake sessions are keyed by party; a party never
+-- reads the other's answers. One row per role per matter.
+CREATE TABLE IF NOT EXISTS matter_party (
+  id            TEXT PRIMARY KEY,
+  matter_id     TEXT NOT NULL REFERENCES matter(id) ON DELETE CASCADE,
+  role          TEXT NOT NULL CHECK (role IN ('A','B')),
+  user_id       TEXT REFERENCES app_user(id),
+  invited_email TEXT NOT NULL DEFAULT '',   -- lowercased; B is bound only to this address
+  display_name  TEXT NOT NULL DEFAULT '',   -- as June heard it; never shown to the other party
+  status        TEXT NOT NULL DEFAULT 'INVITED'
+                CHECK (status IN ('INVITED','JOINED','INTAKE_IN_PROGRESS','INTAKE_COMPLETE','WITHDRAWN')),
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL,
+  UNIQUE(matter_id, role)
+);
+CREATE INDEX IF NOT EXISTS idx_party_user ON matter_party(user_id);
+
+-- June's pre-sign-in draft: what the starting spouse told June before they
+-- signed in, keyed by the email they said they would sign in with. No
+-- credential, no access — a parked quote that becomes a matter the moment
+-- that email signs in. Swept with the retention job.
+CREATE TABLE IF NOT EXISTS start_draft (
+  id              TEXT PRIMARY KEY,
+  email           TEXT NOT NULL,              -- lowercased; A's sign-in address
+  payload         TEXT NOT NULL,              -- JSON StartDraft (names, spouse email, state, kids, assets, quote)
+  consumed_at     TEXT,
+  consumed_matter TEXT,
+  created_at      TEXT NOT NULL,
+  updated_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_start_draft_email ON start_draft(email);
+
 CREATE TABLE IF NOT EXISTS matter_access (
   id         TEXT PRIMARY KEY,
   matter_id  TEXT NOT NULL REFERENCES matter(id) ON DELETE CASCADE,
@@ -192,6 +229,7 @@ CREATE TABLE IF NOT EXISTS invitation (
   matter_id       TEXT NOT NULL REFERENCES matter(id) ON DELETE CASCADE,
   token_hash      TEXT NOT NULL UNIQUE,      -- SHA-256(raw token)
   target_email    TEXT NOT NULL DEFAULT '',  -- lowercased; only this account may accept
+  party_id        TEXT,                      -- 2026-10-30: the matter_party this link seats (B)
   expires_at      TEXT NOT NULL,
   revoked_at      TEXT,
   used_at         TEXT,
@@ -337,16 +375,18 @@ CREATE TABLE IF NOT EXISTS document_release (
 -- ── P. Schema-driven intake answers (2.0 NY intake engine) ──────────────
 CREATE TABLE IF NOT EXISTS matter_intake_answer (
   matter_id   TEXT NOT NULL,
+  party_id    TEXT NOT NULL DEFAULT 'A',   -- 2026-10-30: each spouse answers separately
   question_id TEXT NOT NULL,
   value       TEXT NOT NULL,               -- JSON-encoded validated value
   updated_at  TEXT NOT NULL,
   updated_by  TEXT NOT NULL,
-  PRIMARY KEY (matter_id, question_id)
+  PRIMARY KEY (matter_id, party_id, question_id)
 );
 
 CREATE TABLE IF NOT EXISTS matter_intake_answer_history (
   id          TEXT PRIMARY KEY,
   matter_id   TEXT NOT NULL,
+  party_id    TEXT NOT NULL DEFAULT 'A',
   question_id TEXT NOT NULL,
   value       TEXT NOT NULL,
   changed_at  TEXT NOT NULL,
@@ -463,6 +503,17 @@ const MIGRATIONS = [
   // fail and are skipped (fresh SQLite DBs get the new CHECK from the DDL).
   // 2026-07-29 attorney adds the client by email before they register.
   `ALTER TABLE matter ADD COLUMN expected_client_email TEXT`,
+  // 2026-10-30 two-spouse model: parties, per-party answers and sessions.
+  // The answer PK widens to (matter, party, question). Postgres: drop and
+  // re-add the constraint. SQLite cannot alter a PK — a pre-existing dev
+  // database must be deleted (./data/dev.db); fresh databases get the new
+  // DDL. Production carried no real client data at this point.
+  `ALTER TABLE intake_session ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,
+  `ALTER TABLE invitation ADD COLUMN party_id TEXT`,
+  `ALTER TABLE matter_intake_answer ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,
+  `ALTER TABLE matter_intake_answer_history ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,
+  `ALTER TABLE matter_intake_answer DROP CONSTRAINT IF EXISTS matter_intake_answer_pkey`,
+  `ALTER TABLE matter_intake_answer ADD PRIMARY KEY (matter_id, party_id, question_id)`,
   `ALTER TABLE matter DROP CONSTRAINT IF EXISTS matter_conflict_status_check`,
   `ALTER TABLE matter ADD CONSTRAINT matter_conflict_status_check CHECK (conflict_status IN (
      'NOT_STARTED','EXTERNAL','NO_APPARENT_MATCH','POTENTIAL_MATCH',

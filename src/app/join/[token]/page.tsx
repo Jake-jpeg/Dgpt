@@ -1,0 +1,126 @@
+"use client";
+
+/**
+ * /join/<token> — the second spouse's door (2026-10-30).
+ *
+ * The link in the URL is the invitation. Not signed in → a return-address
+ * cookie is set and they sign in; the callback brings them back here. Signed
+ * in → one tap seats them (email-bound, single-use) and opens their own
+ * questionnaire. Nothing about the other spouse or the case is shown before
+ * they are seated — only the firm's name and which address the link is for.
+ */
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Shell, useMe, ErrorNotice } from "@/components/shell";
+import { api } from "@/lib/ui/client-api";
+
+interface Preview {
+  state: "OPEN" | "EXPIRED" | "USED" | "REVOKED" | "UNKNOWN";
+  firm: string;
+  invitedEmailMasked: string | null;
+}
+
+export default function JoinPage() {
+  const params = useParams<{ token: string }>();
+  const token = params.token;
+  const router = useRouter();
+  const { me, loading } = useMe();
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    (async () => {
+      try {
+        setPreview((await api.get(`/api/join/${encodeURIComponent(token)}`)) as unknown as Preview);
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : "Could not read this link");
+      }
+    })();
+  }, [token]);
+
+  function signIn(provider: "google" | "msa") {
+    // Return address for the OAuth callback; the token stays in this URL
+    // regardless, so if the cookie is lost the spouse just opens the link again.
+    document.cookie = `dgpt_join_return=${encodeURIComponent(token)}; Path=/; SameSite=Lax; Max-Age=900`;
+    window.location.href = `/api/auth/login/${provider}`;
+  }
+
+  async function accept() {
+    setBusy(true);
+    setErr(null);
+    try {
+      await api.post(`/api/join/${encodeURIComponent(token)}`);
+      router.replace("/portal/matter");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not join");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const signedInClient = me?.user?.role === "CLIENT";
+  const firm = preview?.firm ?? "the firm";
+
+  return (
+    <Shell>
+      <div className="june">
+        <h1 className="mb-1 text-2xl font-bold tracking-tight">You&apos;ve been invited</h1>
+        <p className="panel-sub">DivorceGPT is a service of {firm}.</p>
+        <ErrorNotice message={err} />
+
+        {preview && preview.state !== "OPEN" && (
+          <div className="panel">
+            <h2>This link can&apos;t be used</h2>
+            <p className="panel-sub">
+              {preview.state === "USED" && "It was already used. If that was you, just sign in."}
+              {preview.state === "EXPIRED" && "It has expired. Ask your spouse to send a new one from their case page."}
+              {preview.state === "REVOKED" && "It was cancelled and replaced. Ask your spouse for the newer link."}
+              {preview.state === "UNKNOWN" && "It isn't a link we recognise. Check that you copied the whole address."}
+            </p>
+            {preview.state === "USED" && (
+              <button className="btn btn-primary" onClick={() => router.push("/portal")}>Sign in</button>
+            )}
+          </div>
+        )}
+
+        {preview?.state === "OPEN" && (
+          <div className="panel">
+            <h2>Your spouse has started an uncontested divorce with {firm}</h2>
+            <p className="panel-sub">
+              You each answer the same questionnaire, separately and privately — neither of you sees the other&apos;s
+              answers. The firm&apos;s attorney then reviews both, meets with both of you by video, and prepares the
+              papers. This link is for <strong>{preview.invitedEmailMasked}</strong>; sign in with that address.
+            </p>
+            <p className="panel-sub">
+              You answer for yourself, in your own words. If you would like your own lawyer to look over the papers
+              before you sign anything, you are welcome to — the attorney will explain how that works at the meeting.
+            </p>
+            {!loading && !signedInClient && (
+              <div className="june-signin">
+                {me?.providers.google && (
+                  <button className="btn btn-primary" onClick={() => signIn("google")}>Sign in with Google</button>
+                )}
+                {me?.providers.msa && (
+                  <button className="btn btn-primary" onClick={() => signIn("msa")}>Sign in with Outlook / Hotmail</button>
+                )}
+                {me?.user && me.user.role !== "CLIENT" && (
+                  <p className="text-sm text-slate-600">You are signed in to a firm account. Sign out and use a personal account.</p>
+                )}
+              </div>
+            )}
+            {signedInClient && (
+              <div className="june-signin">
+                <p className="text-sm">Signed in as <strong>{me!.user!.email}</strong>.</p>
+                <button className="btn btn-primary" disabled={busy} onClick={accept}>
+                  {busy ? "Joining…" : "Join and start my questionnaire"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </Shell>
+  );
+}

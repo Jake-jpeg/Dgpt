@@ -16,7 +16,8 @@ import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
 import { startIntake } from "@/lib/intake/service";
 import { getProcessCopy } from "@/config/process-copy";
-import { listMattersForClient } from "@/lib/db/matters";
+import { listMattersForClient, getMatter } from "@/lib/db/matters";
+import { partyRoleForUser, getParty, setPartyStatus } from "@/lib/db/parties";
 import { hasAcknowledged } from "@/lib/db/disclosure";
 import { getDisclosure } from "@/config/disclosure";
 
@@ -58,10 +59,21 @@ export async function POST(req: Request) {
       matterId = (await requireMatterAccess(authed, requestedMatterId)).id;
     }
 
+    // Which spouse this interview belongs to (2026-10-30): a client's own
+    // seat; the firm defaults to A.
+    const partyId =
+      account.role === "CLIENT"
+        ? ((await partyRoleForUser((await getMatter(matterId))!, account.id)) ?? "A")
+        : "A";
     const session = (await startIntake(
           { ...authed.session, role: account.role },
-          matterId
+          matterId,
+          partyId
         ));
+    if (account.role === "CLIENT") {
+      const seat = await getParty(matterId, partyId);
+      if (seat && seat.status === "JOINED") await setPartyStatus(seat.id, "INTAKE_IN_PROGRESS");
+    }
     return Response.json({
       session: { id: session.id, state: session.state },
       copy: {

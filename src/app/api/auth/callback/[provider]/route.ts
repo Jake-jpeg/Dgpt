@@ -31,6 +31,7 @@ import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertRateLimit } from "@/lib/security/rate-limit";
 import { findAccountForSession, provisionClientAccount } from "@/lib/db/users";
 import { decideLoginDestination } from "@/lib/auth/authorize-login";
+import { JOIN_RETURN_COOKIE } from "@/lib/june/links";
 import { recordAudit } from "@/lib/db/repo";
 import { hashNameForAudit } from "@/lib/security/audit-hash";
 
@@ -97,11 +98,20 @@ export async function GET(
     // Providers authenticate; the DB authorizes. Firm-role accounts pass the
     // active + attorney-allowlist gate; clients land on their portal (linked
     // or not — the waiting room handles the unlinked state).
-    const dest = decideLoginDestination({
+    let dest = decideLoginDestination({
       provider: provider as ProviderId,
       boundAccount,
       attorneyAllowlist: attorneyEmailAllowlist(),
     });
+    // 2026-10-30: the invited spouse signed in from /join/<token>. Send them
+    // straight back to that link so it can seat them. The token itself
+    // stays in the URL they were sent — this cookie is only a return
+    // address, and if it did not survive the round-trip they simply open
+    // the link again (the join page accepts while signed in).
+    const joinReturn = cookies[JOIN_RETURN_COOKIE];
+    if (joinReturn && boundAccount?.role === "CLIENT" && /^[A-Za-z0-9_-]{16,200}$/.test(joinReturn)) {
+      dest = `/join/${joinReturn}`;
+    }
 
     const token = await createSessionToken({
       subject: identity.subject,
@@ -117,6 +127,7 @@ export async function GET(
     const headers = new Headers({ Location: dest });
     headers.append("Set-Cookie", sessionCookieHeader(token));
     headers.append("Set-Cookie", `${OAUTH_TX_COOKIE}=; Path=/; HttpOnly; Max-Age=0`);
+    if (joinReturn) headers.append("Set-Cookie", `${JOIN_RETURN_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
     return new Response(null, { status: 302, headers });
   } catch (e) {
     return errorResponse(e);

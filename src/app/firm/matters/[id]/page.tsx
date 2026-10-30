@@ -29,6 +29,7 @@ interface MatterDetail {
   updatedAt: string;
   sessions: { id: string; state: string; tier: string | null; updatedAt: string; attorneyFlags?: string[] }[];
   intakeLock?: IntakeLock;
+  spouses?: { seats: number; complete: number };
 }
 /** Reason CODE only — never the client's free text. */
 interface IntakeLock {
@@ -165,13 +166,25 @@ export default function FirmMatterDetail() {
         link: "Review",
       });
     }
-    for (const s of readySessions) {
-      attention.push({
-        key: `ready-${s.id}`,
-        text: "Client intake is complete — their answers are ready for your review",
-        panel: "intake-lock",
-        link: "Open matter",
-      });
+    if (matter?.spouses?.seats === 2) {
+      // Two-spouse matter (2026-10-30): the review starts when BOTH are done.
+      if (matter.spouses.complete === 2) {
+        attention.push({
+          key: "both-complete",
+          text: "Both spouses have finished — read the meeting-of-the-minds report and schedule the one-hour meeting",
+          panel: "intake-lock",
+          link: "Review",
+        });
+      }
+    } else {
+      for (const s of readySessions) {
+        attention.push({
+          key: `ready-${s.id}`,
+          text: "Client intake is complete — their answers are ready for your review",
+          panel: "intake-lock",
+          link: "Open matter",
+        });
+      }
     }
     // Review flags from the interview (2026-09-13: the gates no longer stop
     // anyone — they flag, and this is where the flag lands). One line per
@@ -339,13 +352,21 @@ export default function FirmMatterDetail() {
           {/* ── Intake lock / reopen ─────────────────────────────── */}
           <IntakeLockPanel matterId={matterId} isAttorney={isAttorney} onChanged={load} />
 
-          {/* ── Invite the client ────────────────────────────────── */}
-          <ConnectClientPanel
+          {/* ── The two spouses (2026-10-30) — or, on a matter created
+                 before the two-spouse model, the old connect-the-client
+                 panel. ── */}
+          <SpousesPanel
             matterId={matterId}
             isAttorney={isAttorney}
-            expectedClientEmail={matter.expectedClientEmail ?? null}
-            clientConnected={Boolean(matter.clientUserId)}
-            onLinked={load}
+            fallback={
+              <ConnectClientPanel
+                matterId={matterId}
+                isAttorney={isAttorney}
+                expectedClientEmail={matter.expectedClientEmail ?? null}
+                clientConnected={Boolean(matter.clientUserId)}
+                onLinked={load}
+              />
+            }
           />
 
           {/* The intake transcript panel was DELETED 2026-07-31: the
@@ -915,3 +936,206 @@ function ConnectClientPanel({
     </AccordionPanel>
   );
 }
+
+/* ── The two spouses + the meeting-of-the-minds report (2026-10-30) ──────
+ * Operator: "First spouse and second spouse, they do the same questionnaire.
+ * If there are inconsistencies, I flag it." Both seats, their status, a
+ * fresh invite link for an unseated B, and — once both are complete — the
+ * comparison from src/lib/compare, mismatches first. Status only until
+ * then: the report exists only when there are two finished interviews. */
+interface SpouseSeat {
+  role: "A" | "B";
+  status: "INVITED" | "JOINED" | "INTAKE_IN_PROGRESS" | "INTAKE_COMPLETE" | "WITHDRAWN";
+  displayName?: string;
+  email?: string;
+  emailMasked?: string;
+  seated: boolean;
+  inviteExpiresAt?: string | null;
+}
+interface Term {
+  questionId: string;
+  section: string;
+  prompt: string;
+  status: "MATCH" | "MISMATCH" | "ONLY_A" | "ONLY_B" | "NARRATIVE" | "UNANSWERED";
+  a: string | null;
+  b: string | null;
+}
+interface SpousesView {
+  parties: SpouseSeat[];
+  bothComplete: boolean;
+  comparison: { agreed: boolean; counts: Record<string, number>; terms: Term[] } | null;
+}
+
+const SEAT_STATUS: Record<SpouseSeat["status"], string> = {
+  INVITED: "invited — not yet joined",
+  JOINED: "joined",
+  INTAKE_IN_PROGRESS: "answering",
+  INTAKE_COMPLETE: "complete",
+  WITHDRAWN: "withdrawn",
+};
+
+function SpousesPanel({ matterId, isAttorney, fallback }: { matterId: string; isAttorney: boolean; fallback: React.ReactNode }) {
+  const [view, setView] = useState<SpousesView | null | undefined>(undefined);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [showMatches, setShowMatches] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const r = (await api.get(`/api/matters/${matterId}/parties`)) as unknown as SpousesView;
+      setView(r.parties.length === 2 ? r : null);
+    } catch {
+      setView(null);
+    }
+  }, [matterId]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
+  useEffect(() => {
+    if (!view || view.bothComplete) return;
+    const t = setInterval(load, 20_000);
+    return () => clearInterval(t);
+  }, [view, load]);
+
+  if (view === undefined) return null;
+  if (view === null) return <>{fallback}</>;
+
+  async function reissue() {
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = (await api.post(`/api/matters/${matterId}/parties`)) as unknown as { inviteUrl: string };
+      setInviteUrl(r.inviteUrl);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not make a link");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const cmp = view.comparison;
+  const flagged = cmp ? cmp.terms.filter((t) => t.status === "MISMATCH" || t.status === "ONLY_A" || t.status === "ONLY_B") : [];
+  const narrative = cmp ? cmp.terms.filter((t) => t.status === "NARRATIVE") : [];
+  const matched = cmp ? cmp.terms.filter((t) => t.status === "MATCH") : [];
+  const summary = view.bothComplete
+    ? cmp?.agreed
+      ? "both complete · answers agree"
+      : `both complete · ${flagged.length} to resolve`
+    : `${view.parties.filter((p) => p.status === "INTAKE_COMPLETE").length} of 2 complete`;
+
+  return (
+    <AccordionPanel title="The two spouses" defaultOpen summary={summary}>
+      <ul className="space-y-2 text-sm">
+        {view.parties.map((p) => (
+          <li key={p.role} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            <span className="badge">{p.role === "A" ? "A · started the case · your client" : "B · invited spouse"}</span>
+            <strong>{p.displayName || "—"}</strong>
+            {p.email ? (
+              <a className="text-slate-600 underline" href={`mailto:${p.email}`}>{p.email}</a>
+            ) : (
+              <span className="text-slate-500">{p.emailMasked}</span>
+            )}
+            <span className={`badge ${p.status === "INTAKE_COMPLETE" ? "badge-good" : p.seated ? "" : "badge-warn"}`}>{SEAT_STATUS[p.status]}</span>
+          </li>
+        ))}
+      </ul>
+      {isAttorney && view.parties.some((p) => p.role === "B" && !p.seated) && (
+        <div className="mt-3">
+          {inviteUrl ? (
+            <input className="text-input" readOnly value={inviteUrl} onFocus={(e) => e.currentTarget.select()} />
+          ) : (
+            <button className="btn btn-quiet" style={{ padding: "4px 12px", fontSize: ".8rem" }} disabled={busy} onClick={reissue}>
+              New invitation link for B
+            </button>
+          )}
+          <p className="mt-1 text-xs text-slate-500">Issuing a new link cancels the one A sent. It is bound to B&apos;s email and expires in 14 days.</p>
+        </div>
+      )}
+      {err && <ErrorNotice message={err} />}
+      {isAttorney && view.parties.every((p) => p.email) && (
+        <p className="mt-3 text-sm">
+          <a
+            className="btn btn-quiet"
+            style={{ padding: "4px 12px", fontSize: ".8rem" }}
+            href={`mailto:${view.parties.map((p) => p.email).join(",")}?subject=${encodeURIComponent("Your one-hour meeting with Jake Kim Law Firm")}`}
+          >
+            Email both spouses (meeting invite)
+          </a>
+        </p>
+      )}
+
+      {view.bothComplete && cmp && (
+        <div className="mt-4">
+          <p className="text-sm" style={{ fontWeight: 600 }}>
+            Meeting of the minds — {cmp.agreed ? "the two questionnaires agree on every compared item." : `${flagged.length} item(s) do not match.`}{" "}
+            <span className="text-slate-500" style={{ fontWeight: 400 }}>
+              {matched.length} match · {flagged.length} differ · {narrative.length} written answers to read side by side. Safety answers are never compared.
+            </span>
+          </p>
+          {flagged.length > 0 && (
+            <table className="tbl mt-2">
+              <thead>
+                <tr>
+                  <th>Question</th>
+                  <th>A says</th>
+                  <th>B says</th>
+                </tr>
+              </thead>
+              <tbody>
+                {flagged.map((t) => (
+                  <tr key={t.questionId}>
+                    <td>
+                      <span className="badge badge-warn" style={{ marginRight: 6 }}>{t.status === "MISMATCH" ? "differs" : t.status === "ONLY_A" ? "only A" : "only B"}</span>
+                      {t.prompt}
+                      <div className="text-xs text-slate-500">{t.section}</div>
+                    </td>
+                    <td>{t.a ?? <em className="text-slate-400">—</em>}</td>
+                    <td>{t.b ?? <em className="text-slate-400">—</em>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {narrative.length > 0 && (
+            <table className="tbl mt-3">
+              <thead>
+                <tr>
+                  <th>In their own words</th>
+                  <th>A</th>
+                  <th>B</th>
+                </tr>
+              </thead>
+              <tbody>
+                {narrative.map((t) => (
+                  <tr key={t.questionId}>
+                    <td>{t.prompt}</td>
+                    <td>{t.a}</td>
+                    <td>{t.b}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <button className="btn btn-quiet mt-3" style={{ padding: "4px 12px", fontSize: ".8rem" }} onClick={() => setShowMatches((v) => !v)}>
+            {showMatches ? "Hide" : "Show"} the {matched.length} matching answers
+          </button>
+          {showMatches && (
+            <table className="tbl mt-2">
+              <tbody>
+                {matched.map((t) => (
+                  <tr key={t.questionId}>
+                    <td>{t.prompt}</td>
+                    <td>{t.a}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </AccordionPanel>
+  );
+}
+

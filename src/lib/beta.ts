@@ -42,6 +42,12 @@ export function isValidBetaKey(key: string | undefined | null): boolean {
 export function betaGateExempt(pathname: string): boolean {
   return (
     pathname === "/beta" ||
+    // 2026-10-30: the invited spouse has no access key — the single-use
+    // link they were sent IS their access. The join page and its API are
+    // reachable without the beta cookie; everything after sign-in is not.
+    pathname === "/join" ||
+    pathname.startsWith("/join/") ||
+    pathname.startsWith("/api/join/") ||
     pathname.startsWith("/api/beta/") ||
     // Machine endpoint with its own bearer auth (retention cron must keep working).
     pathname === "/api/admin/purge" ||

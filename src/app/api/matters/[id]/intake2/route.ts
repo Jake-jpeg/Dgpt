@@ -22,6 +22,24 @@ import {
 } from "@/lib/db/intake2";
 import { missingRequired, sectionProgress, visibleItems } from "@/lib/intake2/engine";
 import { recordAudit } from "@/lib/db/repo";
+import { partyRoleForUser, type PartyRole } from "@/lib/db/parties";
+import type { AuthedUser } from "@/lib/auth/authz";
+import type { MatterRow } from "@/lib/db/matters";
+
+/**
+ * Whose answers (2026-10-30). A CLIENT is always their own party — the
+ * query string is ignored for them, so no client can read the other
+ * spouse's answers by editing a URL. The firm picks ?party=A|B (default A).
+ */
+async function resolveParty(req: Request, authed: AuthedUser, matter: MatterRow): Promise<PartyRole> {
+  if (authed.account.role === "CLIENT") {
+    const role = await partyRoleForUser(matter, authed.account.id);
+    if (!role) throw new HttpError(404, "Matter not found");
+    return role;
+  }
+  const q = new URL(req.url).searchParams.get("party");
+  return q === "B" ? "B" : "A";
+}
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -40,7 +58,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     }
 
     const schema = schemaForMatter(matter);
-    const answers = (await getMatterAnswers(matter.id));
+    const party = await resolveParty(req, authed, matter);
+    const answers = (await getMatterAnswers(matter.id, party));
     const audience = role === "CLIENT" ? "CLIENT" : role === "STAFF" ? "STAFF" : "ATTORNEY";
     const phase = matterIntakePhase(matter);
     const items = visibleItems(schema, answers, audience, phase).map((i) => ({
@@ -61,6 +80,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     }
     return Response.json({
       available: true,
+      party,
       workflowAssigned: Boolean(matter.matterCategory),
       workflowMessage: matter.matterCategory
         ? `Your attorney has assigned this matter to the New York intake workflow.`
@@ -100,12 +120,14 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
     const matter = (await requireMatterAccess(authed, id));
     const parsed = putSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid answers payload");
+    const party = await resolveParty(req, authed, matter);
     const result = (await saveMatterAnswers({
           matterId: matter.id,
+          partyId: party,
           actingUserId: authed.account.id,
           answers: parsed.data.answers.map((a) => ({ questionId: a.questionId, value: a.value ?? null })),
         }));
-    (await recordAudit(matter.id, "INTAKE2_ANSWERS_SAVED", `count=${result.saved}`, authed.account.id));
+    (await recordAudit(matter.id, "INTAKE2_ANSWERS_SAVED", `party=${party} count=${result.saved}`, authed.account.id));
     return Response.json({ saved: result.saved });
   } catch (e) {
     return errorResponse(e);

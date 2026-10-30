@@ -301,11 +301,11 @@ describe("AI_PROVIDER moves the whole platform; overrides are exceptions", () =>
   beforeEach(() => ENV.forEach((k) => delete process.env[k]));
   afterEach(() => ENV.forEach((k) => delete process.env[k]));
 
-  it("unset env changes nothing — anthropic, Haiku for intake, Sonnet for the workbench", () => {
+  it("unset env changes nothing — anthropic, Opus for June (intake), Fable for drafting (workbench) — operator 2026-10-30", () => {
     expect(aiProviderFor("intake")).toBe("anthropic");
     expect(aiProviderFor("workbench")).toBe("anthropic");
-    expect(aiModelFor("intake")).toBe("claude-haiku-4-5");
-    expect(aiModelFor("workbench")).toBe("claude-sonnet-5");
+    expect(aiModelFor("intake")).toBe("claude-opus-5-5");
+    expect(aiModelFor("workbench")).toBe("claude-fable-5-1");
   });
 
   it("ONE row moves BOTH tiers to Terra — this is the swap", () => {
@@ -321,7 +321,7 @@ describe("AI_PROVIDER moves the whole platform; overrides are exceptions", () =>
     delete process.env.AI_PROVIDER;
     expect(aiProviderFor("intake")).toBe("anthropic");
     expect(aiProviderFor("workbench")).toBe("anthropic");
-    expect(aiModelFor("workbench")).toBe("claude-sonnet-5");
+    expect(aiModelFor("workbench")).toBe("claude-fable-5-1");
   });
 
   it("is case- and whitespace-forgiving on an operator-typed row", () => {
@@ -334,7 +334,7 @@ describe("AI_PROVIDER moves the whole platform; overrides are exceptions", () =>
     process.env.AI_PROVIDER_WORKBENCH = "anthropic";
     expect(aiProviderFor("intake")).toBe("openai");
     expect(aiProviderFor("workbench")).toBe("anthropic");
-    expect(aiModelFor("workbench")).toBe("claude-sonnet-5");
+    expect(aiModelFor("workbench")).toBe("claude-fable-5-1");
   });
 
   it("model overrides are per tier and do not cross", () => {

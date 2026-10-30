@@ -1,11 +1,12 @@
 "use client";
 
 /**
- * Portal entry — sign-in paths for all four roles. There is NO public
- * self-registration: clients get in only through a firm invitation after
- * signing in. OAuth buttons render when the provider is configured; the
- * local test sign-in appears only when the server says it is available
- * (dev stub / closed-testing rules are server-enforced).
+ * Portal entry (2026-10-30 — the two spouses' door). A new case starts with
+ * June (/start); an invited spouse arrives through their /join link; a
+ * returning spouse signs back in. The firm's sign-in is a footnote. OAuth
+ * buttons render when the provider is configured; the local test sign-in
+ * appears only when the server says it is available (dev stub /
+ * closed-testing rules are server-enforced).
  */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -51,7 +52,7 @@ export default function PortalEntry() {
   const user = me?.user ?? null;
 
   return (
-    <Shell title="Portal sign in">
+    <Shell title="DivorceGPT">
       <ErrorNotice message={err} />
 
       {user && (
@@ -81,14 +82,31 @@ export default function PortalEntry() {
 
       {!user && !loading && (
         <>
+          {/* 2026-10-30: this page is for the two spouses. June starts a
+              case; a spouse with an invitation opens their link; anyone
+              who already has a case signs back in. The firm's own door is
+              one small line at the bottom — this is not a lawyers' interface. */}
           <div className="panel">
-            <h2>Clients</h2>
+            <h2>Start your divorce case</h2>
             <p className="panel-sub">
-              Access is by invitation from the firm. Open the invitation link
-              the firm sent you, then sign in with the email account it was
-              sent to — Google (Gmail) or Microsoft (Outlook.com or Hotmail).
+              DivorceGPT is a service of Jake Kim Law Firm LLC — an attorney-reviewed uncontested divorce,
+              prepared and filed by the firm. June, our set-up assistant, explains how it works and takes a few
+              details. Takes about three minutes.
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="june-signin">
+              <button className="btn btn-primary" onClick={() => router.push("/start")}>
+                Start with June
+              </button>
+            </div>
+          </div>
+
+          <div className="panel">
+            <h2>Already have a case?</h2>
+            <p className="panel-sub">
+              Sign in with the Google (Gmail) or Microsoft (Outlook.com / Hotmail) account you used before. If
+              your spouse sent you an invitation, open that link instead — it signs you in and seats you on the case.
+            </p>
+            <div className="june-signin">
               {me?.providers.google ? (
                 <button
                   className="btn btn-primary"
@@ -110,44 +128,22 @@ export default function PortalEntry() {
                 </button>
               )}
             </div>
-            {me?.providers.msa && (
-              <p className="mt-2 text-sm text-slate-500">
-                Outlook and Hotmail addresses are Microsoft accounts — this
-                uses your regular email password.
-              </p>
-            )}
           </div>
 
-          <div className="panel">
-            <h2>Firm — staff, attorneys, administration</h2>
-            <p className="panel-sub">
-              Firm accounts sign in with Microsoft or with a firm Google
-              Workspace account. Access and permissions are controlled by the
-              firm&apos;s account records, not by this page.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              {me?.providers.entra ? (
-                <button
-                  className="btn btn-primary"
-                  onClick={() => (window.location.href = "/api/auth/login/entra")}
-                >
-                  Sign in with Microsoft
-                </button>
-              ) : (
-                <p className="text-sm text-slate-500">
-                  Microsoft sign-in is not configured in this environment.
-                </p>
-              )}
-              {me?.providers.google && (
-                <button
-                  className="btn btn-primary"
-                  onClick={() => (window.location.href = "/api/auth/login/google")}
-                >
-                  Sign in with Google
-                </button>
-              )}
-            </div>
-          </div>
+          <p className="mt-4 text-center text-xs text-slate-500">
+            Jake Kim Law Firm staff:{" "}
+            {me?.providers.entra && (
+              <button className="underline" onClick={() => (window.location.href = "/api/auth/login/entra")}>
+                sign in with Microsoft
+              </button>
+            )}
+            {me?.providers.entra && me?.providers.google && " · "}
+            {me?.providers.google && (
+              <button className="underline" onClick={() => (window.location.href = "/api/auth/login/google")}>
+                firm Google account
+              </button>
+            )}
+          </p>
 
           {me?.devStub && (
             <div className="panel">

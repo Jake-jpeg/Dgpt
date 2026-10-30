@@ -22,6 +22,7 @@
 import { getSession, updateSession, recordAudit, addAttorneyFlag, touchSession, type SessionRow } from "@/lib/db/repo";
 import { getMatter, type MatterRow } from "@/lib/db/matters";
 import { getMatterAnswers, saveMatterAnswers, schemaForMatter } from "@/lib/db/intake2";
+import { getParty, setPartyStatus } from "@/lib/db/parties";
 import { deriveChecklist, isAnswered, itemVisible, isAffirmative, type ChecklistEntry } from "@/lib/intake2/engine";
 import { deriveImpliedAnswers } from "./derive";
 import { getConfigChecklistState } from "@/lib/db/checklist";
@@ -284,7 +285,7 @@ export async function loadConversation(sessionId: string): Promise<ConversationC
   const matter = await getMatter(session.matterId);
   if (!matter) throw new Error("VALIDATION: matter not found");
   const schema = schemaForMatter(matter);
-  const answers = await getMatterAnswers(matter.id);
+  const answers = await getMatterAnswers(matter.id, session.partyId);
   const checklistState = await getConfigChecklistState(matter.id);
   const checklist = deriveChecklist(schema, answers, checklistState, matterIntakePhase(matter));
   const transcript = await listChatMessages(sessionId);
@@ -661,6 +662,7 @@ async function applyDerivations(ctx: ConversationContext, actingUserId: string):
   try {
     await saveMatterAnswers({
       matterId: ctx.matter.id,
+      partyId: ctx.session.partyId,
       actingUserId,
       answers: derived.map((d) => ({ questionId: d.questionId, value: d.value })),
     });
@@ -673,7 +675,7 @@ async function applyDerivations(ctx: ConversationContext, actingUserId: string):
       `answer derived q=${d.questionId} (${d.because})`
     );
   }
-  ctx.answers = await getMatterAnswers(ctx.matter.id);
+  ctx.answers = await getMatterAnswers(ctx.matter.id, ctx.session.partyId);
   ctx.seqState.answers = ctx.answers;
 }
 
@@ -729,11 +731,11 @@ async function passGate(
   }
   if (prefill.length > 0) {
     try {
-      await saveMatterAnswers({ matterId: ctx.matter.id, actingUserId, answers: prefill });
+      await saveMatterAnswers({ matterId: ctx.matter.id, partyId: ctx.session.partyId, actingUserId, answers: prefill });
     } catch {
       /* prefill is a convenience — a schema mismatch must never break a gate pass */
     }
-    ctx.answers = await getMatterAnswers(ctx.matter.id);
+    ctx.answers = await getMatterAnswers(ctx.matter.id, ctx.session.partyId);
     ctx.seqState.answers = ctx.answers;
   }
   for (const flag of evaluation.reviewFlags ?? []) {
@@ -830,6 +832,7 @@ async function applyTurn(
     try {
       await saveMatterAnswers({
         matterId: ctx.matter.id,
+        partyId: ctx.session.partyId,
         actingUserId,
         answers: turn.record_answers.map((a) => ({ questionId: a.questionId, value: a.value })),
       });
@@ -844,7 +847,7 @@ async function applyTurn(
     for (const a of turn.record_answers) {
       await appendSystemEvent(sessionId, `answer recorded q=${a.questionId}`);
     }
-    ctx.answers = await getMatterAnswers(ctx.matter.id);
+    ctx.answers = await getMatterAnswers(ctx.matter.id, ctx.session.partyId);
     ctx.seqState.answers = ctx.answers;
     advanced = true;
     await applyDerivations(ctx, actingUserId);
@@ -883,6 +886,13 @@ async function applyTurn(
         await updateSession(sessionId, { state: "READY_FOR_REVIEW" });
         await recordAudit(sessionId, "READY_FOR_REVIEW", "via conversational intake");
         await appendSystemEvent(sessionId, "intake complete — packet ready for attorney review");
+        // Two-spouse model (2026-10-30): this party is done. When the other
+        // party is done too, the firm compares the two interviews.
+        const seat = await getParty(ctx.matter.id, ctx.session.partyId);
+        if (seat) {
+          await setPartyStatus(seat.id, "INTAKE_COMPLETE");
+          await recordAudit(ctx.matter.id, "PARTY_INTAKE_COMPLETE", `party=${ctx.session.partyId}`, actingUserId);
+        }
       }
       complete = true;
     }

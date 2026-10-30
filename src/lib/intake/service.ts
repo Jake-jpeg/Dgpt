@@ -64,7 +64,12 @@ export async function requireOwnedSession(user: SessionUser, sessionId: string):
   return s;
 }
 
-export async function startIntake(user: SessionUser, matterId?: string): Promise<SessionRow> {
+export async function startIntake(
+  user: SessionUser,
+  matterId?: string,
+  /** Which spouse's interview this is (2026-10-30). Defaults to A. */
+  partyId: "A" | "B" = "A"
+): Promise<SessionRow> {
   // ADMIN does not perform intake (least privilege).
   if (user.role === "ADMIN") {
     throw new HttpError(403, "Admins do not perform intake");
@@ -77,6 +82,7 @@ export async function startIntake(user: SessionUser, matterId?: string): Promise
       ownerSubject: user.subject,
       initialState: "GATE_RESIDENCY",
       matterId,
+      partyId,
       conflictClear: true,
     }));
   (await recordAudit(s.id, "SESSION_STARTED", `initiatedBy=${user.role}`));
