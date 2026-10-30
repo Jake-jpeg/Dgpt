@@ -48,7 +48,7 @@ export default function StartWithJune() {
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [msgs.length, state?.complete]);
+  }, [msgs.length, state?.complete, busy]);
 
   async function send() {
     const text = input.trim();
@@ -70,30 +70,46 @@ export default function StartWithJune() {
 
   const ko = state?.lang === "ko";
   const complete = Boolean(state?.complete);
+  const TOTAL_FACTS = 8;
+  const known = state ? Math.max(0, TOTAL_FACTS - state.missing.length) : 0;
 
   return (
-    <Shell>
+    <Shell compact>
       <div className="june">
-        <h1 className="mb-1 text-2xl font-bold tracking-tight">{ko ? "사건 시작하기" : "Start your case"}</h1>
-        <p className="panel-sub">
-          {ko
-            ? "Jake Kim Law Firm LLC의 서비스입니다. 변호사가 검토하고, 작성하고, 제출합니다."
-            : "A service of Jake Kim Law Firm LLC. Attorney-reviewed, prepared and filed."}
-        </p>
+        <div className="june-head">
+          <div className="june-avatar" aria-hidden="true">J</div>
+          <div className="june-head-text">
+            <p className="june-name">June</p>
+            <p className="june-role">
+              {ko ? "사건 준비 도우미 · Jake Kim Law Firm LLC" : "Set-up assistant · Jake Kim Law Firm LLC"}
+            </p>
+          </div>
+          {state && !complete && (
+            <span className="june-pill" aria-label={ko ? `${known}/${TOTAL_FACTS} 완료` : `${known} of ${TOTAL_FACTS} done`}>
+              {known}/{TOTAL_FACTS}
+            </span>
+          )}
+          {complete && <span className="june-pill june-pill-done">{ko ? "준비 완료" : "Ready"}</span>}
+        </div>
+        {state && (
+          <div className="june-progress" aria-hidden="true">
+            <div style={{ width: `${(known / TOTAL_FACTS) * 100}%` }} />
+          </div>
+        )}
 
         <div className="june-thread" aria-live="polite">
           {msgs
             .filter((m) => m.role !== "SYSTEM")
             .map((m) => (
-              <div key={m.id}>
-                {m.role === "JUNE" && <p className="june-who">June</p>}
+              <div key={m.id} className={`june-turn june-turn-${m.role === "JUNE" ? "june" : "you"}`}>
                 <div className={`june-msg june-msg-${m.role === "JUNE" ? "june" : "you"}`}>{m.content}</div>
               </div>
             ))}
           {busy && (
-            <div>
-              <p className="june-who">June</p>
-              <div className="june-msg june-msg-june">…</div>
+            <div className="june-turn june-turn-june">
+              <div className="june-msg june-msg-june june-typing" aria-label={ko ? "입력 중" : "June is typing"}>
+                <i /><i /><i />
+              </div>
             </div>
           )}
 
@@ -143,8 +159,10 @@ export default function StartWithJune() {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={ko ? "여기에 입력하세요…" : "Type here…"}
                 maxLength={1000}
-                autoFocus
                 disabled={busy}
+                enterKeyHint="send"
+                autoComplete="off"
+                autoCorrect="off"
                 onKeyDown={(e) => e.key === "Enter" && send()}
               />
               <button className="btn btn-primary" disabled={busy || !input.trim()} onClick={send}>
@@ -152,7 +170,9 @@ export default function StartWithJune() {
               </button>
             </div>
             <p className="june-ask">
-              {ko ? "영어 또는 한국어로 답하실 수 있습니다. 질문도 언제든지 하세요." : "English or Korean. Ask June anything about how this works."}
+              {ko
+                ? "영어 또는 한국어로 답하실 수 있습니다. 질문도 언제든지 하세요. 법률 자문이 아닙니다 · Jake Kim Law Firm LLC"
+                : "English or Korean. Ask June anything about how this works. Not legal advice · Jake Kim Law Firm LLC"}
             </p>
           </div>
         )}

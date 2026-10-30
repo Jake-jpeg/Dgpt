@@ -1,17 +1,23 @@
 "use client";
 
 /**
- * Portal entry (2026-10-30 — the two spouses' door). A new case starts with
- * June (/start); an invited spouse arrives through their /join link; a
- * returning spouse signs back in. The firm's sign-in is a footnote. OAuth
- * buttons render when the provider is configured; the local test sign-in
- * appears only when the server says it is available (dev stub /
- * closed-testing rules are server-enforced).
+ * Portal entry (2026-10-30 — the two spouses' door; redesigned the same
+ * evening). A new case starts with June (/start); an invited spouse arrives
+ * through their /join link; a returning spouse signs back in. The firm's
+ * sign-in is a footnote. OAuth buttons render when the provider is
+ * configured; the local test sign-in appears only when the server says it is
+ * available (dev stub / closed-testing rules are server-enforced).
+ *
+ * Design: one dark hero shared with the header (the public landing's
+ * language — eyebrow, big headline, glass "how it works" card), then a
+ * light sign-in section. No "DivorceGPT" title shouting at the top; the
+ * brand lives in the header and the headline talks to the reader.
  */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Shell, useMe, ErrorNotice, type Me } from "@/components/shell";
 import { api } from "@/lib/ui/client-api";
+import { formatUsd, quoteFor } from "@/config/pricing";
 
 const HOME: Record<Me["role"], string> = {
   CLIENT: "/portal/matter",
@@ -19,6 +25,27 @@ const HOME: Record<Me["role"], string> = {
   ATTORNEY: "/firm",
   ADMIN: "/firm/settings",
 };
+
+const FEE_LO = formatUsd(quoteFor({ children: false, assets: false }).total);
+const FEE_HI = formatUsd(quoteFor({ children: true, assets: true }).total);
+
+function ProviderIcon({ kind }: { kind: "google" | "msa" | "june" }) {
+  // Neutral glyphs, deliberately not vendor logos.
+  if (kind === "june") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-5 4V5.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+        <path d="M8 8.5h8M8 11.5h5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 export default function PortalEntry() {
   const { me, loading, refresh } = useMe();
@@ -50,9 +77,81 @@ export default function PortalEntry() {
   }
 
   const user = me?.user ?? null;
+  const signedOut = !user && !loading && !me?.identity;
+
+  const hero = signedOut ? (
+    <div className="door-grid">
+      <div>
+        <p className="eyebrow">Jake Kim Law Firm LLC · New York &amp; New Jersey</p>
+        <h1 className="door-h1">
+          Your divorce, handled by a lawyer.
+          <br />
+          <span className="door-h1-soft">Set up in three minutes.</span>
+        </h1>
+        <p className="door-copy">
+          You and your spouse each answer the same questions, separately. An attorney compares the
+          answers, meets you both on a video call, and prepares and files everything — for a flat
+          fee from {FEE_LO}.
+        </p>
+        <div className="door-actions">
+          <button className="button button-primary door-cta" onClick={() => router.push("/start")}>
+            <ProviderIcon kind="june" />
+            Start with June
+            <span aria-hidden="true" className="door-arrow">→</span>
+          </button>
+          <a className="button button-secondary" href="#signin">
+            I already have a case
+          </a>
+        </div>
+        <p className="door-meta">
+          <span>English · 한국어</span>
+          <span aria-hidden="true">·</span>
+          <span>Attorney-reviewed</span>
+          <span aria-hidden="true">·</span>
+          <span>
+            Flat fee {FEE_LO}–{FEE_HI}
+          </span>
+        </p>
+      </div>
+
+      <aside className="workflow-card door-card" aria-label="How it works">
+        <p className="card-label">How it works</p>
+        <ol>
+          <li>
+            <span>01</span>
+            <div>
+              <strong>Meet June</strong>
+              <small>Our set-up assistant takes eight quick details and gives you your exact fee.</small>
+            </div>
+          </li>
+          <li>
+            <span>02</span>
+            <div>
+              <strong>Each of you completes the interview</strong>
+              <small>Separately, on your own phone. Neither of you sees the other&apos;s answers.</small>
+            </div>
+          </li>
+          <li>
+            <span>03</span>
+            <div>
+              <strong>The attorney compares and meets you</strong>
+              <small>A one-hour video meeting with both of you before anything is drafted.</small>
+            </div>
+          </li>
+          <li>
+            <span>04</span>
+            <div>
+              <strong>Prepared and filed by the firm</strong>
+              <small>You receive the finished papers from Jake Kim Law Firm.</small>
+            </div>
+          </li>
+        </ol>
+      </aside>
+    </div>
+  ) : null;
 
   return (
-    <Shell title="DivorceGPT">
+    <Shell hero={hero}>
       <ErrorNotice message={err} />
 
       {user && (
@@ -80,57 +179,37 @@ export default function PortalEntry() {
         </div>
       )}
 
-      {!user && !loading && (
+      {signedOut && (
         <>
-          {/* 2026-10-30: this page is for the two spouses. June starts a
-              case; a spouse with an invitation opens their link; anyone
-              who already has a case signs back in. The firm's own door is
-              one small line at the bottom — this is not a lawyers' interface. */}
-          <div className="panel">
-            <h2>Start your divorce case</h2>
-            <p className="panel-sub">
-              DivorceGPT is a service of Jake Kim Law Firm LLC — an attorney-reviewed uncontested divorce,
-              prepared and filed by the firm. June, our set-up assistant, explains how it works and takes a few
-              details. Takes about three minutes.
-            </p>
-            <div className="june-signin">
-              <button className="btn btn-primary" onClick={() => router.push("/start")}>
-                Start with June
-              </button>
+          <section id="signin" className="door-signin">
+            <div className="door-signin-text">
+              <p className="door-kicker">Already have a case?</p>
+              <h2 className="door-h2">Sign back in.</h2>
+              <p className="panel-sub">
+                Use the Google (Gmail) or Microsoft (Outlook.com / Hotmail) account you used before.
+                If your spouse sent you an invitation, open that link instead — it signs you in and
+                seats you on the case.
+              </p>
             </div>
-          </div>
-
-          <div className="panel">
-            <h2>Already have a case?</h2>
-            <p className="panel-sub">
-              Sign in with the Google (Gmail) or Microsoft (Outlook.com / Hotmail) account you used before. If
-              your spouse sent you an invitation, open that link instead — it signs you in and seats you on the case.
-            </p>
-            <div className="june-signin">
+            <div className="door-providers">
               {me?.providers.google ? (
-                <button
-                  className="btn btn-primary"
-                  onClick={() => (window.location.href = "/api/auth/login/google")}
-                >
-                  Sign in with Google
+                <button className="door-provider" onClick={() => (window.location.href = "/api/auth/login/google")}>
+                  <ProviderIcon kind="google" />
+                  <span>Continue with Google</span>
                 </button>
               ) : (
-                <p className="text-sm text-slate-500">
-                  Google sign-in is not configured in this environment.
-                </p>
+                <p className="text-sm text-slate-500">Google sign-in is not configured in this environment.</p>
               )}
               {me?.providers.msa && (
-                <button
-                  className="btn btn-primary"
-                  onClick={() => (window.location.href = "/api/auth/login/msa")}
-                >
-                  Sign in with Outlook / Hotmail
+                <button className="door-provider" onClick={() => (window.location.href = "/api/auth/login/msa")}>
+                  <ProviderIcon kind="msa" />
+                  <span>Continue with Outlook / Hotmail</span>
                 </button>
               )}
             </div>
-          </div>
+          </section>
 
-          <p className="mt-4 text-center text-xs text-slate-500">
+          <p className="door-staff">
             Jake Kim Law Firm staff:{" "}
             {me?.providers.entra && (
               <button className="underline" onClick={() => (window.location.href = "/api/auth/login/entra")}>

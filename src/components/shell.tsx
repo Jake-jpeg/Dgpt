@@ -107,9 +107,24 @@ const NAV: Record<Me["role"], { href: string; label: string }[]> = {
 export function Shell({
   children,
   title,
+  hero,
+  compact,
 }: {
   children: React.ReactNode;
   title?: string;
+  /**
+   * Optional hero rendered INSIDE the dark band with the header (2026-10-30
+   * redesign): the header and the hero share one gradient, the way the
+   * public landing does, instead of a thin navy bar over a white page.
+   */
+  hero?: React.ReactNode;
+  /**
+   * App-like chrome for the phone (2026-10-30): on small screens the footer
+   * disclaimers are hidden and the main padding is tightened so a chat
+   * screen behaves like a messaging app (header, thread, input — nothing
+   * else). The copy that matters legally is in June's first message.
+   */
+  compact?: boolean;
 }) {
   const { me, loading } = useMe();
   const pathname = usePathname();
@@ -133,17 +148,18 @@ export function Shell({
   const nav = user ? NAV[user.role] ?? [] : [];
 
   return (
-    <div>
+    <div className={compact ? "portal-compact" : undefined}>
       <StagingBanner />
+      <div className={hero ? "portal-top portal-top-hero" : "portal-top"}>
       <header className="portal-header">
         <div className="portal-header-inner">
           <div className="flex items-baseline gap-3">
             <Link href="/" className="brand">
               DivorceGPT<span className="brand-dot">.com</span>
             </Link>
-            <span className="text-xs text-slate-300">
-              Workflow portal · {FIRM_NAME}
-            </span>
+            {user && user.role !== "CLIENT" && (
+              <span className="text-xs text-slate-300">{FIRM_NAME}</span>
+            )}
           </div>
           <nav className="portal-nav" aria-label="Portal navigation">
             {nav.map((n) => (
@@ -176,6 +192,8 @@ export function Shell({
           </nav>
         </div>
       </header>
+      {hero && <div className="portal-hero">{hero}</div>}
+      </div>
       <main className="portal-main">
         {title && (
           <h1 className="mb-6 text-2xl font-bold tracking-tight">{title}</h1>

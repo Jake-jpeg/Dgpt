@@ -162,10 +162,17 @@ footer p { margin: 5px 0; }
 }
 
 /* ── Portal (2.0 workflow) — restrained, professional, firm-appropriate ── */
-.portal-header {
-  background: linear-gradient(135deg, #0b1f39 0%, #142f52 100%);
+/* The header and an optional hero share ONE dark band (2026-10-30 redesign),
+   the same gradient language as the public landing. */
+.portal-top {
   color: white;
+  background:
+    radial-gradient(circle at 85% 15%, rgba(96, 142, 231, .28), transparent 32%),
+    linear-gradient(135deg, #0b1f39 0%, #132f53 52%, #1a3760 100%);
 }
+.portal-header { background: transparent; color: white; }
+.portal-top-hero .portal-header-inner { border-bottom: 1px solid rgba(255,255,255,.12); }
+.portal-hero { max-width: 1180px; margin: 0 auto; padding: 64px 24px 72px; }
 .portal-header-inner {
   max-width: 1180px;
   margin: 0 auto;
@@ -475,34 +482,78 @@ details.accordion > summary:focus-visible { outline: 2px solid var(--blue); outl
 
 /* ── June — the start conversation (2026-10-30), mobile-first ─────────── */
 .june { max-width: 640px; margin: 0 auto; }
+.june-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; margin-bottom: 10px;
+  background: #fff; border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(20,45,78,.05);
+}
+.june-avatar {
+  width: 42px; height: 42px; flex: 0 0 42px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, #2d63d7 0%, #0b1f39 100%);
+  color: #fff; font-weight: 800; letter-spacing: -.02em;
+  box-shadow: 0 6px 16px rgba(45,99,215,.35);
+}
+.june-head-text { min-width: 0; flex: 1 1 auto; }
+.june-name { margin: 0; font-weight: 750; letter-spacing: -.01em; line-height: 1.2; }
+.june-role { margin: 0; font-size: .78rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.june-pill {
+  flex: 0 0 auto; font-size: .74rem; font-weight: 750; letter-spacing: .04em;
+  padding: 4px 10px; border-radius: 999px;
+  background: #eef3fb; color: var(--blue-dark); border: 1px solid #d4e0f5;
+}
+.june-pill-done { background: #e8f6ee; border-color: #bfe4cf; color: #1c6b3c; }
+.june-progress { height: 4px; border-radius: 999px; background: #e3eaf3; overflow: hidden; margin: 0 2px 18px; }
+.june-progress > div { height: 100%; background: linear-gradient(90deg, #2d63d7, #6a95ea); border-radius: 999px; transition: width .4s ease; }
 .june-thread { display: flex; flex-direction: column; gap: 10px; }
+.june-turn { display: flex; }
+.june-turn-june { justify-content: flex-start; }
+.june-turn-you { justify-content: flex-end; }
 .june-msg {
-  max-width: 92%;
-  padding: 12px 14px;
-  border-radius: 16px;
+  max-width: 88%;
+  padding: 12px 15px;
+  border-radius: 18px;
   font-size: .97rem;
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
 }
-.june-msg-june { align-self: flex-start; background: #f1f5fb; border-bottom-left-radius: 6px; }
-.june-msg-you { align-self: flex-end; background: var(--navy); color: #fff; border-bottom-right-radius: 6px; }
+.june-msg-june {
+  background: #fff; color: var(--ink);
+  border: 1px solid var(--line); border-bottom-left-radius: 6px;
+  box-shadow: 0 4px 14px rgba(20,45,78,.05);
+}
+.june-msg-you {
+  background: linear-gradient(135deg, #1a3c66 0%, #0f2a4c 100%); color: #fff;
+  border-bottom-right-radius: 6px;
+  box-shadow: 0 6px 16px rgba(11,31,57,.22);
+}
+.june-typing { display: inline-flex; gap: 5px; align-items: center; padding: 14px 16px; }
+.june-typing i { width: 7px; height: 7px; border-radius: 50%; background: #9fb3d1; animation: june-dot 1.1s infinite ease-in-out; }
+.june-typing i:nth-child(2) { animation-delay: .15s; }
+.june-typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes june-dot { 0%, 80%, 100% { transform: translateY(0); opacity: .5; } 40% { transform: translateY(-4px); opacity: 1; } }
 .june-who { font-size: .72rem; color: var(--muted); margin: 0 0 2px 6px; }
 .june-input {
   position: sticky; bottom: 0;
-  background: #fff;
-  border-top: 1px solid var(--line);
-  padding: 12px 0 max(12px, env(safe-area-inset-bottom));
-  margin-top: 16px;
+  background: linear-gradient(180deg, rgba(247,249,252,0) 0%, var(--paper) 22%);
+  padding: 18px 0 max(12px, env(safe-area-inset-bottom));
+  margin-top: 8px;
 }
-.june-row { display: flex; gap: 8px; }
+.june-row {
+  display: flex; gap: 6px; padding: 6px;
+  background: #fff; border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(20,45,78,.08);
+}
+.june-row:focus-within { border-color: #8fb0e8; box-shadow: 0 0 0 3px #dbe6fa, 0 10px 30px rgba(20,45,78,.08); }
 .june-row input, .june-row select {
   flex: 1 1 auto; min-width: 0;
   font: inherit; font-size: 1rem;
-  padding: 12px 14px;
-  border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 12px;
+  border: none; border-radius: 12px; background: transparent; outline: none;
 }
-.june-row .btn { padding: 12px 16px; font-size: 1rem; }
+.june-row .btn { padding: 10px 18px; font-size: .95rem; border-radius: 12px; }
 .june-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .june-chip {
   font: inherit; font-size: .95rem;
@@ -511,16 +562,103 @@ details.accordion > summary:focus-visible { outline: 2px solid var(--blue); outl
   cursor: pointer;
 }
 .june-chip:hover { background: #eef4fd; }
-.june-ask { margin-top: 8px; font-size: .85rem; color: var(--muted); }
+.june-ask { margin: 8px 6px 0; font-size: .82rem; color: var(--muted); }
 .june-ask button { font: inherit; font-size: .85rem; color: var(--navy); background: none; border: none; text-decoration: underline; cursor: pointer; padding: 0; }
-.june-quote { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 6px; }
-.june-quote-line { display: flex; justify-content: space-between; gap: 12px; font-size: .92rem; padding: 4px 0; }
-.june-quote-total { display: flex; justify-content: space-between; font-weight: 700; border-top: 1px solid var(--line); margin-top: 8px; padding-top: 8px; }
+.june-quote {
+  background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-top: 6px;
+  box-shadow: 0 10px 30px rgba(20,45,78,.06);
+}
+.june-quote-line { display: flex; justify-content: space-between; gap: 12px; font-size: .92rem; padding: 4px 0; color: var(--muted); }
+.june-quote-total { display: flex; justify-content: space-between; font-weight: 750; font-size: 1.05rem; border-top: 1px solid var(--line); margin-top: 8px; padding-top: 10px; }
 .june-signin { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
-.june-signin .btn { width: 100%; padding: 14px; font-size: 1rem; }
+.june-signin .btn { width: 100%; padding: 14px; font-size: 1rem; border-radius: 12px; }
+
+/* ── The door (/portal, 2026-10-30 redesign) ─────────────────────────── */
+.door-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(300px, .7fr);
+  gap: 64px;
+  align-items: center;
+}
+.door-h1 {
+  margin: 0 0 20px; max-width: 640px;
+  font-size: clamp(2.3rem, 4.6vw, 3.9rem);
+  line-height: 1.04; letter-spacing: -.04em; font-weight: 760;
+}
+.door-h1-soft { color: #a9c4fa; }
+.door-copy { max-width: 560px; margin: 0; font-size: 1.1rem; color: #d9e5f7; }
+.door-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+.door-actions .button { border: 1px solid transparent; font: inherit; font-weight: 720; cursor: pointer; }
+.door-actions .button-secondary { border-color: rgba(255,255,255,.35); }
+.door-cta { gap: 10px; padding: 0 24px; box-shadow: 0 14px 34px rgba(0,0,0,.25); }
+.door-arrow { transition: transform .15s ease; }
+.door-cta:hover .door-arrow { transform: translateX(3px); }
+.door-meta { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 0; font-size: .85rem; color: #aebfda; }
+.door-card ol li { align-items: flex-start; }
+.door-card li div { display: flex; flex-direction: column; gap: 3px; }
+.door-card li strong { font-weight: 680; letter-spacing: -.01em; }
+.door-card li small { font-size: .84rem; color: #c3d3ee; line-height: 1.45; }
+.door-signin {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+  gap: 32px; align-items: center;
+  background: #fff; border: 1px solid var(--line); border-radius: 20px;
+  padding: 30px 32px; margin-top: 8px;
+  box-shadow: 0 16px 40px rgba(20,45,78,.06);
+}
+.door-kicker { margin: 0 0 6px; font-size: .74rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--blue); }
+.door-h2 { margin: 0 0 8px; font-size: 1.7rem; letter-spacing: -.03em; line-height: 1.1; }
+.door-signin .panel-sub { margin: 0; }
+.door-providers { display: flex; flex-direction: column; gap: 10px; }
+.door-provider {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 13px 16px;
+  font: inherit; font-size: .97rem; font-weight: 650; color: var(--ink);
+  background: #fff; border: 1px solid #cfd9e6; border-radius: 12px; cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, transform .12s ease;
+}
+.door-provider:hover { background: #f4f7fc; border-color: #9fb6d8; transform: translateY(-1px); }
+.door-staff { margin: 22px 0 0; text-align: center; font-size: .78rem; color: var(--muted); }
+.door-staff button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; padding: 0; }
+@media (max-width: 850px) {
+  .portal-hero { padding: 40px 24px 52px; }
+  .door-grid { grid-template-columns: 1fr; gap: 36px; }
+  .door-signin { grid-template-columns: 1fr; padding: 24px 20px; }
+}
 @media (max-width: 560px) {
   .portal-main { padding: 20px 16px 60px; }
+  .portal-header-inner { min-height: 56px; padding: 0 16px; }
   .panel { padding: 18px 16px; }
   .btn { width: 100%; }
   .flex.flex-wrap.gap-3 .btn { width: 100%; }
+  .june-row .btn { width: auto; }
+
+  /* The door, phone-first: CTA above the fold, steps as a tight list. */
+  .portal-hero { padding: 26px 16px 32px; }
+  .eyebrow { font-size: .68rem; letter-spacing: .1em; margin-bottom: 10px; }
+  .door-h1 { font-size: 2.15rem; margin-bottom: 14px; }
+  .door-copy { font-size: 1rem; }
+  .door-actions { margin-top: 22px; gap: 10px; }
+  .door-actions .button { width: 100%; min-height: 52px; }
+  .door-meta { margin-top: 16px; font-size: .8rem; }
+  .door-grid { gap: 26px; }
+  .door-card { padding: 16px 18px 6px; }
+  .door-card .card-label { margin-bottom: 6px; }
+  .door-card li { padding: 11px 0; gap: 12px; }
+  .door-card li small { display: none; }
+  .door-signin { margin-top: 2px; }
+  .door-h2 { font-size: 1.45rem; }
+
+  /* June as a messaging app: header, thread, input. Nothing else. */
+  .portal-compact .portal-footer { display: none; }
+  .portal-compact .portal-main { padding: 12px 12px 0; }
+  .portal-compact .june { display: flex; flex-direction: column; min-height: calc(100dvh - 56px - 12px); }
+  .portal-compact .june-thread { flex: 1 1 auto; }
+  .june-head { padding: 10px 12px; border-radius: 14px; margin-bottom: 8px; }
+  .june-avatar { width: 36px; height: 36px; flex-basis: 36px; font-size: .95rem; }
+  .june-role { font-size: .74rem; }
+  .june-progress { margin-bottom: 12px; }
+  .june-msg { max-width: 90%; padding: 11px 13px; font-size: .96rem; }
+  .june-input { padding: 10px 0 max(10px, env(safe-area-inset-bottom)); margin: 6px -12px 0; padding-left: 12px; padding-right: 12px; }
+  .june-row input { font-size: 16px; } /* 16px stops iOS from zooming the page on focus */
+  .june-ask { font-size: .74rem; margin: 6px 4px 0; }
 }
