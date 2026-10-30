@@ -40,3 +40,13 @@ _to_delete/snapshot-*.tar.gz
 .gitseriouslyignore/
 Dgpt-Stips/
 *-CONFIDENTIAL/
+
+# agent scratch — retired files parked by coding agents mid-session.
+# Two reasons both lines matter: these are NOT ignored by any pattern above,
+# so a stray `git add .` would publish them to this PUBLIC repo; and a
+# retired route left here still imports modules that the live tree has
+# deleted, which failed `next build` on a file that is not even in the repo
+# (2026-10-30, _agent_trash/start-ask-retired). tsconfig.json excludes the
+# same two paths from type checking.
+/_agent_trash/
+/_agent_tmp/
