@@ -215,7 +215,6 @@ CREATE TABLE IF NOT EXISTS start_draft (
   updated_at      TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_start_draft_email ON start_draft(email);
-CREATE INDEX IF NOT EXISTS idx_start_draft_visitor ON start_draft(visitor_id);
 
 -- June's conversation with a visitor (2026-10-30, second cut: June is a
 -- model, not a form). Kept VERBATIM, firm-side only — the operator asked to
@@ -532,6 +531,9 @@ const MIGRATIONS = [
   // DDL. Production carried no real client data at this point.
   `ALTER TABLE start_draft ADD COLUMN visitor_id TEXT`,
   `ALTER TABLE start_draft ADD COLUMN complete INTEGER NOT NULL DEFAULT 0`,
+  // Index on a migration-added column must come AFTER the ALTER (the DDL block
+  // runs first; an index on a not-yet-existing column aborts the whole block).
+  `CREATE INDEX IF NOT EXISTS idx_start_draft_visitor ON start_draft(visitor_id)`,
   `ALTER TABLE intake_session ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,
   `ALTER TABLE invitation ADD COLUMN party_id TEXT`,
   `ALTER TABLE matter_intake_answer ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,
