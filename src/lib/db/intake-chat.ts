@@ -76,7 +76,15 @@ function rowToMessage(r: Record<string, unknown>): ChatMessageRow {
  * was added with the chat intake and never run through the standard.
  */
 export function isRetainedRole(role: ChatRole): boolean {
-  return role === "SYSTEM_EVENT";
+  // 2026-10-30 — RETAINED AGAIN, by the operator's explicit decision: "The
+  // chat logs will be saved. It's up to me to delete them. But I gotta see
+  // what's going on. I have no choice." Every role is kept; the firm reads
+  // the transcript per spouse on the matter page and deletes it there
+  // (DELETE /api/matters/[id]/transcripts). Clients never read each
+  // other's. The 07-31 reasoning above stands as the reason deletion is
+  // one click away for the attorney.
+  void role;
+  return true;
 }
 
 export async function appendChatMessage(opts: {

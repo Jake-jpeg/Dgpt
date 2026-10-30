@@ -92,9 +92,13 @@ function StagingBanner() {
 // the role on every API call.
 const NAV: Record<Me["role"], { href: string; label: string }[]> = {
   CLIENT: [{ href: "/portal/matter", label: "My matter" }],
-  STAFF: [{ href: "/firm", label: "Matters" }],
+  STAFF: [
+    { href: "/firm", label: "Matters" },
+    { href: "/firm/june", label: "June" },
+  ],
   ATTORNEY: [
     { href: "/firm", label: "Matters" },
+    { href: "/firm/june", label: "June" },
     { href: "/firm/settings", label: "Practice settings" },
   ],
   ADMIN: [{ href: "/firm/settings", label: "Practice settings" }],

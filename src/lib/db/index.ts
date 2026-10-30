@@ -205,14 +205,35 @@ CREATE INDEX IF NOT EXISTS idx_party_user ON matter_party(user_id);
 -- that email signs in. Swept with the retention job.
 CREATE TABLE IF NOT EXISTS start_draft (
   id              TEXT PRIMARY KEY,
-  email           TEXT NOT NULL,              -- lowercased; A's sign-in address
-  payload         TEXT NOT NULL,              -- JSON StartDraft (names, spouse email, state, kids, assets, quote)
+  email           TEXT NOT NULL DEFAULT '',   -- lowercased; A's sign-in address ('' until June has it)
+  visitor_id      TEXT,                       -- the anonymous conversation this draft grew out of
+  complete        INTEGER NOT NULL DEFAULT 0, -- all eight facts present and confirmed
+  payload         TEXT NOT NULL,              -- JSON { draft (partial until complete), quote }
   consumed_at     TEXT,
   consumed_matter TEXT,
   created_at      TEXT NOT NULL,
   updated_at      TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_start_draft_email ON start_draft(email);
+CREATE INDEX IF NOT EXISTS idx_start_draft_visitor ON start_draft(visitor_id);
+
+-- June's conversation with a visitor (2026-10-30, second cut: June is a
+-- model, not a form). Kept VERBATIM, firm-side only — the operator asked to
+-- see "what happened during these chats". A visitor is an anonymous cookie
+-- id until their email is known; the rows are attached to the matter when
+-- the case is created, and swept with the draft otherwise.
+CREATE TABLE IF NOT EXISTS start_chat (
+  id          TEXT PRIMARY KEY,
+  visitor_id  TEXT NOT NULL,
+  seq         INTEGER NOT NULL DEFAULT 0,    -- order within the conversation
+  matter_id   TEXT,
+  role        TEXT NOT NULL,                 -- VISITOR | JUNE | SYSTEM
+  content     TEXT NOT NULL,
+  lang        TEXT NOT NULL DEFAULT 'en',    -- en | ko
+  created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_start_chat_visitor ON start_chat(visitor_id);
+CREATE INDEX IF NOT EXISTS idx_start_chat_matter ON start_chat(matter_id);
 
 CREATE TABLE IF NOT EXISTS matter_access (
   id         TEXT PRIMARY KEY,
@@ -476,7 +497,8 @@ const MIGRATIONS = [
   // lib/db/intake-chat.ts); this clears what earlier builds already stored.
   // SYSTEM_EVENT rows stay — they are machine facts with no client words in
   // them, and the intake lock is derived from them.
-  `DELETE FROM intake_chat_message WHERE role IN ('CLIENT','ASSISTANT')`,
+  // (2026-10-30: the 07-31 transcript purge is retired — transcripts are
+  //  retained for the firm; see lib/db/intake-chat.ts isRetainedRole.)
   `ALTER TABLE intake_session ADD COLUMN matter_id TEXT`,
   `ALTER TABLE matter ADD COLUMN jurisdiction_candidate TEXT`,
   `ALTER TABLE matter ADD COLUMN jurisdiction_confirmed TEXT`,
@@ -508,6 +530,8 @@ const MIGRATIONS = [
   // re-add the constraint. SQLite cannot alter a PK — a pre-existing dev
   // database must be deleted (./data/dev.db); fresh databases get the new
   // DDL. Production carried no real client data at this point.
+  `ALTER TABLE start_draft ADD COLUMN visitor_id TEXT`,
+  `ALTER TABLE start_draft ADD COLUMN complete INTEGER NOT NULL DEFAULT 0`,
   `ALTER TABLE intake_session ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,
   `ALTER TABLE invitation ADD COLUMN party_id TEXT`,
   `ALTER TABLE matter_intake_answer ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,

@@ -980,11 +980,20 @@ function SpousesPanel({ matterId, isAttorney, fallback }: { matterId: string; is
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [showMatches, setShowMatches] = useState(false);
+  const [june, setJune] = useState<{ role: string; content: string; createdAt: string }[]>([]);
+  const [showJune, setShowJune] = useState(false);
+  // The two interviews, verbatim (2026-10-30: "I gotta see what's going on").
+  const [transcripts, setTranscripts] = useState<{ party: "A" | "B"; messages: { role: string; content: string; at: string }[] }[]>([]);
+  const [showTranscript, setShowTranscript] = useState<"A" | "B" | null>(null);
 
   const load = useCallback(async () => {
     try {
       const r = (await api.get(`/api/matters/${matterId}/parties`)) as unknown as SpousesView;
       setView(r.parties.length === 2 ? r : null);
+      const j = (await api.get(`/api/matters/${matterId}/june`)) as unknown as { transcript: { role: string; content: string; createdAt: string }[] };
+      setJune(j.transcript);
+      const t = (await api.get(`/api/matters/${matterId}/transcripts`)) as unknown as { transcripts: { party: "A" | "B"; messages: { role: string; content: string; at: string }[] }[] };
+      setTranscripts(t.transcripts);
     } catch {
       setView(null);
     }
@@ -1010,6 +1019,21 @@ function SpousesPanel({ matterId, isAttorney, fallback }: { matterId: string; is
       setInviteUrl(r.inviteUrl);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Could not make a link");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteTranscript(party: "A" | "B") {
+    if (!window.confirm(`Delete ${party}'s interview transcript? The answers stay; only the conversation's words are removed. This cannot be undone.`)) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await api.del(`/api/matters/${matterId}/transcripts?party=${party}`);
+      await load();
+      setShowTranscript(null);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not delete");
     } finally {
       setBusy(false);
     }
@@ -1054,6 +1078,55 @@ function SpousesPanel({ matterId, isAttorney, fallback }: { matterId: string; is
         </div>
       )}
       {err && <ErrorNotice message={err} />}
+      {june.length > 0 && (
+        <div className="mt-3">
+          <button className="btn btn-quiet" style={{ padding: "4px 12px", fontSize: ".8rem" }} onClick={() => setShowJune((v) => !v)}>
+            {showJune ? "Hide" : "Read"} the June conversation ({june.filter((m) => m.role === "VISITOR").length} messages from A)
+          </button>
+          {showJune && (
+            <div className="june-thread mt-3">
+              {june.map((m, i) => (
+                <div key={i}>
+                  <p className="june-who">{m.role === "JUNE" ? "June" : m.role === "VISITOR" ? "A" : "System"} · {fmtWhen(m.createdAt)}</p>
+                  <div className={`june-msg june-msg-${m.role === "JUNE" ? "june" : "you"}`}>{m.content}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {transcripts.some((t) => t.messages.some((m) => m.role !== "SYSTEM_EVENT")) && (
+        <div className="mt-3">
+          <p className="text-sm" style={{ fontWeight: 600 }}>Interview transcripts</p>
+          <div className="flex flex-wrap gap-2 mt-1">
+            {transcripts.map((t) => {
+              const words = t.messages.filter((m) => m.role !== "SYSTEM_EVENT").length;
+              return (
+                <button key={t.party} className="btn btn-quiet" style={{ padding: "4px 12px", fontSize: ".8rem" }} onClick={() => setShowTranscript(showTranscript === t.party ? null : t.party)} disabled={words === 0}>
+                  {showTranscript === t.party ? "Hide" : "Read"} {t.party}&apos;s interview ({words} messages)
+                </button>
+              );
+            })}
+          </div>
+          {showTranscript && (
+            <div className="mt-3">
+              <div className="june-thread">
+                {transcripts.find((t) => t.party === showTranscript)?.messages.filter((m) => m.role !== "SYSTEM_EVENT").map((m, i) => (
+                  <div key={i}>
+                    <p className="june-who">{m.role === "ASSISTANT" ? "Assistant" : showTranscript} · {fmtWhen(m.at)}</p>
+                    <div className={`june-msg june-msg-${m.role === "ASSISTANT" ? "june" : "you"}`}>{m.content}</div>
+                  </div>
+                ))}
+              </div>
+              {isAttorney && (
+                <button className="btn btn-danger mt-3" style={{ padding: "4px 12px", fontSize: ".8rem" }} disabled={busy} onClick={() => deleteTranscript(showTranscript)}>
+                  Delete {showTranscript}&apos;s transcript
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       {isAttorney && view.parties.every((p) => p.email) && (
         <p className="mt-3 text-sm">
           <a

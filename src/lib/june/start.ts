@@ -27,6 +27,7 @@ import { getSchemaForCategory } from "@/config/intake/schemas";
 import { NJ_CATEGORY, UNCONTESTED_CATEGORY } from "@/config/intake/phases";
 import { quoteFor, type Quote } from "@/config/pricing";
 import type { UserRow } from "@/lib/db/users";
+import { attachJuneChatToMatter } from "./turn";
 
 export { JUNE_NAME, juneOpening } from "@/config/june-copy";
 
@@ -47,6 +48,8 @@ export type StartDraft = z.infer<typeof startDraftSchema>;
 export interface StartDraftRow {
   id: string;
   email: string;
+  /** The anonymous June conversation this draft grew out of (null for the form fallback). */
+  visitorId: string | null;
   draft: StartDraft;
   quote: Quote;
   consumedAt: string | null;
@@ -65,12 +68,12 @@ export async function saveStartDraft(draft: StartDraft): Promise<StartDraftRow> 
     draft.yourEmail
   );
   if (existing) {
-    await db.run(`UPDATE start_draft SET payload = ?, updated_at = ? WHERE id = ?`, payload, t, existing.id);
+    await db.run(`UPDATE start_draft SET payload = ?, complete = 1, updated_at = ? WHERE id = ?`, payload, t, existing.id);
     return (await getStartDraft(existing.id))!;
   }
   const id = newId();
   await db.run(
-    `INSERT INTO start_draft (id, email, payload, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO start_draft (id, email, complete, payload, created_at, updated_at) VALUES (?, ?, 1, ?, ?, ?)`,
     id,
     draft.yourEmail,
     payload,
@@ -85,6 +88,7 @@ function rowToDraft(r: Record<string, unknown>): StartDraftRow {
   return {
     id: r.id as string,
     email: r.email as string,
+    visitorId: (r.visitor_id as string | null) ?? null,
     draft: parsed.draft,
     quote: parsed.quote,
     consumedAt: (r.consumed_at as string | null) ?? null,
@@ -98,10 +102,10 @@ export async function getStartDraft(id: string): Promise<StartDraftRow | null> {
   return r ? rowToDraft(r) : null;
 }
 
-/** The unconsumed draft parked under a signed-in email, if any. */
+/** The unconsumed, COMPLETE draft parked under a signed-in email, if any. */
 export async function pendingStartDraftFor(email: string): Promise<StartDraftRow | null> {
   const r = await getDb().get(
-    `SELECT * FROM start_draft WHERE email = ? AND consumed_at IS NULL ORDER BY created_at DESC LIMIT 1`,
+    `SELECT * FROM start_draft WHERE email = ? AND complete = 1 AND consumed_at IS NULL ORDER BY created_at DESC LIMIT 1`,
     email.trim().toLowerCase()
   );
   return r ? rowToDraft(r) : null;
@@ -125,6 +129,7 @@ export async function finishStart(
   if (!user.subject) throw new Error("START_GUARD: the account has never signed in");
   if (user.email.toLowerCase() !== draftRow.email) throw new Error("START_GUARD: this draft belongs to a different email");
   if (draftRow.consumedAt) throw new Error("START_GUARD: this draft was already used");
+  if (!startDraftSchema.safeParse(draftRow.draft).success) throw new Error("START_GUARD: June has not finished collecting the details");
   if (draftRow.draft.spouseEmail === draftRow.email) throw new Error("VALIDATION: the two spouses need two different email addresses");
 
   const d = draftRow.draft;
@@ -167,5 +172,8 @@ export async function finishStart(
     user.id
   );
   await recordAudit(matter.id, "INVITE_SENT", "party=B", user.id);
+  // The June conversation that produced this case now belongs to the matter
+  // (firm-side reading only).
+  if (draftRow.visitorId) await attachJuneChatToMatter(draftRow.visitorId, matter.id);
   return { matterId: matter.id, inviteToken: invite.token, inviteExpiresAt: invite.expiresAt };
 }
