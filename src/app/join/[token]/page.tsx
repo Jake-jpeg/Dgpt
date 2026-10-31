@@ -95,13 +95,14 @@ export default function JoinPage() {
           <div className="panel">
             <h2>Your spouse has started an uncontested divorce with {firm}</h2>
             <p className="panel-sub">
-              You each answer the same questionnaire, separately and privately — neither of you sees the other&apos;s
-              answers. The firm&apos;s attorney then reviews both, meets with both of you by video, and prepares the
-              papers. This link is for <strong>{preview.invitedEmailMasked}</strong>; sign in with that address.
+              {firm} represents your spouse. You are asked only to confirm the terms of your agreement, in your own
+              words and without seeing your spouse&apos;s answers, and to provide the information the court papers
+              need about you — nothing more. The attorney compares the two of you before anything is drafted and
+              meets you both by video. This link is for <strong>{preview.invitedEmailMasked}</strong>; sign in with
+              that address.
             </p>
             <p className="panel-sub">
-              You answer for yourself, in your own words. If you would like your own lawyer to look over the papers
-              before you sign anything, you are welcome to — the attorney will explain how that works at the meeting.
+              You are free to have your own attorney review the agreement before you sign anything.
             </p>
             {!loading && !signedInClient && (
               <div className="june-signin">

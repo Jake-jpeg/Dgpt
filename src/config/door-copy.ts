@@ -29,37 +29,37 @@ const FEE_HI = formatUsd(quoteFor({ children: true, assets: true }).total);
 export const HERO = {
   en: {
     eyebrow: (firm: string) => `${firm} · New York & New Jersey`,
-    headline1: "Your divorce, handled by a lawyer.",
+    headline1: "An uncontested divorce, handled by a lawyer.",
     headline2: "Get started in three minutes.",
-    sub: `For genuinely uncontested divorces in New York and New Jersey. One spouse hires our firm; the other spouse participates through their own separate login and may have their own attorney review the agreement. An attorney reviews everything and files your papers — flat fee from ${FEE_LO}, plus court filing fees.`,
+    sub: `For couples who already agree. One spouse retains Jake Kim Law Firm; the attorney prepares the agreement and divorce papers, files them, and sees the case through to judgment. The other spouse signs in separately to confirm the terms — and is free to have their own attorney review everything. Flat fee from ${FEE_LO}, plus court filing fees.`,
     cta: "Start with June",
-    ctaNote: "June is an automated assistant, not a lawyer, and does not give legal advice.",
+    ctaNote: "June is an automated assistant that facilitates intake. June is not a lawyer and does not give legal advice.",
     haveCase: "I already have a case",
     // NJ RPC 7.1(a)(4)(v) / NY RPC 7.1: a fee RANGE must say what the fee depends on.
     meta: [`English · 한국어`, `Attorney-reviewed`, `Flat fee ${FEE_LO}–${FEE_HI}, depending on children and assets`],
     howTitle: "How it works",
     how: [
-      ["Meet June", "Our set-up assistant takes eight quick details and gives you your exact fee."],
-      ["Each of you completes the interview", "Separately, on your own phone. Neither of you sees the other's answers."],
-      ["The attorney compares and meets you", "A one-hour video meeting with both of you before anything is drafted."],
-      ["Prepared and filed by the firm", "You receive the finished papers from the firm."],
+      ["Meet June", "An automated assistant takes eight quick details and tells you your exact fee."],
+      ["Our client completes the interview", "The other spouse signs in separately and confirms the terms — without seeing the client's answers."],
+      ["The attorney compares and meets you both", "A one-hour video meeting before anything is drafted."],
+      ["Prepared and filed by the firm", "Through to the judgment of divorce."],
     ] as [string, string][],
   },
   ko: {
     eyebrow: (firm: string) => `${firm} · 뉴욕 & 뉴저지`,
-    headline1: "변호사가 진행하는 이혼.",
+    headline1: "변호사가 진행하는 합의 이혼.",
     headline2: "3분이면 시작할 수 있습니다.",
-    sub: `뉴욕과 뉴저지의 진정한 합의 이혼(uncontested divorce)을 위한 서비스입니다. 배우자 한 분이 저희 로펌을 선임하고, 다른 배우자는 별도의 본인 계정으로 참여하며 본인의 변호사에게 합의서 검토를 받으실 수 있습니다. 변호사가 모든 내용을 검토하고 서류를 법원에 제출합니다 — 정액 수임료 ${FEE_LO}부터, 법원 접수 비용 별도.`,
+    sub: `이미 모든 사항에 합의하신 부부를 위한 서비스입니다. 배우자 한 분이 Jake Kim Law Firm을 선임하면, 변호사가 합의서와 이혼 서류를 작성하고 법원에 제출하여 판결까지 진행합니다. 다른 배우자는 별도로 로그인하여 합의 내용을 확인하며, 본인의 변호사에게 모든 내용을 검토받으실 수 있습니다. 정액 수임료 ${FEE_LO}부터, 법원 접수 비용 별도.`,
     cta: "June과 시작하기",
-    ctaNote: "June은 자동화된 도우미이며 변호사가 아닙니다. 법률 자문을 제공하지 않습니다.",
+    ctaNote: "June은 접수 절차를 돕는 자동화된 도우미입니다. June은 변호사가 아니며 법률 자문을 제공하지 않습니다.",
     haveCase: "이미 사건이 있습니다",
     meta: [`English · 한국어`, `변호사 검토`, `정액 수임료 ${FEE_LO}–${FEE_HI} (자녀 및 재산 유무에 따라 결정)`],
     howTitle: "진행 방법",
     how: [
-      ["June과 대화", "준비 도우미 June이 여덟 가지 간단한 정보를 받고 정확한 수임료를 안내합니다."],
-      ["각자 질문지 작성", "각자의 휴대폰으로 따로 작성합니다. 서로의 답변은 볼 수 없습니다."],
-      ["변호사가 비교하고 만납니다", "서류 작성 전에 두 분과 함께 1시간 화상 미팅을 진행합니다."],
-      ["로펌이 작성하고 제출합니다", "완성된 서류를 로펌으로부터 받으십니다."],
+      ["June과 대화", "자동화된 도우미가 여덟 가지 간단한 정보를 받고 정확한 수임료를 안내합니다."],
+      ["의뢰인이 질문지를 작성합니다", "다른 배우자는 별도로 로그인하여 의뢰인의 답변을 보지 않고 합의 내용을 확인합니다."],
+      ["변호사가 비교하고 두 분을 만납니다", "서류 작성 전에 1시간 화상 미팅을 진행합니다."],
+      ["로펌이 작성하고 제출합니다", "이혼 판결까지 진행합니다."],
     ] as [string, string][],
   },
 } as const;
@@ -74,41 +74,32 @@ export interface Faq {
 export const faqFor = (firm: string): Record<Lang, { title: string; items: Faq[] }> => ({
   en: {
     title: "Questions people ask",
+    // Consolidated 2026-10-31 (operator): one answer on representation,
+    // one on the two sign-ins, instead of six overlapping ones.
     items: [
       {
-        q: "Who does the attorney represent?",
-        a: `${firm} represents one spouse — the one who hires us. We do not represent the other spouse and cannot give them legal advice.`,
+        q: "Who is the client?",
+        a: `The spouse who retains the firm. ${firm} represents that spouse only, prepares and files the papers for them, and does not represent or advise the other spouse — who is free to have any attorney of their choosing review the agreement before signing.`,
       },
       {
-        // AUDIT: the operator's draft read "We can connect your spouse with an
-        // independent attorney for a flat-fee review." Steering the adverse,
-        // unrepresented spouse to a particular lawyer sits badly with
-        // NY/NJ RPC 4.3 (the only advice permitted is to secure counsel) and
-        // invites RPC 7.2 referral questions. Neutral wording instead.
-        q: "Does my spouse need their own lawyer?",
-        a: "Not required, but they're free to have one. Your spouse may have any attorney of their choosing review the agreement before signing it.",
+        q: "Why two sign-ins?",
+        a: "So each of you speaks for yourself. Our client completes the interview. The other spouse signs in separately and, without seeing the client's answers, confirms the terms of the agreement and provides the information the court papers require — nothing more. The attorney compares the two before anything is drafted; if a term doesn't match, it's raised with both of you first. What the other spouse enters is seen by the firm and isn't confidential from it.",
       },
       {
-        // AUDIT: "we'll discuss other options" → with whom is now explicit,
-        // so the unrepresented spouse does not read it as an offer to them.
-        q: "What counts as \"uncontested\"?",
-        a: "You both already agree on everything: property, debts, support, and, if you have children, custody and parenting time. If you disagree on anything, this service isn't the right fit, and we will discuss other options with the spouse who hired us.",
+        q: "What does \"uncontested\" mean here?",
+        a: "You both already agree on everything: property, debts, support and, if you have children, custody and parenting time. If anything is disputed, this isn't the right service, and the attorney will discuss other options with our client.",
       },
       {
-        q: "Why do we each log in separately?",
-        a: "Each spouse answers the same questions privately. The attorney compares the answers to confirm you truly agree before anything is drafted.",
-      },
-      {
-        q: "What does the flat fee include?",
         // Court fees verified 2026-10-30: NJ $300 complaint + $25 parenting
         // workshop when custody/parenting time is sought (njcourts.gov
         // self-help/divorce); NY $335 = index number $210 + RJI $95 + note of
         // issue $30 (CPLR 8018, 8020). [ATTORNEY VERIFY before launch — fees change.]
+        q: "What does the flat fee cover — and what doesn't it?",
         a: "Preparing the agreement and divorce papers, attorney review, filing, and obtaining the judgment. Court filing fees are separate — currently about $335 in New York and $300 in New Jersey, plus a $25 parenting-workshop fee in New Jersey when there are children.",
       },
       {
-        q: "Is June a lawyer?",
-        a: "No. June is an automated assistant that collects your information. June does not give legal advice. A licensed attorney reviews everything.",
+        q: "What is June?",
+        a: "An automated assistant that facilitates intake: she explains the process, collects basic information, and tells you your fee. She is not a lawyer, gives no legal advice, and a licensed attorney reviews everything she collects.",
       },
     ],
   },
@@ -116,28 +107,24 @@ export const faqFor = (firm: string): Record<Lang, { title: string; items: Faq[]
     title: "자주 묻는 질문",
     items: [
       {
-        q: "변호사는 누구를 대리하나요?",
-        a: `${firm}은 배우자 중 한 분, 즉 저희를 선임하신 분만 대리합니다. 다른 배우자는 대리하지 않으며 법률 자문을 드릴 수 없습니다.`,
+        q: "의뢰인은 누구인가요?",
+        a: `로펌을 선임한 배우자입니다. ${firm}은 그 배우자만을 대리하여 서류를 작성하고 법원에 제출하며, 다른 배우자를 대리하거나 자문하지 않습니다. 다른 배우자는 서명 전에 원하시는 변호사에게 합의서 검토를 받으실 수 있습니다.`,
       },
       {
-        q: "배우자에게도 변호사가 필요한가요?",
-        a: "필수는 아니지만 선임하실 수 있습니다. 배우자께서는 서명 전에 원하시는 변호사에게 합의서 검토를 받으실 수 있습니다.",
+        q: "왜 두 사람이 따로 로그인하나요?",
+        a: "각자 본인의 입장을 직접 말씀하시기 위해서입니다. 의뢰인이 질문지를 작성하고, 다른 배우자는 별도로 로그인하여 의뢰인의 답변을 보지 않은 채 합의 내용을 확인하고 법원 서류에 필요한 정보만 제공합니다. 변호사는 서류 작성 전에 양쪽 내용을 비교하며, 일치하지 않는 항목이 있으면 먼저 두 분과 이야기합니다. 다른 배우자가 입력한 내용은 로펌이 열람하며 로펌에 대해 비밀로 유지되지 않습니다.",
       },
       {
-        q: "\"합의 이혼(uncontested)\"이란 무엇인가요?",
-        a: "재산, 채무, 부양비, 그리고 자녀가 있는 경우 양육권과 면접교섭 등 모든 사항에 대해 두 분이 이미 합의하신 경우입니다. 한 가지라도 의견이 다르다면 이 서비스는 적합하지 않으며, 저희를 선임하신 분과 다른 방법을 상의하겠습니다.",
+        q: "여기서 \"합의 이혼(uncontested)\"이란 무엇인가요?",
+        a: "재산, 채무, 부양비, 그리고 자녀가 있는 경우 양육권과 면접교섭 등 모든 사항에 대해 두 분이 이미 합의하신 경우입니다. 한 가지라도 다툼이 있다면 이 서비스는 적합하지 않으며, 변호사가 의뢰인과 다른 방법을 상의합니다.",
       },
       {
-        q: "왜 각자 따로 로그인하나요?",
-        a: "각 배우자가 같은 질문에 비공개로 답합니다. 변호사가 양쪽 답변을 비교하여 서류 작성 전에 실제로 합의가 이루어졌는지 확인합니다.",
-      },
-      {
-        q: "정액 수임료에는 무엇이 포함되나요?",
+        q: "정액 수임료에 포함되는 것과 포함되지 않는 것은?",
         a: "합의서 및 이혼 서류 작성, 변호사 검토, 법원 제출, 그리고 판결(judgment) 취득이 포함됩니다. 법원 접수 비용은 별도이며, 현재 뉴욕 약 $335, 뉴저지 $300이고 뉴저지에서 자녀가 있는 경우 부모 교육(parenting workshop) 비용 $25가 추가됩니다.",
       },
       {
-        q: "June은 변호사인가요?",
-        a: "아닙니다. June은 정보를 수집하는 자동화된 도우미입니다. June은 법률 자문을 제공하지 않습니다. 모든 내용은 면허를 가진 변호사가 검토합니다.",
+        q: "June은 무엇인가요?",
+        a: "접수 절차를 돕는 자동화된 도우미입니다. 진행 방법을 설명하고 기본 정보를 수집하며 수임료를 안내합니다. June은 변호사가 아니고 법률 자문을 제공하지 않으며, 수집된 모든 내용은 면허를 가진 변호사가 검토합니다.",
       },
     ],
   },

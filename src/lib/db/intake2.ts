@@ -12,6 +12,8 @@
  *    set them.
  */
 import { getDb, newId, nowIso } from "./index";
+import { schemaForParty, VOLUNTARY_ITEM_ID } from "@/lib/intake2/party-scope";
+import { recordAudit } from "./repo";
 import { getMatter, type MatterRow } from "./matters";
 import { getUserById } from "./users";
 import type { AnswerMap, IntakeSchema, MatterCategory } from "@/lib/intake2/types";
@@ -35,11 +37,17 @@ export function sharedCoreSchema(): IntakeSchema {
 }
 
 /** The schema a matter currently uses (assigned category, else shared core). */
-export function schemaForMatter(matter: MatterRow): IntakeSchema {
-  if (matter.matterCategory && (MATTER_CATEGORIES as readonly string[]).includes(matter.matterCategory)) {
-    return getSchemaForCategory(matter.matterCategory as MatterCategory);
-  }
-  return sharedCoreSchema();
+/**
+ * The pinned schema for a matter — and, when `partyId` is "B", the second
+ * spouse's SUBSET of it (src/lib/intake2/party-scope.ts): B is asked the
+ * agreement's terms and what the papers need, nothing else.
+ */
+export function schemaForMatter(matter: MatterRow, partyId: "A" | "B" = "A"): IntakeSchema {
+  const full =
+    matter.matterCategory && (MATTER_CATEGORIES as readonly string[]).includes(matter.matterCategory)
+      ? getSchemaForCategory(matter.matterCategory as MatterCategory)
+      : sharedCoreSchema();
+  return schemaForParty(full, partyId);
 }
 
 /**
@@ -83,7 +91,9 @@ export async function saveMatterAnswers(opts: {
   const actor = await getUserById(opts.actingUserId);
   if (!actor || !actor.active) throw new Error("PERSISTENCE_GUARD: unknown or inactive user");
 
-  const schema = schemaForMatter(matter);
+  // B's answers are validated against B's schema: an answer to a section B
+  // is never asked is "unknown question", whatever the client posted.
+  const schema = schemaForMatter(matter, partyId);
   const byId = new Map(schema.items.map((i) => [i.id, i]));
   const db = getDb();
   const t = nowIso();
@@ -126,6 +136,12 @@ export async function saveMatterAnswers(opts: {
       actor.id
     );
     saved++;
+  }
+  // The second spouse says they are NOT agreeing freely: an audit event the
+  // firm's matter page surfaces in red. Nothing stops; the attorney speaks
+  // with them before any papers are prepared.
+  if (partyId === "B" && opts.answers.some((a) => a.questionId === VOLUNTARY_ITEM_ID && a.value === false)) {
+    await recordAudit(opts.matterId, "PRESSURE_REPORTED", "party=B answered no to the voluntariness question", opts.actingUserId);
   }
   return { saved };
 }

@@ -57,8 +57,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       });
     }
 
-    const schema = schemaForMatter(matter);
     const party = await resolveParty(req, authed, matter);
+    const schema = schemaForMatter(matter, party);
     const answers = (await getMatterAnswers(matter.id, party));
     const audience = role === "CLIENT" ? "CLIENT" : role === "STAFF" ? "STAFF" : "ATTORNEY";
     const phase = matterIntakePhase(matter);

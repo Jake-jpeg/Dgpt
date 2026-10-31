@@ -68,8 +68,10 @@ describe("exact branding", () => {
   it("the exact firm name is the default everywhere it renders", () => {
     expect(operatingFirmName()).toBe("Jake Kim Law Firm");
     expect(legalServicesProvider()).toBe("Jake Kim Law Firm");
-    const landing = fs.readFileSync(path.join(__dirname, "..", "src", "app", "page.tsx"), "utf8");
-    expect(landing).toContain("legalServicesProvider");
+    // 2026-10-31: the institutional landing is retired (/ redirects to /portal);
+    // the firm name renders from branding config in the shared shell.
+    const shell = fs.readFileSync(path.join(__dirname, "..", "src", "components", "shell.tsx"), "utf8");
+    expect(shell).toContain("operatingFirmName()");
   });
 
   it('"J. Kim Law Firm" does not remain anywhere in src/', () => {
@@ -127,8 +129,13 @@ describe("stage-aware status copy", () => {
     expect(pilot).toContain("separate written engagement agreement");
   });
 
-  it("landing footer carries the no-attorney-client-relationship language and the OpenAI statement", () => {
-    const landing = fs.readFileSync(path.join(__dirname, "..", "src", "app", "page.tsx"), "utf8");
+  it("the shared footer carries the no-attorney-client-relationship language and the OpenAI statement", () => {
+    // 2026-10-31: this language lived on the retired landing page; it now
+    // renders on EVERY portal page through the shared shell footer, and "/"
+    // redirects to /portal.
+    const home = fs.readFileSync(path.join(__dirname, "..", "src", "app", "page.tsx"), "utf8");
+    expect(home).toContain('redirect("/portal")');
+    const landing = fs.readFileSync(path.join(__dirname, "..", "src", "components", "shell.tsx"), "utf8");
     // Collapse whitespace before matching. 2026-08-17: this asserted a literal
     // "does not\n          create an attorney-client relationship" — a bare LF
     // plus exact JSX indentation. The working tree is CRLF (core.autocrlf=input
@@ -148,8 +155,6 @@ describe("stage-aware status copy", () => {
     // "any AI provider", and no vendor name). Here we assert only that the
     // landing page actually renders it — one owner per fact.
     expect(landing).toContain("nonAffiliationNotice()");
-    // De-emphasized acquisition + new CTAs.
-    expect(landing).toContain("View the workflow");
     expect(landing).not.toMatch(/acquisition/i);
     // No prohibited claims.
     expect(landing).not.toMatch(/ethics approval|carrier|completely secure|guaranteed/i);

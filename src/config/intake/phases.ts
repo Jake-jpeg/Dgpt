@@ -181,6 +181,9 @@ export function clientItemInPhase(
 ): boolean {
   if (phase === "ALL") return true;
   if (item.audience !== "CLIENT") return true;
+  // party_b.* items (the second spouse's voluntariness question,
+  // src/lib/intake2/party-scope.ts) belong to every phase.
+  if (item.id.startsWith("party_b.")) return true;
   // nj.* ids resolve through the NJ lists; everything else (ny.*, shared.*)
   // through the NY lists, exactly as before this file knew about New Jersey.
   if (item.id.startsWith("nj.")) {

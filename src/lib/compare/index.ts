@@ -27,7 +27,7 @@ import type { AnswerMap, IntakeItem, IntakeSchema } from "@/lib/intake2/types";
 import { isAnswered } from "@/lib/intake2/engine";
 
 /** Sections whose items are each spouse's own facts, never compared. */
-export const UNCOMPARED_SECTIONS = new Set(["safety", "identity", "income", "expenses", "goals", "documents", "review", "taxes"]);
+export const UNCOMPARED_SECTIONS = new Set(["safety", "identity", "income", "expenses", "goals", "documents", "review", "taxes", "voluntary"]);
 
 export type TermStatus = "MATCH" | "MISMATCH" | "ONLY_A" | "ONLY_B" | "NARRATIVE" | "UNANSWERED";
 

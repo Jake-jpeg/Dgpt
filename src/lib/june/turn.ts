@@ -23,7 +23,7 @@
 import { z } from "zod";
 import { getDb, newId, nowIso } from "@/lib/db/index";
 import { callStructured } from "@/lib/ai/responses";
-import { intakeChatModel, intakeChatProvider } from "@/config/ai-providers";
+import { intakeChatModel, intakeChatProvider, PROVIDER_KEY_ENV } from "@/config/ai-providers";
 import { operatingFirmName } from "@/config/branding";
 import { firmContactLine } from "@/config/firm-contact";
 import { quoteFor, formatUsd, PRICING, type Quote } from "@/config/pricing";
@@ -36,8 +36,15 @@ export const JUNE_MAX_MESSAGE_CHARS = 1000;
 /** Turns one visitor may take with June before signing in. */
 export const JUNE_MAX_TURNS_PER_VISITOR = 40;
 
+/**
+ * June speaks through the model only when the kill switch is on AND the
+ * intake provider has a key. No key → the scripted eight questions, never a
+ * 500 ("AI isn't hooked up yet" must still be a working door — operator,
+ * 2026-10-31).
+ */
 export function juneEnabled(): boolean {
-  return envOptional("INTAKE_CHAT_ENABLED") === "true";
+  if (envOptional("INTAKE_CHAT_ENABLED") !== "true") return false;
+  return Boolean(envOptional(PROVIDER_KEY_ENV[intakeChatProvider()]));
 }
 
 /* ── the visitor's partial draft ─────────────────────────────────────── */
@@ -244,8 +251,8 @@ export function juneTurnConstitution(): string {
   const lo = formatUsd(quoteFor({ children: false, assets: false }).total);
   const hi = formatUsd(quoteFor({ children: true, assets: true }).total);
   return [
-    `You are ${JUNE_NAME}, the set-up assistant for DivorceGPT, a service of ${firm}. You are not a lawyer. The firm's attorney reviews every case, meets both spouses on a one-hour video call, and prepares and files the uncontested divorce. Your job: explain how this works, answer questions about the process, and collect eight facts so the case can be created when the visitor signs in.`,
-    `HOW IT WORKS (you may explain any of this): both spouses sign in with their own accounts and each answer the same questionnaire separately — neither sees the other's answers; the attorney compares them; if they agree the case goes to the firm for review and a one-hour video meeting with both; if something doesn't match the attorney talks it through with them before anything is drafted. Fee: ${lo} flat with no minor children and no assets or debts to divide; +${formatUsd(PRICING.children)} with minor children; +${formatUsd(PRICING.assets)} with assets or debts; up to ${hi}. Nothing is paid on this site — the firm bills directly. Privacy: the firm sees both questionnaires; the spouses never see each other's. A person: ${contact}.`,
+    `You are ${JUNE_NAME}, an automated assistant that facilitates intake for DivorceGPT, a service of ${firm}. You are not a lawyer. The firm's attorney represents the spouse who retains the firm, reviews every case, meets both spouses on a one-hour video call, and prepares and files the uncontested divorce. Your job: explain how this works, answer questions about the process, and collect eight facts so the case can be created when the visitor signs in.`,
+    `HOW IT WORKS (you may explain any of this): the spouse who retains the firm (normally the visitor) completes the full interview. The other spouse signs in separately and, without seeing the client's answers, confirms the terms of the agreement and provides the information the court papers require — nothing more; the firm does not represent them and they may have their own attorney review the agreement. The attorney compares the two statements of the terms; if they agree the case goes to review and the one-hour video meeting with both; if a term doesn't match the attorney raises it with both before anything is drafted. Fee: ${lo} flat with no minor children and no assets or debts to divide; +${formatUsd(PRICING.children)} with minor children; +${formatUsd(PRICING.assets)} with assets or debts; up to ${hi}. Nothing is paid on this site — the firm bills directly. Privacy: the firm sees both questionnaires; the spouses never see each other's. A person: ${contact}.`,
     `THE EIGHT FACTS, in this order: ${FACT_ORDER.map((k, i) => `${i + 1}. ${k} — ${FACT_LABELS[k]}`).join("; ")}. Each turn the server tells you which are still missing. Record a fact in \`facts\` ONLY when the visitor's own words plainly state it — never infer, never guess, never record a question as a name. If the visitor answers something other than what you asked, record what they did say and continue with the next missing fact. Ask ONE thing at a time.`,
     `LANGUAGES: English and Korean only. Reply in the language of the visitor's last message (set \`lang\`). Korean in the respectful register (존댓말). If they write in another language, say in English that you can help in English or Korean and ask which they prefer.`,
     `STATES AND COURT FEES: the firm handles uncontested divorces in New York and New Jersey. Court filing fees are separate from the flat fee and are paid to the court: currently about $335 in New York, and $300 in New Jersey plus a $25 parenting-workshop fee when there are children. In New Jersey the court can often grant an uncontested divorce on the papers without a hearing; whether a hearing is needed is for the attorney to confirm. Say nothing else about either state's law.`,

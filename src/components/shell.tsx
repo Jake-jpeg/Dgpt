@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { api } from "@/lib/ui/client-api";
-import { nonAffiliationNotice } from "@/config/branding";
+import { nonAffiliationNotice, operatingFirmName } from "@/config/branding";
 import { FOOTER, firmAddressLine, firmPhoneLine } from "@/config/door-copy";
 
 export interface Me {
@@ -46,7 +46,7 @@ export function useMe(): { me: MeResponse | null; loading: boolean; refresh: () 
   return { me, loading, refresh: () => setTick((t) => t + 1) };
 }
 
-const FIRM_NAME = process.env.NEXT_PUBLIC_OPERATING_FIRM_NAME || "Jake Kim Law Firm";
+const FIRM_NAME = operatingFirmName();
 
 /**
  * Synthetic-staging banner (Part 8): whenever the deployment reports the
@@ -214,6 +214,11 @@ export function Shell({
           its attorneys. If something is urgent, contact the firm directly —
           do not rely on this portal alone.
         </p>
+        <p>
+          Using this site or speaking with June does not create an attorney-client relationship. Portal access does
+          not itself create or expand representation; any representation is governed solely by a separate written
+          engagement agreement with {FIRM_NAME}. This site does not provide legal advice.
+        </p>
         <p>{nonAffiliationNotice()}</p>
       </footer>
     </div>
@@ -308,6 +313,7 @@ export function AccordionPanel({
 
   useEffect(() => {
     if (!panelId || !openSignal || openSignal.id !== panelId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen(true);
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [openSignal, panelId]);

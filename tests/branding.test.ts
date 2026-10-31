@@ -87,9 +87,9 @@ describe("operating-firm branding is configuration", () => {
     expect(nonAffiliationNotice()).not.toMatch(/Anthropic|Claude|Gemini|Terra/i);
   });
 
-  it("both the landing page and the signed-in portal carry it", () => {
+  it("the signed-in portal shell carries it (the landing page is retired — / redirects to /portal)", () => {
     const read = (...p: string[]) => fs.readFileSync(path.join(__dirname, "..", ...p), "utf8");
-    expect(read("src", "app", "page.tsx")).toMatch(/nonAffiliationNotice\(\)/);
+    expect(read("src", "app", "page.tsx")).toContain('redirect("/portal")');
     expect(read("src", "components", "shell.tsx")).toMatch(/nonAffiliationNotice\(\)/);
   });
 });

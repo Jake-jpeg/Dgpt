@@ -29,6 +29,8 @@ const ACK = { acknowledgedNotice: SPOUSE_NOTICE_VERSION };
 import { GET as partiesGet, POST as partiesReissue } from "@/app/api/matters/[id]/parties/route";
 import { GET as intake2Get, PUT as intake2Put } from "@/app/api/matters/[id]/intake2/route";
 import { getMatterAnswers } from "@/lib/db/intake2";
+import { VOLUNTARY_ITEM_ID } from "@/lib/intake2/party-scope";
+import { getAuditEvents } from "@/lib/db/repo";
 import { listParties, setPartyStatus } from "@/lib/db/parties";
 import { getMatter } from "@/lib/db/matters";
 import { listSessionsByMatter } from "@/lib/db/repo";
@@ -241,6 +243,63 @@ describe("two interviews, two answer sets, one report", () => {
     freshLimits();
     const firmB = await intake2Get(jsonRequest(`/api/matters/${matterId}/intake2?party=B`, { method: "GET", cookie: attorneyCookie }), params({ id: matterId }));
     expect(((await firmB.json()) as { party: string; answers: Record<string, unknown> }).answers["shared.children.any"]).toBe(false);
+  });
+
+  it("B CONFIRMS, NOTHING ELSE (2026-10-31): B is never asked goals/safety/expenses, cannot post to them, and a 'not freely' answer is flagged to the firm", async () => {
+    const matterId = await seatBoth();
+    // B's form: the voluntariness question is there; the excluded sections are not.
+    freshLimits();
+    const formB = await intake2Get(jsonRequest(`/api/matters/${matterId}/intake2`, { method: "GET", cookie: bCookie }), params({ id: matterId }));
+    const fb = (await formB.json()) as { party: string; items: { id: string; section: string }[] };
+    expect(fb.party).toBe("B");
+    const sectionsB = new Set(fb.items.map((i) => i.section));
+    expect(fb.items.some((i) => i.id === VOLUNTARY_ITEM_ID)).toBe(true);
+    for (const banned of ["safety", "goals", "expenses", "taxes", "special", "documents", "review", "property_history", "ny_financial", "ny_scope"]) {
+      expect(sectionsB.has(banned), `B asked ${banned}`).toBe(false);
+    }
+    // A's form is the full schema: no voluntariness question (it is B's alone),
+    // and the safety screen is still in A's pinned schema.
+    freshLimits();
+    const formA = await intake2Get(jsonRequest(`/api/matters/${matterId}/intake2`, { method: "GET", cookie: aCookie }), params({ id: matterId }));
+    const fa = (await formA.json()) as { items: { id: string; section: string }[] };
+    const { schemaForMatter } = await import("@/lib/db/intake2");
+    const { getMatter } = await import("@/lib/db/matters");
+    const full = schemaForMatter((await getMatter(matterId))!, "A");
+    expect(full.items.some((i) => i.section === "safety")).toBe(true);
+    expect(schemaForMatter((await getMatter(matterId))!, "B").items.some((i) => i.section === "safety")).toBe(false);
+    expect(fa.items.some((i) => i.id === VOLUNTARY_ITEM_ID)).toBe(false);
+
+    // Server-side: B posting to an excluded item is refused even by hand.
+    freshLimits();
+    const sneak = await intake2Put(
+      jsonRequest(`/api/matters/${matterId}/intake2`, { method: "PUT", cookie: bCookie, body: { answers: [{ questionId: "shared.goals.desired_outcome", value: "the house" }] } }),
+      params({ id: matterId })
+    );
+    expect(sneak.status).toBeGreaterThanOrEqual(400);
+    expect((await getMatterAnswers(matterId, "B"))["shared.goals.desired_outcome"]).toBeUndefined();
+    // A posting to the voluntariness question is refused too — it is B's alone.
+    freshLimits();
+    const aVol = await intake2Put(
+      jsonRequest(`/api/matters/${matterId}/intake2`, { method: "PUT", cookie: aCookie, body: { answers: [{ questionId: VOLUNTARY_ITEM_ID, value: true }] } }),
+      params({ id: matterId })
+    );
+    expect(aVol.status).toBeGreaterThanOrEqual(400);
+
+    // B says "no, not freely" → audit PRESSURE_REPORTED; the firm's parties view carries the flag; A's view does not.
+    freshLimits();
+    const no = await intake2Put(
+      jsonRequest(`/api/matters/${matterId}/intake2`, { method: "PUT", cookie: bCookie, body: { answers: [{ questionId: VOLUNTARY_ITEM_ID, value: false }] } }),
+      params({ id: matterId })
+    );
+    expect(no.status).toBe(200);
+    const audit = (await getAuditEvents(matterId)) as { event: string }[];
+    expect(audit.some((e) => e.event === "PRESSURE_REPORTED")).toBe(true);
+    freshLimits();
+    const firmView = (await (await partiesGet(jsonRequest(`/api/matters/${matterId}/parties`, { method: "GET", cookie: attorneyCookie }), params({ id: matterId }))).json()) as { pressureReportedByB: boolean | null };
+    expect(firmView.pressureReportedByB).toBe(true);
+    freshLimits();
+    const aView = (await (await partiesGet(jsonRequest(`/api/matters/${matterId}/parties`, { method: "GET", cookie: aCookie }), params({ id: matterId }))).json()) as Record<string, unknown>;
+    expect(aView.pressureReportedByB).toBeNull();
   });
 
   it("clients see each other's status only; the firm gets the comparison once both are complete", async () => {

@@ -284,7 +284,9 @@ export async function loadConversation(sessionId: string): Promise<ConversationC
   if (!session.matterId) throw new Error("VALIDATION: session has no matter");
   const matter = await getMatter(session.matterId);
   if (!matter) throw new Error("VALIDATION: matter not found");
-  const schema = schemaForMatter(matter);
+  // B is interviewed against B's subset: the agreement's terms and what the
+  // papers need, nothing else (src/lib/intake2/party-scope.ts).
+  const schema = schemaForMatter(matter, session.partyId);
   const answers = await getMatterAnswers(matter.id, session.partyId);
   const checklistState = await getConfigChecklistState(matter.id);
   const checklist = deriveChecklist(schema, answers, checklistState, matterIntakePhase(matter));

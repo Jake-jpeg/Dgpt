@@ -270,8 +270,9 @@ export default function ClientMatterPage() {
         <div className="panel">
           <h2>Both of you</h2>
           <p className="panel-sub">
-            You each answer the same questionnaire, separately. Neither of you can see the other&apos;s answers;
-            the firm&apos;s attorney compares them when you have both finished.
+            The firm&apos;s client completes the interview; the other spouse separately confirms the terms of the
+            agreement. Neither of you can see the other&apos;s answers; the attorney compares them when you have
+            both finished.
           </p>
           <ul className="space-y-2 text-[.95rem]">
             {parties.map((p) => (

@@ -12,8 +12,8 @@ export function juneOpening(firmName: string): string[] {
   const lo = formatUsd(quoteFor({ children: false, assets: false }).total);
   const hi = formatUsd(quoteFor({ children: true, assets: true }).total);
   return [
-    `Hi, I'm ${JUNE_NAME}. DivorceGPT is a service of ${firmName}. I'm the assistant who gets your case set up; the firm's attorney reviews everything, meets with both of you, and prepares and files the divorce. I'm not a lawyer and I can't give legal advice.`,
-    `Here's how it works. You and your spouse each sign in with your own account and each answer the same questionnaire, separately — neither of you sees the other's answers. When you've both finished, the attorney compares them: if you agree on everything, your case goes to the firm for review and a one-hour video meeting with both of you. If something doesn't match, the attorney talks it through with you before anything is drafted.`,
+    `Hi, I'm ${JUNE_NAME}, an automated assistant for ${firmName}. I help with intake: I explain how this works, take a few details, and tell you your fee. I'm not a lawyer and I can't give legal advice — a licensed attorney reviews everything.`,
+    `Here's how it works. The spouse who retains the firm — that's you, if you go ahead — completes the interview; the firm's attorney represents you, prepares the agreement and the divorce papers, files them, and sees the case through to judgment. Your spouse signs in separately to confirm the terms and provide what the court papers need, without seeing your answers; the firm does not represent them, and they're free to have their own attorney review everything. The attorney compares the two of you before anything is drafted, and meets you both on a one-hour video call.`,
     `The fee is a flat ${lo} for an uncontested divorce with no minor children and no assets or debts to divide, and up to ${hi} when there are children and assets. I'll give you the exact number in a minute. Nothing is paid here — the firm handles that directly.`,
     `I'll ask you eight quick things to set this up. You can ask me a question at any point.`,
   ];

@@ -18,6 +18,7 @@ import { assertRateLimit } from "@/lib/security/rate-limit";
 import { listParties, partyRoleForUser, bothPartiesComplete } from "@/lib/db/parties";
 import { createSpouseInvitation, liveInvitationForParty } from "@/lib/db/spouse-invites";
 import { getMatterAnswers, schemaForMatter } from "@/lib/db/intake2";
+import { pressureReported, VOLUNTARY_ITEM_ID } from "@/lib/intake2/party-scope";
 import { compareParties } from "@/lib/compare";
 import { joinUrl } from "@/lib/june/links";
 import { maskEmail } from "@/lib/db/invitations";
@@ -63,12 +64,16 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     );
 
     let comparison = null;
-    if (isFirm && complete) {
-      const schema = schemaForMatter(matter);
+    let pressureReportedByB: boolean | null = null;
+    if (isFirm) {
+      // Compared over B's schema — the terms both were asked. Items only A
+      // answers (goals, expenses, SNW…) are A's own and never appear here.
+      const schemaB = schemaForMatter(matter, "B");
       const [a, b] = await Promise.all([getMatterAnswers(matter.id, "A"), getMatterAnswers(matter.id, "B")]);
-      comparison = compareParties(schema, a, b);
+      pressureReportedByB = VOLUNTARY_ITEM_ID in b ? pressureReported(b) : null;
+      if (complete) comparison = compareParties(schemaB, a, b);
     }
-    return Response.json({ parties: view, bothComplete: complete, comparison });
+    return Response.json({ parties: view, bothComplete: complete, comparison, pressureReportedByB });
   } catch (e) {
     return errorResponse(e);
   }

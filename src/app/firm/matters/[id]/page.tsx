@@ -967,6 +967,8 @@ interface SpousesView {
   parties: SpouseSeat[];
   bothComplete: boolean;
   comparison: { agreed: boolean; counts: Record<string, number>; terms: Term[] } | null;
+  /** B's answer to "are you agreeing freely?" — true = pressure reported; null = not answered yet. */
+  pressureReportedByB?: boolean | null;
 }
 
 const SEAT_STATUS: Record<SpouseSeat["status"], string> = {
@@ -1054,6 +1056,12 @@ function SpousesPanel({ matterId, isAttorney, fallback }: { matterId: string; is
 
   return (
     <AccordionPanel title="The two spouses" defaultOpen summary={summary}>
+      {view.pressureReportedByB && (
+        <div className="notice notice-error mb-3" role="alert">
+          <strong>Spouse B says they are not agreeing freely.</strong> Speak with B before any papers are
+          prepared. B was told this answer stops nothing and is not shown to A.
+        </div>
+      )}
       <ul className="space-y-2 text-sm">
         {view.parties.map((p) => (
           <li key={p.role} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
