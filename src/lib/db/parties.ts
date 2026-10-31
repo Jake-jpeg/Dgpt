@@ -28,6 +28,9 @@ export interface PartyRow {
   invitedEmail: string;
   displayName: string;
   status: PartyStatus;
+  /** Second spouse only: when they acknowledged the representation notice, and which version. */
+  noticeAckAt: string | null;
+  noticeAckVersion: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -41,6 +44,8 @@ function rowToParty(r: Record<string, unknown>): PartyRow {
     invitedEmail: (r.invited_email as string) ?? "",
     displayName: (r.display_name as string) ?? "",
     status: (r.status as PartyStatus) ?? "INVITED",
+    noticeAckAt: (r.notice_ack_at as string | null) ?? null,
+    noticeAckVersion: (r.notice_ack_version as string | null) ?? null,
     createdAt: r.created_at as string,
     updatedAt: r.updated_at as string,
   };
@@ -87,8 +92,25 @@ export async function createParty(opts: {
   return (await getPartyById(id))!;
 }
 
-export async function seatParty(partyId: string, userId: string): Promise<void> {
+/**
+ * Seat a user on a party. For the second spouse, `noticeVersion` records
+ * that they acknowledged the "the firm represents your spouse, not you"
+ * notice (operator, 2026-10-30: "store the acknowledgment with a
+ * timestamp") — the timestamp is the seat time, in the same UPDATE.
+ */
+export async function seatParty(partyId: string, userId: string, noticeVersion?: string): Promise<void> {
   const t = nowIso();
+  if (noticeVersion) {
+    await getDb().run(
+      `UPDATE matter_party SET user_id = ?, status = 'JOINED', notice_ack_at = ?, notice_ack_version = ?, updated_at = ? WHERE id = ?`,
+      userId,
+      t,
+      noticeVersion,
+      t,
+      partyId
+    );
+    return;
+  }
   await getDb().run(
     `UPDATE matter_party SET user_id = ?, status = 'JOINED', updated_at = ? WHERE id = ?`,
     userId,

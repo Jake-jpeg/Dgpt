@@ -12,6 +12,7 @@ import { assertRateLimit } from "@/lib/security/rate-limit";
 import { acceptSpouseInvitation, findSpouseInvitation, invitationState } from "@/lib/db/spouse-invites";
 import { maskEmail } from "@/lib/db/invitations";
 import { operatingFirmName } from "@/config/branding";
+import { SPOUSE_NOTICE_VERSION } from "@/config/door-copy";
 import { betaCookieHeader, betaGateEnabled, betaKeys } from "@/lib/beta";
 import { isProduction } from "@/lib/env";
 
@@ -48,9 +49,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     assertCsrf(req);
     const authed = await requireUser(req, ["CLIENT"]);
     const { token } = await ctx.params;
-    const r = await acceptSpouseInvitation(token, authed.account);
+    // The notice ("the firm represents your spouse, not you") must be
+    // acknowledged in the same request that seats the spouse. The client
+    // sends the version it displayed; anything else is refused.
+    const body = (await req.json().catch(() => null)) as { acknowledgedNotice?: unknown } | null;
+    const ack = body?.acknowledgedNotice === SPOUSE_NOTICE_VERSION ? SPOUSE_NOTICE_VERSION : null;
+    const r = await acceptSpouseInvitation(token, authed.account, ack);
     if (!r.ok) {
-      const msg: Record<typeof r.reason, string> = {
+      if (r.reason === "NOTICE_NOT_ACKNOWLEDGED") throw new HttpError(400, "VALIDATION: please read and acknowledge the notice to continue.");
+      const msg: Record<Exclude<typeof r.reason, "NOTICE_NOT_ACKNOWLEDGED">, string> = {
         UNKNOWN: "This link isn't valid. Ask your spouse to send a new one.",
         EXPIRED: "This link has expired. Ask your spouse to send a new one.",
         USED: "This link was already used.",

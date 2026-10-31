@@ -111,11 +111,14 @@ export function invitationState(inv: SpouseInvitation | null): InviteState {
  */
 export async function acceptSpouseInvitation(
   token: string,
-  user: UserRow
+  user: UserRow,
+  /** The SPOUSE_NOTICE_VERSION the spouse acknowledged — required (RPC 4.3 notice, 2026-10-30). */
+  noticeVersion: string | null
 ): Promise<
   | { ok: true; matterId: string; sessionId: string }
-  | { ok: false; reason: "UNKNOWN" | "EXPIRED" | "USED" | "REVOKED" | "WRONG_EMAIL" | "NOT_A_CLIENT" | "SEAT_TAKEN" }
+  | { ok: false; reason: "UNKNOWN" | "EXPIRED" | "USED" | "REVOKED" | "WRONG_EMAIL" | "NOT_A_CLIENT" | "SEAT_TAKEN" | "NOTICE_NOT_ACKNOWLEDGED" }
 > {
+  if (!noticeVersion) return { ok: false, reason: "NOTICE_NOT_ACKNOWLEDGED" };
   const inv = await findSpouseInvitation(token);
   const state = invitationState(inv);
   if (state !== "OPEN" || !inv || !inv.partyId) return { ok: false, reason: state === "OPEN" ? "UNKNOWN" : state };
@@ -127,9 +130,10 @@ export async function acceptSpouseInvitation(
   if (party.userId && party.userId !== user.id) return { ok: false, reason: "SEAT_TAKEN" };
   if (matter.clientUserId === user.id) return { ok: false, reason: "WRONG_EMAIL" }; // one person cannot be both spouses
 
-  await seatParty(party.id, user.id);
+  await seatParty(party.id, user.id, noticeVersion);
   const t = nowIso();
   await getDb().run(`UPDATE invitation SET used_at = ?, used_by_user_id = ? WHERE id = ?`, t, user.id, inv.id);
+  await recordAudit(matter.id, "SPOUSE_NOTICE_ACKNOWLEDGED", `party=${party.role} version=${noticeVersion}`, user.id);
 
   const existing = (await listSessionsByMatter(matter.id)).find((s) => s.ownerSubject === user.subject);
   const sess =

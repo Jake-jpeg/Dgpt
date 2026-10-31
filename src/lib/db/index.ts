@@ -193,6 +193,8 @@ CREATE TABLE IF NOT EXISTS matter_party (
   display_name  TEXT NOT NULL DEFAULT '',   -- as June heard it; never shown to the other party
   status        TEXT NOT NULL DEFAULT 'INVITED'
                 CHECK (status IN ('INVITED','JOINED','INTAKE_IN_PROGRESS','INTAKE_COMPLETE','WITHDRAWN')),
+  notice_ack_at      TEXT,                   -- B: when the "the firm represents your spouse" notice was acknowledged (RPC 4.3)
+  notice_ack_version TEXT,                   -- which wording (SPOUSE_NOTICE_VERSION) they were shown
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL,
   UNIQUE(matter_id, role)
@@ -536,6 +538,8 @@ const MIGRATIONS = [
   `CREATE INDEX IF NOT EXISTS idx_start_draft_visitor ON start_draft(visitor_id)`,
   `ALTER TABLE intake_session ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,
   `ALTER TABLE invitation ADD COLUMN party_id TEXT`,
+  `ALTER TABLE matter_party ADD COLUMN notice_ack_at TEXT`,
+  `ALTER TABLE matter_party ADD COLUMN notice_ack_version TEXT`,
   `ALTER TABLE matter_intake_answer ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,
   `ALTER TABLE matter_intake_answer_history ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,
   `ALTER TABLE matter_intake_answer DROP CONSTRAINT IF EXISTS matter_intake_answer_pkey`,

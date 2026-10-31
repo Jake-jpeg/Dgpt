@@ -35,15 +35,27 @@ function pageReq(path: string, cookie?: string): NextRequest {
 }
 
 describe("gate configuration", () => {
-  it("gate is active only with BETA_GATE_ENABLED=true AND keys (legacy, off by default)", () => {
+  it("THE FRONT DOOR IS LOCKED (2026-10-30): production gates by default; only PUBLIC_LAUNCH=true opens it", () => {
+    // Outside production the legacy flag decides (dev and this suite stay open by default).
     expect(betaGateEnabled()).toBe(true);
     process.env.FREE_ACCESS_KEYS = "  ";
-    expect(betaGateEnabled()).toBe(false); // flag alone is not enough
+    expect(betaGateEnabled()).toBe(true); // no keys does NOT open the site — it locks everyone out
     process.env.FREE_ACCESS_KEYS = KEYS;
     process.env.BETA_GATE_ENABLED = "false";
-    expect(betaGateEnabled()).toBe(false); // keys alone are not enough either
+    expect(betaGateEnabled()).toBe(false);
     delete process.env.BETA_GATE_ENABLED;
-    expect(betaGateEnabled()).toBe(false); // default: gate is NOT the entry point
+    expect(betaGateEnabled()).toBe(false);
+
+    // Production: locked regardless of the legacy flag or the key list.
+    vi.stubEnv("NODE_ENV", "production");
+    expect(betaGateEnabled()).toBe(true);
+    process.env.FREE_ACCESS_KEYS = "";
+    expect(betaGateEnabled()).toBe(true); // fail closed
+    process.env.BETA_GATE_ENABLED = "false";
+    expect(betaGateEnabled()).toBe(true); // the flag cannot open production
+    // The only way out: an explicit public launch.
+    vi.stubEnv("PUBLIC_LAUNCH", "true");
+    expect(betaGateEnabled()).toBe(false);
   });
 
   it("keys are comma-separated and individually revocable", () => {
@@ -67,14 +79,18 @@ describe("gate configuration", () => {
 });
 
 describe("middleware enforcement (whole site)", () => {
-  it("gated pages without the cookie redirect to /beta (landing page stays public)", async () => {
-    for (const path of ["/intake", "/attorney"]) {
+  it("gated pages without the cookie redirect to /beta — the landing, the door and June included (2026-10-30)", async () => {
+    for (const path of ["/", "/portal", "/start", "/intake", "/attorney", "/firm"]) {
       const res = await middleware(pageReq(path));
-      expect(res.status).toBeGreaterThanOrEqual(300);
-      expect(res.headers.get("location")).toContain("/beta");
+      expect(res.status, path).toBeGreaterThanOrEqual(300);
+      expect(res.headers.get("location"), path).toContain("/beta");
     }
-    const landing = await middleware(pageReq("/"));
-    expect(landing.status).toBe(200); // informational landing is ungated
+  });
+
+  it("June's API is behind the door too; the invited spouse's link is not", async () => {
+    expect((await middleware(pageReq("/api/start/turn"))).status).toBe(403);
+    expect((await middleware(pageReq("/api/join/sometoken"))).status).toBe(200);
+    expect((await middleware(pageReq("/join/sometoken"))).status).toBe(200);
   });
 
   it("API calls without the cookie get 403, not a redirect", async () => {
@@ -106,8 +122,16 @@ describe("middleware enforcement (whole site)", () => {
     expect(betaGateExempt("/api/intake/start")).toBe(false);
   });
 
-  it("gate off (no keys) → site is open as before", async () => {
+  it("no keys configured → locked for everyone, not open (fail closed)", async () => {
     process.env.FREE_ACCESS_KEYS = "";
+    const res = await middleware(pageReq("/intake"));
+    expect(res.headers.get("location")).toContain("/beta");
+    const unlock = await unlockRoute(jsonRequest("/api/beta/unlock", { body: { code: "anything" } }));
+    expect(unlock.status).toBeGreaterThanOrEqual(400);
+  });
+
+  it("gate off (legacy flag off, outside production) → open, as local development expects", async () => {
+    process.env.BETA_GATE_ENABLED = "false";
     const res = await middleware(pageReq("/intake"));
     expect(res.headers.get("location")).toBeNull();
   });
@@ -144,7 +168,7 @@ describe("unlock endpoint", () => {
   });
 
   it("gate disabled → endpoint is a 404", async () => {
-    process.env.FREE_ACCESS_KEYS = "";
+    process.env.BETA_GATE_ENABLED = "false";
     const res = await unlockRoute(
       jsonRequest("/api/beta/unlock", { body: { code: "anything" } })
     );
@@ -208,7 +232,7 @@ describe("beta test login (production, closed testing only)", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DEV_AUTH_STUB", "true"); // even trying to force the dev stub
     vi.stubEnv("BETA_TEST_LOGIN", "true");
-    process.env.FREE_ACCESS_KEYS = ""; // gate down = public site
+    vi.stubEnv("PUBLIC_LAUNCH", "true"); // gate down = public site
     expect((await devLogin(`${BETA_COOKIE}=synthetic-beta-key-1`)).status).toBe(404);
   });
 });
@@ -220,9 +244,15 @@ describe("DV ship-blocker interplay", () => {
     expect(() => assertCriticalCopyReady()).not.toThrow();
   });
 
-  it("PUBLIC production (gate off) still refuses to boot with the unfilled DV card", () => {
+  it("PUBLIC production (PUBLIC_LAUNCH=true) still refuses to boot with the unfilled DV card", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("PUBLIC_LAUNCH", "true");
+    expect(() => assertCriticalCopyReady()).toThrowError(/SHIP_BLOCKER/);
+  });
+
+  it("production with no keys at all is LOCKED, not public — it boots (warn) and serves nobody", () => {
     vi.stubEnv("NODE_ENV", "production");
     process.env.FREE_ACCESS_KEYS = "";
-    expect(() => assertCriticalCopyReady()).toThrowError(/SHIP_BLOCKER/);
+    expect(() => assertCriticalCopyReady()).not.toThrow();
   });
 });

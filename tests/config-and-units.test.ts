@@ -295,8 +295,11 @@ describe("DV card ship-blocker guard", () => {
     }
   });
 
-  it("production boot REFUSES while the DV card has no firm contact", () => {
+  it("PUBLIC production boot REFUSES while the DV card has no firm contact", () => {
     vi.stubEnv("NODE_ENV", "production");
+    // 2026-10-30: production is locked behind the access key by default; the
+    // ship-blocker bites the moment the door is opened to the public.
+    vi.stubEnv("PUBLIC_LAUNCH", "true");
     vi.stubEnv("FIRM_CONTACT", "");
     vi.stubEnv("FIRM_ATTORNEY_FIRM", "");
     vi.stubEnv("FIRM_ATTORNEY_PHONE", "");

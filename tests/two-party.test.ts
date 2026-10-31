@@ -22,6 +22,10 @@ import { POST as draftRoute } from "@/app/api/start/draft/route";
 import { GET as pendingRoute } from "@/app/api/start/pending/route";
 import { POST as finishRoute } from "@/app/api/start/finish/route";
 import { GET as joinPreview, POST as joinAccept } from "@/app/api/join/[token]/route";
+import { SPOUSE_NOTICE_VERSION } from "@/config/door-copy";
+
+/** The second spouse's acknowledgment of the representation notice — required to accept. */
+const ACK = { acknowledgedNotice: SPOUSE_NOTICE_VERSION };
 import { GET as partiesGet, POST as partiesReissue } from "@/app/api/matters/[id]/parties/route";
 import { GET as intake2Get, PUT as intake2Put } from "@/app/api/matters/[id]/intake2/route";
 import { getMatterAnswers } from "@/lib/db/intake2";
@@ -135,27 +139,40 @@ describe("the second spouse joins", () => {
     // The wrong person (verified email differs) is refused.
     await provisionAccount(STRANGER);
     freshLimits();
-    const wrong = await joinAccept(jsonRequest(`/api/join/${token}`, { cookie: await cookieFor(STRANGER) }), params({ token }));
+    const wrong = await joinAccept(jsonRequest(`/api/join/${token}`, { body: ACK, cookie: await cookieFor(STRANGER) }), params({ token }));
     expect(wrong.status).toBe(409);
     expect(((await wrong.json()) as { error: string }).error).toMatch(/different email/);
     // A cannot be both spouses.
     freshLimits();
-    const self = await joinAccept(jsonRequest(`/api/join/${token}`, { cookie: aCookie }), params({ token }));
+    const self = await joinAccept(jsonRequest(`/api/join/${token}`, { body: ACK, cookie: aCookie }), params({ token }));
     expect(self.status).toBe(409);
 
-    // The right person is seated; a session is born on seat B.
+    // Without acknowledging the representation notice, no seat (RPC 4.3, 2026-10-30).
     freshLimits();
-    const ok = await joinAccept(jsonRequest(`/api/join/${token}`, { cookie: bCookie }), params({ token }));
+    const noAck = await joinAccept(jsonRequest(`/api/join/${token}`, { cookie: bCookie }), params({ token }));
+    expect(noAck.status).toBe(400);
+    const staleAck = await joinAccept(
+      jsonRequest(`/api/join/${token}`, { body: { acknowledgedNotice: "2000-01-01.0" }, cookie: bCookie }),
+      params({ token })
+    );
+    expect(staleAck.status).toBe(400);
+    expect((await listParties(matterId)).find((p) => p.role === "B")!.status).toBe("INVITED");
+
+    // The right person is seated; a session is born on seat B; the acknowledgment is on file with a timestamp.
+    freshLimits();
+    const ok = await joinAccept(jsonRequest(`/api/join/${token}`, { body: ACK, cookie: bCookie }), params({ token }));
     expect(ok.status).toBe(200);
     expect((await ok.json()) as object).toMatchObject({ joined: true, matterId });
     const b = (await listParties(matterId)).find((p) => p.role === "B")!;
     expect(b.status).toBe("JOINED");
+    expect(b.noticeAckVersion).toBe(SPOUSE_NOTICE_VERSION);
+    expect(b.noticeAckAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     const sessions = await listSessionsByMatter(matterId);
     expect(sessions.map((s) => s.partyId).sort()).toEqual(["A", "B"]);
 
     // Single use.
     freshLimits();
-    const twice = await joinAccept(jsonRequest(`/api/join/${token}`, { cookie: bCookie }), params({ token }));
+    const twice = await joinAccept(jsonRequest(`/api/join/${token}`, { body: ACK, cookie: bCookie }), params({ token }));
     expect(twice.status).toBe(409);
     expect(((await twice.json()) as { error: string }).error).toMatch(/already used/);
     // And the preview now says so.
@@ -168,7 +185,7 @@ describe("the second spouse joins", () => {
     freshLimits();
     const prev = await joinPreview(jsonRequest(`/api/join/nope`, { method: "GET" }), params({ token: "nope" }));
     expect(((await prev.json()) as { state: string }).state).toBe("UNKNOWN");
-    const acc = await joinAccept(jsonRequest(`/api/join/nope`, { cookie: bCookie }), params({ token: "nope" }));
+    const acc = await joinAccept(jsonRequest(`/api/join/nope`, { body: ACK, cookie: bCookie }), params({ token: "nope" }));
     expect(acc.status).toBe(409);
   });
 
@@ -184,7 +201,7 @@ describe("the second spouse joins", () => {
     const old = await joinPreview(jsonRequest(`/api/join/${token}`, { method: "GET" }), params({ token }));
     expect(((await old.json()) as { state: string }).state).toBe("REVOKED");
     freshLimits();
-    const ok = await joinAccept(jsonRequest(`/api/join/${token2}`, { cookie: bCookie }), params({ token: token2 }));
+    const ok = await joinAccept(jsonRequest(`/api/join/${token2}`, { body: ACK, cookie: bCookie }), params({ token: token2 }));
     expect(ok.status).toBe(200);
   });
 });
@@ -193,7 +210,7 @@ describe("two interviews, two answer sets, one report", () => {
   async function seatBoth() {
     const { matterId, token } = await startCase();
     freshLimits();
-    await joinAccept(jsonRequest(`/api/join/${token}`, { cookie: bCookie }), params({ token }));
+    await joinAccept(jsonRequest(`/api/join/${token}`, { body: ACK, cookie: bCookie }), params({ token }));
     return matterId;
   }
 
@@ -303,6 +320,7 @@ describe("the two spouses' words (grep guard)", () => {
       "src/app/join/[token]/page.tsx",
       "src/app/portal/page.tsx",
       "src/app/portal/matter/page.tsx",
+      "src/config/door-copy.ts",
     ].map((f) => fs.readFileSync(path.join(__dirname, "..", f), "utf8"));
     const corpus = [...files, ...juneOpening("Firm"), juneConstitution()].join("\n").toLowerCase();
     for (const w of FORBIDDEN_CLIENT_WORDS) {

@@ -618,6 +618,44 @@ details.accordion > summary:focus-visible { outline: 2px solid var(--blue); outl
 }
 .door-provider:hover { background: #f4f7fc; border-color: #9fb6d8; transform: translateY(-1px); }
 .door-staff { margin: 22px 0 0; text-align: center; font-size: .78rem; color: var(--muted); }
+.door-topline { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.door-cta-note { margin: 12px 2px 0; font-size: .8rem; color: #aebfda; }
+.door-dot { margin: 0 8px; }
+.lang-toggle { display: inline-flex; border: 1px solid rgba(255,255,255,.28); border-radius: 999px; padding: 2px; flex: 0 0 auto; }
+.lang-toggle button {
+  font: inherit; font-size: .76rem; font-weight: 650; letter-spacing: .01em;
+  padding: 4px 11px; border: none; border-radius: 999px; background: transparent; color: #c9d8f3; cursor: pointer;
+}
+.lang-toggle button[aria-pressed="true"] { background: #f4f7ff; color: #173663; }
+.spouse-notice .lang-toggle { border-color: #e2cf9f; }
+.spouse-notice .lang-toggle button { color: #6b5a2a; }
+.spouse-notice .lang-toggle button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.door-faq { margin: 8px 0 26px; }
+.door-faq .door-h2 { margin-bottom: 14px; }
+.faq-list { display: flex; flex-direction: column; gap: 8px; }
+.faq-item { background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+.faq-item summary {
+  list-style: none; cursor: pointer; padding: 15px 44px 15px 18px; position: relative;
+  font-weight: 650; letter-spacing: -.01em;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after {
+  content: "+"; position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  background: #eef3fb; color: var(--blue-dark); font-weight: 700; transition: transform .15s ease;
+}
+.faq-item[open] summary::after { content: "–"; }
+.faq-item p { margin: 0; padding: 0 18px 16px; color: var(--muted); font-size: .93rem; line-height: 1.55; }
+.footer-ad { font-weight: 500; color: var(--ink); }
+.footer-ad strong { letter-spacing: .04em; text-transform: uppercase; font-size: .74rem; }
+footer .footer-ad { color: #3c4c63; }
+.spouse-notice {
+  background: #fff8e8; border: 1px solid #efd9a8; border-radius: 14px; padding: 16px 18px; margin: 4px 0 14px;
+}
+.spouse-notice h3 { margin: 0 0 6px; font-size: .95rem; letter-spacing: -.01em; }
+.spouse-notice p { margin: 0 0 12px; font-size: .93rem; line-height: 1.55; color: #4a3a12; }
+.spouse-notice label { display: flex; gap: 10px; align-items: flex-start; font-size: .93rem; font-weight: 600; cursor: pointer; }
+.spouse-notice input { width: 20px; height: 20px; margin-top: 2px; flex: 0 0 20px; accent-color: var(--navy); }
 .door-staff button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; padding: 0; }
 @media (max-width: 850px) {
   .portal-hero { padding: 40px 24px 52px; }
@@ -649,7 +687,10 @@ details.accordion > summary:focus-visible { outline: 2px solid var(--blue); outl
   .door-h2 { font-size: 1.45rem; }
 
   /* June as a messaging app: header, thread, input. Nothing else. */
-  .portal-compact .portal-footer { display: none; }
+  /* Phone chat: the footer collapses to the one compliance line. */
+  .portal-compact .portal-footer p:not(.footer-ad) { display: none; }
+  .portal-compact .portal-footer { padding: 10px 16px 12px; font-size: .7rem; text-align: center; }
+  .door-topline { flex-direction: column-reverse; align-items: flex-start; gap: 14px; }
   .portal-compact .portal-main { padding: 12px 12px 0; }
   .portal-compact .june { display: flex; flex-direction: column; min-height: calc(100dvh - 56px - 12px); }
   .portal-compact .june-thread { flex: 1 1 auto; }

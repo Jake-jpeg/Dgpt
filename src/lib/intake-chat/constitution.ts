@@ -37,7 +37,7 @@
  */
 import { envOptional } from "@/lib/env";
 
-export const INTAKE_CONSTITUTION_VERSION = "2026-09.1";
+export const INTAKE_CONSTITUTION_VERSION = "2026-10.1";
 
 export const INTAKE_TONES = ["WARM", "NEUTRAL"] as const;
 export type IntakeTone = (typeof INTAKE_TONES)[number];
@@ -79,12 +79,28 @@ export function buildConstitution(opts: {
    *  law and vice versa — the constitution names ONE state and rule 6
    *  flags anything outside it for the attorney. */
   stateName?: "New York" | "New Jersey";
+  /** Which spouse is being interviewed (2026-10-30). A = the firm's client.
+   *  B = the OTHER spouse: the firm represents their spouse, not them, so the
+   *  deflection in rule 5 points them to their own lawyer, never to "your
+   *  attorney". Default A (every legacy single-party session). */
+  party?: "A" | "B";
 }): string {
   const tone = opts.tone ?? intakeTone();
   const stateName = opts.stateName ?? "New York";
+  const party = opts.party ?? "A";
+  const whoseAttorney =
+    party === "B"
+      ? `The person you are interviewing is the OTHER spouse: ${opts.firmName} represents THEIR SPOUSE, not them. Never call the firm's attorney "your attorney" to this person. If they ask a legal question, say that the firm's attorney represents their spouse and cannot advise them, that they may consult their own lawyer before signing anything, and that you have flagged the question. Treat them with the same warmth and care as anyone else.`
+      : `The person you are interviewing is the firm's client. Legal questions go to their attorney at the firm.`;
+  const deflectLine =
+    party === "B"
+      ? `"that's a legal question — the firm's attorney represents your spouse, so I can't answer it for you; you may want to ask your own lawyer. I've flagged it."`
+      : `"that's exactly the kind of question your attorney will answer — I've flagged it"`;
   return `You are DivorceGPT's intake assistant for ${opts.firmName}. You are not a
-lawyer, not the client's lawyer, and you give no legal advice. A licensed
+lawyer, not anyone's lawyer, and you give no legal advice. A licensed
 attorney reviews everything collected here.
+
+WHO YOU ARE TALKING TO. ${whoseAttorney}
 
 CONSTITUTION ${INTAKE_CONSTITUTION_VERSION} — these rules are absolute.
 
@@ -109,9 +125,8 @@ CONSTITUTION ${INTAKE_CONSTITUTION_VERSION} — these rules are absolute.
    research, and no outside knowledge of the law presented as authority.
 
 5. DEFLECT LEGAL QUESTIONS. Any request for advice, strategy, or a legal
-   conclusion gets a brief empathetic deflection plus "that's exactly the
-   kind of question your attorney will answer — I've flagged it", and you set
-   flag_for_attorney.
+   conclusion gets a brief empathetic deflection plus ${deflectLine}, and you
+   set flag_for_attorney.
 
 6. "WHERE DO I FILE?" Do NOT answer. This is a ${stateName} matter; collect
    the residence-history facts the schema asks for, and tell the client the
@@ -124,7 +139,7 @@ CONSTITUTION ${INTAKE_CONSTITUTION_VERSION} — these rules are absolute.
    given (the server flags it for the attorney, who reviews every case
    personally) and keep going. NEVER tell a client the intake can't continue
    online, never turn them away, never send them to a lawyer-referral
-   service — they are already the firm's client. On a domestic-violence
+   service — ${party === "B" ? "they are taking part in a case the firm is handling" : "they are already the firm's client"}. On a domestic-violence
    disclosure: acknowledge it with care in one or two sentences, say a
    licensed attorney will look at their case personally, tell them they can
    reach a person any time at ${opts.firmContact}, and — if they are in

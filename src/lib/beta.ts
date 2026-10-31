@@ -25,12 +25,32 @@ export function betaKeys(): string[] {
 }
 
 /**
- * 2.0: the beta gate is LEGACY. Invitation-linked matters are the ordinary
- * entry point; the gate only activates when BOTH the explicit
- * BETA_GATE_ENABLED=true flag is set AND keys exist. Default is off.
+ * Public launch is an explicit act: PUBLIC_LAUNCH=true in the deployment.
+ * Nothing else opens the front door.
+ */
+export function publicLaunch(): boolean {
+  return process.env.PUBLIC_LAUNCH === "true";
+}
+
+/**
+ * THE FRONT DOOR IS LOCKED (operator, 2026-10-30: "the front door is going
+ * to need an access key to access, period" — June is up front, and the site
+ * opens to the public only after the operator has run it himself).
+ *
+ *   • Production: the gate is ON unless PUBLIC_LAUNCH=true. No flag can turn
+ *     it off by omission. With no FREE_ACCESS_KEYS configured the gate still
+ *     stands and nobody gets in (fail CLOSED) — an empty key list is never
+ *     an open site.
+ *   • Elsewhere (dev, tests): the legacy BETA_GATE_ENABLED=true flag turns
+ *     it on, so local work and the suite stay open by default.
+ *
+ * The invited spouse's /join/<token> link remains exempt: the single-use,
+ * email-bound link IS the firm's access grant and sets the key cookie.
  */
 export function betaGateEnabled(): boolean {
-  return process.env.BETA_GATE_ENABLED === "true" && betaKeys().length > 0;
+  if (publicLaunch()) return false;
+  if (process.env.NODE_ENV === "production") return true;
+  return process.env.BETA_GATE_ENABLED === "true";
 }
 
 export function isValidBetaKey(key: string | undefined | null): boolean {

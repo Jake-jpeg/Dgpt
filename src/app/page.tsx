@@ -1,4 +1,5 @@
 import { copyrightOwner, legalServicesProvider, nonAffiliationNotice } from "@/config/branding";
+import { FOOTER, firmAddressLine, firmPhoneLine } from "@/config/door-copy";
 import { stageStatusCopy } from "@/config/stage";
 
 // Stage-aware status copy must reflect the RUNTIME environment, not a value
@@ -109,6 +110,10 @@ export default function Landing() {
       </section>
 
       <footer>
+        {/* NY RPC 7.1(f) label + 7.1(h) office address and phone (2026-10-30). */}
+        <p className="footer-ad">
+          <strong>{FOOTER.en.attorneyAdvertising}</strong> · {firmName} · {firmAddressLine()} · {firmPhoneLine()}
+        </p>
         <p>
           {nonAffiliationNotice()}
         </p>

@@ -17,7 +17,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Shell, useMe, ErrorNotice, type Me } from "@/components/shell";
 import { api } from "@/lib/ui/client-api";
-import { formatUsd, quoteFor } from "@/config/pricing";
+import { useLang, LangToggle } from "@/lib/ui/lang";
+import { HERO, SIGNIN, faqFor } from "@/config/door-copy";
+import { operatingFirmName } from "@/config/branding";
 
 const HOME: Record<Me["role"], string> = {
   CLIENT: "/portal/matter",
@@ -26,8 +28,6 @@ const HOME: Record<Me["role"], string> = {
   ADMIN: "/firm/settings",
 };
 
-const FEE_LO = formatUsd(quoteFor({ children: false, assets: false }).total);
-const FEE_HI = formatUsd(quoteFor({ children: true, assets: true }).total);
 
 function ProviderIcon({ kind }: { kind: "google" | "msa" | "june" }) {
   // Neutral glyphs, deliberately not vendor logos.
@@ -54,6 +54,11 @@ export default function PortalEntry() {
   const [role, setRole] = useState("CLIENT");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [lang, setLang] = useLang();
+  const firm = operatingFirmName();
+  const t = HERO[lang];
+  const si = SIGNIN[lang];
+  const faq = faqFor(firm)[lang];
 
   async function testSignIn() {
     setBusy(true);
@@ -82,69 +87,49 @@ export default function PortalEntry() {
   const hero = signedOut ? (
     <div className="door-grid">
       <div>
-        <p className="eyebrow">Jake Kim Law Firm LLC · New York &amp; New Jersey</p>
+        <div className="door-topline">
+          <p className="eyebrow">{t.eyebrow(firm)}</p>
+          <LangToggle lang={lang} onChange={setLang} />
+        </div>
         <h1 className="door-h1">
-          Your divorce, handled by a lawyer.
+          {t.headline1}
           <br />
-          <span className="door-h1-soft">Set up in three minutes.</span>
+          <span className="door-h1-soft">{t.headline2}</span>
         </h1>
-        <p className="door-copy">
-          You and your spouse each answer the same questions, separately. An attorney compares the
-          answers, meets you both on a video call, and prepares and files everything — for a flat
-          fee from {FEE_LO}.
-        </p>
+        <p className="door-copy">{t.sub}</p>
         <div className="door-actions">
           <button className="button button-primary door-cta" onClick={() => router.push("/start")}>
             <ProviderIcon kind="june" />
-            Start with June
+            {t.cta}
             <span aria-hidden="true" className="door-arrow">→</span>
           </button>
           <a className="button button-secondary" href="#signin">
-            I already have a case
+            {t.haveCase}
           </a>
         </div>
+        <p className="door-cta-note">{t.ctaNote}</p>
         <p className="door-meta">
-          <span>English · 한국어</span>
-          <span aria-hidden="true">·</span>
-          <span>Attorney-reviewed</span>
-          <span aria-hidden="true">·</span>
-          <span>
-            Flat fee {FEE_LO}–{FEE_HI}
-          </span>
+          {t.meta.map((m, i) => (
+            <span key={m}>
+              {i > 0 && <span aria-hidden="true" className="door-dot">·</span>}
+              {m}
+            </span>
+          ))}
         </p>
       </div>
 
-      <aside className="workflow-card door-card" aria-label="How it works">
-        <p className="card-label">How it works</p>
+      <aside className="workflow-card door-card" aria-label={t.howTitle}>
+        <p className="card-label">{t.howTitle}</p>
         <ol>
-          <li>
-            <span>01</span>
-            <div>
-              <strong>Meet June</strong>
-              <small>Our set-up assistant takes eight quick details and gives you your exact fee.</small>
-            </div>
-          </li>
-          <li>
-            <span>02</span>
-            <div>
-              <strong>Each of you completes the interview</strong>
-              <small>Separately, on your own phone. Neither of you sees the other&apos;s answers.</small>
-            </div>
-          </li>
-          <li>
-            <span>03</span>
-            <div>
-              <strong>The attorney compares and meets you</strong>
-              <small>A one-hour video meeting with both of you before anything is drafted.</small>
-            </div>
-          </li>
-          <li>
-            <span>04</span>
-            <div>
-              <strong>Prepared and filed by the firm</strong>
-              <small>You receive the finished papers from Jake Kim Law Firm.</small>
-            </div>
-          </li>
+          {t.how.map(([title, detail], i) => (
+            <li key={title}>
+              <span>{String(i + 1).padStart(2, "0")}</span>
+              <div>
+                <strong>{title}</strong>
+                <small>{detail}</small>
+              </div>
+            </li>
+          ))}
         </ol>
       </aside>
     </div>
@@ -181,21 +166,31 @@ export default function PortalEntry() {
 
       {signedOut && (
         <>
+          {/* FAQ — after "How it works" (operator, 2026-10-30). Native
+              <details>: an accordion that works without JavaScript. */}
+          <section className="door-faq" aria-labelledby="faq-title">
+            <h2 id="faq-title" className="door-h2">{faq.title}</h2>
+            <div className="faq-list">
+              {faq.items.map((item) => (
+                <details className="faq-item" key={item.q}>
+                  <summary>{item.q}</summary>
+                  <p>{item.a}</p>
+                </details>
+              ))}
+            </div>
+          </section>
+
           <section id="signin" className="door-signin">
             <div className="door-signin-text">
-              <p className="door-kicker">Already have a case?</p>
-              <h2 className="door-h2">Sign back in.</h2>
-              <p className="panel-sub">
-                Use the Google (Gmail) or Microsoft (Outlook.com / Hotmail) account you used before.
-                If your spouse sent you an invitation, open that link instead — it signs you in and
-                seats you on the case.
-              </p>
+              <p className="door-kicker">{si.kicker}</p>
+              <h2 className="door-h2">{si.title}</h2>
+              <p className="panel-sub">{si.sub}</p>
             </div>
             <div className="door-providers">
               {me?.providers.google ? (
                 <button className="door-provider" onClick={() => (window.location.href = "/api/auth/login/google")}>
                   <ProviderIcon kind="google" />
-                  <span>Continue with Google</span>
+                  <span>{si.google}</span>
                 </button>
               ) : (
                 <p className="text-sm text-slate-500">Google sign-in is not configured in this environment.</p>
@@ -203,14 +198,14 @@ export default function PortalEntry() {
               {me?.providers.msa && (
                 <button className="door-provider" onClick={() => (window.location.href = "/api/auth/login/msa")}>
                   <ProviderIcon kind="msa" />
-                  <span>Continue with Outlook / Hotmail</span>
+                  <span>{si.msa}</span>
                 </button>
               )}
             </div>
           </section>
 
           <p className="door-staff">
-            Jake Kim Law Firm staff:{" "}
+            {si.staff(firm)}{" "}
             {me?.providers.entra && (
               <button className="underline" onClick={() => (window.location.href = "/api/auth/login/entra")}>
                 sign in with Microsoft

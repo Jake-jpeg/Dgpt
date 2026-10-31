@@ -951,6 +951,9 @@ interface SpouseSeat {
   emailMasked?: string;
   seated: boolean;
   inviteExpiresAt?: string | null;
+  /** B only: when they acknowledged the "the firm represents your spouse" notice, and which wording. */
+  noticeAckAt?: string | null;
+  noticeAckVersion?: string | null;
 }
 interface Term {
   questionId: string;
@@ -1062,6 +1065,13 @@ function SpousesPanel({ matterId, isAttorney, fallback }: { matterId: string; is
               <span className="text-slate-500">{p.emailMasked}</span>
             )}
             <span className={`badge ${p.status === "INTAKE_COMPLETE" ? "badge-good" : p.seated ? "" : "badge-warn"}`}>{SEAT_STATUS[p.status]}</span>
+            {p.role === "B" && p.seated && (
+              <span className="text-xs text-slate-500" title={p.noticeAckVersion ? `notice version ${p.noticeAckVersion}` : undefined}>
+                {p.noticeAckAt
+                  ? `acknowledged the representation notice ${new Date(p.noticeAckAt).toLocaleString()}`
+                  : "joined before the representation notice existed — no acknowledgment on file"}
+              </span>
+            )}
           </li>
         ))}
       </ul>

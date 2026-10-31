@@ -13,6 +13,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Shell, useMe, ErrorNotice } from "@/components/shell";
 import { api } from "@/lib/ui/client-api";
+import { useLang, LangToggle } from "@/lib/ui/lang";
+import { SPOUSE_NOTICE, SPOUSE_NOTICE_VERSION } from "@/config/door-copy";
 
 interface Preview {
   state: "OPEN" | "EXPIRED" | "USED" | "REVOKED" | "UNKNOWN";
@@ -28,6 +30,9 @@ export default function JoinPage() {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [lang, setLang] = useLang();
+  const notice = SPOUSE_NOTICE[lang];
 
   useEffect(() => {
     if (!token) return;
@@ -51,7 +56,8 @@ export default function JoinPage() {
     setBusy(true);
     setErr(null);
     try {
-      await api.post(`/api/join/${encodeURIComponent(token)}`);
+      // The server refuses the seat without the acknowledgment (RPC 4.3 notice).
+      await api.post(`/api/join/${encodeURIComponent(token)}`, { acknowledgedNotice: SPOUSE_NOTICE_VERSION });
       router.replace("/portal/matter");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Could not join");
@@ -113,8 +119,22 @@ export default function JoinPage() {
             {signedInClient && (
               <div className="june-signin">
                 <p className="text-sm">Signed in as <strong>{me!.user!.email}</strong>.</p>
-                <button className="btn btn-primary" disabled={busy} onClick={accept}>
-                  {busy ? "Joining…" : "Join and start my questionnaire"}
+                {/* Second-spouse notice (operator, 2026-10-30). Shown at the
+                    first sign-in, must be acknowledged before the seat; the
+                    server stores the time and the wording version. */}
+                <div className="spouse-notice" role="region" aria-labelledby="spouse-notice-title">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 id="spouse-notice-title">{notice.title}</h3>
+                    <LangToggle lang={lang} onChange={setLang} />
+                  </div>
+                  <p>{notice.body(firm)}</p>
+                  <label>
+                    <input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} />
+                    <span>{notice.ack}</span>
+                  </label>
+                </div>
+                <button className="btn btn-primary" disabled={busy || !acknowledged} onClick={accept}>
+                  {busy ? "…" : notice.cta}
                 </button>
               </div>
             )}

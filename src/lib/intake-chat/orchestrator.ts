@@ -965,6 +965,7 @@ export async function runIntakeTurn(opts: {
     firmName: operatingFirmName(),
     firmContact: firmContact(),
     stateName: ctx.schema.jurisdiction === "NJ" ? "New Jersey" : "New York",
+    party: ctx.session.partyId === "B" ? "B" : "A",
   });
 
   // One corrective retry: the model proposes, the server disposes.

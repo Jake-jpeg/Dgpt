@@ -53,11 +53,14 @@ function securityHeaders(res: NextResponse): NextResponse {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // ── Beta access gate (active whenever FREE_ACCESS_KEYS is set) ──
-  // The cookie stores the access key itself and is re-validated against the
+  // ── Access gate — the locked front door (2026-10-30) ──
+  // Every path, the landing included, needs the key cookie unless exempt
+  // (/beta itself, the invited spouse's /join link, machine endpoints). The
+  // cookie stores the access key itself and is re-validated against the
   // env var on EVERY request: removing a key from FREE_ACCESS_KEYS locks its
-  // holders out on their next request, regardless of cookie lifetime.
-  if (pathname !== "/" && betaGateEnabled() && !betaGateExempt(pathname)) {
+  // holders out on their next request, regardless of cookie lifetime. No
+  // keys configured → no cookie can be valid → nobody gets in.
+  if (betaGateEnabled() && !betaGateExempt(pathname)) {
     const key = request.cookies.get(BETA_COOKIE)?.value;
     if (!isValidBetaKey(key ? decodeURIComponent(key) : key)) {
       if (pathname.startsWith("/api/")) {

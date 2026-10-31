@@ -10,6 +10,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { api } from "@/lib/ui/client-api";
 import { nonAffiliationNotice } from "@/config/branding";
+import { FOOTER, firmAddressLine, firmPhoneLine } from "@/config/door-copy";
 
 export interface Me {
   role: "CLIENT" | "STAFF" | "ATTORNEY" | "ADMIN";
@@ -201,6 +202,12 @@ export function Shell({
         {children}
       </main>
       <footer className="portal-footer">
+        {/* NY RPC 7.1(f) label + 7.1(h) principal office address and phone
+            (2026-10-30). Address/phone come from NEXT_PUBLIC_FIRM_ADDRESS /
+            NEXT_PUBLIC_FIRM_PHONE; the bracketed placeholders show until set. */}
+        <p className="footer-ad">
+          <strong>{FOOTER.en.attorneyAdvertising}</strong> · {FIRM_NAME} · {firmAddressLine()} · {firmPhoneLine()}
+        </p>
         <p>
           DivorceGPT is workflow software used by {FIRM_NAME}. It does not
           provide legal advice; legal services are provided by the firm and

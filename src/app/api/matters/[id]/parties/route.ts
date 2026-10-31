@@ -54,6 +54,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
           // receive this field.
           email: p.invitedEmail,
           emailMasked: maskEmail(p.invitedEmail),
+          noticeAckAt: p.noticeAckAt,
+          noticeAckVersion: p.noticeAckVersion,
           inviteUrl: live ? null : null, // the raw token is never re-derivable; reissue to get a link
           inviteExpiresAt: live?.expiresAt ?? null,
         };
