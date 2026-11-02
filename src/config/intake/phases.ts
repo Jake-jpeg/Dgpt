@@ -94,6 +94,8 @@ export const PHASE2_ITEM_IDS: ReadonlySet<string> = new Set([
   "ny.settlement.plaintiff_income",
   "ny.settlement.defendant_income",
   "ny.settlement.maintenance_waived",
+  "ny.settlement.custodial_parent",
+  "ny.settlement.child_support_terms",
   "ny.settlement.division_terms",
   // Name restoration (stip Article VII / judgment)
   "shared.relationship.name_restoration",

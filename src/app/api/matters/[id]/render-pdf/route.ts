@@ -117,8 +117,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     }
     // Deterministic mapping from SAVED answers — the attorney's request is
     // the confirmation of this data (fingerprint audited).
-    const payload = buildRenderPayload(state, form, matter, (await getMatterAnswers(matter.id)));
+    // Both seats (2026-11-02): defendant-facing fields prefer the second
+    // spouse's own statement; a disagreement is left blank and flagged.
+    const [answersA, answersB] = await Promise.all([getMatterAnswers(matter.id, "A"), getMatterAnswers(matter.id, "B")]);
+    const payload = buildRenderPayload(state, form, matter, answersA, Object.keys(answersB).length ? answersB : null);
     (await auditFormDataConfirmed({ matterId: matter.id, userId: authed.account.id, state, form, payload }));
+    if (payload.reviewFlags) {
+      await recordAudit(matter.id, "FORM_REVIEW_FLAG", `${state}/${form}: ${payload.reviewFlags.replace(/\n/g, " | ").slice(0, 900)}`, authed.account.id);
+    }
 
     const result = await renderWord(state, form, payload);
 

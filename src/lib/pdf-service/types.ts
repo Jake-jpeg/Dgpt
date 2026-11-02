@@ -10,6 +10,10 @@ export const ALLOWED_RENDERS = [
   // Phase 1 — commencement
   { state: "ny", form: "ud1", label: "NY UD-1 Summons with Notice" },
   { state: "ny", form: "complaint", label: "NY Verified Complaint (Action for Divorce)" },
+  // 2026-11-02 — served with the summons (DRL § 236(B)(2)(b); 22 NYCRR 202.16(a); DRL § 236(B)(6))
+  { state: "ny", form: "automatic_orders", label: "NY Notice of Automatic Orders" },
+  { state: "ny", form: "guideline_maintenance", label: "NY Notice of Guideline Maintenance" },
+  { state: "ny", form: "ud3", label: "NY UD-3 Affidavit of Service" },
   // Phase 2 — the uncontested packet + the parties' agreement
   { state: "ny", form: "stipulation", label: "NY Stipulation of Settlement" },
   { state: "ny", form: "ud5", label: "NY UD-5 Affirmation of Regularity" },
@@ -20,6 +24,10 @@ export const ALLOWED_RENDERS = [
   { state: "ny", form: "ud11", label: "NY UD-11 Judgment of Divorce" },
   { state: "ny", form: "ud12", label: "NY UD-12 Part 130 Certification" },
   { state: "ny", form: "ud4", label: "NY UD-4 Barriers to Remarriage (religious ceremony only)" },
+  // 2026-11-02 — the child-support family (children only)
+  { state: "ny", form: "ud8", label: "NY UD-8 Child Support Worksheet" },
+  { state: "ny", form: "ud8a", label: "NY UD-8a Support Collection Unit Information Sheet" },
+  { state: "ny", form: "ud8b", label: "NY UD-8b Qualified Medical Child Support Order" },
   // Phase 3 — finalization (post-judgment; firm-side service of the JOD)
   { state: "ny", form: "ud14", label: "NY UD-14 Notice of Entry" },
   { state: "ny", form: "ud15", label: "NY UD-15 Affirmation of Service by Mail" },

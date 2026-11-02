@@ -6,6 +6,9 @@ import { ud6, ud7 } from "./affidavits";
 import { ud14, ud15 } from "./finalization";
 import { ud10, ud11 } from "./judgment";
 import { stipulation } from "./stipulation";
+import { ud3 } from "./service";
+import { automaticOrders, guidelineMaintenance } from "./notices";
+import { ud8, ud8a, ud8b } from "./support";
 
 /** NY generators, keyed by the ALLOWED_RENDERS form name. */
 export const NY_FORMS: Record<string, (p: WordPayload) => WordForm> = {
@@ -22,4 +25,11 @@ export const NY_FORMS: Record<string, (p: WordPayload) => WordForm> = {
   ud10,
   ud11,
   stipulation,
+  // 2026-11-02 — the packet gap, session one
+  ud3,
+  automatic_orders: automaticOrders,
+  guideline_maintenance: guidelineMaintenance,
+  ud8,
+  ud8a,
+  ud8b,
 };

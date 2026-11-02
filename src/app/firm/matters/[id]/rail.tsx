@@ -48,11 +48,13 @@ const PHASE_FORMS_BY_STATE: Record<
   { phase: 1 | 2 | 3; title: string; forms: string[] }[]
 > = {
   ny: [
-    { phase: 1, title: "Phase 1 · Commencement", forms: ["ud1", "complaint"] },
+    // 2026-11-02: the notices served with the summons and UD-3 join phase 1;
+    // the UD-8 family joins phase 2 (children only — the render refuses otherwise).
+    { phase: 1, title: "Phase 1 · Commencement", forms: ["ud1", "complaint", "automatic_orders", "guideline_maintenance", "ud3"] },
     {
       phase: 2,
       title: "Phase 2 · Settlement packet",
-      forms: ["stipulation", "ud5", "ud6", "ud7", "ud9", "ud10", "ud11", "ud12", "ud4"],
+      forms: ["stipulation", "ud5", "ud6", "ud7", "ud8", "ud8a", "ud8b", "ud9", "ud10", "ud11", "ud12", "ud4"],
     },
     { phase: 3, title: "Phase 3 · Finalization", forms: ["ud14", "ud15"] },
   ],

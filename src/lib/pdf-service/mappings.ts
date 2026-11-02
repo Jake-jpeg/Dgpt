@@ -560,13 +560,106 @@ const NJ_CAPTION_ONLY_FORMS = [
 ];
 
 /** Dispatch strictly by the allowlisted (state, form) pair. */
+/**
+ * THE SECOND SPOUSE'S FACTS (2026-11-02). Party B is asked the facts the
+ * papers need about the defendant and the terms. For a defendant-facing
+ * field, B's own answer wins over A's "as best you know" when B answered.
+ * Where BOTH answered and they disagree, the engine does NOT pick: the
+ * field is left blank and a review flag is printed on the form and audited
+ * — the comparison report has already shown the attorney the mismatch.
+ *
+ * Note the perspective flip: in B's answer set, "Your annual gross income"
+ * (ny.settlement.plaintiff_income) is B's income, and "the other party's"
+ * (defendant_income) is A's.
+ */
+export interface DefendantFacts {
+  defendantAddress: string;
+  defendantDob: string;
+  defendantIncome: string;
+  reviewFlags: string[];
+}
+
+export function defendantFacts(answersA: AnswerMap, answersB: AnswerMap | null | undefined): DefendantFacts {
+  const flags: string[] = [];
+  const pick = (label: string, a: string, b: string): string => {
+    if (!b) return a;
+    if (!a) return b;
+    if (normalize(a) === normalize(b)) return b;
+    flags.push(`${label}: the two spouses gave different answers (A: "${a}" / B: "${b}") — left blank for the attorney`);
+    return "";
+  };
+  const B = answersB ?? {};
+  return {
+    defendantAddress: pick("Defendant's address", combinedAddress(answersA["shared.identity.other_address"]), combinedAddress(B["shared.identity.client_address"])),
+    defendantDob: pick("Defendant's date of birth", str(answersA["shared.identity.other_dob"]), str(B["shared.identity.client_dob"])),
+    defendantIncome: pick("Defendant's income", str(answersA["ny.settlement.defendant_income"]), str(B["ny.settlement.plaintiff_income"])),
+    reviewFlags: flags,
+  };
+}
+
+function normalize(v: string): string {
+  return v.toLowerCase().replace(/[^a-z0-9가-힣]+/g, "");
+}
+
+/** Children's facts for the UD-8 family — A's records, B's custodial statement checked against A's. */
+export function buildNyChildSupportPayload(form: string, matter: MatterRow, answers: AnswerMap, answersB?: AnswerMap | null): RenderPayload {
+  const kids = childRows(answers);
+  if (kids.length === 0) {
+    throw new Error("VALIDATION: the UD-8 family applies only where there are children of the marriage");
+  }
+  const d = defendantFacts(answers, answersB);
+  const cpA = str(answers["ny.settlement.custodial_parent"]).toUpperCase(); // from A's seat: ME = plaintiff
+  const cpB = str(answersB?.["ny.settlement.custodial_parent"] ?? "").toUpperCase(); // from B's seat: ME = defendant
+  const asParty = (v: string, me: "plaintiff" | "defendant") => (v === "ME" ? me : v === "OTHER" ? (me === "plaintiff" ? "defendant" : "plaintiff") : v === "SHARED" ? "shared" : "");
+  const fromA = asParty(cpA, "plaintiff");
+  const fromB = asParty(cpB, "defendant");
+  let custodialParty = fromA || fromB;
+  if (fromA && fromB && fromA !== fromB) {
+    custodialParty = "";
+    d.reviewFlags.push(`Custodial parent: the two spouses disagree (A says ${fromA}, B says ${fromB}) — Plaintiff assumed on the worksheet; ATTORNEY DETERMINATION`);
+  }
+  const termsA = str(answers["ny.settlement.child_support_terms"]);
+  const termsB = str(answersB?.["ny.settlement.child_support_terms"] ?? "");
+  const payload: RenderPayload = {
+    ...captionFields(answers),
+    plaintiffAddress: combinedAddress(answers["shared.identity.client_address"]),
+    defendantAddress: d.defendantAddress,
+    plaintiffDob: str(answers["shared.identity.client_dob"]),
+    defendantDob: d.defendantDob,
+    plaintiffIncome: str(answers["ny.settlement.plaintiff_income"]),
+    defendantIncome: d.defendantIncome,
+    custodialParty,
+    childSupportTerms: termsB && termsA && normalize(termsA) !== normalize(termsB) ? `${termsA} — [B says: ${termsB}]` : termsA || termsB,
+    childrenInsurance: str(answers["shared.children.insurance"]),
+    // RenderPayload is strings only (fingerprinted, audited): records travel as JSON.
+    childrenJson: JSON.stringify(kids.map((k) => ({ name: str(k.name), dateOfBirth: pleadingDate(str(k.dateOfBirth)) }))),
+    reviewFlags: "",
+  };
+  required(payload, ["plaintiffName", "defendantName", "county", "plaintiffIncome"]);
+  if (form === "ud8" && !payload.defendantIncome) {
+    d.reviewFlags.push("Defendant's income is not on file — the worksheet computes with $0 for the defendant; ATTORNEY VERIFY");
+  }
+  payload.reviewFlags = d.reviewFlags.join("\n");
+  return payload;
+}
+
 export function buildRenderPayload(
   state: string,
   form: string,
   matter: MatterRow,
-  answers: AnswerMap
+  answers: AnswerMap,
+  /** The second spouse's answers (2026-11-02) — defendant-facing fields prefer B's own statement. */
+  answersB?: AnswerMap | null
 ): RenderPayload {
   if (state === "ny" && form === "ud1") return buildNyUd1Payload(matter, answers);
+  if (state === "ny" && ["automatic_orders", "guideline_maintenance"].includes(form)) {
+    return packetPayload(answers, {}, ["plaintiffName", "defendantName", "county"]);
+  }
+  if (state === "ny" && form === "ud3") {
+    const d = defendantFacts(answers, answersB);
+    return packetPayload(answers, { defendantAddress: d.defendantAddress, reviewFlags: d.reviewFlags.join("\n") }, ["plaintiffName", "defendantName", "county"]);
+  }
+  if (state === "ny" && ["ud8", "ud8a", "ud8b"].includes(form)) return buildNyChildSupportPayload(form, matter, answers, answersB);
   if (state === "ny" && form === "complaint") return buildNyComplaintPayload(matter, answers);
   if (state === "ny" && form === "stipulation") return buildNyStipulationPayload(matter, answers);
   if (state === "ny" && ["ud4", "ud5", "ud6", "ud7", "ud9", "ud10", "ud11", "ud12"].includes(form)) {
