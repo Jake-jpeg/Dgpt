@@ -34,6 +34,20 @@ export function inquiryEmail(): string {
  *    statement rather than render a placeholder.
  */
 
+/**
+ * The software company (2026-11-02): DivorceGPT is made by June Guided
+ * Solutions LLC, which is not a law firm and provides no legal services. The
+ * law firm of record is a separate business (src/lib/db/firms.ts).
+ */
+export function softwareCompanyName(): string {
+  return process.env.NEXT_PUBLIC_SOFTWARE_COMPANY || "June Guided Solutions LLC";
+}
+
+/** The sentence every public page carries about who does what. */
+export function entitySplitNotice(firmName = operatingFirmName()): string {
+  return `DivorceGPT is software made by ${softwareCompanyName()}. ${softwareCompanyName()} is not a law firm and does not provide legal services. Legal services are provided by ${firmName}, an independent law firm, under its own written engagement agreement.`;
+}
+
 /** Client-facing legal-services provider — always the operating firm. */
 export function legalServicesProvider(): string {
   return operatingFirmName();

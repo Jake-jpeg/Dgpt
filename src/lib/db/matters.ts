@@ -47,6 +47,8 @@ export const SCREEN_STATUSES = [
 
 export type ScreenStatus = (typeof SCREEN_STATUSES)[number];
 
+export type EngagementTier = "REVIEW" | "REVIEW_AND_FILE";
+
 export interface MatterRow {
   id: string;
   label: string;
@@ -71,6 +73,10 @@ export interface MatterRow {
   intakeSchemaVersion: string | null;
   /** 1 commencement | 2 settlement | 3 finalization — attorney-advanced. */
   intakePhase: number;
+  /** The law firm of record (2026-11-02). null on legacy rows = the default firm. */
+  firmId: string | null;
+  /** REVIEW (the firm reviews; the client files) | REVIEW_AND_FILE (the firm is counsel of record). */
+  engagementTier: EngagementTier;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -79,6 +85,8 @@ export interface MatterRow {
 
 function rowToMatter(r: Record<string, unknown>): MatterRow {
   return {
+    firmId: (r.firm_id as string | null) ?? null,
+    engagementTier: r.engagement_tier === "REVIEW_AND_FILE" ? "REVIEW_AND_FILE" : "REVIEW",
     id: r.id as string,
     label: r.label as string,
     lifecycle: r.lifecycle as MatterLifecycle,
@@ -113,17 +121,22 @@ export async function createMatter(opts: {
    *  is recorded as the CANDIDATE only — confirming jurisdiction remains an
    *  attorney act (attorneySetJurisdictionAndScope guards that). */
   jurisdictionCandidate?: "NY" | "NJ";
+  /** The firm of record and its tier (2026-11-02); default firm / REVIEW when omitted. */
+  firmId?: string | null;
+  engagementTier?: EngagementTier;
 }): Promise<MatterRow> {
   const db = getDb();
   const id = newId();
   const t = nowIso();
   await db.run(
-    `INSERT INTO matter (id, label, created_by, jurisdiction_candidate, created_at, updated_at, last_activity_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO matter (id, label, created_by, jurisdiction_candidate, firm_id, engagement_tier, created_at, updated_at, last_activity_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     opts.label,
     opts.createdBy,
     opts.jurisdictionCandidate ?? null,
+    opts.firmId ?? null,
+    opts.engagementTier ?? "REVIEW",
     t,
     t,
     t
@@ -232,6 +245,20 @@ export async function hasMatterGrant(matterId: string, userId: string): Promise<
  * access to matter content by role (least privilege); an admin who also
  * works matters receives explicit grants.
  */
+/** The platform's seeded default firm id (src/lib/db/firms.ts). */
+export const DEFAULT_FIRM_ID = "firm_default";
+
+export function sameFirm(userFirmId: string | null, matterFirmId: string | null): boolean {
+  if (!userFirmId) return true; // platform-level user
+  return (matterFirmId ?? DEFAULT_FIRM_ID) === userFirmId;
+}
+
+/** Matters a firm-side user may list: their firm's (or all, for a platform-level user). */
+export async function listMattersForFirmUser(user: UserRow): Promise<MatterRow[]> {
+  const all = await listAllMatters();
+  return all.filter((m) => sameFirm(user.firmId, m.firmId));
+}
+
 export async function canAccessMatter(user: UserRow, matter: MatterRow): Promise<boolean> {
   if (!user.active) return false;
   switch (user.role) {
@@ -248,14 +275,12 @@ export async function canAccessMatter(user: UserRow, matter: MatterRow): Promise
     }
     case "STAFF":
     case "ATTORNEY":
-      // Firm-wide (2026-07-21 directive, solo/small-firm model): any active
-      // firm member sees and can work EVERY matter, so a client who
-      // self-signs-up is visible to the lawyer without an invitation or
-      // per-matter grant. The attorney-only STRUCTURAL guards (conflict
-      // CLEARED/DECLINED, jurisdiction/scope, document approval/release) are
-      // enforced separately by role re-reads at the persistence layer and are
-      // NOT affected by this visibility rule.
-      return true;
+      // Firm-wide within ONE firm (2026-07-21 solo model, scoped 2026-11-02
+      // to the firm of record): any active member of the matter's firm sees
+      // and can work every matter of that firm. A user with no firm
+      // (legacy / platform-level) sees every firm's matters. A matter with no
+      // firm is the default firm's. Another firm's matter is a 404.
+      return sameFirm(user.firmId, matter.firmId);
     case "ADMIN":
       // Admin keeps the least-privilege management view (labels + status);
       // working a matter still requires an explicit grant.

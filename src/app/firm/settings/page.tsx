@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Shell, useMe, StatusBadge, ErrorNotice } from "@/components/shell";
 import { api, fmtWhen } from "@/lib/ui/client-api";
+import { FirmPanel } from "./firm-panel";
 
 interface AdminUser {
   id: string;
@@ -125,6 +126,8 @@ export default function PracticeSettingsPage() {
 
       {isAdmin && (
         <>
+          <FirmPanel canEdit={role === "ATTORNEY" || role === "ADMIN"} onInfo={setInfo} onError={setErr} />
+
           <div className="panel">
             <h2>Users &amp; roles</h2>
             <p className="panel-sub">

@@ -184,6 +184,31 @@ CREATE INDEX IF NOT EXISTS idx_matter_lifecycle ON matter(lifecycle);
 -- the spouse A invites. user_id is NULL until that person has signed in and
 -- accepted. Answers and intake sessions are keyed by party; a party never
 -- reads the other's answers. One row per role per matter.
+-- The law firm of record (2026-11-02, the software-company / law-firm
+-- structure): June Guided Solutions makes the software; a FIRM engages the
+-- client under its own retainer, reviews, and (if its tier allows) files.
+-- One row per firm on the platform; every matter and every firm-side user
+-- belongs to exactly one. The default firm is seeded from the operating-firm
+-- env on boot (src/lib/db/firms.ts). Fees are the FIRM's — the platform
+-- displays them and takes no payment.
+CREATE TABLE IF NOT EXISTS firm (
+  id                 TEXT PRIMARY KEY,
+  name               TEXT NOT NULL,               -- as shown to clients
+  legal_name         TEXT NOT NULL DEFAULT '',    -- as it appears on retainers/papers
+  jurisdictions      TEXT NOT NULL DEFAULT 'NY',  -- comma-separated
+  default_tier       TEXT NOT NULL DEFAULT 'REVIEW'
+                     CHECK (default_tier IN ('REVIEW','REVIEW_AND_FILE')),
+  review_fee         INTEGER NOT NULL DEFAULT 1000,
+  file_base_fee      INTEGER NOT NULL DEFAULT 1500,
+  file_children_fee  INTEGER NOT NULL DEFAULT 750,
+  file_assets_fee    INTEGER NOT NULL DEFAULT 750,
+  offers_filing      INTEGER NOT NULL DEFAULT 0,  -- 1 = the Review-and-file tier is available
+  successor_firm_id  TEXT,                        -- named in the retainer; one-action transfer
+  status             TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','INACTIVE')),
+  created_at         TEXT NOT NULL,
+  updated_at         TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS matter_party (
   id            TEXT PRIMARY KEY,
   matter_id     TEXT NOT NULL REFERENCES matter(id) ON DELETE CASCADE,
@@ -538,6 +563,9 @@ const MIGRATIONS = [
   `CREATE INDEX IF NOT EXISTS idx_start_draft_visitor ON start_draft(visitor_id)`,
   `ALTER TABLE intake_session ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,
   `ALTER TABLE invitation ADD COLUMN party_id TEXT`,
+  `ALTER TABLE app_user ADD COLUMN firm_id TEXT`,
+  `ALTER TABLE matter ADD COLUMN firm_id TEXT`,
+  `ALTER TABLE matter ADD COLUMN engagement_tier TEXT NOT NULL DEFAULT 'REVIEW'`,
   `ALTER TABLE matter_party ADD COLUMN notice_ack_at TEXT`,
   `ALTER TABLE matter_party ADD COLUMN notice_ack_version TEXT`,
   `ALTER TABLE matter_intake_answer ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,

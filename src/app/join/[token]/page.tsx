@@ -73,7 +73,7 @@ export default function JoinPage() {
     <Shell>
       <div className="june">
         <h1 className="mb-1 text-2xl font-bold tracking-tight">You&apos;ve been invited</h1>
-        <p className="panel-sub">DivorceGPT is a service of {firm}.</p>
+        <p className="panel-sub">DivorceGPT is software; the law firm is {firm}, an independent firm.</p>
         <ErrorNotice message={err} />
 
         {preview && preview.state !== "OPEN" && (

@@ -25,6 +25,8 @@ export interface UserRow {
   name: string;
   role: UserRole;
   active: boolean;
+  /** Firm-side users belong to a firm (2026-11-02). null = platform-level (legacy) — sees every firm's matters. */
+  firmId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,9 +39,14 @@ function rowToUser(r: Record<string, unknown>): UserRow {
     name: (r.name as string) ?? "",
     role: r.role as UserRole,
     active: r.active === 1,
+    firmId: (r.firm_id as string | null) ?? null,
     createdAt: r.created_at as string,
     updatedAt: r.updated_at as string,
   };
+}
+
+export async function setUserFirm(userId: string, firmId: string | null): Promise<void> {
+  await getDb().run(`UPDATE app_user SET firm_id = ?, updated_at = ? WHERE id = ?`, firmId, nowIso(), userId);
 }
 
 export async function getUserBySubject(subject: string): Promise<UserRow | null> {

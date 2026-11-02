@@ -107,7 +107,7 @@ export default function PortalEntry() {
           <br />
           <span className="door-h1-soft">{t.headline2}</span>
         </h1>
-        <p className="door-copy">{t.sub}</p>
+        <p className="door-copy">{t.sub(firm)}</p>
         <div className="door-actions" ref={ctaRef}>
           <button className="button button-primary door-cta" onClick={() => router.push("/start")}>
             <ProviderIcon kind="june" />

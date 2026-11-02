@@ -17,49 +17,56 @@
  * Words that must never appear in anything a spouse reads are grep-guarded
  * by tests (see FORBIDDEN_CLIENT_WORDS in june-copy.ts).
  */
-import { quoteFor, formatUsd } from "./pricing";
+import { feePhrase } from "./pricing";
+import { softwareCompanyName } from "./branding";
 
 export type Lang = "en" | "ko";
 
-const FEE_LO = formatUsd(quoteFor({ children: false, assets: false }).total);
-const FEE_HI = formatUsd(quoteFor({ children: true, assets: true }).total);
+const FEE = feePhrase();
+const FEE_LO = FEE.lo;
+const FEE_HI = FEE.hi;
+const FEE_RANGE_EN = FEE.flat ? `Flat fee ${FEE_LO}` : `Flat fee ${FEE_LO}–${FEE_HI}, depending on children and assets`;
+const FEE_RANGE_KO = FEE.flat ? `정액 수임료 ${FEE_LO}` : `정액 수임료 ${FEE_LO}–${FEE_HI} (자녀 및 재산 유무에 따라 결정)`;
+const SOFTWARE = softwareCompanyName();
 
 /* ── Hero ────────────────────────────────────────────────────────────── */
 
 export const HERO = {
   en: {
     eyebrow: (firm: string) => `${firm} · New York`,
-    headline1: "An uncontested New York divorce, handled by a lawyer.",
+    headline1: "An uncontested New York divorce, reviewed by a lawyer.",
     headline2: "Get started in three minutes.",
-    sub: `For New York couples who already agree. One spouse retains Jake Kim Law Firm; the attorney prepares the agreement and divorce papers, files them, and sees the case through to judgment. The other spouse signs in separately to confirm the terms — and is free to have their own attorney review everything. Flat fee from ${FEE_LO}, plus court filing fees.`,
+    sub: (firm: string) =>
+      `For New York couples who already agree. The software prepares your papers from what you both tell it; one spouse retains ${firm}, an independent law firm, whose attorney reviews everything, meets you both, and hands you a finished set to file. The other spouse signs in separately to confirm the terms — and is free to have their own attorney review everything. ${FEE.flat ? `Flat ${FEE_LO}` : `From ${FEE_LO}`}, plus court filing fees.`,
     cta: "Start with June",
-    ctaNote: "June is an automated assistant that facilitates intake. June is not a lawyer and does not give legal advice.",
+    ctaNote: `June is an automated assistant made by ${SOFTWARE}, which is not a law firm. June is not a lawyer and does not give legal advice.`,
     haveCase: "I already have a case",
     // NJ RPC 7.1(a)(4)(v) / NY RPC 7.1: a fee RANGE must say what the fee depends on.
-    meta: [`New York`, `English · 한국어`, `Attorney-reviewed`, `Flat fee ${FEE_LO}–${FEE_HI}, depending on children and assets`],
+    meta: [`New York`, `English · 한국어`, `Attorney-reviewed`, FEE_RANGE_EN],
     howTitle: "How it works",
     how: [
       ["Meet June", "An automated assistant takes eight quick details and tells you your exact fee."],
       ["Our client completes the interview", "The other spouse signs in separately and confirms the terms — without seeing the client's answers."],
-      ["The attorney compares and meets you both", "A one-hour video meeting before anything is drafted."],
-      ["Prepared and filed by the firm", "Through to the judgment of divorce."],
+      ["The attorney compares and meets you both", "A one-hour video meeting; the attorney corrects the papers."],
+      ["You file the finished papers", "At the County Clerk or through NYSCEF — the firm shows you exactly how."],
     ] as [string, string][],
   },
   ko: {
     eyebrow: (firm: string) => `${firm} · 뉴욕`,
-    headline1: "변호사가 진행하는 뉴욕 합의 이혼.",
+    headline1: "변호사가 검토하는 뉴욕 합의 이혼.",
     headline2: "3분이면 시작할 수 있습니다.",
-    sub: `이미 모든 사항에 합의하신 뉴욕 부부를 위한 서비스입니다. 배우자 한 분이 Jake Kim Law Firm을 선임하면, 변호사가 합의서와 이혼 서류를 작성하고 법원에 제출하여 판결까지 진행합니다. 다른 배우자는 별도로 로그인하여 합의 내용을 확인하며, 본인의 변호사에게 모든 내용을 검토받으실 수 있습니다. 정액 수임료 ${FEE_LO}부터, 법원 접수 비용 별도.`,
+    sub: (firm: string) =>
+      `이미 모든 사항에 합의하신 뉴욕 부부를 위한 서비스입니다. 소프트웨어가 두 분이 입력한 내용으로 서류를 준비하고, 배우자 한 분이 독립 로펌인 ${firm}을 선임하면 그 변호사가 모든 내용을 검토하고 두 분을 만난 뒤 완성된 서류를 드립니다 — 제출은 직접 하십니다. 다른 배우자는 별도로 로그인하여 합의 내용을 확인하며, 본인의 변호사에게 모든 내용을 검토받으실 수 있습니다. ${FEE.flat ? `정액 ${FEE_LO}` : `${FEE_LO}부터`}, 법원 접수 비용 별도.`,
     cta: "June과 시작하기",
-    ctaNote: "June은 접수 절차를 돕는 자동화된 도우미입니다. June은 변호사가 아니며 법률 자문을 제공하지 않습니다.",
+    ctaNote: `June은 로펌이 아닌 ${SOFTWARE}가 만든 자동화된 도우미입니다. June은 변호사가 아니며 법률 자문을 제공하지 않습니다.`,
     haveCase: "이미 사건이 있습니다",
-    meta: [`뉴욕`, `English · 한국어`, `변호사 검토`, `정액 수임료 ${FEE_LO}–${FEE_HI} (자녀 및 재산 유무에 따라 결정)`],
+    meta: [`뉴욕`, `English · 한국어`, `변호사 검토`, FEE_RANGE_KO],
     howTitle: "진행 방법",
     how: [
       ["June과 대화", "자동화된 도우미가 여덟 가지 간단한 정보를 받고 정확한 수임료를 안내합니다."],
       ["의뢰인이 질문지를 작성합니다", "다른 배우자는 별도로 로그인하여 의뢰인의 답변을 보지 않고 합의 내용을 확인합니다."],
-      ["변호사가 비교하고 두 분을 만납니다", "서류 작성 전에 1시간 화상 미팅을 진행합니다."],
-      ["로펌이 작성하고 제출합니다", "이혼 판결까지 진행합니다."],
+      ["변호사가 비교하고 두 분을 만납니다", "1시간 화상 미팅 후 변호사가 서류를 수정합니다."],
+      ["완성된 서류를 직접 제출합니다", "County Clerk 또는 NYSCEF로 — 방법은 로펌이 정확히 안내합니다."],
     ] as [string, string][],
   },
 } as const;
@@ -78,8 +85,8 @@ export const faqFor = (firm: string): Record<Lang, { title: string; items: Faq[]
     // one on the two sign-ins, instead of six overlapping ones.
     items: [
       {
-        q: "Who is the client?",
-        a: `The spouse who retains the firm. ${firm} represents that spouse only, prepares and files the papers for them, and does not represent or advise the other spouse — who is free to have any attorney of their choosing review the agreement before signing.`,
+        q: "Who makes this, and who is my lawyer?",
+        a: `DivorceGPT is software made by ${SOFTWARE}, which is not a law firm and gives no legal advice. Your lawyer is ${firm}, an independent law firm that you retain under its own written agreement. The firm represents the spouse who retains it only; it does not represent or advise the other spouse — who is free to have any attorney of their choosing review the agreement before signing.`,
       },
       {
         q: "Why two sign-ins?",
@@ -94,8 +101,8 @@ export const faqFor = (firm: string): Record<Lang, { title: string; items: Faq[]
         // workshop when custody/parenting time is sought (njcourts.gov
         // self-help/divorce); NY $335 = index number $210 + RJI $95 + note of
         // issue $30 (CPLR 8018, 8020). [ATTORNEY VERIFY before launch — fees change.]
-        q: "What does the flat fee cover — and what doesn't it?",
-        a: "Preparing the agreement and divorce papers, attorney review, filing, and obtaining the judgment. New York court filing fees are separate — currently about $335 (index number, RJI and note of issue).",
+        q: "What does the fee cover — and what doesn't it?",
+        a: `${FEE.flat ? `The firm's flat ${FEE_LO} covers` : `The firm's fee covers`} the attorney's review of the papers the software prepared, the corrections, the one-hour meeting with both of you, and a finished, signable set. You file it yourself — at the County Clerk or through NYSCEF — and the firm shows you exactly how. New York court filing fees are separate, paid directly to the court — currently about $335 (index number, RJI and note of issue).`,
       },
       {
         q: "We're in New Jersey — can you help?",
@@ -111,8 +118,8 @@ export const faqFor = (firm: string): Record<Lang, { title: string; items: Faq[]
     title: "자주 묻는 질문",
     items: [
       {
-        q: "의뢰인은 누구인가요?",
-        a: `로펌을 선임한 배우자입니다. ${firm}은 그 배우자만을 대리하여 서류를 작성하고 법원에 제출하며, 다른 배우자를 대리하거나 자문하지 않습니다. 다른 배우자는 서명 전에 원하시는 변호사에게 합의서 검토를 받으실 수 있습니다.`,
+        q: "누가 만든 서비스이고, 제 변호사는 누구인가요?",
+        a: `DivorceGPT는 로펌이 아닌 ${SOFTWARE}가 만든 소프트웨어이며 법률 자문을 제공하지 않습니다. 귀하의 변호사는 별도의 서면 계약으로 선임하시는 독립 로펌 ${firm}입니다. 로펌은 선임한 배우자만을 대리하며 다른 배우자를 대리하거나 자문하지 않습니다. 다른 배우자는 서명 전에 원하시는 변호사에게 합의서 검토를 받으실 수 있습니다.`,
       },
       {
         q: "왜 두 사람이 따로 로그인하나요?",
@@ -123,8 +130,8 @@ export const faqFor = (firm: string): Record<Lang, { title: string; items: Faq[]
         a: "재산, 채무, 부양비, 그리고 자녀가 있는 경우 양육권과 면접교섭 등 모든 사항에 대해 두 분이 이미 합의하신 경우입니다. 한 가지라도 다툼이 있다면 이 서비스는 적합하지 않으며, 변호사가 의뢰인과 다른 방법을 상의합니다.",
       },
       {
-        q: "정액 수임료에 포함되는 것과 포함되지 않는 것은?",
-        a: "합의서 및 이혼 서류 작성, 변호사 검토, 법원 제출, 그리고 판결(judgment) 취득이 포함됩니다. 뉴욕 법원 접수 비용은 별도이며 현재 약 $335입니다 (index number, RJI, note of issue).",
+        q: "수임료에 포함되는 것과 포함되지 않는 것은?",
+        a: `로펌의 ${FEE.flat ? `정액 ${FEE_LO}` : "수임료"}에는 소프트웨어가 준비한 서류에 대한 변호사 검토, 수정, 두 분과의 1시간 미팅, 그리고 서명 가능한 완성본이 포함됩니다. 제출은 County Clerk 또는 NYSCEF를 통해 직접 하시며, 방법은 로펌이 정확히 안내합니다. 뉴욕 법원 접수 비용은 별도로 법원에 직접 납부하며 현재 약 $335입니다 (index number, RJI, note of issue).`,
       },
       {
         q: "뉴저지에 살고 있는데 도움을 받을 수 있나요?",

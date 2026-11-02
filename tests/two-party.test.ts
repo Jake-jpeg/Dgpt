@@ -84,9 +84,11 @@ async function startCase(): Promise<{ matterId: string; inviteUrl: string; token
 }
 
 describe("June → the first spouse's case", () => {
-  it("the quote is the configured flat fee", () => {
-    expect(quoteFor({ children: false, assets: false }).total).toBe(1500);
-    expect(quoteFor({ children: true, assets: true }).total).toBe(3000);
+  it("the quote is the configured flat fee — Review tier by default (2026-11-02), the filing schedule only when asked for", () => {
+    expect(quoteFor({ children: false, assets: false }).total).toBe(1000);
+    expect(quoteFor({ children: true, assets: true }).total).toBe(1000);
+    expect(quoteFor({ children: false, assets: false, tier: "REVIEW_AND_FILE" }).total).toBe(1500);
+    expect(quoteFor({ children: true, assets: true, tier: "REVIEW_AND_FILE" }).total).toBe(3000);
   });
 
   it("a draft is parked by email; finishing creates a matter with two seats, A as the firm's client, an open invite for B", async () => {
@@ -567,7 +569,7 @@ describe("June is a conversation, not a form (2026-10-30, second cut)", () => {
     const r3 = await POST(jsonRequest("/api/start/turn", { body: { message: "yes, I understand" }, cookie: vcookie }));
     const b3 = (await r3.json()) as { complete: boolean; quote: { total: number } };
     expect(b3.complete).toBe(true);
-    expect(b3.quote.total).toBe(2250);
+    expect(b3.quote.total).toBe(1000); // Review tier: flat, whatever the children/assets answers
     expect((await pendingStartDraftFor(SYNTH_CLIENT.email))?.draft.spouseEmail).toBe(SPOUSE_B_EMAIL);
   });
 

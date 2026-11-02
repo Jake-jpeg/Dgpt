@@ -14,9 +14,12 @@ import {
   createMatter,
   grantMatterAccess,
   listAllMatters,
+  listMattersForFirmUser,
   listMattersForClient,
+  DEFAULT_FIRM_ID,
   type MatterRow,
 } from "@/lib/db/matters";
+import { getFirm } from "@/lib/db/firms";
 import { recordAudit, listSessionsByMatter } from "@/lib/db/repo";
 import { getUserById } from "@/lib/db/users";
 import { listDocumentsForMatter, listVersions } from "@/lib/db/documents";
@@ -73,10 +76,10 @@ export async function GET(req: Request) {
       matters = (await listAllMatters());
       return Response.json({ matters: matters.map(matterSummary) });
     } else {
-      // STAFF / ATTORNEY: firm-wide working list — every matter, including
-      // ones a client just self-opened, so the lawyer sees every client by
-      // identity (name + email) with no invitation step.
-      matters = (await listAllMatters());
+      // STAFF / ATTORNEY: firm-wide working list — every matter OF THEIR
+      // FIRM (2026-11-02), including ones a client just self-opened, so the
+      // lawyer sees every client by identity with no invitation step.
+      matters = (await listMattersForFirmUser(account));
       return Response.json({ matters: await Promise.all((await matters.map(firmMatterRow))) });
     }
   } catch (e) {
@@ -102,10 +105,14 @@ export async function POST(req: Request) {
     // The state picker (2026-08): NY or NJ, chosen per matter at creation.
     // Default NY — every pre-picker caller keeps its exact old behavior.
     const jurisdiction = parsed.data.jurisdiction ?? "NY";
+    // The creator's firm is the firm of record (platform-level creator → the default firm).
+    const firm = await getFirm(account.firmId ?? DEFAULT_FIRM_ID);
     const matter = (await createMatter({
       label: parsed.data.label,
       createdBy: account.id,
       jurisdictionCandidate: jurisdiction,
+      firmId: firm?.id ?? DEFAULT_FIRM_ID,
+      engagementTier: firm?.defaultTier ?? "REVIEW",
     }));
     // The creator works this matter: grant access at creation.
     (await grantMatterAccess(matter.id, account.id, account.id));

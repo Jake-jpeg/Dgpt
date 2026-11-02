@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { api } from "@/lib/ui/client-api";
-import { nonAffiliationNotice, operatingFirmName } from "@/config/branding";
+import { nonAffiliationNotice, operatingFirmName, entitySplitNotice } from "@/config/branding";
 import { FOOTER, firmAddressLine, firmPhoneLine } from "@/config/door-copy";
 
 export interface Me {
@@ -209,10 +209,8 @@ export function Shell({
           <strong>{FOOTER.en.attorneyAdvertising}</strong> · {FIRM_NAME} · {firmAddressLine()} · {firmPhoneLine()}
         </p>
         <p>
-          DivorceGPT is workflow software used by {FIRM_NAME}. It does not
-          provide legal advice; legal services are provided by the firm and
-          its attorneys. If something is urgent, contact the firm directly —
-          do not rely on this portal alone.
+          {entitySplitNotice(FIRM_NAME)} If something is urgent, contact the firm directly — do not rely on this
+          portal alone.
         </p>
         <p>
           Using this site or speaking with June does not create an attorney-client relationship. Portal access does

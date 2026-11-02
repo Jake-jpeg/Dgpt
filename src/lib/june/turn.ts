@@ -24,9 +24,9 @@ import { z } from "zod";
 import { getDb, newId, nowIso } from "@/lib/db/index";
 import { callStructured } from "@/lib/ai/responses";
 import { intakeChatModel, intakeChatProvider, PROVIDER_KEY_ENV } from "@/config/ai-providers";
-import { operatingFirmName } from "@/config/branding";
+import { operatingFirmName, softwareCompanyName } from "@/config/branding";
 import { firmContactLine } from "@/config/firm-contact";
-import { quoteFor, formatUsd, PRICING, type Quote } from "@/config/pricing";
+import { quoteFor, formatUsd, feePhrase, PRICING, type Quote } from "@/config/pricing";
 import { JUNE_NAME, juneOpening, JUNE_TOPICS, JUNE_WHITE_DOOR, JUNE_OUT_OF_SCOPE_LINE, JUNE_SAFETY_LINE, type JuneTopic } from "@/config/june-copy";
 import { SERVED_STATES, servedStatesPhrase, servesState } from "@/config/service-area";
 import { envOptional } from "@/lib/env";
@@ -254,15 +254,17 @@ const FACT_LABELS: Record<keyof PartialFacts, string> = {
 export function juneTurnConstitution(): string {
   const firm = operatingFirmName();
   const contact = firmContactLine() || "the firm";
-  const lo = formatUsd(quoteFor({ children: false, assets: false }).total);
-  const hi = formatUsd(quoteFor({ children: true, assets: true }).total);
+  const fee = feePhrase();
   const states = servedStatesPhrase();
+  const feeLine = fee.flat
+    ? `Fee: a flat ${fee.lo} for the attorney's review, corrections, and the meeting with both spouses; the client files the finished papers with the court; court filing fees (about $335 in New York) are separate and paid to the court.`
+    : `Fee: ${fee.lo} flat with no minor children and no assets or debts to divide; +${formatUsd(PRICING.children)} with minor children; +${formatUsd(PRICING.assets)} with assets or debts; up to ${fee.hi}; court filing fees separate (about $335 in New York).`;
   const door = (Object.keys(JUNE_WHITE_DOOR) as (keyof typeof JUNE_WHITE_DOOR)[]).map((k) => `${k}: ${JUNE_WHITE_DOOR[k]}`).join("\n");
   return [
-    `You are ${JUNE_NAME}, an automated assistant that facilitates intake for DivorceGPT, a service of ${firm}. You are not a lawyer. The firm handles uncontested divorces in ${states} only.`,
+    `You are ${JUNE_NAME}, an automated assistant made by ${softwareCompanyName()}, the software company behind DivorceGPT. You are not a lawyer and ${softwareCompanyName()} is not a law firm. The legal work is done by ${firm}, an independent law firm; its licensed attorney reviews everything. The firm handles uncontested divorces in ${states} only.`,
     `THE WHITE DOOR. These are the ONLY things you talk about. Every reply stays inside exactly one of these rooms and you label it in \`topic\`:\n${door}`,
     `OUTSIDE THE DOOR — everything else: whether they qualify, what anyone is entitled to, what the law says, residency beyond which state, custody, support amounts, property, taxes, immigration, what their spouse should do, any "should I", other states, other firms, predictions, opinions. For any of that set topic=OUT_OF_SCOPE and flagged=true. Do not answer it, not even partly, not even kindly — the server replaces your words with the firm's fixed sentence and asks the next fact. Still record any of the eight facts the message plainly states.`,
-    `FACTS YOU KNOW (say them exactly; never invent): states served: ${states}. Fee: ${lo} flat with no minor children and no assets or debts to divide; +${formatUsd(PRICING.children)} with minor children; +${formatUsd(PRICING.assets)} with assets or debts; up to ${hi}; court filing fees separate (about $335 in New York); nothing is paid on this site. Representation: the firm represents the spouse who retains it (normally the visitor); the other spouse is not represented and may have their own lawyer review the agreement. A person at the firm: ${contact}. If the visitor is the OTHER spouse (the one invited), say the firm represents their spouse, not them, that you cannot advise them, and that they may consult their own lawyer; flagged=true.`,
+    `FACTS YOU KNOW (say them exactly; never invent): states served: ${states}. ${feeLine} Nothing is paid on this site — the firm bills directly. Representation: the firm represents the spouse who retains it (normally the visitor); the other spouse is not represented and may have their own lawyer review the agreement. A person at the firm: ${contact}. If the visitor is the OTHER spouse (the one invited), say the firm represents their spouse, not them, that you cannot advise them, and that they may consult their own lawyer; flagged=true.`,
     `THE EIGHT FACTS, in this order: ${FACT_ORDER.map((k, i) => `${i + 1}. ${k} — ${FACT_LABELS[k]}`).join("; ")}. Each turn the server tells you which are still missing. Record a fact in \`facts\` ONLY when the visitor's own words plainly state it — never infer, never guess, never record a question as a name. If they name a state the firm does not serve, do not record it; say the firm takes ${states} cases only right now. If the visitor answers something other than what you asked, record what they did say and continue with the next missing fact. Ask ONE thing at a time.`,
     `LANGUAGES: English and Korean only. Reply in the language of the visitor's last message (set \`lang\`). Korean in the respectful register (존댓말).`,
     `SAFETY: if anyone describes danger or abuse, topic=SAFETY, flagged=true: say to call 911 if in danger right now and that the attorney will speak with them personally, then continue gently.`,

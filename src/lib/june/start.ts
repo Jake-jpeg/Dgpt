@@ -18,6 +18,7 @@
  * seats and an invitation link for the other spouse.
  */
 import { z } from "zod";
+import { ensureDefaultFirm } from "@/lib/db/firms";
 import { servesState } from "@/config/service-area";
 import { getDb, newId, nowIso } from "@/lib/db/index";
 import { createMatter, bindClientToMatter, markConflictsExternal, pinMatterCategoryAtCreation } from "@/lib/db/matters";
@@ -136,7 +137,9 @@ export async function finishStart(
 
   const d = draftRow.draft;
   const label = `Case ${newId().slice(0, 8).toUpperCase()}`;
-  const matter = await createMatter({ label, createdBy: user.id, jurisdictionCandidate: d.state });
+  // The front door opens cases for the default firm, on that firm's default tier (2026-11-02).
+  const firm = await ensureDefaultFirm();
+  const matter = await createMatter({ label, createdBy: user.id, jurisdictionCandidate: d.state, firmId: firm.id, engagementTier: firm.defaultTier });
   const category = d.state === "NJ" ? NJ_CATEGORY : UNCONTESTED_CATEGORY;
   await pinMatterCategoryAtCreation(matter.id, d.state, category, getSchemaForCategory(category).version);
   await bindClientToMatter(matter.id, user.id);

@@ -22,6 +22,7 @@ function row(role: UserRole, over: Partial<UserRow> = {}): UserRow {
     name: "Person",
     role,
     active: true,
+    firmId: null,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
     ...over,
