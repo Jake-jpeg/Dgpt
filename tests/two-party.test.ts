@@ -398,6 +398,7 @@ describe("June is a conversation, not a form (2026-10-30, second cut)", () => {
       say: "Thanks — and what email will you sign in with?",
       lang: "en",
       facts: { yourName: null, yourEmail: null, spouseName: null, spouseEmail: null, state: null, children: null, assets: null, understood: null },
+      topic: "FACTS",
       flagged: false,
       ...over,
     };
@@ -467,6 +468,80 @@ describe("June is a conversation, not a form (2026-10-30, second cut)", () => {
     expect(b2.facts.yourName).toBe("김민수");
     expect(b2.facts.understood).toBeUndefined(); // an invalid proposal is dropped, not saved
     expect(b2.missing[0]).toBe("yourEmail");
+  });
+
+  it("THE WHITE DOOR (2026-11-01): an out-of-scope turn is replaced by the fixed sentence verbatim, flagged, and still records any fact; an unlabelled turn is treated the same", async () => {
+    const { JUNE_OUT_OF_SCOPE_LINE } = await import("@/config/june-copy");
+    const { GET, POST } = await import("@/app/api/start/turn/route");
+    freshLimits();
+    await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: vcookie }));
+    mockJune(
+      // The model "helpfully" answers a legal question — and labels it honestly.
+      juneTurnPayload({
+        say: "You'd most likely keep half the house, Casey.",
+        topic: "OUT_OF_SCOPE",
+        facts: { yourName: "Casey Syntheticperson", yourEmail: null, spouseName: null, spouseEmail: null, state: null, children: null, assets: null, understood: null },
+      }),
+      // No label at all → treated as out of scope (fail closed).
+      { say: "Sure, in New York you are entitled to equitable distribution.", lang: "en", facts: { yourName: null, yourEmail: null, spouseName: null, spouseEmail: null, state: null, children: null, assets: null, understood: null }, flagged: false },
+      juneTurnPayload({ say: "Got it. And your spouse's full name?", topic: "FACTS", facts: { yourName: null, yourEmail: SYNTH_CLIENT.email, spouseName: null, spouseEmail: null, state: null, children: null, assets: null, understood: null } })
+    );
+    freshLimits();
+    const r1 = await POST(jsonRequest("/api/start/turn", { body: { message: "I'm Casey Syntheticperson — do I get to keep the house?" }, cookie: vcookie }));
+    const b1 = (await r1.json()) as { say: string; flagged: boolean; facts: Record<string, unknown>; missing: string[] };
+    expect(b1.say.startsWith(JUNE_OUT_OF_SCOPE_LINE.en)).toBe(true); // the firm's sentence, not the model's
+    expect(b1.say).not.toMatch(/house|half/);
+    expect(b1.say).toContain("email"); // …followed by the next missing fact
+    expect(b1.flagged).toBe(true);
+    expect(b1.facts.yourName).toBe("Casey Syntheticperson"); // the fact in the same message is still recorded
+    expect(b1.missing[0]).toBe("yourEmail");
+
+    freshLimits();
+    const r2 = await POST(jsonRequest("/api/start/turn", { body: { message: "what am I entitled to?" }, cookie: vcookie }));
+    const b2 = (await r2.json()) as { say: string; flagged: boolean };
+    expect(b2.say.startsWith(JUNE_OUT_OF_SCOPE_LINE.en)).toBe(true);
+    expect(b2.say).not.toMatch(/equitable/);
+    expect(b2.flagged).toBe(true);
+
+    // The transcript the firm reads carries the fixed sentence and the flag — never the discarded words.
+    const { juneTranscript } = await import("@/lib/june/turn");
+    const t = await juneTranscript(VISITOR);
+    expect(t.some((m) => /house|equitable/.test(m.content) && m.role === "JUNE")).toBe(false);
+    expect(t.filter((m) => m.role === "SYSTEM" && /white door/.test(m.content)).length).toBe(2);
+
+    // In scope: the model's words go out as written.
+    freshLimits();
+    const r3 = await POST(jsonRequest("/api/start/turn", { body: { message: SYNTH_CLIENT.email }, cookie: vcookie }));
+    const b3 = (await r3.json()) as { say: string; flagged: boolean; missing: string[] };
+    expect(b3.say).toBe("Got it. And your spouse's full name?");
+    expect(b3.flagged).toBe(false);
+    expect(b3.missing[0]).toBe("spouseName");
+  });
+
+  it("NY ONLY (2026-11-02): a New Jersey answer is never recorded as the state — model path and scripted path alike — and a draft cannot be finished for NJ", async () => {
+    const { SERVED_STATES } = await import("@/config/service-area");
+    expect([...SERVED_STATES]).toEqual(["NY"]);
+    const { GET, POST } = await import("@/app/api/start/turn/route");
+    freshLimits();
+    await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: vcookie }));
+    mockJune(juneTurnPayload({ say: "We only take New York cases right now.", topic: "SERVICE", facts: { yourName: null, yourEmail: null, spouseName: null, spouseEmail: null, state: "NJ", children: null, assets: null, understood: null } }));
+    freshLimits();
+    const r = await POST(jsonRequest("/api/start/turn", { body: { message: "New Jersey" }, cookie: vcookie }));
+    const b = (await r.json()) as { facts: Record<string, unknown> };
+    expect(b.facts.state).toBeUndefined();
+
+    // Scripted path: same answer, same refusal, and the state question names New York.
+    delete process.env.INTAKE_CHAT_ENABLED;
+    const { scriptedTurn } = await import("@/lib/june/turn");
+    const scripted = scriptedTurn({ yourName: "A", yourEmail: "a@example.test", spouseName: "B", spouseEmail: "b@example.test" }, "New Jersey", "en");
+    expect(scripted.facts.state).toBeUndefined();
+    expect(scripted.say).toMatch(/New York cases only/);
+    expect(scriptedTurn({ yourName: "A", yourEmail: "a@example.test", spouseName: "B", spouseEmail: "b@example.test" }, "New York", "en").facts.state).toBe("NY");
+
+    // The draft route refuses NJ outright.
+    freshLimits();
+    const draft = await draftRoute(jsonRequest("/api/start/draft", { body: { ...DRAFT, state: "NJ" } }));
+    expect(draft.status).toBe(400);
   });
 
   it("the server, not the model, enforces distinct emails and 'understood' only at the end; a complete draft is what sign-in finds", async () => {

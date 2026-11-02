@@ -13,7 +13,7 @@
  * light sign-in section. No "DivorceGPT" title shouting at the top; the
  * brand lives in the header and the headline talks to the reader.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Shell, useMe, ErrorNotice, type Me } from "@/components/shell";
 import { api } from "@/lib/ui/client-api";
@@ -83,6 +83,17 @@ export default function PortalEntry() {
 
   const user = me?.user ?? null;
   const signedOut = !user && !loading && !me?.identity;
+  // Phone: once the hero's own button scrolls away, a sticky "Start with
+  // June" bar keeps the one action within thumb reach (CSS shows it ≤560px).
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const [ctaAway, setCtaAway] = useState(false);
+  useEffect(() => {
+    const el = ctaRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setCtaAway(!e.isIntersecting), { threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [signedOut]);
 
   const hero = signedOut ? (
     <div className="door-grid">
@@ -97,7 +108,7 @@ export default function PortalEntry() {
           <span className="door-h1-soft">{t.headline2}</span>
         </h1>
         <p className="door-copy">{t.sub}</p>
-        <div className="door-actions">
+        <div className="door-actions" ref={ctaRef}>
           <button className="button button-primary door-cta" onClick={() => router.push("/start")}>
             <ProviderIcon kind="june" />
             {t.cta}
@@ -138,6 +149,13 @@ export default function PortalEntry() {
   return (
     <Shell hero={hero}>
       <ErrorNotice message={err} />
+      {signedOut && ctaAway && (
+        <div className="door-sticky" role="region" aria-label={t.cta}>
+          <button className="btn btn-primary" onClick={() => router.push("/start")}>
+            {t.cta} <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      )}
 
       {user && (
         <div className="panel">

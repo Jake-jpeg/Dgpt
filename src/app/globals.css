@@ -618,6 +618,7 @@ details.accordion > summary:focus-visible { outline: 2px solid var(--blue); outl
 }
 .door-provider:hover { background: #f4f7fc; border-color: #9fb6d8; transform: translateY(-1px); }
 .door-staff { margin: 22px 0 0; text-align: center; font-size: .78rem; color: var(--muted); }
+.door-sticky { display: none; }
 .door-topline { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .door-cta-note { margin: 12px 2px 0; font-size: .8rem; color: #aebfda; }
 .door-dot { margin: 0 8px; }
@@ -685,6 +686,14 @@ footer .footer-ad { color: #3c4c63; }
   .door-card li small { display: none; }
   .door-signin { margin-top: 2px; }
   .door-h2 { font-size: 1.45rem; }
+  .door-sticky {
+    display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    padding: 10px 16px max(10px, env(safe-area-inset-bottom));
+    background: rgba(247,249,252,.92); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line);
+  }
+  .door-sticky .btn { width: 100%; padding: 14px; font-size: 1rem; border-radius: 12px; box-shadow: 0 8px 24px rgba(11,31,57,.22); }
+  .portal-main { padding-bottom: 96px; }
 
   /* June as a messaging app: header, thread, input. Nothing else. */
   /* Phone chat: the footer collapses to the one compliance line. */

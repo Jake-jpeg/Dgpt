@@ -18,6 +18,7 @@
  * seats and an invitation link for the other spouse.
  */
 import { z } from "zod";
+import { servesState } from "@/config/service-area";
 import { getDb, newId, nowIso } from "@/lib/db/index";
 import { createMatter, bindClientToMatter, markConflictsExternal, pinMatterCategoryAtCreation } from "@/lib/db/matters";
 import { createParty } from "@/lib/db/parties";
@@ -37,7 +38,8 @@ export const startDraftSchema = z.object({
   yourEmail: z.string().trim().toLowerCase().email().max(320),
   spouseName: z.string().trim().min(1).max(120),
   spouseEmail: z.string().trim().toLowerCase().email().max(320),
-  state: z.enum(["NY", "NJ"]),
+  // The front door creates cases in served states only (src/config/service-area.ts).
+  state: z.enum(["NY", "NJ"]).refine((v) => servesState(v), "state not served"),
   children: z.boolean(),
   assets: z.boolean(),
   /** The starting spouse confirms they have read how the firm works. */

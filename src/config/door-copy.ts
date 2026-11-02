@@ -28,15 +28,15 @@ const FEE_HI = formatUsd(quoteFor({ children: true, assets: true }).total);
 
 export const HERO = {
   en: {
-    eyebrow: (firm: string) => `${firm} · New York & New Jersey`,
-    headline1: "An uncontested divorce, handled by a lawyer.",
+    eyebrow: (firm: string) => `${firm} · New York`,
+    headline1: "An uncontested New York divorce, handled by a lawyer.",
     headline2: "Get started in three minutes.",
-    sub: `For couples who already agree. One spouse retains Jake Kim Law Firm; the attorney prepares the agreement and divorce papers, files them, and sees the case through to judgment. The other spouse signs in separately to confirm the terms — and is free to have their own attorney review everything. Flat fee from ${FEE_LO}, plus court filing fees.`,
+    sub: `For New York couples who already agree. One spouse retains Jake Kim Law Firm; the attorney prepares the agreement and divorce papers, files them, and sees the case through to judgment. The other spouse signs in separately to confirm the terms — and is free to have their own attorney review everything. Flat fee from ${FEE_LO}, plus court filing fees.`,
     cta: "Start with June",
     ctaNote: "June is an automated assistant that facilitates intake. June is not a lawyer and does not give legal advice.",
     haveCase: "I already have a case",
     // NJ RPC 7.1(a)(4)(v) / NY RPC 7.1: a fee RANGE must say what the fee depends on.
-    meta: [`English · 한국어`, `Attorney-reviewed`, `Flat fee ${FEE_LO}–${FEE_HI}, depending on children and assets`],
+    meta: [`New York`, `English · 한국어`, `Attorney-reviewed`, `Flat fee ${FEE_LO}–${FEE_HI}, depending on children and assets`],
     howTitle: "How it works",
     how: [
       ["Meet June", "An automated assistant takes eight quick details and tells you your exact fee."],
@@ -46,14 +46,14 @@ export const HERO = {
     ] as [string, string][],
   },
   ko: {
-    eyebrow: (firm: string) => `${firm} · 뉴욕 & 뉴저지`,
-    headline1: "변호사가 진행하는 합의 이혼.",
+    eyebrow: (firm: string) => `${firm} · 뉴욕`,
+    headline1: "변호사가 진행하는 뉴욕 합의 이혼.",
     headline2: "3분이면 시작할 수 있습니다.",
-    sub: `이미 모든 사항에 합의하신 부부를 위한 서비스입니다. 배우자 한 분이 Jake Kim Law Firm을 선임하면, 변호사가 합의서와 이혼 서류를 작성하고 법원에 제출하여 판결까지 진행합니다. 다른 배우자는 별도로 로그인하여 합의 내용을 확인하며, 본인의 변호사에게 모든 내용을 검토받으실 수 있습니다. 정액 수임료 ${FEE_LO}부터, 법원 접수 비용 별도.`,
+    sub: `이미 모든 사항에 합의하신 뉴욕 부부를 위한 서비스입니다. 배우자 한 분이 Jake Kim Law Firm을 선임하면, 변호사가 합의서와 이혼 서류를 작성하고 법원에 제출하여 판결까지 진행합니다. 다른 배우자는 별도로 로그인하여 합의 내용을 확인하며, 본인의 변호사에게 모든 내용을 검토받으실 수 있습니다. 정액 수임료 ${FEE_LO}부터, 법원 접수 비용 별도.`,
     cta: "June과 시작하기",
     ctaNote: "June은 접수 절차를 돕는 자동화된 도우미입니다. June은 변호사가 아니며 법률 자문을 제공하지 않습니다.",
     haveCase: "이미 사건이 있습니다",
-    meta: [`English · 한국어`, `변호사 검토`, `정액 수임료 ${FEE_LO}–${FEE_HI} (자녀 및 재산 유무에 따라 결정)`],
+    meta: [`뉴욕`, `English · 한국어`, `변호사 검토`, `정액 수임료 ${FEE_LO}–${FEE_HI} (자녀 및 재산 유무에 따라 결정)`],
     howTitle: "진행 방법",
     how: [
       ["June과 대화", "자동화된 도우미가 여덟 가지 간단한 정보를 받고 정확한 수임료를 안내합니다."],
@@ -95,7 +95,11 @@ export const faqFor = (firm: string): Record<Lang, { title: string; items: Faq[]
         // self-help/divorce); NY $335 = index number $210 + RJI $95 + note of
         // issue $30 (CPLR 8018, 8020). [ATTORNEY VERIFY before launch — fees change.]
         q: "What does the flat fee cover — and what doesn't it?",
-        a: "Preparing the agreement and divorce papers, attorney review, filing, and obtaining the judgment. Court filing fees are separate — currently about $335 in New York and $300 in New Jersey, plus a $25 parenting-workshop fee in New Jersey when there are children.",
+        a: "Preparing the agreement and divorce papers, attorney review, filing, and obtaining the judgment. New York court filing fees are separate — currently about $335 (index number, RJI and note of issue).",
+      },
+      {
+        q: "We're in New Jersey — can you help?",
+        a: "Not through this site yet: DivorceGPT takes New York cases only for now. If both of you live in New Jersey, contact the firm directly.",
       },
       {
         q: "What is June?",
@@ -120,7 +124,11 @@ export const faqFor = (firm: string): Record<Lang, { title: string; items: Faq[]
       },
       {
         q: "정액 수임료에 포함되는 것과 포함되지 않는 것은?",
-        a: "합의서 및 이혼 서류 작성, 변호사 검토, 법원 제출, 그리고 판결(judgment) 취득이 포함됩니다. 법원 접수 비용은 별도이며, 현재 뉴욕 약 $335, 뉴저지 $300이고 뉴저지에서 자녀가 있는 경우 부모 교육(parenting workshop) 비용 $25가 추가됩니다.",
+        a: "합의서 및 이혼 서류 작성, 변호사 검토, 법원 제출, 그리고 판결(judgment) 취득이 포함됩니다. 뉴욕 법원 접수 비용은 별도이며 현재 약 $335입니다 (index number, RJI, note of issue).",
+      },
+      {
+        q: "뉴저지에 살고 있는데 도움을 받을 수 있나요?",
+        a: "아직 이 사이트를 통해서는 어렵습니다. DivorceGPT는 현재 뉴욕 사건만 받고 있습니다. 두 분 모두 뉴저지에 거주하신다면 로펌에 직접 문의해 주세요.",
       },
       {
         q: "June은 무엇인가요?",

@@ -27,7 +27,8 @@ import { intakeChatModel, intakeChatProvider, PROVIDER_KEY_ENV } from "@/config/
 import { operatingFirmName } from "@/config/branding";
 import { firmContactLine } from "@/config/firm-contact";
 import { quoteFor, formatUsd, PRICING, type Quote } from "@/config/pricing";
-import { JUNE_NAME, juneOpening } from "@/config/june-copy";
+import { JUNE_NAME, juneOpening, JUNE_TOPICS, JUNE_WHITE_DOOR, JUNE_OUT_OF_SCOPE_LINE, JUNE_SAFETY_LINE, type JuneTopic } from "@/config/june-copy";
+import { SERVED_STATES, servedStatesPhrase, servesState } from "@/config/service-area";
 import { envOptional } from "@/lib/env";
 import { startDraftSchema, type StartDraft } from "./start";
 
@@ -77,7 +78,7 @@ const factsProposalSchema = z.object({
   yourEmail: z.string().trim().toLowerCase().email().max(320).nullable().optional(),
   spouseName: z.string().trim().min(1).max(120).nullable().optional(),
   spouseEmail: z.string().trim().toLowerCase().email().max(320).nullable().optional(),
-  state: z.enum(["NY", "NJ"]).nullable().optional(),
+  state: z.enum(["NY", "NJ"]).refine((v) => servesState(v), "state not served").nullable().optional(),
   children: z.boolean().nullable().optional(),
   assets: z.boolean().nullable().optional(),
   understood: z.boolean().nullable().optional(),
@@ -222,16 +223,21 @@ export const JUNE_TURN_SCHEMA = {
         yourEmail: { type: ["string", "null"] },
         spouseName: { type: ["string", "null"] },
         spouseEmail: { type: ["string", "null"] },
-        state: { type: ["string", "null"], enum: ["NY", "NJ", null] },
+        state: { type: ["string", "null"], enum: [...SERVED_STATES, null] },
         children: { type: ["boolean", "null"] },
         assets: { type: ["boolean", "null"] },
         understood: { type: ["boolean", "null"], description: "true ONLY when the visitor, having been told how it works and the fee, says they understand / agree to proceed." },
       },
       required: ["yourName", "yourEmail", "spouseName", "spouseEmail", "state", "children", "assets", "understood"],
     },
+    topic: {
+      type: "string",
+      enum: [...JUNE_TOPICS],
+      description: "The ONE room of the white door this reply stays inside. OUT_OF_SCOPE when the visitor's message asks for anything outside the door (the server then replaces `say` with the fixed sentence).",
+    },
     flagged: { type: "boolean", description: "true if the visitor asked for legal advice or described danger or abuse." },
   },
-  required: ["say", "lang", "facts", "flagged"],
+  required: ["say", "lang", "facts", "topic", "flagged"],
 } as const;
 
 const FACT_LABELS: Record<keyof PartialFacts, string> = {
@@ -239,7 +245,7 @@ const FACT_LABELS: Record<keyof PartialFacts, string> = {
   yourEmail: "the email address the visitor will sign in with (must be Google/Gmail or Microsoft/Outlook/Hotmail)",
   spouseName: "the spouse's full name",
   spouseEmail: "the spouse's email address (must differ from the visitor's)",
-  state: "which state the divorce will be filed in — New York or New Jersey only",
+  state: `which state the divorce will be filed in — ${servedStatesPhrase()} only; any other state is not something the firm can take`,
   children: "whether they have children together under 18 or still dependent (yes/no)",
   assets: "whether there are significant assets or debts to divide — a home, retirement accounts, investments, a business, loans beyond ordinary credit cards (yes/no)",
   understood: "confirmation that they understand how it works and the flat fee, and want to proceed to sign in",
@@ -250,15 +256,17 @@ export function juneTurnConstitution(): string {
   const contact = firmContactLine() || "the firm";
   const lo = formatUsd(quoteFor({ children: false, assets: false }).total);
   const hi = formatUsd(quoteFor({ children: true, assets: true }).total);
+  const states = servedStatesPhrase();
+  const door = (Object.keys(JUNE_WHITE_DOOR) as (keyof typeof JUNE_WHITE_DOOR)[]).map((k) => `${k}: ${JUNE_WHITE_DOOR[k]}`).join("\n");
   return [
-    `You are ${JUNE_NAME}, an automated assistant that facilitates intake for DivorceGPT, a service of ${firm}. You are not a lawyer. The firm's attorney represents the spouse who retains the firm, reviews every case, meets both spouses on a one-hour video call, and prepares and files the uncontested divorce. Your job: explain how this works, answer questions about the process, and collect eight facts so the case can be created when the visitor signs in.`,
-    `HOW IT WORKS (you may explain any of this): the spouse who retains the firm (normally the visitor) completes the full interview. The other spouse signs in separately and, without seeing the client's answers, confirms the terms of the agreement and provides the information the court papers require — nothing more; the firm does not represent them and they may have their own attorney review the agreement. The attorney compares the two statements of the terms; if they agree the case goes to review and the one-hour video meeting with both; if a term doesn't match the attorney raises it with both before anything is drafted. Fee: ${lo} flat with no minor children and no assets or debts to divide; +${formatUsd(PRICING.children)} with minor children; +${formatUsd(PRICING.assets)} with assets or debts; up to ${hi}. Nothing is paid on this site — the firm bills directly. Privacy: the firm sees both questionnaires; the spouses never see each other's. A person: ${contact}.`,
-    `THE EIGHT FACTS, in this order: ${FACT_ORDER.map((k, i) => `${i + 1}. ${k} — ${FACT_LABELS[k]}`).join("; ")}. Each turn the server tells you which are still missing. Record a fact in \`facts\` ONLY when the visitor's own words plainly state it — never infer, never guess, never record a question as a name. If the visitor answers something other than what you asked, record what they did say and continue with the next missing fact. Ask ONE thing at a time.`,
-    `LANGUAGES: English and Korean only. Reply in the language of the visitor's last message (set \`lang\`). Korean in the respectful register (존댓말). If they write in another language, say in English that you can help in English or Korean and ask which they prefer.`,
-    `STATES AND COURT FEES: the firm handles uncontested divorces in New York and New Jersey. Court filing fees are separate from the flat fee and are paid to the court: currently about $335 in New York, and $300 in New Jersey plus a $25 parenting-workshop fee when there are children. In New Jersey the court can often grant an uncontested divorce on the papers without a hearing; whether a hearing is needed is for the attorney to confirm. Say nothing else about either state's law.`,
-    `REPRESENTATION (say this plainly whenever it comes up): the firm represents ONE spouse — the one who hires it, normally the person talking to you. The firm does not represent the other spouse and cannot advise them; the other spouse takes part through their own separate login and may have their own attorney review the agreement before signing. If the visitor is the OTHER spouse (the one who was invited), say the firm represents their spouse, not them, that you cannot give them legal advice, and that they may consult their own lawyer; set flagged=true.`,
-    `NEVER: give legal advice, predict outcomes, say what anyone is entitled to, interpret law, recommend what to ask for, or say what the attorney will decide. When asked, say warmly that it is exactly what the attorney answers at the meeting, set flagged=true, and continue. If anyone describes danger or abuse: say to call 911 if in danger right now and that the attorney will review their situation personally; set flagged=true. Never say "mediation" or "AI lawyer". Never invent a fact about the firm, the price, or the law.`,
-    `STYLE: warm, plain, sixth-grade reading level, at most five short sentences, one question at the end.`,
+    `You are ${JUNE_NAME}, an automated assistant that facilitates intake for DivorceGPT, a service of ${firm}. You are not a lawyer. The firm handles uncontested divorces in ${states} only.`,
+    `THE WHITE DOOR. These are the ONLY things you talk about. Every reply stays inside exactly one of these rooms and you label it in \`topic\`:\n${door}`,
+    `OUTSIDE THE DOOR — everything else: whether they qualify, what anyone is entitled to, what the law says, residency beyond which state, custody, support amounts, property, taxes, immigration, what their spouse should do, any "should I", other states, other firms, predictions, opinions. For any of that set topic=OUT_OF_SCOPE and flagged=true. Do not answer it, not even partly, not even kindly — the server replaces your words with the firm's fixed sentence and asks the next fact. Still record any of the eight facts the message plainly states.`,
+    `FACTS YOU KNOW (say them exactly; never invent): states served: ${states}. Fee: ${lo} flat with no minor children and no assets or debts to divide; +${formatUsd(PRICING.children)} with minor children; +${formatUsd(PRICING.assets)} with assets or debts; up to ${hi}; court filing fees separate (about $335 in New York); nothing is paid on this site. Representation: the firm represents the spouse who retains it (normally the visitor); the other spouse is not represented and may have their own lawyer review the agreement. A person at the firm: ${contact}. If the visitor is the OTHER spouse (the one invited), say the firm represents their spouse, not them, that you cannot advise them, and that they may consult their own lawyer; flagged=true.`,
+    `THE EIGHT FACTS, in this order: ${FACT_ORDER.map((k, i) => `${i + 1}. ${k} — ${FACT_LABELS[k]}`).join("; ")}. Each turn the server tells you which are still missing. Record a fact in \`facts\` ONLY when the visitor's own words plainly state it — never infer, never guess, never record a question as a name. If they name a state the firm does not serve, do not record it; say the firm takes ${states} cases only right now. If the visitor answers something other than what you asked, record what they did say and continue with the next missing fact. Ask ONE thing at a time.`,
+    `LANGUAGES: English and Korean only. Reply in the language of the visitor's last message (set \`lang\`). Korean in the respectful register (존댓말).`,
+    `SAFETY: if anyone describes danger or abuse, topic=SAFETY, flagged=true: say to call 911 if in danger right now and that the attorney will speak with them personally, then continue gently.`,
+    `STYLE: warm, plain, sixth-grade reading level, at most five short sentences, one question at the end. Never say "mediation" or "AI lawyer".`,
   ].join("\n\n");
 }
 
@@ -329,6 +337,7 @@ export async function runJuneTurn(visitorId: string, rawMessage: string): Promis
 
   let say: string;
   let flagged = false;
+  let outOfScope = false;
   let proposed: PartialFacts = {};
 
   if (detected === "other") {
@@ -348,9 +357,19 @@ export async function runJuneTurn(visitorId: string, rawMessage: string): Promis
       matterId: null,
       provider: intakeChatProvider(),
     });
-    const r = (call.parsed ?? {}) as { say?: unknown; lang?: unknown; facts?: unknown; flagged?: unknown };
+    const r = (call.parsed ?? {}) as { say?: unknown; lang?: unknown; facts?: unknown; topic?: unknown; flagged?: unknown };
     say = typeof r.say === "string" && r.say.trim() ? r.say.trim() : "Sorry — could you say that once more?";
     flagged = r.flagged === true;
+    // THE WHITE DOOR, enforced here: an unlabelled or out-of-scope turn never
+    // reaches the visitor in the model's words. The fixed sentence goes out,
+    // followed by the next missing fact; the turn is flagged for the firm.
+    const topic: JuneTopic = (JUNE_TOPICS as readonly string[]).includes(String(r.topic)) ? (r.topic as JuneTopic) : "OUT_OF_SCOPE";
+    if (topic === "OUT_OF_SCOPE") {
+      outOfScope = true;
+      flagged = true;
+    } else if (topic === "SAFETY" && !/911/.test(say)) {
+      say = `${JUNE_SAFETY_LINE[lang]} ${say}`;
+    }
     // Validate FIELD BY FIELD: one malformed proposal drops that field,
     // never the whole turn (a bad `understood` must not lose a good name).
     const raw = (r.facts && typeof r.facts === "object" ? r.facts : {}) as Record<string, unknown>;
@@ -366,6 +385,11 @@ export async function runJuneTurn(visitorId: string, rawMessage: string): Promis
   // model cannot be trusted with (distinct emails; `understood` only once
   // everything else is in), and persist.
   const merged: PartialFacts = { ...facts, ...proposed };
+  if (merged.state && !servesState(merged.state)) delete merged.state; // the front door takes served states only
+  if (outOfScope) {
+    const next = missingFacts({ ...merged, understood: merged.understood })[0];
+    say = `${JUNE_OUT_OF_SCOPE_LINE[lang]} ${next ? SCRIPT[next][lang] : ""}`.trim();
+  }
   if (merged.spouseEmail && merged.yourEmail && merged.spouseEmail === merged.yourEmail) {
     delete merged.spouseEmail;
     if (!say.includes("different")) say += lang === "ko" ? " 배우자분은 본인과 다른 이메일 주소가 필요합니다 — 두 분이 따로 로그인하시게 됩니다." : " Your spouse needs a different email address from yours — the two of you sign in separately.";
@@ -374,7 +398,7 @@ export async function runJuneTurn(visitorId: string, rawMessage: string): Promis
   facts = merged;
   await saveVisitor(visitorId, facts, lang, v?.id ?? null);
   await appendJuneChat(visitorId, "JUNE", say, lang);
-  if (flagged) await appendJuneChat(visitorId, "SYSTEM", "flagged: advice sought or safety concern", "en");
+  if (flagged) await appendJuneChat(visitorId, "SYSTEM", outOfScope ? "flagged: outside the white door — fixed sentence served" : "flagged: advice sought or safety concern", "en");
 
   const complete = isComplete(facts);
   return {
@@ -396,7 +420,10 @@ const SCRIPT: Record<keyof PartialFacts, { en: string; ko: string }> = {
   yourEmail: { en: "What email address will you sign in with? It needs to be a Google (Gmail) or Microsoft (Outlook/Hotmail) address.", ko: "로그인에 사용하실 이메일 주소를 알려 주세요. Google(Gmail) 또는 Microsoft(Outlook/Hotmail) 주소여야 합니다." },
   spouseName: { en: "What is your spouse's full name?", ko: "배우자분의 성함(전체 이름)을 알려 주세요." },
   spouseEmail: { en: "And your spouse's email address?", ko: "배우자분의 이메일 주소는 무엇인가요?" },
-  state: { en: "Which state will the divorce be filed in — New York or New Jersey?", ko: "이혼 소송을 어느 주에 제기하시나요 — 뉴욕(NY) 아니면 뉴저지(NJ)?" },
+  state: {
+    en: `Which state will the divorce be filed in? Right now the firm takes ${servedStatesPhrase("en")} cases only.`,
+    ko: `이혼 소송을 어느 주에 제기하시나요? 현재 로펌은 ${servedStatesPhrase("ko")} 사건만 맡고 있습니다.`,
+  },
   children: { en: "Do you and your spouse have children together under 18 (or still dependent)? Yes or no.", ko: "두 분 사이에 18세 미만(또는 아직 부양 중인) 자녀가 있나요? 예/아니오로 답해 주세요." },
   assets: { en: "Are there significant assets or debts to divide — a home, retirement accounts, investments, a business, or loans beyond ordinary credit cards? Yes or no.", ko: "분할할 중요한 재산이나 채무가 있나요 — 주택, 은퇴 계좌, 투자, 사업체, 일반 신용카드 이외의 대출 등? 예/아니오로 답해 주세요." },
   understood: { en: "Do you understand how this works and want to proceed to sign in? Yes or no.", ko: "진행 방식을 이해하셨고 로그인으로 진행하시겠어요? 예/아니오로 답해 주세요." },
@@ -422,9 +449,10 @@ export function scriptedTurn(facts: PartialFacts, message: string, lang: JuneLan
     if (m) (out as Record<string, unknown>)[next] = m[0].toLowerCase();
     else ack = lang === "ko" ? "이메일 주소 형식이 아닌 것 같아요. " : "That doesn't look like an email address. ";
   } else if (next === "state") {
-    if (/new york|\bny\b|뉴욕/i.test(t)) out.state = "NY";
-    else if (/new jersey|\bnj\b|뉴저지/i.test(t)) out.state = "NJ";
-    else ack = lang === "ko" ? "뉴욕 또는 뉴저지 중에서 선택해 주세요. " : "New York or New Jersey, please. ";
+    const said = /new york|\bny\b|뉴욕/i.test(t) ? "NY" : /new jersey|\bnj\b|뉴저지/i.test(t) ? "NJ" : null;
+    if (said && servesState(said)) out.state = said;
+    else if (said) ack = lang === "ko" ? `죄송합니다 — 현재는 ${servedStatesPhrase("ko")} 사건만 맡고 있습니다. ` : `Sorry — the firm takes ${servedStatesPhrase("en")} cases only right now. `;
+    else ack = lang === "ko" ? `${servedStatesPhrase("ko")}인지 알려 주세요. ` : `${servedStatesPhrase("en")}, please. `;
   } else if (next === "children" || next === "assets" || next === "understood") {
     const yn = yesNo(t);
     if (yn !== null) (out as Record<string, unknown>)[next] = yn;

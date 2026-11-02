@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "DivorceGPT.com | Jake Kim Law Firm",
   description:
-    "An attorney-reviewed uncontested divorce for New York and New Jersey — set up in three minutes with June, prepared and filed by Jake Kim Law Firm.",
+    "An attorney-reviewed uncontested New York divorce — set up in three minutes with June, prepared and filed by Jake Kim Law Firm.",
   robots: { index: true, follow: true },
   openGraph: {
     title: "DivorceGPT.com",
