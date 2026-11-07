@@ -87,10 +87,11 @@ describe("every adapter forces a tool call and carries no PII", () => {
     });
   }
 
-  it("anthropic uses input_schema + tool_choice{type:tool}", () => {
+  it("anthropic uses input_schema + tool_choice{type:auto} (the 5.5 models reject a forced tool — HTTP 400, verified live 2026-11-07)", () => {
     const b = JSON.parse(anthropicAdapter.body(REQ));
     expect(b.tools[0].input_schema).toEqual(REQ.jsonSchema);
-    expect(b.tool_choice).toEqual({ type: "tool", name: "INTAKE_TURN" });
+    expect(b.tool_choice).toEqual({ type: "auto" });
+    expect(b.tools[0].description).toMatch(/ALWAYS respond by calling this tool/);
     expect(b.system).toBe("SYSTEM TEXT");
     expect(b.max_tokens).toBe(4000);
     expect(anthropicAdapter.headers("k")["x-api-key"]).toBe("k");

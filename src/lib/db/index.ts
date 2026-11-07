@@ -258,9 +258,36 @@ CREATE TABLE IF NOT EXISTS guide_log (
   decided_by  TEXT NOT NULL,
   lang        TEXT NOT NULL DEFAULT 'en',
   output      TEXT NOT NULL,               -- the guide's words only
+  user_id     TEXT,                        -- 2026-11-07: the signed-up reader (the guide requires sign-up)
+  model       TEXT,
+  tokens_in   INTEGER,
+  tokens_out  INTEGER,
+  latency_ms  INTEGER,
   created_at  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_guide_log_created ON guide_log(created_at);
+
+-- Sign-up (2026-11-07): a Google/Microsoft identity plus the two things the
+-- firm needs to run a conflict check and call back — full name and phone —
+-- and the reader's acknowledgment of the sign-up disclaimers (versioned).
+-- Nothing confidential is collected. The firm clears or rejects; a rejected
+-- sign-up cannot use the guide.
+CREATE TABLE IF NOT EXISTS signup_profile (
+  user_id             TEXT PRIMARY KEY REFERENCES app_user(id) ON DELETE CASCADE,
+  firm_id             TEXT,
+  full_name           TEXT NOT NULL,
+  phone               TEXT NOT NULL,       -- digits only
+  phone_display       TEXT NOT NULL,
+  disclaimer_version  TEXT NOT NULL,
+  acknowledged_at     TEXT NOT NULL,
+  status              TEXT NOT NULL DEFAULT 'NEW' CHECK (status IN ('NEW','CLEARED','REJECTED')),
+  status_by           TEXT,
+  status_at           TEXT,
+  notes               TEXT NOT NULL DEFAULT '',
+  created_at          TEXT NOT NULL,
+  updated_at          TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_signup_status ON signup_profile(status);
 
 CREATE TABLE IF NOT EXISTS start_chat (
   id          TEXT PRIMARY KEY,
@@ -577,6 +604,11 @@ const MIGRATIONS = [
   `CREATE INDEX IF NOT EXISTS idx_start_draft_visitor ON start_draft(visitor_id)`,
   `ALTER TABLE intake_session ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,
   `ALTER TABLE invitation ADD COLUMN party_id TEXT`,
+  `ALTER TABLE guide_log ADD COLUMN user_id TEXT`,
+  `ALTER TABLE guide_log ADD COLUMN model TEXT`,
+  `ALTER TABLE guide_log ADD COLUMN tokens_in INTEGER`,
+  `ALTER TABLE guide_log ADD COLUMN tokens_out INTEGER`,
+  `ALTER TABLE guide_log ADD COLUMN latency_ms INTEGER`,
   `ALTER TABLE app_user ADD COLUMN firm_id TEXT`,
   `ALTER TABLE matter ADD COLUMN firm_id TEXT`,
   `ALTER TABLE matter ADD COLUMN engagement_tier TEXT NOT NULL DEFAULT 'REVIEW'`,

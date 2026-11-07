@@ -165,9 +165,16 @@ export async function callStructured(opts: {
         );
       }
       if (res.status === 404 || res.status === 400) {
-        // Model unavailable / bad request: configuration error — status code
-        // only, never the response body (it can echo request content).
+        // Model unavailable / bad request: configuration error. The
+        // provider's own error TYPE and MESSAGE are logged (they describe
+        // the request shape — e.g. an unsupported parameter — and never echo
+        // client content); the request body is never logged.
         const maybeModel = res.status === 404 ? " (configured model may be unavailable)" : "";
+        const detail = await res
+          .json()
+          .then((j: { error?: { type?: string; message?: string } }) => `${j?.error?.type ?? "?"}: ${String(j?.error?.message ?? "").slice(0, 300)}`)
+          .catch(() => "(no detail)");
+        console.error(`AI_GUARD: provider ${res.status} — ${detail}`);
         throw new AiConfigError(
           `AI_GUARD: provider request invalid (HTTP ${res.status})${maybeModel} — no fallback model is attempted`
         );

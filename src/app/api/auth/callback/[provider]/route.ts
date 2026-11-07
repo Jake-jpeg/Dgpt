@@ -32,6 +32,7 @@ import { assertRateLimit } from "@/lib/security/rate-limit";
 import { findAccountForSession, provisionClientAccount } from "@/lib/db/users";
 import { decideLoginDestination } from "@/lib/auth/authorize-login";
 import { JOIN_RETURN_COOKIE } from "@/lib/june/links";
+import { SIGNUP_RETURN_COOKIE } from "@/config/signup-copy";
 import { recordAudit } from "@/lib/db/repo";
 import { hashNameForAudit } from "@/lib/security/audit-hash";
 
@@ -112,6 +113,11 @@ export async function GET(
     if (joinReturn && boundAccount?.role === "CLIENT" && /^[A-Za-z0-9_-]{16,200}$/.test(joinReturn)) {
       dest = `/join/${joinReturn}`;
     }
+    // 2026-11-07: the reader signed in from /signup → back to finish sign-up.
+    const signupReturn = cookies[SIGNUP_RETURN_COOKIE];
+    if (signupReturn === "1" && boundAccount?.role === "CLIENT") {
+      dest = "/signup/details";
+    }
 
     const token = await createSessionToken({
       subject: identity.subject,
@@ -128,6 +134,7 @@ export async function GET(
     headers.append("Set-Cookie", sessionCookieHeader(token));
     headers.append("Set-Cookie", `${OAUTH_TX_COOKIE}=; Path=/; HttpOnly; Max-Age=0`);
     if (joinReturn) headers.append("Set-Cookie", `${JOIN_RETURN_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+    if (signupReturn) headers.append("Set-Cookie", `${SIGNUP_RETURN_COOKIE}=; Path=/; SameSite=Lax; Max-Age=0`);
     return new Response(null, { status: 302, headers });
   } catch (e) {
     return errorResponse(e);

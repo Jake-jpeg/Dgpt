@@ -513,7 +513,7 @@ describe("prompt plumbing", () => {
     const body = JSON.parse(String(init.body));
     expect(body.system).toContain(`CONSTITUTION ${INTAKE_CONSTITUTION_VERSION}`);
     expect(body.system).toContain("RULES 2-5 OUTRANK WARMTH");
-    expect(body.tool_choice).toEqual({ type: "tool", name: "INTAKE_TURN" });
+    expect(body.tool_choice).toEqual({ type: "auto" }); // forced tool choice is not supported by the 5.5 models
     expect(body.tools[0].input_schema).toEqual(INTAKE_TURN_SCHEMA);
     // Metadata uses the safety identifier — never client PII.
     expect(JSON.stringify(body.metadata)).not.toContain("client@");

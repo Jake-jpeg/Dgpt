@@ -221,18 +221,37 @@ describe("the white door — permitted prompts", () => {
 });
 
 describe("plumbing", () => {
-  it("the route is public, stateless about the reader, and logs only the guide's output", async () => {
+  it("the route is public but requires a SIGNED-UP reader; it logs the guide's output, usage and the reader id — never the reader's words", async () => {
     expect(betaGateExempt("/api/guide")).toBe(true);
     expect(betaGateExempt("/forms")).toBe(true);
+    expect(betaGateExempt("/signup")).toBe(true);
+    expect(betaGateExempt("/api/auth/callback/google")).toBe(true);
     mockModel({ label: "PERMITTED_1", lang: "en", answer: "An index number is the case number.", citations: [] });
-    const res = await guideRoute(jsonRequest("/api/guide", { body: { message: "What is an index number? My name is Casey Syntheticperson.", article: "how-divorce-works-new-york" } }));
+    // Anonymous → 401. Signed in but not signed up → 403. Signed up → 200. Rejected → 403.
+    expect((await guideRoute(jsonRequest("/api/guide", { body: { message: "What is an index number?" } }))).status).toBe(401);
+    const { provisionAccount, cookieFor, SYNTH_CLIENT } = await import("./helpers");
+    await provisionAccount(SYNTH_CLIENT);
+    const cookie = await cookieFor(SYNTH_CLIENT);
+    freshLimits();
+    expect((await guideRoute(jsonRequest("/api/guide", { body: { message: "What is an index number?" }, cookie }))).status).toBe(403);
+    const { upsertSignup, setSignupStatus } = await import("@/lib/db/signups");
+    const { getUserByEmail } = await import("@/lib/db/users");
+    const uid = (await getUserByEmail(SYNTH_CLIENT.email))!.id;
+    await upsertSignup({ userId: uid, fullName: "Casey Syntheticperson", phone: "2015550123", phoneDisplay: "(201) 555-0123", disclaimerVersion: "2026-11-07.1" });
+    freshLimits();
+    const res = await guideRoute(jsonRequest("/api/guide", { body: { message: "What is an index number? My name is Casey Syntheticperson.", article: "how-divorce-works-new-york" }, cookie }));
     expect(res.status).toBe(200);
     const { listGuideLog } = await import("@/lib/guide/log");
     const log = await listGuideLog();
     expect(log).toHaveLength(1);
     expect(log[0].output).toContain("index number");
-    expect(JSON.stringify(log)).not.toContain("Syntheticperson"); // nothing the reader typed
+    expect(log[0].userId).toBe(uid);
+    expect(log[0].tokensIn).toBe(1); // usage from the provider response
+    expect(JSON.stringify(log.map((l) => l.output))).not.toContain("Syntheticperson"); // nothing the reader typed
     expect(log[0].article).toBe("how-divorce-works-new-york");
+    await setSignupStatus(uid, "REJECTED", uid);
+    freshLimits();
+    expect((await guideRoute(jsonRequest("/api/guide", { body: { message: "What is a summons?" }, cookie }))).status).toBe(403);
   });
 
   it("deterministic layers: safety words, advice patterns, official hosts", () => {

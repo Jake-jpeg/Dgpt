@@ -67,7 +67,7 @@ const COPY = {
 
 export function GuideChat({ article, lang = "en" }: { article?: string; lang?: Lang }) {
   const t = COPY[lang];
-  const [cfg, setCfg] = useState<{ enabled: boolean; consultationUrl: string; maxChars: number; maxTurns: number } | null>(null);
+  const [cfg, setCfg] = useState<{ enabled: boolean; access: "OK" | "SIGN_IN" | "SIGN_UP" | "REJECTED" | "NOT_CLIENT"; signupUrl: string; consultationUrl: string; maxChars: number; maxTurns: number } | null>(null);
   const [acked, setAcked] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -114,7 +114,23 @@ export function GuideChat({ article, lang = "en" }: { article?: string; lang?: L
       </div>
       <div className="guide-banner" role="note">{t.banner}</div>
 
-      {!acked ? (
+      {cfg && cfg.access !== "OK" ? (
+        <div className="guide-ack">
+          <h3>{lang === "ko" ? "가입 후 이용할 수 있습니다" : "Sign up to use the guide"}</h3>
+          <p className="panel-sub">
+            {cfg.access === "REJECTED"
+              ? lang === "ko" ? "로펌이 이 사안을 도와드릴 수 없습니다." : "The firm is unable to assist with this matter."
+              : cfg.access === "NOT_CLIENT"
+                ? lang === "ko" ? "로펌 계정으로 로그인되어 있습니다. 개인 계정으로 가입해 주세요." : "You are signed in to a firm account; sign up with a personal account to use the guide."
+                : lang === "ko"
+                  ? "무료입니다. Google 또는 Microsoft 계정으로 로그인하고 성명과 전화번호를 남기시면, 로펌이 이해충돌 확인 후 연락드립니다."
+                  : "It's free. Sign in with Google or Microsoft and leave your name and phone number; the firm runs a conflict check and follows up."}
+          </p>
+          {cfg.access !== "REJECTED" && cfg.access !== "NOT_CLIENT" && (
+            <a className="btn btn-primary" href={cfg.signupUrl}>{lang === "ko" ? "가입하기" : "Sign up"}</a>
+          )}
+        </div>
+      ) : !acked ? (
         <div className="guide-ack">
           <h3>{t.ackTitle}</h3>
           <ul>

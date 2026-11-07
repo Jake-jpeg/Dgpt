@@ -585,7 +585,7 @@ describe("E4 AI security", () => {
     const [url, init] = mock.mock.calls[0] as unknown as [string, RequestInit];
     expect(String(url)).toContain("api.anthropic.com/v1/messages");
     const body = JSON.parse(String(init.body));
-    expect(body.tool_choice.type).toBe("tool");
+    expect(body.tool_choice.type).toBe("auto"); // the 5.5 models reject a forced tool choice (2026-11-07)
     expect(body.tools).toHaveLength(1);
     expect(body.tools[0].input_schema.type).toBe("object");
     expect(body.max_tokens).toBeGreaterThan(0);

@@ -99,10 +99,15 @@ const NAV: Record<Me["role"], { href: string; label: string }[]> = {
   ],
   ATTORNEY: [
     { href: "/firm", label: "Matters" },
+    { href: "/firm/signups", label: "Sign-ups" },
     { href: "/firm/june", label: "June" },
     { href: "/firm/settings", label: "Practice settings" },
   ],
-  ADMIN: [{ href: "/firm/settings", label: "Practice settings" }],
+  ADMIN: [
+    { href: "/firm/signups", label: "Sign-ups" },
+    { href: "/firm/usage", label: "Usage" },
+    { href: "/firm/settings", label: "Practice settings" },
+  ],
 };
 
 export function Shell({

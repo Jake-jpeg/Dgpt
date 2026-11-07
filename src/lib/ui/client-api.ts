@@ -21,7 +21,7 @@ async function parse(res: Response): Promise<Json> {
       // Public pages (the articles, 2026-11-07) render the shell without a
       // key; their /api/auth/me is simply "not signed in", not a reason to
       // bounce the reader to the gate.
-      !["/blog", "/forms"].some((pub) => window.location.pathname === pub || window.location.pathname.startsWith(`${pub}/`))
+      !["/blog", "/forms", "/signup"].some((pub) => window.location.pathname === pub || window.location.pathname.startsWith(`${pub}/`))
     ) {
       window.location.href = "/beta";
     }

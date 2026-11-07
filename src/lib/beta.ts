@@ -68,6 +68,17 @@ export function betaGateExempt(pathname: string): boolean {
     pathname.startsWith("/blog/") ||
     pathname === "/forms" ||
     pathname === "/api/guide" ||
+    // 2026-11-07: sign-up is how the public gets in — the page, its API, and
+    // the OAuth round-trip it needs. The door (/portal, /start, the case)
+    // stays behind the key; a signed-up reader without the key still cannot
+    // reach it.
+    pathname === "/signup" ||
+    pathname.startsWith("/signup/") ||
+    pathname === "/api/signup" ||
+    pathname.startsWith("/api/auth/login/") ||
+    pathname.startsWith("/api/auth/callback/") ||
+    pathname === "/api/auth/me" ||
+    pathname === "/api/auth/logout" ||
     // 2026-10-30: the invited spouse has no access key — the single-use
     // link they were sent IS their access. The join page and its API are
     // reachable without the beta cookie; everything after sign-in is not.

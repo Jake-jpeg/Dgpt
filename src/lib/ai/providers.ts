@@ -127,11 +127,17 @@ export const anthropicAdapter: ProviderAdapter = {
         {
           name: req.schemaName,
           description:
-            "Return the structured report for this action. Respond ONLY by calling this tool with arguments that match the schema exactly.",
+            "Return the structured report for this action. ALWAYS respond by calling this tool — never with plain text — with arguments that match the schema exactly.",
           input_schema: req.jsonSchema,
         },
       ],
-      tool_choice: { type: "tool", name: req.schemaName },
+      // 2026-11-07: the Claude 5.5 models do not accept a FORCED tool choice
+      // ("tool_choice: type tool and any are not supported for this model",
+      // HTTP 400 — verified against the live API from the DO console). The
+      // tool is offered with "auto" and the instruction above; the model
+      // thinks, then calls it. parse() still requires the tool_use block,
+      // so a text-only reply is a hard error, not a silent pass.
+      tool_choice: { type: "auto" },
       metadata: { user_id: req.safetyId },
     });
   },
@@ -144,11 +150,25 @@ export const anthropicAdapter: ProviderAdapter = {
       usage?: { input_tokens?: number; output_tokens?: number };
     };
     const block = d.content?.find((c) => c.type === "tool_use");
-    if (!block || block.input === undefined || block.input === null) {
+    let parsed: unknown = block?.input;
+    if (parsed === undefined || parsed === null) {
+      // No tool call: accept a text block that IS the JSON object (the
+      // model occasionally answers inline when the tool is not forced).
+      const text = (d.content ?? []).filter((c) => c.type === "text").map((c) => (c as { text?: string }).text ?? "").join("\n").trim();
+      const m = /\{[\s\S]*\}/.exec(text);
+      if (m) {
+        try {
+          parsed = JSON.parse(m[0]);
+        } catch {
+          parsed = undefined;
+        }
+      }
+    }
+    if (parsed === undefined || parsed === null) {
       throw new Error("AI_GUARD: provider returned no structured output");
     }
     return {
-      parsed: block.input, // already an object
+      parsed, // already an object
       responseId: d.id ?? null,
       model: d.model ?? null,
       tokensIn: d.usage?.input_tokens ?? null,

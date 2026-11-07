@@ -40,6 +40,8 @@ export interface GuideResult {
   lang: GuideLang;
   /** Which layer decided the answer (for the log and the red-team report). */
   decidedBy: "SAFETY_PREFILTER" | "MODEL" | "LABEL_GATE" | "POST_CHECK" | "DISABLED";
+  /** Provider usage for the operator's cost view; null when no model call was made. */
+  usage: { model: string; tokensIn: number | null; tokensOut: number | null; latencyMs: number } | null;
 }
 
 export function guideEnabled(): boolean {
@@ -143,10 +145,10 @@ export async function runGuideTurn(message: string, ctx: GuideContext, history: 
 
   // Layer 1
   if (safetyPrefilter(text)) {
-    return { label: "SAFETY", answer: guideSafety(lang), citations: [], lang, decidedBy: "SAFETY_PREFILTER" };
+    return { label: "SAFETY", answer: guideSafety(lang), citations: [], lang, decidedBy: "SAFETY_PREFILTER", usage: null };
   }
   if (!guideEnabled()) {
-    return { label: "OUT_OF_SCOPE", answer: guideRedirect(lang), citations: [], lang, decidedBy: "DISABLED" };
+    return { label: "OUT_OF_SCOPE", answer: guideRedirect(lang), citations: [], lang, decidedBy: "DISABLED", usage: null };
   }
 
   // Layer 2
@@ -165,16 +167,17 @@ export async function runGuideTurn(message: string, ctx: GuideContext, history: 
   });
   const r = (call.parsed ?? {}) as { label?: unknown; lang?: unknown; answer?: unknown; citations?: unknown };
   const outLang: GuideLang = r.lang === "ko" ? "ko" : r.lang === "en" ? "en" : lang;
+  const usage = { model: call.model, tokensIn: call.tokensIn, tokensOut: call.tokensOut, latencyMs: call.latencyMs };
 
   // Layer 3
   const label: GuideLabel = (GUIDE_LABELS as readonly string[]).includes(String(r.label)) ? (r.label as GuideLabel) : "OUT_OF_SCOPE";
-  if (label === "SAFETY") return { label, answer: guideSafety(outLang), citations: [], lang: outLang, decidedBy: "LABEL_GATE" };
-  if (label === "OUT_OF_SCOPE") return { label, answer: guideRedirect(outLang), citations: [], lang: outLang, decidedBy: "LABEL_GATE" };
+  if (label === "SAFETY") return { label, answer: guideSafety(outLang), citations: [], lang: outLang, decidedBy: "LABEL_GATE", usage };
+  if (label === "OUT_OF_SCOPE") return { label, answer: guideRedirect(outLang), citations: [], lang: outLang, decidedBy: "LABEL_GATE", usage };
 
   // Layer 4
   const answer = typeof r.answer === "string" ? r.answer.trim() : "";
   if (!answer || violatesBlackDoor(answer)) {
-    return { label: "OUT_OF_SCOPE", answer: guideRedirect(outLang), citations: [], lang: outLang, decidedBy: "POST_CHECK" };
+    return { label: "OUT_OF_SCOPE", answer: guideRedirect(outLang), citations: [], lang: outLang, decidedBy: "POST_CHECK", usage };
   }
-  return { label, answer, citations: officialOnly(r.citations), lang: outLang, decidedBy: "MODEL" };
+  return { label, answer, citations: officialOnly(r.citations), lang: outLang, decidedBy: "MODEL", usage };
 }
