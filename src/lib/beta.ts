@@ -62,6 +62,10 @@ export function isValidBetaKey(key: string | undefined | null): boolean {
 export function betaGateExempt(pathname: string): boolean {
   return (
     pathname === "/beta" ||
+    // 2026-11-07: the firm's articles are public information — nothing of
+    // June's, no sign-in, no case. The door itself stays locked.
+    pathname === "/blog" ||
+    pathname.startsWith("/blog/") ||
     // 2026-10-30: the invited spouse has no access key — the single-use
     // link they were sent IS their access. The join page and its API are
     // reachable without the beta cookie; everything after sign-in is not.

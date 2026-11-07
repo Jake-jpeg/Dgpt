@@ -17,7 +17,11 @@ async function parse(res: Response): Promise<Json> {
       res.status === 403 &&
       String(data.error ?? "") === "Beta access required" &&
       typeof window !== "undefined" &&
-      window.location.pathname !== "/beta"
+      window.location.pathname !== "/beta" &&
+      // Public pages (the articles, 2026-11-07) render the shell without a
+      // key; their /api/auth/me is simply "not signed in", not a reason to
+      // bounce the reader to the gate.
+      !window.location.pathname.startsWith("/blog")
     ) {
       window.location.href = "/beta";
     }

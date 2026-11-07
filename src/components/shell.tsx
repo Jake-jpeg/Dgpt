@@ -163,6 +163,9 @@ export function Shell({
             )}
           </div>
           <nav className="portal-nav" aria-label="Portal navigation">
+            <Link href="/blog" aria-current={pathname?.startsWith("/blog") ? "page" : undefined}>
+              Articles
+            </Link>
             {nav.map((n) => (
               <Link
                 key={n.href}
