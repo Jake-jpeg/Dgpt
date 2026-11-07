@@ -248,6 +248,20 @@ CREATE INDEX IF NOT EXISTS idx_start_draft_email ON start_draft(email);
 -- see "what happened during these chats". A visitor is an anonymous cookie
 -- id until their email is known; the rows are attached to the matter when
 -- the case is created, and swept with the draft otherwise.
+-- The reader's guide on the articles (2026-11-07). Advertising-retention
+-- log: the ASSISTANT's output, its label and a timestamp — never what the
+-- reader typed, never an identifier. Swept after GUIDE_LOG_RETENTION_DAYS.
+CREATE TABLE IF NOT EXISTS guide_log (
+  id          TEXT PRIMARY KEY,
+  article     TEXT,                        -- slug the reader was on, or NULL
+  label       TEXT NOT NULL,
+  decided_by  TEXT NOT NULL,
+  lang        TEXT NOT NULL DEFAULT 'en',
+  output      TEXT NOT NULL,               -- the guide's words only
+  created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_guide_log_created ON guide_log(created_at);
+
 CREATE TABLE IF NOT EXISTS start_chat (
   id          TEXT PRIMARY KEY,
   visitor_id  TEXT NOT NULL,

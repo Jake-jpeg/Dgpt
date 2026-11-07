@@ -13,6 +13,7 @@
 import { env, retentionAbandonedDays } from "@/lib/env";
 import { sweepAbandoned } from "@/lib/db/repo";
 import { sweepMatters } from "@/lib/retention";
+import { sweepGuideLog } from "@/lib/guide/log";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
 
 export async function POST(req: Request) {
@@ -27,8 +28,10 @@ export async function POST(req: Request) {
 
     const purgedSessions = (await sweepAbandoned(retentionAbandonedDays()));
     const matterReports = await sweepMatters();
+    const guideLines = await sweepGuideLog();
     return Response.json({
       purged: purgedSessions.length,
+      guideLogLinesPurged: guideLines,
       matters: matterReports.map((r) => ({
         matterId: r.matterId,
         sessionsPurged: r.sessionsPurged,

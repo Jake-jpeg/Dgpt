@@ -641,6 +641,35 @@ details.accordion > summary:focus-visible { outline: 2px solid var(--blue); outl
 .blog-callout { margin-top: 24px; }
 .lang-toggle a { font-size: .76rem; font-weight: 650; padding: 4px 11px; border-radius: 999px; color: #c9d8f3; }
 .lang-toggle a.on { background: #f4f7ff; color: #173663; }
+.form-item summary { padding-right: 44px; }
+.form-code { display: inline-block; min-width: 64px; font-weight: 800; color: var(--blue-dark); }
+.form-body { padding: 0 18px 16px; font-size: .95rem; }
+.form-body p { margin: 0 0 8px; }
+.form-body ul { margin: 0 0 10px 1.1em; }
+
+/* ── The reader's guide (chat at the bottom of an article) ───────────── */
+.guide { margin-top: 36px; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 20px 20px 16px; box-shadow: 0 12px 34px rgba(20,45,78,.06); }
+.guide-head h2 { margin: 2px 0 6px; font-size: 1.25rem; letter-spacing: -.02em; }
+.guide-ad { margin: 0; font-size: .68rem; font-weight: 800; letter-spacing: .12em; color: #8a5d13; }
+.guide-sub { margin: 0 0 12px; color: var(--muted); font-size: .92rem; line-height: 1.5; }
+.guide-banner { position: sticky; top: 0; z-index: 2; background: #fff8e8; border: 1px solid #efd9a8; color: #6b4a0a; border-radius: 10px; padding: 8px 12px; font-size: .82rem; font-weight: 650; text-align: center; margin-bottom: 12px; }
+.guide-ack { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+.guide-ack h3 { margin: 0 0 8px; font-size: 1rem; }
+.guide-ack ul { margin: 0 0 14px 1.1em; padding: 0; font-size: .93rem; line-height: 1.5; }
+.guide-ack li { margin-bottom: 6px; }
+.guide-thread { display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; padding: 4px 2px; }
+.guide-turn { display: flex; }
+.guide-turn-reader { justify-content: flex-end; }
+.guide-turn-guide { justify-content: flex-start; }
+.guide-msg { max-width: 90%; padding: 11px 14px; border-radius: 16px; font-size: .95rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.guide-msg-guide { background: #f1f5fb; border-bottom-left-radius: 6px; }
+.guide-msg-reader { background: var(--navy); color: #fff; border-bottom-right-radius: 6px; }
+.guide-cites { margin: 8px 0 0; font-size: .8rem; color: var(--muted); }
+.guide-cites a { color: var(--blue-dark); text-decoration: underline; }
+.guide-input { margin-top: 12px; }
+.guide-hint { margin: 6px 4px 0; font-size: .76rem; color: var(--muted); }
+.guide-consult { margin: 14px 0 0; text-align: center; }
+.guide-consult .btn { width: 100%; }
 .door-topline { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .door-cta-note { margin: 12px 2px 0; font-size: .8rem; color: #aebfda; }
 .door-dot { margin: 0 8px; }

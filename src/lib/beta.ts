@@ -66,6 +66,8 @@ export function betaGateExempt(pathname: string): boolean {
     // June's, no sign-in, no case. The door itself stays locked.
     pathname === "/blog" ||
     pathname.startsWith("/blog/") ||
+    pathname === "/forms" ||
+    pathname === "/api/guide" ||
     // 2026-10-30: the invited spouse has no access key — the single-use
     // link they were sent IS their access. The join page and its API are
     // reachable without the beta cookie; everything after sign-in is not.

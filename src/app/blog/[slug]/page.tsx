@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Shell } from "@/components/shell";
 import { DIVORCEGPT_BLOG_SLUGS, getArticle, ARTICLE_BYLINE, type BlogLang } from "@/content/blog";
 import { operatingFirmName } from "@/config/branding";
+import { GuideChat } from "@/components/guide-chat";
 
 export function generateStaticParams() {
   return DIVORCEGPT_BLOG_SLUGS.map((slug) => ({ slug }));
@@ -78,6 +79,7 @@ export default async function ArticlePage({ params, searchParams }: { params: Pr
             ? "이 글은 일반적인 정보이며 법률 자문이 아닙니다. 이 글을 읽는 것만으로 변호사-의뢰인 관계가 성립하지 않습니다. 변호사 광고."
             : "This article provides general information only. It is not legal advice, and reading it does not create an attorney-client relationship. Attorney Advertising."}
         </div>
+        <GuideChat article={post.slug} lang={lang} />
         <p className="door-staff">
           <Link className="underline" href={`/blog${q}`}>{lang === "ko" ? "← 모든 글" : "← All articles"}</Link>
           {" · "}

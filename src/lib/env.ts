@@ -55,6 +55,12 @@ export function appUrl(): string {
   return env("APP_URL", "http://localhost:3000").replace(/\/$/, "");
 }
 
+/** How long the guide's own output lines are kept (advertising retention; NY RPC 7.1(k) wants a year). */
+export function guideLogRetentionDays(): number {
+  const n = Number(process.env.GUIDE_LOG_RETENTION_DAYS ?? "400");
+  return Number.isFinite(n) && n > 0 ? n : 400;
+}
+
 export function retentionAbandonedDays(): number {
   const n = Number(process.env.RETENTION_ABANDONED_DAYS ?? "14");
   return Number.isFinite(n) && n > 0 ? n : 14;

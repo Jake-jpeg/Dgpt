@@ -166,6 +166,9 @@ export function Shell({
             <Link href="/blog" aria-current={pathname?.startsWith("/blog") ? "page" : undefined}>
               Articles
             </Link>
+            <Link href="/forms" aria-current={pathname === "/forms" ? "page" : undefined}>
+              Forms
+            </Link>
             {nav.map((n) => (
               <Link
                 key={n.href}
