@@ -28,11 +28,12 @@ import {
 } from "@/lib/auth/session";
 import { attorneyEmailAllowlist, adminBootstrapEmails } from "@/lib/env";
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
-import { assertRateLimit } from "@/lib/security/rate-limit";
-import { findAccountForSession, provisionClientAccount } from "@/lib/db/users";
+import { assertRateLimit, clientKey } from "@/lib/security/rate-limit";
+import { findAccountForSession, provisionClientAccount, recordLogin } from "@/lib/db/users";
 import { decideLoginDestination } from "@/lib/auth/authorize-login";
-import { JOIN_RETURN_COOKIE } from "@/lib/june/links";
+import { JOIN_RETURN_COOKIE, START_RETURN_COOKIE } from "@/lib/june/links";
 import { SIGNUP_RETURN_COOKIE } from "@/config/signup-copy";
+import { getSignup } from "@/lib/db/signups";
 import { recordAudit } from "@/lib/db/repo";
 import { hashNameForAudit } from "@/lib/security/audit-hash";
 
@@ -96,6 +97,15 @@ export async function GET(
       }
     }
 
+    // 2026-11-08: a BANNED client is told so at the door (an ordinary
+    // deactivation would only 403 on the next API call, which reads as a
+    // broken site). The ban itself is enforced by requireUser on every
+    // request; this is the message, not the lock.
+    if (boundAccount && boundAccount.role === "CLIENT" && !boundAccount.active) {
+      await recordAudit("auth", "AUTH_LOGIN_REFUSED_BANNED", `provider=${provider} subjectHash=${hashNameForAudit(identity.email)}`);
+      throw new HttpError(403, boundAccount.bannedAt ? "This account has been suspended. Contact the firm if you believe this is a mistake." : "Account is deactivated");
+    }
+
     // Providers authenticate; the DB authorizes. Firm-role accounts pass the
     // active + attorney-allowlist gate; clients land on their portal (linked
     // or not — the waiting room handles the unlinked state).
@@ -118,6 +128,16 @@ export async function GET(
     if (signupReturn === "1" && boundAccount?.role === "CLIENT") {
       dest = "/signup/details";
     }
+    // 2026-11-08: "Start with June" → sign in → back to June; a client who has
+    // not left a name and number yet finishes sign-up first, then June.
+    const startReturn = cookies[START_RETURN_COOKIE];
+    if (startReturn === "1" && boundAccount?.role === "CLIENT") {
+      dest = (await getSignup(boundAccount.id)) ? "/start" : "/signup/details?next=start";
+    }
+    if (boundAccount) {
+      const ip = clientKey(req);
+      await recordLogin(boundAccount.id, ip === "local" ? null : ip);
+    }
 
     const token = await createSessionToken({
       subject: identity.subject,
@@ -135,6 +155,7 @@ export async function GET(
     headers.append("Set-Cookie", `${OAUTH_TX_COOKIE}=; Path=/; HttpOnly; Max-Age=0`);
     if (joinReturn) headers.append("Set-Cookie", `${JOIN_RETURN_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
     if (signupReturn) headers.append("Set-Cookie", `${SIGNUP_RETURN_COOKIE}=; Path=/; SameSite=Lax; Max-Age=0`);
+    if (startReturn) headers.append("Set-Cookie", `${START_RETURN_COOKIE}=; Path=/; SameSite=Lax; Max-Age=0`);
     return new Response(null, { status: 302, headers });
   } catch (e) {
     return errorResponse(e);

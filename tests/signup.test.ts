@@ -1,4 +1,4 @@
-/** Sign-up (2026-11-07): identity + name + phone + acknowledged disclaimers; the firm's list; clear/reject; usage view. */
+/** Sign-up (2026-11-07): identity + name + phone + acknowledged disclaimers; the firm's list; clear/reject; usage view. 2026-11-08: IPs, ban/unban (ADMIN), no-password notice. */
 import { describe, it, expect, beforeEach } from "vitest";
 import { resetDbForTests } from "@/lib/db/index";
 import { cookieFor, freshLimits, jsonRequest, provisionAccount, SYNTH_ATTORNEY, SYNTH_CLIENT, SYNTH_CLIENT_2 } from "./helpers";
@@ -27,6 +27,11 @@ describe("sign-up", () => {
   it("normalizes US phone numbers and rejects what isn't one", () => {
     expect(normalizeUsPhone("(201) 555-0123")).toEqual({ digits: "2015550123", display: "(201) 555-0123" });
     expect(normalizeUsPhone("+1 201 555 0123")?.digits).toBe("2015550123");
+    // Any format, no exchange rule (2026-11-08: "(201) 123-1234", "201-123-1234", "2011231234" all pass).
+    expect(normalizeUsPhone("(201) 123-1234")?.digits).toBe("2011231234");
+    expect(normalizeUsPhone("201-123-1234")?.digits).toBe("2011231234");
+    expect(normalizeUsPhone("201.123.1234")?.digits).toBe("2011231234");
+    expect(normalizeUsPhone("2011231234")).toEqual({ digits: "2011231234", display: "(201) 123-1234" });
     expect(normalizeUsPhone("12345")).toBeNull();
     expect(normalizeUsPhone("011-82-10-1234-5678")).toBeNull();
   });
@@ -84,5 +89,81 @@ describe("sign-up", () => {
     const u = (await res.json()) as { totals: { turns: number; tokensIn: number; tokensOut: number }; readers: { userId: string; turns: number; tokensIn: number }[] };
     expect(u.totals).toMatchObject({ turns: 2, tokensIn: 150, tokensOut: 30 });
     expect(u.readers.find((r) => r.userId === uid)).toMatchObject({ turns: 2, tokensIn: 150 });
+  });
+
+  it("THE ADMIN PORTAL (2026-11-08): sign-up and sign-in IPs are recorded and shown to ADMIN only; ADMIN can BAN — the account is refused on its very next request — and UNBAN; an attorney cannot ban", async () => {
+    const { getDb } = await import("@/lib/db/index");
+    const { recordLogin, getUserById } = await import("@/lib/db/users");
+    const { requireUser } = await import("@/lib/auth/authz");
+    const uid = (await getUserByEmail(SYNTH_CLIENT.email))!.id;
+
+    // Sign-up records the address the proxy reports.
+    freshLimits();
+    const ok = await signupPost(jsonRequest("/api/signup", { cookie: aCookie, headers: { "x-forwarded-for": "203.0.113.7, 10.0.0.1" }, body: { fullName: "Casey Syntheticperson", phone: "2011231234", acknowledgedVersion: SIGNUP_DISCLAIMER_VERSION } }));
+    expect(ok.status).toBe(200);
+    await recordLogin(uid, "198.51.100.9"); // what the login callback stamps
+
+    // The attorney's list carries no addresses; the admin's does.
+    freshLimits();
+    const forAttorney = (await (await signupsGet(jsonRequest("/api/firm/signups", { method: "GET", cookie: attorneyCookie }))).json()) as { admin: boolean; signups: Record<string, unknown>[] };
+    expect(forAttorney.admin).toBe(false);
+    expect(forAttorney.signups[0]).not.toHaveProperty("signupIp");
+    expect(forAttorney.signups[0]).not.toHaveProperty("lastLoginIp");
+    expect(forAttorney.signups[0]).toMatchObject({ banned: false });
+
+    await getDb().run(`UPDATE app_user SET role = 'ADMIN' WHERE email = ?`, SYNTH_CLIENT_2.email);
+    const adminCookie = await cookieFor({ ...SYNTH_CLIENT_2, role: "ADMIN" });
+    freshLimits();
+    const forAdmin = (await (await signupsGet(jsonRequest("/api/firm/signups", { method: "GET", cookie: adminCookie }))).json()) as { admin: boolean; signups: Record<string, unknown>[] };
+    expect(forAdmin.admin).toBe(true);
+    expect(forAdmin.signups[0]).toMatchObject({ signupIp: "203.0.113.7", lastLoginIp: "198.51.100.9", banned: false });
+
+    // An attorney may not ban.
+    freshLimits();
+    expect((await signupsPut(jsonRequest("/api/firm/signups", { method: "PUT", cookie: attorneyCookie, body: { userId: uid, action: "BAN", reason: "x" } }))).status).toBe(403);
+
+    // The admin bans → active=0 with a reason; the next request on the open session is refused; audited.
+    freshLimits();
+    const ban = await signupsPut(jsonRequest("/api/firm/signups", { method: "PUT", cookie: adminCookie, body: { userId: uid, action: "BAN", reason: "abuse of the guide" } }));
+    expect(ban.status).toBe(200);
+    const banned = (await getUserById(uid))!;
+    expect(banned.active).toBe(false);
+    expect(banned.banReason).toBe("abuse of the guide");
+    expect(banned.bannedAt).not.toBeNull();
+    await expect(requireUser(jsonRequest("/api/signup", { method: "GET", cookie: aCookie }), ["CLIENT"])).rejects.toThrow(/suspended/);
+    freshLimits();
+    expect((await signupPost(jsonRequest("/api/signup", { cookie: aCookie, body: { fullName: "Casey Syntheticperson", phone: "2011231234", acknowledgedVersion: SIGNUP_DISCLAIMER_VERSION } }))).status).toBe(403);
+    expect((await getAuditEvents("auth")).some((e) => e.event === "ACCOUNT_BANNED")).toBe(true);
+    freshLimits();
+    const listed = (await (await signupsGet(jsonRequest("/api/firm/signups", { method: "GET", cookie: adminCookie }))).json()) as { signups: Record<string, unknown>[] };
+    expect(listed.signups[0]).toMatchObject({ banned: true, banReason: "abuse of the guide" });
+
+    // Nobody bans themselves; firm accounts are not bannable here.
+    freshLimits();
+    const adminId = (await getUserByEmail(SYNTH_CLIENT_2.email))!.id;
+    expect((await signupsPut(jsonRequest("/api/firm/signups", { method: "PUT", cookie: adminCookie, body: { userId: adminId, action: "BAN" } }))).status).toBe(400);
+    freshLimits();
+    const attorneyId = (await getUserByEmail(SYNTH_ATTORNEY.email))!.id;
+    expect((await signupsPut(jsonRequest("/api/firm/signups", { method: "PUT", cookie: adminCookie, body: { userId: attorneyId, action: "BAN" } }))).status).toBe(400);
+
+    // Unban restores the account.
+    freshLimits();
+    expect((await signupsPut(jsonRequest("/api/firm/signups", { method: "PUT", cookie: adminCookie, body: { userId: uid, action: "UNBAN" } }))).status).toBe(200);
+    const restored = (await getUserById(uid))!;
+    expect(restored.active).toBe(true);
+    expect(restored.bannedAt).toBeNull();
+    freshLimits();
+    expect((await signupGet(jsonRequest("/api/signup", { method: "GET", cookie: aCookie }))).status).toBe(200);
+  });
+
+  it("the no-password notice and the IP notice are in the acknowledged disclaimers, and the version was bumped for them", async () => {
+    const { SIGNUP_COPY, NO_PASSWORD_LINE } = await import("@/config/signup-copy");
+    expect(SIGNUP_DISCLAIMER_VERSION >= "2026-11-08.1").toBe(true);
+    for (const lang of ["en", "ko"] as const) {
+      const text = SIGNUP_COPY[lang].disclaimers("Firm").join(" ");
+      expect(text).toMatch(lang === "en" ? /never see or store/ : /비밀번호/);
+      expect(text).toMatch(lang === "en" ? /IP\) address/ : /IP\) 주소/);
+      expect(NO_PASSWORD_LINE[lang].length).toBeGreaterThan(20);
+    }
   });
 });

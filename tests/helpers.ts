@@ -391,3 +391,15 @@ export const TIER2_ANSWERS: { fieldId: string; value: unknown }[] = [
   { fieldId: "name_change_names", value: "Jordan Priorperson" },
   { fieldId: "prior_actions_any", value: false },
 ];
+
+/**
+ * 2026-11-08: June (and the guide) need a signed-up client — name, number,
+ * notices acknowledged. Returns the account id (June's conversation key).
+ */
+export async function signUp(user: SessionUser, fullName = "Casey Syntheticperson"): Promise<string> {
+  const { upsertSignup } = await import("@/lib/db/signups");
+  const { SIGNUP_DISCLAIMER_VERSION } = await import("@/config/signup-copy");
+  const account = await provisionAccount(user);
+  await upsertSignup({ userId: account.id, fullName, phone: "2015550123", phoneDisplay: "(201) 555-0123", disclaimerVersion: SIGNUP_DISCLAIMER_VERSION });
+  return account.id;
+}

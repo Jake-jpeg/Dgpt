@@ -17,6 +17,7 @@ import {
   SYNTH_ATTORNEY,
   SYNTH_CLIENT,
   SYNTH_CLIENT_2,
+  signUp,
 } from "./helpers";
 import { POST as draftRoute } from "@/app/api/start/draft/route";
 import { GET as pendingRoute } from "@/app/api/start/pending/route";
@@ -57,6 +58,8 @@ const DRAFT = {
 let aCookie: string;
 let bCookie: string;
 let attorneyCookie: string;
+/** June's conversation key is the signed-in account id (2026-11-08). */
+let aId: string;
 
 beforeEach(async () => {
   resetDbForTests();
@@ -65,6 +68,7 @@ beforeEach(async () => {
   await provisionAccount(SYNTH_ATTORNEY);
   await provisionAccount(SYNTH_CLIENT);
   await provisionAccount(SYNTH_CLIENT_2);
+  aId = await signUp(SYNTH_CLIENT); // June is behind sign-in + sign-up
   aCookie = await cookieFor(SYNTH_CLIENT);
   bCookie = await cookieFor(SYNTH_CLIENT_2);
   attorneyCookie = await cookieFor(SYNTH_ATTORNEY);
@@ -72,7 +76,7 @@ beforeEach(async () => {
 
 async function startCase(): Promise<{ matterId: string; inviteUrl: string; token: string }> {
   freshLimits();
-  const d = await draftRoute(jsonRequest("/api/start/draft", { body: DRAFT }));
+  const d = await draftRoute(jsonRequest("/api/start/draft", { body: DRAFT, cookie: aCookie }));
   expect(d.status).toBe(200);
   const pending = await pendingRoute(jsonRequest("/api/start/pending", { method: "GET", cookie: aCookie }));
   expect(((await pending.json()) as { pending: { quote: { total: number } } }).pending.quote.total).toBe(quoteFor({ children: true, assets: false }).total);
@@ -117,14 +121,14 @@ describe("June → the first spouse's case", () => {
 
   it("a draft can only be finished by the account whose verified email it was parked under", async () => {
     freshLimits();
-    await draftRoute(jsonRequest("/api/start/draft", { body: DRAFT }));
+    await draftRoute(jsonRequest("/api/start/draft", { body: DRAFT, cookie: aCookie }));
     const other = await finishRoute(jsonRequest("/api/start/finish", { cookie: bCookie }));
     expect(other.status).toBe(404); // nothing parked for B's email
   });
 
   it("the same email for both spouses is refused at the door", async () => {
     freshLimits();
-    const r = await draftRoute(jsonRequest("/api/start/draft", { body: { ...DRAFT, spouseEmail: DRAFT.yourEmail } }));
+    const r = await draftRoute(jsonRequest("/api/start/draft", { body: { ...DRAFT, spouseEmail: DRAFT.yourEmail }, cookie: aCookie }));
     expect(r.status).toBe(400);
   });
 });
@@ -418,8 +422,6 @@ describe("June is a conversation, not a form (2026-10-30, second cut)", () => {
     vi.stubGlobal("fetch", mock);
     return mock;
   }
-  const VISITOR = "11111111-2222-4333-8444-555555555555";
-  const vcookie = `dgpt_june_v=${VISITOR}`;
 
   beforeEach(() => {
     process.env.INTAKE_CHAT_ENABLED = "true";
@@ -433,28 +435,92 @@ describe("June is a conversation, not a form (2026-10-30, second cut)", () => {
     vi.unstubAllGlobals();
   });
 
-  it("GET opens with the scripted opening and mints a visitor cookie; the opening is logged for the firm", async () => {
+  it("BEHIND SIGN-IN (2026-11-08): anonymous → SIGN_IN; signed in without sign-up → SIGN_UP; rejected → REJECTED; a firm account → NOT_CLIENT; POST refuses the same", async () => {
+    const { GET, POST } = await import("@/app/api/start/turn/route");
+    const { setSignupStatus } = await import("@/lib/db/signups");
+    freshLimits();
+    const anon = (await (await GET(jsonRequest("/api/start/turn", { method: "GET" }))).json()) as { access: string; transcript?: unknown };
+    expect(anon.access).toBe("SIGN_IN");
+    expect(anon.transcript).toBeUndefined();
+    freshLimits();
+    expect((await POST(jsonRequest("/api/start/turn", { body: { message: "hi" } }))).status).toBe(401);
+
+    // Signed in, no sign-up yet (B has an account but never left a name and number).
+    freshLimits();
+    const noSignup = (await (await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: bCookie }))).json()) as { access: string; signupUrl: string };
+    expect(noSignup.access).toBe("SIGN_UP");
+    expect(noSignup.signupUrl).toBe("/signup/details?next=start");
+    freshLimits();
+    expect((await POST(jsonRequest("/api/start/turn", { body: { message: "hi" }, cookie: bCookie }))).status).toBe(403);
+
+    // The firm's attorney is not a spouse.
+    freshLimits();
+    expect(((await (await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: attorneyCookie }))).json()) as { access: string }).access).toBe("NOT_CLIENT");
+
+    // Rejected after the conflict check → no June.
+    await setSignupStatus(aId, "REJECTED", "attorney");
+    freshLimits();
+    expect(((await (await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: aCookie }))).json()) as { access: string }).access).toBe("REJECTED");
+    freshLimits();
+    expect((await POST(jsonRequest("/api/start/turn", { body: { message: "hi" }, cookie: aCookie }))).status).toBe(403);
+  });
+
+  it("GET opens with the scripted opening, seeds the verified email, and asks the signed-in name to be CONFIRMED; the opening is logged for the firm", async () => {
     const { GET } = await import("@/app/api/start/turn/route");
     freshLimits();
-    const r = await GET(jsonRequest("/api/start/turn", { method: "GET" }));
-    expect(r.headers.get("set-cookie")).toMatch(/dgpt_june_v=[0-9a-f-]{36}; Path=\/; HttpOnly; SameSite=Lax/);
-    const body = (await r.json()) as { transcript: { role: string; content: string }[]; missing: string[]; complete: boolean };
+    const r = await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: aCookie }));
+    expect(r.headers.get("set-cookie")).toBeNull(); // no visitor cookie any more — the account is the key
+    const body = (await r.json()) as { access: string; transcript: { role: string; content: string }[]; missing: string[]; complete: boolean; facts: Record<string, unknown> };
+    expect(body.access).toBe("OK");
     expect(body.transcript[0].content).toContain("I'm June");
-    expect(body.transcript.at(-1)!.content).toContain("full name");
+    expect(body.transcript.at(-1)!.content).toContain("to confirm — your name is Casey Syntheticperson");
+    expect(body.transcript.at(-1)!.content).toContain(SYNTH_CLIENT.email);
+    expect(body.facts.yourEmail).toBe(SYNTH_CLIENT.email); // seeded from the sign-in
     expect(body.missing[0]).toBe("yourName");
+    expect(body.missing).not.toContain("yourEmail");
     expect(body.complete).toBe(false);
+  });
+
+  it("the scripted path takes 'yes' as confirming the sign-in name, a typed name as a correction, and never lets the model change the email", async () => {
+    const { GET, POST } = await import("@/app/api/start/turn/route");
+    delete process.env.INTAKE_CHAT_ENABLED;
+    freshLimits();
+    await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: aCookie }));
+    freshLimits();
+    const yes = (await (await POST(jsonRequest("/api/start/turn", { body: { message: "yes" }, cookie: aCookie }))).json()) as { facts: Record<string, unknown>; missing: string[]; say: string };
+    expect(yes.facts.yourName).toBe("Casey Syntheticperson");
+    expect(yes.missing[0]).toBe("spouseName");
+    expect(yes.say).toContain("spouse");
+
+    // A fresh conversation where the visitor corrects the name instead.
+    resetDbForTests();
+    await provisionAccount(SYNTH_CLIENT);
+    await signUp(SYNTH_CLIENT, "Kasey Syntheticperson");
+    freshLimits();
+    await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: aCookie }));
+    freshLimits();
+    const typed = (await (await POST(jsonRequest("/api/start/turn", { body: { message: "Casey Syntheticperson-Lee" }, cookie: aCookie }))).json()) as { facts: Record<string, unknown> };
+    expect(typed.facts.yourName).toBe("Casey Syntheticperson-Lee");
+
+    // Model path: a proposal to change the email is ignored — the verified address stays.
+    process.env.INTAKE_CHAT_ENABLED = "true";
+    mockJune(juneTurnPayload({ facts: { yourName: null, yourEmail: "someone-else@example.test", spouseName: "Jordan", spouseEmail: null, state: null, children: null, assets: null, understood: null } }));
+    freshLimits();
+    const b = (await (await POST(jsonRequest("/api/start/turn", { body: { message: "use my other email please; spouse is Jordan" }, cookie: aCookie }))).json()) as { facts: Record<string, unknown> };
+    expect(b.facts.yourEmail).toBe(SYNTH_CLIENT.email);
+    expect(b.facts.spouseName).toBe("Jordan");
   });
 
   it("a Korean question at the name step is NOT recorded as a name; the model answers in Korean; the server records only validated facts", async () => {
     const { GET, POST } = await import("@/app/api/start/turn/route");
     freshLimits();
-    await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: vcookie }));
+    await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: aCookie }));
     const mock = mockJune(
-      juneTurnPayload({ say: "네, 한국어로 하셔도 됩니다. 성함을 알려 주세요.", lang: "ko" }),
-      juneTurnPayload({ say: "감사합니다, 민수님. 로그인에 사용하실 이메일을 알려 주세요.", lang: "ko", facts: { yourName: "김민수", yourEmail: null, spouseName: null, spouseEmail: null, state: null, children: null, assets: null, understood: "nonsense" } })
+      juneTurnPayload({ say: "네, 한국어로 하셔도 됩니다. 성함이 Casey Syntheticperson 맞으신가요?", lang: "ko" }),
+      juneTurnPayload({ say: "감사합니다, 민수님. 배우자분의 성함을 알려 주세요.", lang: "ko", facts: { yourName: "김민수", yourEmail: null, spouseName: null, spouseEmail: null, state: null, children: null, assets: null, understood: "nonsense" } })
     );
     freshLimits();
-    const r1 = await POST(jsonRequest("/api/start/turn", { body: { message: "한국어로 해도 되나요?" }, cookie: vcookie }));
+    const r1 = await POST(jsonRequest("/api/start/turn", { body: { message: "한국어로 해도 되나요?" }, cookie: aCookie }));
     const b1 = (await r1.json()) as { say: string; lang: string; facts: Record<string, unknown>; missing: string[] };
     expect(b1.lang).toBe("ko");
     expect(b1.facts.yourName).toBeUndefined(); // the question was not a name
@@ -463,20 +529,21 @@ describe("June is a conversation, not a form (2026-10-30, second cut)", () => {
     const sent = JSON.parse((mock.mock.calls[0] as unknown as [string, { body: string }])[1].body as string) as { messages: { content: string }[] };
     expect(JSON.stringify(sent)).toContain("STILL MISSING");
     expect(JSON.stringify(sent)).toContain("yourName");
+    expect(JSON.stringify(sent)).toContain("SIGN-IN NAME"); // the model is told which name to confirm
 
     freshLimits();
-    const r2 = await POST(jsonRequest("/api/start/turn", { body: { message: "김민수입니다" }, cookie: vcookie }));
+    const r2 = await POST(jsonRequest("/api/start/turn", { body: { message: "김민수입니다" }, cookie: aCookie }));
     const b2 = (await r2.json()) as { facts: Record<string, unknown>; missing: string[] };
-    expect(b2.facts.yourName).toBe("김민수");
+    expect(b2.facts.yourName).toBe("김민수"); // a corrected name is recorded as typed
     expect(b2.facts.understood).toBeUndefined(); // an invalid proposal is dropped, not saved
-    expect(b2.missing[0]).toBe("yourEmail");
+    expect(b2.missing[0]).toBe("spouseName"); // the email came from the sign-in
   });
 
   it("THE WHITE DOOR (2026-11-01): an out-of-scope turn is replaced by the fixed sentence verbatim, flagged, and still records any fact; an unlabelled turn is treated the same", async () => {
     const { JUNE_OUT_OF_SCOPE_LINE } = await import("@/config/june-copy");
     const { GET, POST } = await import("@/app/api/start/turn/route");
     freshLimits();
-    await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: vcookie }));
+    await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: aCookie }));
     mockJune(
       // The model "helpfully" answers a legal question — and labels it honestly.
       juneTurnPayload({
@@ -486,20 +553,20 @@ describe("June is a conversation, not a form (2026-10-30, second cut)", () => {
       }),
       // No label at all → treated as out of scope (fail closed).
       { say: "Sure, in New York you are entitled to equitable distribution.", lang: "en", facts: { yourName: null, yourEmail: null, spouseName: null, spouseEmail: null, state: null, children: null, assets: null, understood: null }, flagged: false },
-      juneTurnPayload({ say: "Got it. And your spouse's full name?", topic: "FACTS", facts: { yourName: null, yourEmail: SYNTH_CLIENT.email, spouseName: null, spouseEmail: null, state: null, children: null, assets: null, understood: null } })
+      juneTurnPayload({ say: "Got it. And your spouse's email address?", topic: "FACTS", facts: { yourName: null, yourEmail: null, spouseName: "Jordan Syntheticperson", spouseEmail: null, state: null, children: null, assets: null, understood: null } })
     );
     freshLimits();
-    const r1 = await POST(jsonRequest("/api/start/turn", { body: { message: "I'm Casey Syntheticperson — do I get to keep the house?" }, cookie: vcookie }));
+    const r1 = await POST(jsonRequest("/api/start/turn", { body: { message: "I'm Casey Syntheticperson — do I get to keep the house?" }, cookie: aCookie }));
     const b1 = (await r1.json()) as { say: string; flagged: boolean; facts: Record<string, unknown>; missing: string[] };
     expect(b1.say.startsWith(JUNE_OUT_OF_SCOPE_LINE.en)).toBe(true); // the firm's sentence, not the model's
     expect(b1.say).not.toMatch(/house|half/);
-    expect(b1.say).toContain("email"); // …followed by the next missing fact
+    expect(b1.say).toContain("spouse"); // …followed by the next missing fact
     expect(b1.flagged).toBe(true);
     expect(b1.facts.yourName).toBe("Casey Syntheticperson"); // the fact in the same message is still recorded
-    expect(b1.missing[0]).toBe("yourEmail");
+    expect(b1.missing[0]).toBe("spouseName");
 
     freshLimits();
-    const r2 = await POST(jsonRequest("/api/start/turn", { body: { message: "what am I entitled to?" }, cookie: vcookie }));
+    const r2 = await POST(jsonRequest("/api/start/turn", { body: { message: "what am I entitled to?" }, cookie: aCookie }));
     const b2 = (await r2.json()) as { say: string; flagged: boolean };
     expect(b2.say.startsWith(JUNE_OUT_OF_SCOPE_LINE.en)).toBe(true);
     expect(b2.say).not.toMatch(/equitable/);
@@ -507,17 +574,17 @@ describe("June is a conversation, not a form (2026-10-30, second cut)", () => {
 
     // The transcript the firm reads carries the fixed sentence and the flag — never the discarded words.
     const { juneTranscript } = await import("@/lib/june/turn");
-    const t = await juneTranscript(VISITOR);
+    const t = await juneTranscript(aId);
     expect(t.some((m) => /house|equitable/.test(m.content) && m.role === "JUNE")).toBe(false);
     expect(t.filter((m) => m.role === "SYSTEM" && /white door/.test(m.content)).length).toBe(2);
 
     // In scope: the model's words go out as written.
     freshLimits();
-    const r3 = await POST(jsonRequest("/api/start/turn", { body: { message: SYNTH_CLIENT.email }, cookie: vcookie }));
+    const r3 = await POST(jsonRequest("/api/start/turn", { body: { message: "Jordan Syntheticperson" }, cookie: aCookie }));
     const b3 = (await r3.json()) as { say: string; flagged: boolean; missing: string[] };
-    expect(b3.say).toBe("Got it. And your spouse's full name?");
+    expect(b3.say).toBe("Got it. And your spouse's email address?");
     expect(b3.flagged).toBe(false);
-    expect(b3.missing[0]).toBe("spouseName");
+    expect(b3.missing[0]).toBe("spouseEmail");
   });
 
   it("NY ONLY (2026-11-02): a New Jersey answer is never recorded as the state — model path and scripted path alike — and a draft cannot be finished for NJ", async () => {
@@ -525,10 +592,10 @@ describe("June is a conversation, not a form (2026-10-30, second cut)", () => {
     expect([...SERVED_STATES]).toEqual(["NY"]);
     const { GET, POST } = await import("@/app/api/start/turn/route");
     freshLimits();
-    await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: vcookie }));
+    await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: aCookie }));
     mockJune(juneTurnPayload({ say: "We only take New York cases right now.", topic: "SERVICE", facts: { yourName: null, yourEmail: null, spouseName: null, spouseEmail: null, state: "NJ", children: null, assets: null, understood: null } }));
     freshLimits();
-    const r = await POST(jsonRequest("/api/start/turn", { body: { message: "New Jersey" }, cookie: vcookie }));
+    const r = await POST(jsonRequest("/api/start/turn", { body: { message: "New Jersey" }, cookie: aCookie }));
     const b = (await r.json()) as { facts: Record<string, unknown> };
     expect(b.facts.state).toBeUndefined();
 
@@ -542,7 +609,7 @@ describe("June is a conversation, not a form (2026-10-30, second cut)", () => {
 
     // The draft route refuses NJ outright.
     freshLimits();
-    const draft = await draftRoute(jsonRequest("/api/start/draft", { body: { ...DRAFT, state: "NJ" } }));
+    const draft = await draftRoute(jsonRequest("/api/start/draft", { body: { ...DRAFT, state: "NJ" }, cookie: aCookie }));
     expect(draft.status).toBe(400);
   });
 
@@ -553,7 +620,7 @@ describe("June is a conversation, not a form (2026-10-30, second cut)", () => {
       juneTurnPayload({ facts: { yourName: "Casey Syntheticperson", yourEmail: SYNTH_CLIENT.email, spouseName: "Jordan", spouseEmail: SYNTH_CLIENT.email, state: "NY", children: true, assets: false, understood: true } })
     );
     freshLimits();
-    const r1 = await POST(jsonRequest("/api/start/turn", { body: { message: "everything at once" }, cookie: vcookie }));
+    const r1 = await POST(jsonRequest("/api/start/turn", { body: { message: "everything at once" }, cookie: aCookie }));
     const b1 = (await r1.json()) as { say: string; facts: Record<string, unknown>; missing: string[]; complete: boolean };
     expect(b1.facts.spouseEmail).toBeUndefined(); // same as the visitor's → refused
     expect(b1.say).toContain("different email");
@@ -563,10 +630,10 @@ describe("June is a conversation, not a form (2026-10-30, second cut)", () => {
 
     mockJune(juneTurnPayload({ facts: { yourName: null, yourEmail: null, spouseName: null, spouseEmail: SPOUSE_B_EMAIL, state: null, children: null, assets: null, understood: null } }));
     freshLimits();
-    await POST(jsonRequest("/api/start/turn", { body: { message: SPOUSE_B_EMAIL }, cookie: vcookie }));
+    await POST(jsonRequest("/api/start/turn", { body: { message: SPOUSE_B_EMAIL }, cookie: aCookie }));
     mockJune(juneTurnPayload({ facts: { yourName: null, yourEmail: null, spouseName: null, spouseEmail: null, state: null, children: null, assets: null, understood: true } }));
     freshLimits();
-    const r3 = await POST(jsonRequest("/api/start/turn", { body: { message: "yes, I understand" }, cookie: vcookie }));
+    const r3 = await POST(jsonRequest("/api/start/turn", { body: { message: "yes, I understand" }, cookie: aCookie }));
     const b3 = (await r3.json()) as { complete: boolean; quote: { total: number } };
     expect(b3.complete).toBe(true);
     expect(b3.quote.total).toBe(1000); // Review tier: flat, whatever the children/assets answers
@@ -578,17 +645,17 @@ describe("June is a conversation, not a form (2026-10-30, second cut)", () => {
     const boom = vi.fn(() => { throw new Error("no model call expected"); });
     vi.stubGlobal("fetch", boom);
     freshLimits();
-    const r = await POST(jsonRequest("/api/start/turn", { body: { message: "Привет, можно по-русски?" }, cookie: vcookie }));
+    const r = await POST(jsonRequest("/api/start/turn", { body: { message: "Привет, можно по-русски?" }, cookie: aCookie }));
     expect(((await r.json()) as { say: string }).say).toMatch(/English or Korean/);
     expect(boom).not.toHaveBeenCalled();
 
     delete process.env.INTAKE_CHAT_ENABLED;
     freshLimits();
-    const r2 = await POST(jsonRequest("/api/start/turn", { body: { message: "Casey Syntheticperson" }, cookie: vcookie }));
+    const r2 = await POST(jsonRequest("/api/start/turn", { body: { message: "Casey Syntheticperson" }, cookie: aCookie }));
     const b2 = (await r2.json()) as { say: string; facts: Record<string, unknown>; disabled: boolean };
     expect(b2.disabled).toBe(true);
     expect(b2.facts.yourName).toBe("Casey Syntheticperson");
-    expect(b2.say).toContain("email");
+    expect(b2.say).toContain("spouse"); // the email is already on file
     expect(boom).not.toHaveBeenCalled();
   });
 
@@ -597,13 +664,13 @@ describe("June is a conversation, not a form (2026-10-30, second cut)", () => {
     const { GET: firmJune } = await import("@/app/api/firm/june/route");
     const { GET: matterJune } = await import("@/app/api/matters/[id]/june/route");
     freshLimits();
-    await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: vcookie }));
+    await GET(jsonRequest("/api/start/turn", { method: "GET", cookie: aCookie }));
     mockJune(juneTurnPayload({ facts: { yourName: "Casey Syntheticperson", yourEmail: SYNTH_CLIENT.email, spouseName: "Jordan", spouseEmail: SPOUSE_B_EMAIL, state: "NY", children: false, assets: false, understood: null } }));
     freshLimits();
-    await POST(jsonRequest("/api/start/turn", { body: { message: "I'm Casey; everything in one go" }, cookie: vcookie }));
+    await POST(jsonRequest("/api/start/turn", { body: { message: "I'm Casey; everything in one go" }, cookie: aCookie }));
     mockJune(juneTurnPayload({ facts: { yourName: null, yourEmail: null, spouseName: null, spouseEmail: null, state: null, children: null, assets: null, understood: true } }));
     freshLimits();
-    await POST(jsonRequest("/api/start/turn", { body: { message: "yes" }, cookie: vcookie }));
+    await POST(jsonRequest("/api/start/turn", { body: { message: "yes" }, cookie: aCookie }));
 
     freshLimits();
     const firm = await firmJune(jsonRequest("/api/firm/june", { method: "GET", cookie: attorneyCookie }));

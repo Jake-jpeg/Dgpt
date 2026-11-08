@@ -9,7 +9,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Shell, useMe } from "@/components/shell";
 import { useLang, LangToggle } from "@/lib/ui/lang";
-import { SIGNUP_COPY, SIGNUP_RETURN_COOKIE } from "@/config/signup-copy";
+import { SIGNUP_COPY, SIGNUP_RETURN_COOKIE, NO_PASSWORD_LINE } from "@/config/signup-copy";
 import { operatingFirmName } from "@/config/branding";
 
 export default function SignupPage() {
@@ -67,6 +67,7 @@ export default function SignupPage() {
               )}
             </div>
             {!all && <p className="guide-hint">{lang === "ko" ? "모든 항목을 확인하시면 계속할 수 있습니다." : "Acknowledge each item to continue."}</p>}
+            <p className="guide-hint">{NO_PASSWORD_LINE[lang]}</p>
           </div>
         )}
       </div>

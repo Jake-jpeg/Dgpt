@@ -15,6 +15,13 @@ export default function SignupDetailsPage() {
   const { loading } = useMe();
   const [lang, setLang] = useLang();
   const t = SIGNUP_COPY[lang];
+  // 2026-11-08: arrived from "Start with June" (?next=start) → after sign-up, continue to June.
+  // Read in an effect, not via useSearchParams, so the page prerenders without a Suspense boundary.
+  const [toStart, setToStart] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setToStart(new URLSearchParams(window.location.search).get("next") === "start");
+  }, []);
   const firm = operatingFirmName();
   const [state, setState] = useState<State | null>(null);
   const [fullName, setFullName] = useState("");
@@ -25,7 +32,6 @@ export default function SignupDetailsPage() {
   useEffect(() => {
     api.get("/api/signup").then((s) => {
       const st = s as unknown as State;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setState(st);
       if (st.signup) setFullName(st.signup.fullName);
       else if (st.name) setFullName(st.name);
@@ -79,7 +85,12 @@ export default function SignupDetailsPage() {
             <p><strong>{state.signup.fullName}</strong> · {state.signup.phoneDisplay}</p>
             <p className="panel-sub">{t.status[state.signup.status]}</p>
             <p>{state.signup.status === "REJECTED" ? t.rejected(firm) : t.done(firm)}</p>
-            {state.signup.status !== "REJECTED" && <Link className="btn btn-primary" href="/blog">{t.toArticles}</Link>}
+            {state.signup.status !== "REJECTED" && (
+              <div className="door-actions">
+                <Link className="btn btn-primary" href="/start">{t.toJune}</Link>
+                {!toStart && <Link className="btn btn-quiet" href="/blog">{t.toArticles}</Link>}
+              </div>
+            )}
           </div>
         )}
       </div>

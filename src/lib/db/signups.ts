@@ -17,10 +17,17 @@ export interface SignupRow {
   statusBy: string | null;
   statusAt: string | null;
   notes: string;
+  /** Address the sign-up was completed from (2026-11-08; null when the proxy sent none). */
+  signupIp: string | null;
   createdAt: string;
   updatedAt: string;
-  /** joined */
+  /** joined from app_user */
   email?: string;
+  active?: boolean;
+  bannedAt?: string | null;
+  banReason?: string | null;
+  lastLoginIp?: string | null;
+  lastLoginAt?: string | null;
 }
 
 function rowToSignup(r: Record<string, unknown>): SignupRow {
@@ -36,9 +43,15 @@ function rowToSignup(r: Record<string, unknown>): SignupRow {
     statusBy: (r.status_by as string | null) ?? null,
     statusAt: (r.status_at as string | null) ?? null,
     notes: (r.notes as string) ?? "",
+    signupIp: (r.signup_ip as string | null) ?? null,
     createdAt: r.created_at as string,
     updatedAt: r.updated_at as string,
     email: (r.email as string | undefined) ?? undefined,
+    active: r.active === undefined ? undefined : r.active === 1,
+    bannedAt: (r.banned_at as string | null | undefined) ?? null,
+    banReason: (r.ban_reason as string | null | undefined) ?? null,
+    lastLoginIp: (r.last_login_ip as string | null | undefined) ?? null,
+    lastLoginAt: (r.last_login_at as string | null | undefined) ?? null,
   };
 }
 
@@ -47,7 +60,7 @@ export async function getSignup(userId: string): Promise<SignupRow | null> {
   return r ? rowToSignup(r) : null;
 }
 
-export async function upsertSignup(opts: { userId: string; fullName: string; phone: string; phoneDisplay: string; disclaimerVersion: string; firmId?: string }): Promise<SignupRow> {
+export async function upsertSignup(opts: { userId: string; fullName: string; phone: string; phoneDisplay: string; disclaimerVersion: string; firmId?: string; ip?: string | null }): Promise<SignupRow> {
   const t = nowIso();
   const existing = await getSignup(opts.userId);
   if (existing) {
@@ -63,7 +76,7 @@ export async function upsertSignup(opts: { userId: string; fullName: string; pho
     );
   } else {
     await getDb().run(
-      `INSERT INTO signup_profile (user_id, firm_id, full_name, phone, phone_display, disclaimer_version, acknowledged_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO signup_profile (user_id, firm_id, full_name, phone, phone_display, disclaimer_version, acknowledged_at, signup_ip, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       opts.userId,
       opts.firmId ?? DEFAULT_FIRM_ID,
       opts.fullName.trim(),
@@ -71,6 +84,7 @@ export async function upsertSignup(opts: { userId: string; fullName: string; pho
       opts.phoneDisplay,
       opts.disclaimerVersion,
       t,
+      opts.ip ?? null,
       t,
       t
     );
@@ -79,15 +93,17 @@ export async function upsertSignup(opts: { userId: string; fullName: string; pho
   return (await getSignup(opts.userId))!;
 }
 
+const JOINED = `SELECT sp.*, u.email, u.active, u.banned_at, u.ban_reason, u.last_login_ip, u.last_login_at FROM signup_profile sp JOIN app_user u ON u.id = sp.user_id`;
+
 export async function listSignups(firmId: string | null): Promise<SignupRow[]> {
   const rows = firmId
     ? await getDb().all<Record<string, unknown>>(
-        `SELECT sp.*, u.email FROM signup_profile sp JOIN app_user u ON u.id = sp.user_id WHERE sp.firm_id = ? OR (sp.firm_id IS NULL AND ? = ?) ORDER BY sp.created_at DESC`,
+        `${JOINED} WHERE sp.firm_id = ? OR (sp.firm_id IS NULL AND ? = ?) ORDER BY sp.created_at DESC`,
         firmId,
         firmId,
         DEFAULT_FIRM_ID
       )
-    : await getDb().all<Record<string, unknown>>(`SELECT sp.*, u.email FROM signup_profile sp JOIN app_user u ON u.id = sp.user_id ORDER BY sp.created_at DESC`);
+    : await getDb().all<Record<string, unknown>>(`${JOINED} ORDER BY sp.created_at DESC`);
   return rows.map(rowToSignup);
 }
 

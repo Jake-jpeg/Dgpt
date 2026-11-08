@@ -49,7 +49,7 @@ export async function requireUser(req: Request, roles: Role[]): Promise<AuthedUs
     throw new HttpError(403, "This sign-in is not linked to an authorized account");
   }
 
-  if (!account.active) throw new HttpError(403, "Account is deactivated");
+  if (!account.active) throw new HttpError(403, account.bannedAt ? "This account has been suspended" : "Account is deactivated");
   if (account.subject !== session.subject) {
     // Email collision with a different identity — refuse rather than merge.
     throw new HttpError(403, "Account identity mismatch");

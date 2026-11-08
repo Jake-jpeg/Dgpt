@@ -60,25 +60,33 @@ export interface StartDraftRow {
   createdAt: string;
 }
 
-/** Persist (or refresh) the draft parked under the starting spouse's email. */
-export async function saveStartDraft(draft: StartDraft): Promise<StartDraftRow> {
+/**
+ * Persist (or refresh) the draft parked under the starting spouse's email.
+ * `visitorId` (2026-11-08: the signed-in account id) keys the same row June's
+ * conversation uses, so a form-filled draft and a chat-filled one are one
+ * record.
+ */
+export async function saveStartDraft(draft: StartDraft, visitorId: string | null = null): Promise<StartDraftRow> {
   const db = getDb();
   const t = nowIso();
   const quote = quoteFor({ children: draft.children, assets: draft.assets });
   const payload = JSON.stringify({ draft, quote });
   const existing = await db.get<{ id: string }>(
-    `SELECT id FROM start_draft WHERE email = ? AND consumed_at IS NULL ORDER BY created_at DESC LIMIT 1`,
-    draft.yourEmail
+    visitorId
+      ? `SELECT id FROM start_draft WHERE (visitor_id = ? OR email = ?) AND consumed_at IS NULL ORDER BY created_at DESC LIMIT 1`
+      : `SELECT id FROM start_draft WHERE email = ? AND consumed_at IS NULL ORDER BY created_at DESC LIMIT 1`,
+    ...(visitorId ? [visitorId, draft.yourEmail] : [draft.yourEmail])
   );
   if (existing) {
-    await db.run(`UPDATE start_draft SET payload = ?, complete = 1, updated_at = ? WHERE id = ?`, payload, t, existing.id);
+    await db.run(`UPDATE start_draft SET email = ?, visitor_id = COALESCE(?, visitor_id), payload = ?, complete = 1, updated_at = ? WHERE id = ?`, draft.yourEmail, visitorId, payload, t, existing.id);
     return (await getStartDraft(existing.id))!;
   }
   const id = newId();
   await db.run(
-    `INSERT INTO start_draft (id, email, complete, payload, created_at, updated_at) VALUES (?, ?, 1, ?, ?, ?)`,
+    `INSERT INTO start_draft (id, email, visitor_id, complete, payload, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?)`,
     id,
     draft.yourEmail,
+    visitorId,
     payload,
     t,
     t

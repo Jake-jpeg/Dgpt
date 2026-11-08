@@ -9,7 +9,7 @@ import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { getSessionUser } from "@/lib/auth/session";
 import { requireUser } from "@/lib/auth/authz";
 import { assertCsrf } from "@/lib/security/csrf";
-import { assertRateLimit } from "@/lib/security/rate-limit";
+import { assertRateLimit, clientKey } from "@/lib/security/rate-limit";
 import { getSignup, upsertSignup } from "@/lib/db/signups";
 import { SIGNUP_DISCLAIMER_VERSION, normalizeUsPhone } from "@/config/signup-copy";
 
@@ -52,8 +52,10 @@ export async function POST(req: Request) {
     const parsed = schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: please give your full name, a US mobile number, and acknowledge the notices");
     const phone = normalizeUsPhone(parsed.data.phone);
-    if (!phone) throw new HttpError(400, "VALIDATION: that doesn't look like a US phone number");
-    const s = await upsertSignup({ userId: authed.account.id, fullName: parsed.data.fullName, phone: phone.digits, phoneDisplay: phone.display, disclaimerVersion: parsed.data.acknowledgedVersion });
+    if (!phone) throw new HttpError(400, "VALIDATION: please enter a 10-digit US phone number, e.g. (201) 123-1234");
+    // The sign-up address is kept for abuse prevention (disclosed in the notices); "local" means the proxy sent none.
+    const ip = clientKey(req);
+    const s = await upsertSignup({ userId: authed.account.id, fullName: parsed.data.fullName, phone: phone.digits, phoneDisplay: phone.display, disclaimerVersion: parsed.data.acknowledgedVersion, ip: ip === "local" ? null : ip });
     return Response.json({ signup: { fullName: s.fullName, phoneDisplay: s.phoneDisplay, status: s.status } });
   } catch (e) {
     return errorResponse(e);

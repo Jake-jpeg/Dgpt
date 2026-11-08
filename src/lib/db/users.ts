@@ -27,6 +27,13 @@ export interface UserRow {
   active: boolean;
   /** Firm-side users belong to a firm (2026-11-02). null = platform-level (legacy) — sees every firm's matters. */
   firmId: string | null;
+  /** 2026-11-08: a ban is `active=false` PLUS these — so it is distinguishable from an ordinary deactivation and can be lifted. */
+  bannedAt: string | null;
+  bannedBy: string | null;
+  banReason: string | null;
+  /** Last sign-in address and time (abuse prevention; disclosed at sign-up). */
+  lastLoginIp: string | null;
+  lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,6 +47,11 @@ function rowToUser(r: Record<string, unknown>): UserRow {
     role: r.role as UserRole,
     active: r.active === 1,
     firmId: (r.firm_id as string | null) ?? null,
+    bannedAt: (r.banned_at as string | null) ?? null,
+    bannedBy: (r.banned_by as string | null) ?? null,
+    banReason: (r.ban_reason as string | null) ?? null,
+    lastLoginIp: (r.last_login_ip as string | null) ?? null,
+    lastLoginAt: (r.last_login_at as string | null) ?? null,
     createdAt: r.created_at as string,
     updatedAt: r.updated_at as string,
   };
@@ -47,6 +59,45 @@ function rowToUser(r: Record<string, unknown>): UserRow {
 
 export async function setUserFirm(userId: string, firmId: string | null): Promise<void> {
   await getDb().run(`UPDATE app_user SET firm_id = ?, updated_at = ? WHERE id = ?`, firmId, nowIso(), userId);
+}
+
+/**
+ * Ban (2026-11-08, operator: "The ability to Ban these accounts"). The account
+ * goes inactive — `requireUser` refuses it on the very next request, so every
+ * open session dies at once — and the login callback refuses it by name. Only
+ * CLIENT accounts can be banned here; firm accounts are deactivated through
+ * the Users panel, which protects the last attorney/admin.
+ */
+export async function banUser(userId: string, actingUserId: string, reason: string): Promise<UserRow> {
+  const t = nowIso();
+  await getDb().run(
+    `UPDATE app_user SET active = 0, banned_at = ?, banned_by = ?, ban_reason = ?, updated_at = ? WHERE id = ? AND role = 'CLIENT'`,
+    t,
+    actingUserId,
+    reason.slice(0, 500),
+    t,
+    userId
+  );
+  const u = await getUserById(userId);
+  if (!u) throw new Error("User not found");
+  if (u.role !== "CLIENT") throw new Error("Only client accounts can be banned");
+  return u;
+}
+
+export async function unbanUser(userId: string): Promise<UserRow> {
+  await getDb().run(
+    `UPDATE app_user SET active = 1, banned_at = NULL, banned_by = NULL, ban_reason = NULL, updated_at = ? WHERE id = ? AND role = 'CLIENT'`,
+    nowIso(),
+    userId
+  );
+  const u = await getUserById(userId);
+  if (!u) throw new Error("User not found");
+  return u;
+}
+
+/** Stamp the sign-in address and time (login callback). Never throws — a missing header is just null. */
+export async function recordLogin(userId: string, ip: string | null): Promise<void> {
+  await getDb().run(`UPDATE app_user SET last_login_ip = ?, last_login_at = ? WHERE id = ?`, ip, nowIso(), userId);
 }
 
 export async function getUserBySubject(subject: string): Promise<UserRow | null> {
@@ -227,9 +278,11 @@ export async function setUserRole(userId: string, role: UserRole): Promise<UserR
 
 /** Admin action: activate / deactivate an account (deactivation, not deletion). */
 export async function setUserActive(userId: string, active: boolean): Promise<UserRow> {
+  // Re-activating from the Users panel also lifts a ban — one switch, not two.
   await getDb().run(
-    `UPDATE app_user SET active = ?, updated_at = ? WHERE id = ?`,
-    active ? 1 : 0,
+    active
+      ? `UPDATE app_user SET active = 1, banned_at = NULL, banned_by = NULL, ban_reason = NULL, updated_at = ? WHERE id = ?`
+      : `UPDATE app_user SET active = 0, updated_at = ? WHERE id = ?`,
     nowIso(),
     userId
   );

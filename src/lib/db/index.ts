@@ -614,6 +614,15 @@ const MIGRATIONS = [
   `ALTER TABLE matter ADD COLUMN engagement_tier TEXT NOT NULL DEFAULT 'REVIEW'`,
   `ALTER TABLE matter_party ADD COLUMN notice_ack_at TEXT`,
   `ALTER TABLE matter_party ADD COLUMN notice_ack_version TEXT`,
+  // 2026-11-08: the operator's admin portal — ban (active=0 + a reason, so a
+  // ban is distinguishable from an ordinary deactivation) and the sign-in
+  // addresses (abuse prevention; disclosed in the sign-up notices).
+  `ALTER TABLE app_user ADD COLUMN banned_at TEXT`,
+  `ALTER TABLE app_user ADD COLUMN banned_by TEXT`,
+  `ALTER TABLE app_user ADD COLUMN ban_reason TEXT`,
+  `ALTER TABLE app_user ADD COLUMN last_login_ip TEXT`,
+  `ALTER TABLE app_user ADD COLUMN last_login_at TEXT`,
+  `ALTER TABLE signup_profile ADD COLUMN signup_ip TEXT`,
   `ALTER TABLE matter_intake_answer ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,
   `ALTER TABLE matter_intake_answer_history ADD COLUMN party_id TEXT NOT NULL DEFAULT 'A'`,
   `ALTER TABLE matter_intake_answer DROP CONSTRAINT IF EXISTS matter_intake_answer_pkey`,

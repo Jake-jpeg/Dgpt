@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { resetDbForTests } from "@/lib/db/index";
-import { cookieFor, freshLimits, jsonRequest, params, provisionAccount, SYNTH_ATTORNEY, SYNTH_CLIENT, SYNTH_CLIENT_2 } from "./helpers";
+import { cookieFor, freshLimits, jsonRequest, params, provisionAccount, signUp, SYNTH_ATTORNEY, SYNTH_CLIENT, SYNTH_CLIENT_2 } from "./helpers";
 import type { SessionUser } from "@/lib/auth/session";
 import { POST as draftRoute } from "@/app/api/start/draft/route";
 import { POST as finishRoute } from "@/app/api/start/finish/route";
@@ -51,6 +51,7 @@ beforeEach(async () => {
   await provisionAccount(OTHER_FIRM_ATTORNEY);
   await provisionAccount(SYNTH_CLIENT);
   await provisionAccount(SYNTH_CLIENT_2);
+  await signUp(SYNTH_CLIENT); // June is behind sign-in + sign-up (2026-11-08)
   aCookie = await cookieFor(SYNTH_CLIENT);
   attorneyCookie = await cookieFor(SYNTH_ATTORNEY);
   otherCookie = await cookieFor(OTHER_FIRM_ATTORNEY);
@@ -58,7 +59,7 @@ beforeEach(async () => {
 
 async function startCase(): Promise<string> {
   freshLimits();
-  await draftRoute(jsonRequest("/api/start/draft", { body: DRAFT }));
+  await draftRoute(jsonRequest("/api/start/draft", { body: DRAFT, cookie: aCookie }));
   freshLimits();
   const r = await finishRoute(jsonRequest("/api/start/finish", { cookie: aCookie }));
   expect(r.status).toBe(200);

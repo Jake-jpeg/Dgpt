@@ -767,3 +767,13 @@ footer .footer-ad { color: #3c4c63; }
   .june-row input { font-size: 16px; } /* 16px stops iOS from zooming the page on focus */
   .june-ask { font-size: .74rem; margin: 6px 4px 0; }
 }
+
+/* ── Sign-ups / admin portal (2026-11-08) ───────────────────────────── */
+.tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.signups-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 10px 0 14px; }
+.signups-search { max-width: 320px; margin-left: auto; }
+.row-banned td { background: #fff6f6; }
+@media (max-width: 560px) { .signups-search { max-width: none; margin-left: 0; flex-basis: 100%; } }
+.start-door { margin-top: 14px; }
+.start-door h2 { margin: 0 0 6px; font-size: 1.15rem; }
+.start-door .door-providers { margin: 14px 0 10px; }
