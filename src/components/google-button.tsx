@@ -5,16 +5,14 @@
  * door). Laid out the way Google's sign-in branding guidelines ask: a white
  * button, the mark on the left, "Continue with Google" in a medium weight.
  *
- * THE MARK IS NOT IN THIS REPO. Google's logo is Google's; the button
- * shows the official file when it is present at /brand/google-g.svg
- * (public/brand/google-g.svg — download it from Google's "Sign in with
- * Google" branding page and drop it there, unmodified). Until then, and
- * whenever the file fails to load, a neutral glyph stands in, so the button
- * never renders a broken image.
+ * The mark is Google's own artwork, supplied by the operator (2026-11-12)
+ * and stored at public/brand/google-g.webp — scaled down to button size,
+ * otherwise untouched. It is never drawn in code. If the file fails to load
+ * a neutral glyph stands in, so the button never renders a broken image.
  */
 import { useState } from "react";
 
-export const GOOGLE_MARK_SRC = "/brand/google-g.svg";
+export const GOOGLE_MARK_SRC = "/brand/google-g.webp";
 
 function NeutralMark() {
   return (

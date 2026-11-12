@@ -75,6 +75,9 @@ export function betaGateExempt(pathname: string): boolean {
     pathname === "/signup" ||
     pathname.startsWith("/signup/") ||
     pathname === "/api/signup" ||
+    // 2026-11-12: static brand marks (the Google sign-in mark) — the public
+    // sign-up and join pages show the button to people without the key.
+    pathname.startsWith("/brand/") ||
     pathname.startsWith("/api/auth/login/") ||
     pathname.startsWith("/api/auth/callback/") ||
     pathname === "/api/auth/me" ||

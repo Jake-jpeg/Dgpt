@@ -91,6 +91,8 @@ describe("middleware enforcement (whole site)", () => {
     expect((await middleware(pageReq("/api/start/turn"))).status).toBe(403);
     expect((await middleware(pageReq("/api/join/sometoken"))).status).toBe(200);
     expect((await middleware(pageReq("/join/sometoken"))).status).toBe(200);
+    // 2026-11-12: the sign-in button's mark is a static file the public pages need.
+    expect((await middleware(pageReq("/brand/google-g.webp"))).status).toBe(200);
   });
 
   it("API calls without the cookie get 403, not a redirect", async () => {

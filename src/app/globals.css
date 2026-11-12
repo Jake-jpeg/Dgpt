@@ -639,7 +639,7 @@ details.accordion > summary:focus-visible { outline: 2px solid var(--blue); outl
 .g-btn:focus-visible { outline: 3px solid rgba(31,76,168,.35); outline-offset: 2px; }
 .g-btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; transform: none; }
 .g-btn-mark { display: inline-flex; width: 18px; height: 18px; flex: 0 0 18px; color: #5f6368; }
-.g-btn-mark img { width: 18px; height: 18px; display: block; }
+.g-btn-mark img { width: 18px; height: 18px; display: block; object-fit: contain; }
 .g-btn-label { white-space: nowrap; }
 .door-staff { margin: 22px 0 0; text-align: center; font-size: .78rem; color: var(--muted); }
 .door-sticky { display: none; }
