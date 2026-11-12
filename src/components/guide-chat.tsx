@@ -28,7 +28,7 @@ const COPY = {
     ack: [
       "This guide gives general information about New York law only. It is not legal advice.",
       "Using it does not make Jake Kim Law Firm your lawyer and creates no attorney-client relationship.",
-      "Do not share confidential or sensitive details — no names, dollar figures or facts about your case. Nothing you type is saved, but keep it general.",
+      "This conversation is not privileged and not confidential. Do not share sensitive details — no names, dollar figures or facts about your case. Nothing you type is saved, but keep it general.",
       "New York only. It cannot tell you what to do, what you will get, or what to put in any form.",
     ],
     ackButton: "I understand",
@@ -50,7 +50,7 @@ const COPY = {
     ack: [
       "이 안내는 뉴욕 법에 관한 일반적인 정보만 제공하며 법률 자문이 아닙니다.",
       "이용한다고 해서 Jake Kim Law Firm이 귀하의 변호사가 되는 것이 아니며, 변호사-의뢰인 관계가 성립하지 않습니다.",
-      "이름, 금액, 사건의 구체적 사실 등 민감한 정보는 입력하지 마세요. 입력 내용은 저장되지 않지만 일반적인 질문만 해 주세요.",
+      "이 대화는 변호사-의뢰인 특권(privilege)의 보호를 받지 않으며 비밀이 보장되지 않습니다. 이름, 금액, 사건의 구체적 사실 등 민감한 정보는 입력하지 마세요. 입력 내용은 저장되지 않지만 일반적인 질문만 해 주세요.",
       "뉴욕 한정입니다. 무엇을 해야 하는지, 무엇을 받게 되는지, 서식에 무엇을 적어야 하는지는 알려드릴 수 없습니다.",
     ],
     ackButton: "이해했습니다",

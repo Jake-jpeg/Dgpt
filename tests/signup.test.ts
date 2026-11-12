@@ -166,4 +166,26 @@ describe("sign-up", () => {
       expect(NO_PASSWORD_LINE[lang].length).toBeGreaterThan(20);
     }
   });
+
+  it("ACCOUNTS (2026-11-12): the admin's list has every client account, signed up or not; the attorney's has only sign-ups", async () => {
+    const { getDb } = await import("@/lib/db/index");
+    const { createUser } = await import("@/lib/db/users");
+    // SYNTH_CLIENT signs up; a third client only ever signed in.
+    freshLimits();
+    await signupPost(jsonRequest("/api/signup", { cookie: aCookie, body: { fullName: "Casey Syntheticperson", phone: "2011231234", acknowledgedVersion: SIGNUP_DISCLAIMER_VERSION } }));
+    await createUser({ email: "lurker@example.test", role: "CLIENT", name: "Lurker Syntheticperson" });
+    await getDb().run(`UPDATE app_user SET role = 'ADMIN' WHERE email = ?`, SYNTH_CLIENT_2.email);
+    const adminCookie = await cookieFor({ ...SYNTH_CLIENT_2, role: "ADMIN" });
+
+    freshLimits();
+    const admin = (await (await signupsGet(jsonRequest("/api/firm/signups", { method: "GET", cookie: adminCookie }))).json()) as { signups: { email: string; signedUp: boolean; status: string; fullName: string }[] };
+    const lurker = admin.signups.find((r) => r.email === "lurker@example.test");
+    expect(lurker).toMatchObject({ signedUp: false, status: "NONE", fullName: "Lurker Syntheticperson" });
+    expect(admin.signups.find((r) => r.email === SYNTH_CLIENT.email)).toMatchObject({ signedUp: true, status: "NEW" });
+    expect(admin.signups.some((r) => r.email === SYNTH_ATTORNEY.email)).toBe(false); // firm accounts are not listed here
+
+    freshLimits();
+    const atty = (await (await signupsGet(jsonRequest("/api/firm/signups", { method: "GET", cookie: attorneyCookie }))).json()) as { signups: { email: string }[] };
+    expect(atty.signups.map((r) => r.email)).toEqual([SYNTH_CLIENT.email]);
+  });
 });

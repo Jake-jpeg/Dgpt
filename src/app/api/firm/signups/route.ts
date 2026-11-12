@@ -14,7 +14,7 @@ import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { requireUser } from "@/lib/auth/authz";
 import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
-import { listSignups, setSignupStatus } from "@/lib/db/signups";
+import { listSignups, listClientAccounts, setSignupStatus } from "@/lib/db/signups";
 import { banUser, unbanUser } from "@/lib/db/users";
 import { recordAudit } from "@/lib/db/repo";
 
@@ -23,29 +23,50 @@ export async function GET(req: Request) {
     assertRateLimit(req, "intake");
     const authed = await requireUser(req, ["ATTORNEY", "ADMIN"]);
     const admin = authed.account.role === "ADMIN";
-    const rows = await listSignups(admin ? null : authed.account.firmId ?? "firm_default");
+
+    if (admin) {
+      // 2026-11-12: every client ACCOUNT, signed up or not.
+      const accounts = await listClientAccounts();
+      return Response.json({
+        admin: true,
+        signups: accounts.map((a) => ({
+          userId: a.userId,
+          fullName: a.signup?.fullName ?? a.name,
+          phone: a.signup?.phoneDisplay ?? "",
+          email: a.email,
+          signedUp: Boolean(a.signup),
+          status: a.signup?.status ?? "NONE",
+          notes: a.signup?.notes ?? "",
+          accountCreatedAt: a.accountCreatedAt,
+          signedUpAt: a.signup?.createdAt ?? null,
+          statusAt: a.signup?.statusAt ?? null,
+          disclaimerVersion: a.signup?.disclaimerVersion ?? null,
+          banned: Boolean(a.bannedAt),
+          signupIp: a.signup?.signupIp ?? null,
+          lastLoginIp: a.lastLoginIp,
+          lastLoginAt: a.lastLoginAt,
+          banReason: a.banReason,
+          bannedAt: a.bannedAt,
+        })),
+      });
+    }
+
+    const rows = await listSignups(authed.account.firmId ?? "firm_default");
     return Response.json({
-      admin,
+      admin: false,
       signups: rows.map((s) => ({
         userId: s.userId,
         fullName: s.fullName,
         phone: s.phoneDisplay,
         email: s.email ?? "",
+        signedUp: true,
         status: s.status,
         notes: s.notes,
+        accountCreatedAt: null,
         signedUpAt: s.createdAt,
         statusAt: s.statusAt,
         disclaimerVersion: s.disclaimerVersion,
         banned: Boolean(s.bannedAt),
-        ...(admin
-          ? {
-              signupIp: s.signupIp,
-              lastLoginIp: s.lastLoginIp ?? null,
-              lastLoginAt: s.lastLoginAt ?? null,
-              banReason: s.banReason ?? null,
-              bannedAt: s.bannedAt ?? null,
-            }
-          : {}),
       })),
     });
   } catch (e) {

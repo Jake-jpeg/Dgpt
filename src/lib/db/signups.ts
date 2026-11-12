@@ -129,3 +129,44 @@ export async function mayUseGuide(userId: string): Promise<{ ok: boolean; reason
   if (s.status === "REJECTED") return { ok: false, reason: "REJECTED" };
   return { ok: true, reason: null };
 }
+
+/**
+ * Every CLIENT account (2026-11-12, operator: "I don't see a list of people
+ * who made a user account"). A sign-in alone creates the account; the
+ * sign-up (name, number, notices) may never follow. The admin sees both
+ * kinds — one list, the sign-up columns empty until they finish.
+ */
+export interface ClientAccountRow {
+  userId: string;
+  email: string;
+  name: string;
+  active: boolean;
+  bannedAt: string | null;
+  banReason: string | null;
+  lastLoginIp: string | null;
+  lastLoginAt: string | null;
+  accountCreatedAt: string;
+  signup: SignupRow | null;
+}
+
+export async function listClientAccounts(): Promise<ClientAccountRow[]> {
+  const rows = await getDb().all<Record<string, unknown>>(
+    `SELECT u.id AS u_id, u.email AS u_email, u.name AS u_name, u.active AS u_active, u.banned_at AS u_banned_at, u.ban_reason AS u_ban_reason,
+            u.last_login_ip AS u_last_login_ip, u.last_login_at AS u_last_login_at, u.created_at AS u_created_at, sp.*
+       FROM app_user u LEFT JOIN signup_profile sp ON sp.user_id = u.id
+      WHERE u.role = 'CLIENT'
+      ORDER BY u.created_at DESC`
+  );
+  return rows.map((r) => ({
+    userId: r.u_id as string,
+    email: r.u_email as string,
+    name: (r.u_name as string) ?? "",
+    active: r.u_active === 1,
+    bannedAt: (r.u_banned_at as string | null) ?? null,
+    banReason: (r.u_ban_reason as string | null) ?? null,
+    lastLoginIp: (r.u_last_login_ip as string | null) ?? null,
+    lastLoginAt: (r.u_last_login_at as string | null) ?? null,
+    accountCreatedAt: r.u_created_at as string,
+    signup: r.user_id ? rowToSignup({ ...r, email: r.u_email }) : null,
+  }));
+}

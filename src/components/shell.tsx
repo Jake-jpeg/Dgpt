@@ -104,7 +104,7 @@ const NAV: Record<Me["role"], { href: string; label: string }[]> = {
     { href: "/firm/settings", label: "Practice settings" },
   ],
   ADMIN: [
-    { href: "/firm/signups", label: "Sign-ups" },
+    { href: "/firm/signups", label: "Accounts" },
     { href: "/firm/usage", label: "Usage" },
     { href: "/firm/settings", label: "Practice settings" },
   ],
@@ -199,7 +199,9 @@ export function Shell({
                 </button>
               </>
             ) : loading ? null : (
-              <Link href="/portal">Sign in</Link>
+              // 2026-11-12: "/portal" from the landing itself went nowhere — the
+              // sign-in cards live at #signin, so point straight at them.
+              <a href="/portal#signin">Sign in</a>
             )}
           </nav>
         </div>

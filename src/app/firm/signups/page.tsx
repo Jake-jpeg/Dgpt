@@ -19,9 +19,11 @@ interface Row {
   fullName: string;
   phone: string;
   email: string;
-  status: "NEW" | "CLEARED" | "REJECTED";
+  status: "NEW" | "CLEARED" | "REJECTED" | "NONE";
+  signedUp: boolean;
   notes: string;
-  signedUpAt: string;
+  accountCreatedAt: string | null;
+  signedUpAt: string | null;
   statusAt: string | null;
   banned: boolean;
   signupIp?: string | null;
@@ -92,22 +94,24 @@ export default function SignupsPage() {
   const counts = {
     total: rows.length,
     pending: rows.filter((r) => r.status === "NEW").length,
+    noSignup: rows.filter((r) => !r.signedUp).length,
     banned: rows.filter((r) => r.banned).length,
   };
 
   return (
-    <Shell title="Sign-ups">
+    <Shell title={admin ? "Accounts" : "Sign-ups"}>
       <ErrorNotice message={err} />
       {!loading && !ok && <div className="notice notice-info">This area is for the firm&apos;s attorney and administrators.</div>}
       {ok && (
         <div className="panel">
           <p className="panel-sub">
-            Everyone who signed up through the public pages, with the name and number they gave. Run the conflict check, then Clear
-            or Reject. A rejected sign-up can no longer use the guide or start with June.
-            {admin && " As the platform administrator you also see sign-in addresses and can ban an account outright — the ban takes effect on that person's very next request."}
+            {admin
+              ? "Every person who made an account (a Google or Microsoft sign-in), whether or not they finished sign-up. NO SIGN-UP means they signed in but never left a name and number — they cannot use June or the guide until they do. You also see sign-in addresses and can ban an account outright; the ban takes effect on that person's very next request."
+              : "Everyone who signed up through the public pages, with the name and number they gave. Run the conflict check, then Clear or Reject. A rejected sign-up can no longer use the guide or start with June."}
           </p>
           <div className="signups-bar">
             <span className="badge badge-warn">{counts.pending} pending</span>
+            {admin && counts.noSignup > 0 && <span className="badge">{counts.noSignup} no sign-up</span>}
             {admin && counts.banned > 0 && <span className="badge badge-stop">{counts.banned} banned</span>}
             <span className="text-sm text-slate-500">{counts.total} total</span>
             <input className="text-input signups-search" placeholder={admin ? "Search name, phone, email or IP" : "Search name, phone or email"} value={q} onChange={(e) => setQ(e.target.value)} />
@@ -119,6 +123,7 @@ export default function SignupsPage() {
                   <th>Name</th>
                   <th>Phone</th>
                   <th>Email</th>
+                  {admin && <th>Account made</th>}
                   <th>Signed up</th>
                   {admin && <th>Sign-up IP</th>}
                   {admin && <th>Last sign-in</th>}
@@ -134,9 +139,10 @@ export default function SignupsPage() {
                       {r.banned && <span className="badge badge-stop" style={{ marginLeft: 6 }}>BANNED</span>}
                       {admin && r.banned && r.banReason && <div className="text-xs text-slate-500">{r.banReason}</div>}
                     </td>
-                    <td><a className="underline" href={`tel:${r.phone.replace(/\D/g, "")}`}>{r.phone}</a></td>
+                    <td>{r.phone ? <a className="underline" href={`tel:${r.phone.replace(/\D/g, "")}`}>{r.phone}</a> : "—"}</td>
                     <td><a className="underline" href={`mailto:${r.email}`}>{r.email}</a></td>
-                    <td>{fmtWhen(r.signedUpAt)}</td>
+                    {admin && <td>{r.accountCreatedAt ? fmtWhen(r.accountCreatedAt) : "—"}</td>}
+                    <td>{r.signedUpAt ? fmtWhen(r.signedUpAt) : "—"}</td>
                     {admin && <td><code className="mono">{r.signupIp ?? "—"}</code></td>}
                     {admin && (
                       <td>
@@ -144,10 +150,10 @@ export default function SignupsPage() {
                         {r.lastLoginAt && <div className="text-xs text-slate-500">{fmtWhen(r.lastLoginAt)}</div>}
                       </td>
                     )}
-                    <td><span className={`badge ${r.status === "CLEARED" ? "badge-good" : r.status === "REJECTED" ? "badge-stop" : "badge-warn"}`}>{r.status}</span></td>
+                    <td><span className={`badge ${r.status === "CLEARED" ? "badge-good" : r.status === "REJECTED" ? "badge-stop" : r.status === "NONE" ? "" : "badge-warn"}`}>{r.status === "NONE" ? "NO SIGN-UP" : r.status}</span></td>
                     <td style={{ whiteSpace: "nowrap" }}>
-                      {r.status !== "CLEARED" && <button className="btn btn-quiet" disabled={busy === r.userId} onClick={() => setStatus(r.userId, "CLEARED")}>Clear</button>}{" "}
-                      {r.status !== "REJECTED" && <button className="btn btn-danger" disabled={busy === r.userId} onClick={() => setStatus(r.userId, "REJECTED")}>Reject</button>}
+                      {r.signedUp && r.status !== "CLEARED" && <button className="btn btn-quiet" disabled={busy === r.userId} onClick={() => setStatus(r.userId, "CLEARED")}>Clear</button>}{" "}
+                      {r.signedUp && r.status !== "REJECTED" && <button className="btn btn-danger" disabled={busy === r.userId} onClick={() => setStatus(r.userId, "REJECTED")}>Reject</button>}
                       {admin && (
                         <>
                           {" "}
@@ -161,7 +167,7 @@ export default function SignupsPage() {
                     </td>
                   </tr>
                 ))}
-                {shown.length === 0 && <tr><td colSpan={admin ? 8 : 6} className="text-slate-500">{rows.length === 0 ? "No sign-ups yet." : "No matches."}</td></tr>}
+                {shown.length === 0 && <tr><td colSpan={admin ? 9 : 6} className="text-slate-500">{rows.length === 0 ? "No accounts yet." : "No matches."}</td></tr>}
               </tbody>
             </table>
           </div>
