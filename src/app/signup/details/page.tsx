@@ -69,7 +69,7 @@ export default function SignupDetailsPage() {
           <div className="panel"><p className="panel-sub">{lang === "ko" ? "먼저 가입 페이지에서 로그인해 주세요." : "Please sign in from the sign-up page first."}</p><Link className="btn btn-primary" href="/signup">{t.title}</Link></div>
         )}
         {state?.signedIn && state.client === false && (
-          <div className="panel"><p className="panel-sub">{lang === "ko" ? "로펌 계정으로 로그인되어 있습니다. 개인 계정을 사용해 주세요." : "You are signed in to a firm account. Use a personal Google or Microsoft account."}</p></div>
+          <div className="panel"><p className="panel-sub">{lang === "ko" ? "로펌 계정으로 로그인되어 있습니다. 개인 계정을 사용해 주세요." : "You are signed in to a firm account. Use a personal Google account."}</p></div>
         )}
         {state?.client && !state.signup && (
           <div className="panel signup-panel">

@@ -108,10 +108,8 @@ describe("a bare cookie still confers nothing (invite-only)", () => {
 
 describe("login routing (invite-only)", () => {
   const ALLOW = ["attorney@example.test"];
-  it("a client with no account is sent to /invite on both client providers", () => {
-    for (const provider of ["google", "msa"] as const) {
-      expect(decideLoginDestination({ provider, boundAccount: null, attorneyAllowlist: ALLOW })).toBe("/invite");
-    }
+  it("a client with no account is sent to /invite (Google is the only client provider since 2026-11-12)", () => {
+    expect(decideLoginDestination({ provider: "google", boundAccount: null, attorneyAllowlist: ALLOW })).toBe("/invite");
   });
   it("entra remains firm-only", () => {
     expect(() =>

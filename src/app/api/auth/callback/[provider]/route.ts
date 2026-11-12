@@ -44,7 +44,7 @@ export async function GET(
   try {
     assertRateLimit(req, "login");
     const { provider } = await ctx.params;
-    if (provider !== "google" && provider !== "entra" && provider !== "msa") {
+    if (provider !== "google" && provider !== "entra") {
       throw new HttpError(404, "Unknown provider");
     }
     const url = new URL(req.url);
@@ -68,7 +68,7 @@ export async function GET(
     // provider subject, email, display name — the absolute minimum, nothing
     // else. It confers no access to anything; the attorney connects it to a
     // matter (or declines it) from the firm portal. Entra never registers.
-    if (!boundAccount && (provider === "google" || provider === "msa")) {
+    if (!boundAccount && provider === "google") {
       try {
         const created = await provisionClientAccount({
           subject: identity.subject,

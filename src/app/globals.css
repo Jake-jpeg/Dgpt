@@ -572,6 +572,7 @@ details.accordion > summary:focus-visible { outline: 2px solid var(--blue); outl
 .june-quote-total { display: flex; justify-content: space-between; font-weight: 750; font-size: 1.05rem; border-top: 1px solid var(--line); margin-top: 8px; padding-top: 10px; }
 .june-signin { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
 .june-signin .btn { width: 100%; padding: 14px; font-size: 1rem; border-radius: 12px; }
+.june-signin .g-btn { min-height: 52px; font-size: 1rem; }
 
 /* ── The door (/portal, 2026-10-30 redesign) ─────────────────────────── */
 .door-grid {
@@ -599,16 +600,20 @@ details.accordion > summary:focus-visible { outline: 2px solid var(--blue); outl
 .door-card li strong { font-weight: 680; letter-spacing: -.01em; }
 .door-card li small { font-size: .84rem; color: #c3d3ee; line-height: 1.45; }
 .door-signin {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
-  gap: 32px; align-items: center;
-  background: #fff; border: 1px solid var(--line); border-radius: 20px;
-  padding: 30px 32px; margin-top: 8px;
-  box-shadow: 0 16px 40px rgba(20,45,78,.06);
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 40px; align-items: center;
+  background: linear-gradient(180deg, #fff 0%, #fbfcfe 100%);
+  border: 1px solid var(--line); border-radius: 22px;
+  padding: 34px 36px; margin-top: 8px;
+  box-shadow: 0 1px 2px rgba(20,45,78,.04), 0 18px 44px rgba(20,45,78,.07);
 }
 .door-kicker { margin: 0 0 6px; font-size: .74rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--blue); }
 .door-h2 { margin: 0 0 8px; font-size: 1.7rem; letter-spacing: -.03em; line-height: 1.1; }
-.door-signin .panel-sub { margin: 0; }
-.door-providers { display: flex; flex-direction: column; gap: 10px; }
+.door-signin .panel-sub { margin: 0; max-width: 46ch; }
+.door-providers { display: flex; flex-direction: column; gap: 12px; }
+.door-lock { display: flex; align-items: flex-start; gap: 7px; margin: 0; font-size: .78rem; line-height: 1.45; color: var(--muted); }
+.door-lock svg { flex: 0 0 14px; margin-top: 2px; color: #7a8ba6; }
+/* Legacy generic provider button (still used where no brand applies). */
 .door-provider {
   display: flex; align-items: center; justify-content: center; gap: 10px;
   width: 100%; padding: 13px 16px;
@@ -617,6 +622,25 @@ details.accordion > summary:focus-visible { outline: 2px solid var(--blue); outl
   transition: background .12s ease, border-color .12s ease, transform .12s ease;
 }
 .door-provider:hover { background: #f4f7fc; border-color: #9fb6d8; transform: translateY(-1px); }
+
+/* ── The Google sign-in button (2026-11-12) ───────────────────────────── */
+.g-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+  min-height: 48px; padding: 0 20px;
+  font: inherit; font-size: .98rem; font-weight: 600; letter-spacing: .005em; color: #1f1f1f;
+  background: #fff; border: 1px solid #747775; border-radius: 999px; cursor: pointer;
+  box-shadow: 0 1px 2px rgba(60,64,67,.12);
+  transition: background .12s ease, box-shadow .12s ease, transform .12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.g-btn-block { display: flex; width: 100%; }
+.g-btn:hover { background: #f6f9fe; box-shadow: 0 1px 3px rgba(60,64,67,.2), 0 4px 10px rgba(60,64,67,.1); }
+.g-btn:active { transform: translateY(1px); box-shadow: 0 1px 2px rgba(60,64,67,.14); }
+.g-btn:focus-visible { outline: 3px solid rgba(31,76,168,.35); outline-offset: 2px; }
+.g-btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; transform: none; }
+.g-btn-mark { display: inline-flex; width: 18px; height: 18px; flex: 0 0 18px; color: #5f6368; }
+.g-btn-mark img { width: 18px; height: 18px; display: block; }
+.g-btn-label { white-space: nowrap; }
 .door-staff { margin: 22px 0 0; text-align: center; font-size: .78rem; color: var(--muted); }
 .door-sticky { display: none; }
 
@@ -673,7 +697,6 @@ details.accordion > summary:focus-visible { outline: 2px solid var(--blue); outl
 .signup-ack { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .signup-ack label { display: flex; gap: 10px; align-items: flex-start; font-size: .93rem; line-height: 1.5; cursor: pointer; }
 .signup-ack input { width: 20px; height: 20px; margin-top: 2px; flex: 0 0 20px; accent-color: var(--navy); }
-.signup-panel .door-provider:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 .door-topline { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .door-cta-note { margin: 12px 2px 0; font-size: .8rem; color: #aebfda; }
 .door-dot { margin: 0 8px; }

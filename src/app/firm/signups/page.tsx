@@ -106,7 +106,7 @@ export default function SignupsPage() {
         <div className="panel">
           <p className="panel-sub">
             {admin
-              ? "Every person who made an account (a Google or Microsoft sign-in), whether or not they finished sign-up. NO SIGN-UP means they signed in but never left a name and number — they cannot use June or the guide until they do. You also see sign-in addresses and can ban an account outright; the ban takes effect on that person's very next request."
+              ? "Every person who made an account (a Google sign-in), whether or not they finished sign-up. NO SIGN-UP means they signed in but never left a name and number — they cannot use June or the guide until they do. You also see sign-in addresses and can ban an account outright; the ban takes effect on that person's very next request."
               : "Everyone who signed up through the public pages, with the name and number they gave. Run the conflict check, then Clear or Reject. A rejected sign-up can no longer use the guide or start with June."}
           </p>
           <div className="signups-bar">
@@ -172,8 +172,9 @@ export default function SignupsPage() {
             </table>
           </div>
           <p className="text-xs text-slate-500 mt-3">
-            Passwords: none exist here. Sign-in is by Google or Microsoft account only; the platform never sees or stores a password,
-            so there is nothing to reset — account problems are handled with Google or Microsoft.
+            Passwords: none exist here. Clients sign in with a Google account only (Google requires a phone number to open one, which
+            keeps throwaway accounts out); the platform never sees or stores a password, so there is nothing to reset — account problems
+            are handled with Google.
           </p>
         </div>
       )}

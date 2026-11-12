@@ -21,10 +21,8 @@
  *   - Google is the client path: an accepted-invitation CLIENT account lands on
  *     their matter. INVITE-ONLY (2026-07-21): a brand-new Google identity with
  *     no account is sent to the invitation page — signing in alone is nothing.
- *   - Microsoft personal accounts (msa — Outlook.com / Hotmail) behave
- *     exactly like the Google client path, with one extra rule: they are
- *     CLIENTS ONLY. A firm-role account arriving on msa is refused and told
- *     which door to use; a personal account is never a firm login.
+ *   - Microsoft personal accounts (msa) were removed 2026-11-12; Google is
+ *     the only client door.
  *
  * NO ENUMERATION ON THE MICROSOFT PATH: every firm-side rejection reaching an
  * entra caller collapses to ONE generic message. Distinguishing "deactivated
@@ -57,14 +55,6 @@ export function decideLoginDestination(opts: {
 
   // A firm-role account is a firm login on either FIRM provider.
   if (boundAccount && boundAccount.role !== "CLIENT") {
-    if (provider === "msa") {
-      // Personal Microsoft accounts are a client door only. A firm-role
-      // account never signs in through it, whatever the DB says.
-      throw new HttpError(
-        403,
-        "Firm accounts must sign in with Microsoft work or firm Google accounts"
-      );
-    }
     if (!boundAccount.active) {
       refuseFirmSide("This firm account is not active");
     }
@@ -85,7 +75,7 @@ export function decideLoginDestination(opts: {
     throw new HttpError(403, ENTRA_GENERIC_REFUSAL);
   }
 
-  // Google/MSA client path. An accepted invitation has already provisioned
+  // Google client path. An accepted invitation has already provisioned
   // the CLIENT account (callback), so a bound account goes to their matter;
   // no account means the invite wasn't accepted → the invitation page.
   return boundAccount ? "/portal/matter" : "/invite";

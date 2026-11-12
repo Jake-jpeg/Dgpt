@@ -9,6 +9,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Shell, useMe } from "@/components/shell";
 import { useLang, LangToggle } from "@/lib/ui/lang";
+import { GoogleButton } from "@/components/google-button";
 import { SIGNUP_COPY, SIGNUP_RETURN_COOKIE, NO_PASSWORD_LINE } from "@/config/signup-copy";
 import { operatingFirmName } from "@/config/branding";
 
@@ -21,7 +22,7 @@ export default function SignupPage() {
   const [checked, setChecked] = useState<boolean[]>(() => items.map(() => false));
   const all = checked.every(Boolean);
 
-  function go(provider: "google" | "msa") {
+  function go(provider: "google") {
     document.cookie = `${SIGNUP_RETURN_COOKIE}=1; Path=/; SameSite=Lax; Max-Age=900`;
     window.location.href = `/api/auth/login/${provider}`;
   }
@@ -60,10 +61,7 @@ export default function SignupPage() {
             </ul>
             <div className="door-providers">
               {me?.providers.google && (
-                <button className="door-provider" disabled={!all} onClick={() => go("google")}>{t.continueGoogle}</button>
-              )}
-              {me?.providers.msa && (
-                <button className="door-provider" disabled={!all} onClick={() => go("msa")}>{t.continueMsa}</button>
+                <GoogleButton label={t.continueGoogle} disabled={!all} onClick={() => go("google")} />
               )}
             </div>
             {!all && <p className="guide-hint">{lang === "ko" ? "모든 항목을 확인하시면 계속할 수 있습니다." : "Acknowledge each item to continue."}</p>}

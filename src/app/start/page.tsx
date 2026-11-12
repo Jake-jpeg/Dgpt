@@ -19,6 +19,7 @@ import { api } from "@/lib/ui/client-api";
 import { formatUsd } from "@/config/pricing";
 import { NO_PASSWORD_LINE } from "@/config/signup-copy";
 import { START_RETURN_COOKIE } from "@/lib/june/links";
+import { GoogleButton } from "@/components/google-button";
 import { operatingFirmName } from "@/config/branding";
 
 type Msg = { id: string; role: "VISITOR" | "JUNE" | "SYSTEM"; content: string };
@@ -61,7 +62,7 @@ export default function StartWithJune() {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [msgs.length, state?.complete, busy]);
 
-  function signIn(provider: "google" | "msa") {
+  function signIn(provider: "google") {
     document.cookie = `${START_RETURN_COOKIE}=1; Path=/; SameSite=Lax; Max-Age=900`;
     window.location.href = `/api/auth/login/${provider}`;
   }
@@ -124,13 +125,12 @@ export default function StartWithJune() {
               <>
                 <h2>Sign in to start with June</h2>
                 <p className="panel-sub">
-                  June sets up your case under your own account, so the first step is a Google or Microsoft sign-in. Then two things —
+                  June sets up your case under your own account, so the first step is a Google sign-in. Then two things —
                   your name and a phone number — and you&apos;re talking to June.
                 </p>
                 <div className="door-providers">
-                  {me?.providers.google && <button className="door-provider" onClick={() => signIn("google")}>Continue with Google</button>}
-                  {me?.providers.msa && <button className="door-provider" onClick={() => signIn("msa")}>Continue with Outlook / Hotmail</button>}
-                  {me && !me.providers.google && !me.providers.msa && <p className="text-sm text-slate-500">Sign-in is not configured in this environment.</p>}
+                  {me?.providers.google && <GoogleButton label="Continue with Google" onClick={() => signIn("google")} />}
+                  {me && !me.providers.google && <p className="text-sm text-slate-500">Sign-in is not configured in this environment.</p>}
                 </div>
                 <p className="guide-hint">{NO_PASSWORD_LINE.en}</p>
                 <p className="guide-hint">{NO_PASSWORD_LINE.ko}</p>
@@ -152,7 +152,7 @@ export default function StartWithJune() {
             {access === "NOT_CLIENT" && (
               <>
                 <h2>Firm account</h2>
-                <p className="panel-sub">You are signed in to a firm account. June is for the spouses; use a personal Google or Microsoft account.</p>
+                <p className="panel-sub">You are signed in to a firm account. June is for the spouses; use a personal Google account.</p>
               </>
             )}
           </div>

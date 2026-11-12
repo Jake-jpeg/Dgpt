@@ -63,7 +63,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
         USED: "This link was already used.",
         REVOKED: "This link was cancelled. Ask your spouse to send a new one.",
         WRONG_EMAIL: `This link was sent to a different email address. Sign in with the address your spouse gave the firm.`,
-        NOT_A_CLIENT: "Please sign in with a personal Google or Microsoft account.",
+        NOT_A_CLIENT: "Please sign in with a personal Google account.",
         SEAT_TAKEN: "Someone has already joined this case with this link.",
       };
       throw new HttpError(409, msg[r.reason]);

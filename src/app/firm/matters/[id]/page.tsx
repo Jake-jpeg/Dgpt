@@ -705,7 +705,7 @@ function ConnectClientPanel({
       body:
         "Hello,\n\nGetting started with your case takes one minute:\n\n" +
         "1. Go to https://divorcegpt.com\n" +
-        "2. Log in as Client \u2014 you can log in with your Gmail, Outlook, or Hotmail account.\n\n" +
+        "2. Log in as Client \u2014 you can log in with your Google (Gmail) account.\n\n" +
         "That's it. Once you've logged in, I'll connect your case on my end, and your " +
         "questionnaire will be ready the next time you log in.\n\n" +
         "If you have questions, please feel free to contact me.",
@@ -718,7 +718,7 @@ function ConnectClientPanel({
         "\uC548\uB155\uD558\uC138\uC694,\n\n" +
         "\uC0AC\uAC74\uC744 \uC2DC\uC791\uD558\uB294 \uB370 1\uBD84\uC774\uBA74 \uCDA9\uBD84\uD569\uB2C8\uB2E4:\n\n" +
         "1. https://divorcegpt.com \uC5D0 \uC811\uC18D\uD558\uC138\uC694\n" +
-        "2. Client(\uC758\uB8B0\uC778)\uB85C \uB85C\uADF8\uC778\uD558\uC138\uC694 \u2014 Gmail, Outlook \uB610\uB294 Hotmail \uACC4\uC815\uC73C\uB85C \uB85C\uADF8\uC778\uD558\uC2E4 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\n" +
+        "2. Client(\uC758\uB8B0\uC778)\uB85C \uB85C\uADF8\uC778\uD558\uC138\uC694 \u2014 Google(Gmail) \uACC4\uC815\uC73C\uB85C \uB85C\uADF8\uC778\uD558\uC2E4 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\n" +
         "\uADF8\uAC8C \uC804\uBD80\uC785\uB2C8\uB2E4. \uB85C\uADF8\uC778\uD558\uC2DC\uBA74 \uC81C\uAC00 \uC0AC\uAC74\uC744 \uC5F0\uACB0\uD574 \uB4DC\uB9AC\uACE0, " +
         "\uB2E4\uC74C \uB85C\uADF8\uC778 \uC2DC \uC9C8\uBB38\uC9C0\uAC00 \uC900\uBE44\uB418\uC5B4 \uC788\uC744 \uAC81\uB2C8\uB2E4.\n\n" +
         "\uAD81\uAE08\uD558\uC2E0 \uC810\uC774 \uC788\uC73C\uC2DC\uBA74 \uC5B8\uC81C\uB4E0\uC9C0 \uC5F0\uB77D \uC8FC\uC138\uC694.",
@@ -730,7 +730,7 @@ function ConnectClientPanel({
       body:
         "Hola:\n\nComenzar con su caso toma un minuto:\n\n" +
         "1. Visite https://divorcegpt.com\n" +
-        "2. Inicie sesi\u00F3n como Cliente \u2014 puede usar su cuenta de Gmail, Outlook o Hotmail.\n\n" +
+        "2. Inicie sesi\u00F3n como Cliente \u2014 puede usar su cuenta de Google (Gmail).\n\n" +
         "Eso es todo. Una vez que inicie sesi\u00F3n, yo conectar\u00E9 su caso y su " +
         "cuestionario estar\u00E1 listo la pr\u00F3xima vez que entre.\n\n" +
         "Si tiene preguntas, no dude en contactarme.",

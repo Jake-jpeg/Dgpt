@@ -46,7 +46,7 @@ export const JUNE_WHITE_DOOR: Record<Exclude<JuneTopic, "OUT_OF_SCOPE">, string>
   FACTS: "The eight facts June needs, what each is for, and collecting them.",
   PRIVACY:
     "Who sees what: the firm sees what each spouse enters; the spouses never see each other's answers; what the other spouse enters is not confidential from the firm; June's conversation is kept and read by the firm.",
-  ACCOUNT: "Practical help: signing in with a Google or Microsoft account (there are no passwords here — the site never sees or stores one), English or Korean, what to do if a link expires, how to reach a person at the firm.",
+  ACCOUNT: "Practical help: signing in with a Google account — the only sign-in for clients (there are no passwords here — the site never sees or stores one), English or Korean, what to do if a link expires, how to reach a person at the firm.",
   ABOUT_JUNE: "Who June is: an automated assistant that facilitates intake, not a lawyer, no legal advice; a licensed attorney reviews everything.",
   SAFETY: "If someone is in danger right now: call 911. The attorney will speak with them personally. Nothing more.",
 };

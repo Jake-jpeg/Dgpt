@@ -45,7 +45,7 @@ export const HERO = {
     meta: [`New York`, `English · 한국어`, `Attorney-reviewed`, FEE_RANGE_EN],
     howTitle: "How it works",
     how: [
-      ["Sign in, then meet June", "A Google or Microsoft sign-in (no passwords here), your name and number — then an automated assistant takes eight quick details and tells you your exact fee."],
+      ["Sign in, then meet June", "A Google sign-in (no passwords here), your name and number — then an automated assistant takes eight quick details and tells you your exact fee."],
       ["Our client completes the interview", "The other spouse signs in separately and confirms the terms — without seeing the client's answers."],
       ["The attorney compares and meets you both", "A one-hour video meeting; the attorney corrects the papers."],
       ["The attorney emails you the finished set", "You file it yourself at the County Clerk or through NYSCEF. Filing itself is not part of this service."],
@@ -63,7 +63,7 @@ export const HERO = {
     meta: [`뉴욕`, `English · 한국어`, `변호사 검토`, FEE_RANGE_KO],
     howTitle: "진행 방법",
     how: [
-      ["로그인 후 June과 대화", "Google 또는 Microsoft 로그인(비밀번호 없음), 성함과 전화번호 — 그다음 자동화된 도우미가 여덟 가지 간단한 정보를 받고 정확한 수임료를 안내합니다."],
+      ["로그인 후 June과 대화", "Google 로그인(비밀번호 없음), 성함과 전화번호 — 그다음 자동화된 도우미가 여덟 가지 간단한 정보를 받고 정확한 수임료를 안내합니다."],
       ["의뢰인이 질문지를 작성합니다", "다른 배우자는 별도로 로그인하여 의뢰인의 답변을 보지 않고 합의 내용을 확인합니다."],
       ["변호사가 비교하고 두 분을 만납니다", "1시간 화상 미팅 후 변호사가 서류를 수정합니다."],
       ["변호사가 완성본을 이메일로 보내드립니다", "County Clerk 또는 NYSCEF에 직접 제출하십니다. 제출 자체는 이 서비스에 포함되지 않습니다."],
@@ -114,7 +114,7 @@ export const faqFor = (firm: string): Record<Lang, { title: string; items: Faq[]
       },
       {
         q: "Do you store my password?",
-        a: "No — there is no password. You sign in with your Google or Microsoft account, and we never see or store a password. Your account with them is the key to this site; if you cannot sign in, that is resolved with Google or Microsoft. For security we record the internet address used to sign up and sign in.",
+        a: "No — there is no password. You sign in with your Google account, and we never see or store a password. Your Google account is the key to this site; if you cannot sign in, that is resolved with Google. For security we record the internet address used to sign up and sign in.",
       },
     ],
   },
@@ -147,7 +147,7 @@ export const faqFor = (firm: string): Record<Lang, { title: string; items: Faq[]
       },
       {
         q: "비밀번호를 저장하나요?",
-        a: "아니요 — 비밀번호 자체가 없습니다. Google 또는 Microsoft 계정으로 로그인하시며, 저희는 비밀번호를 보거나 저장하지 않습니다. 해당 계정이 이 사이트의 열쇠이며, 로그인이 안 될 경우 Google 또는 Microsoft에서 해결하셔야 합니다. 보안을 위해 가입 및 로그인에 사용된 인터넷 주소를 기록합니다.",
+        a: "아니요 — 비밀번호 자체가 없습니다. Google 계정으로 로그인하시며, 저희는 비밀번호를 보거나 저장하지 않습니다. Google 계정이 이 사이트의 열쇠이며, 로그인이 안 될 경우 Google에서 해결하셔야 합니다. 보안을 위해 가입 및 로그인에 사용된 인터넷 주소를 기록합니다.",
       },
     ],
   },
@@ -159,17 +159,17 @@ export const SIGNIN = {
   en: {
     kicker: "Already have a case?",
     title: "Sign back in.",
-    sub: "Use the Google (Gmail) or Microsoft (Outlook.com / Hotmail) account you used before. If your spouse sent you an invitation, open that link instead — it signs you in and seats you on the case. No passwords here: we never see or store one — your Google or Microsoft account is the key.",
+    sub: "Use the Google account you used before. If your spouse sent you an invitation, open that link instead — it signs you in and seats you on the case.",
+    lock: "No passwords here. We never see or store one — your Google account is the key.",
     google: "Continue with Google",
-    msa: "Continue with Outlook / Hotmail",
     staff: (firm: string) => `${firm} staff:`,
   },
   ko: {
     kicker: "이미 사건이 있으신가요?",
     title: "다시 로그인하세요.",
-    sub: "이전에 사용하신 Google(Gmail) 또는 Microsoft(Outlook.com / Hotmail) 계정으로 로그인하세요. 배우자가 초대 링크를 보냈다면 그 링크를 여세요 — 로그인과 동시에 사건에 참여하게 됩니다. 비밀번호는 없습니다. 저희는 비밀번호를 보거나 저장하지 않으며, Google 또는 Microsoft 계정이 곧 열쇠입니다.",
+    sub: "이전에 사용하신 Google 계정으로 로그인하세요. 배우자가 초대 링크를 보냈다면 그 링크를 여세요 — 로그인과 동시에 사건에 참여하게 됩니다.",
+    lock: "비밀번호는 없습니다. 저희는 비밀번호를 보거나 저장하지 않으며, Google 계정이 곧 열쇠입니다.",
     google: "Google로 계속하기",
-    msa: "Outlook / Hotmail로 계속하기",
     staff: (firm: string) => `${firm} 직원:`,
   },
 } as const;

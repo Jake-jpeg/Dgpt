@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Shell, useMe, ErrorNotice, type Me } from "@/components/shell";
 import { api } from "@/lib/ui/client-api";
+import { GoogleButton } from "@/components/google-button";
 import { useLang, LangToggle } from "@/lib/ui/lang";
 import { HERO, SIGNIN, faqFor } from "@/config/door-copy";
 import { operatingFirmName } from "@/config/branding";
@@ -29,20 +30,11 @@ const HOME: Record<Me["role"], string> = {
 };
 
 
-function ProviderIcon({ kind }: { kind: "google" | "msa" | "june" }) {
-  // Neutral glyphs, deliberately not vendor logos.
-  if (kind === "june") {
-    return (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-5 4V5.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-        <path d="M8 8.5h8M8 11.5h5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      </svg>
-    );
-  }
+function JuneIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
-      <path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-5 4V5.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M8 8.5h8M8 11.5h5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -110,7 +102,7 @@ export default function PortalEntry() {
         <p className="door-copy">{t.sub(firm)}</p>
         <div className="door-actions" ref={ctaRef}>
           <button className="button button-primary door-cta" onClick={() => router.push("/start")}>
-            <ProviderIcon kind="june" />
+            <JuneIcon />
             {t.cta}
             <span aria-hidden="true" className="door-arrow">→</span>
           </button>
@@ -206,19 +198,17 @@ export default function PortalEntry() {
             </div>
             <div className="door-providers">
               {me?.providers.google ? (
-                <button className="door-provider" onClick={() => (window.location.href = "/api/auth/login/google")}>
-                  <ProviderIcon kind="google" />
-                  <span>{si.google}</span>
-                </button>
+                <GoogleButton label={si.google} onClick={() => (window.location.href = "/api/auth/login/google")} />
               ) : (
                 <p className="text-sm text-slate-500">Google sign-in is not configured in this environment.</p>
               )}
-              {me?.providers.msa && (
-                <button className="door-provider" onClick={() => (window.location.href = "/api/auth/login/msa")}>
-                  <ProviderIcon kind="msa" />
-                  <span>{si.msa}</span>
-                </button>
-              )}
+              <p className="door-lock">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="5" y="10.5" width="14" height="9.5" rx="2.2" stroke="currentColor" strokeWidth="1.8" />
+                  <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+                {si.lock}
+              </p>
             </div>
           </section>
 

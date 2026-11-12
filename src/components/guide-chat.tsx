@@ -121,10 +121,10 @@ export function GuideChat({ article, lang = "en" }: { article?: string; lang?: L
             {cfg.access === "REJECTED"
               ? lang === "ko" ? "로펌이 이 사안을 도와드릴 수 없습니다." : "The firm is unable to assist with this matter."
               : cfg.access === "NOT_CLIENT"
-                ? lang === "ko" ? "로펌 계정으로 로그인되어 있습니다. 개인 계정으로 가입해 주세요." : "You are signed in to a firm account; sign up with a personal account to use the guide."
+                ? lang === "ko" ? "로펌 계정으로 로그인되어 있습니다. 개인 Google 계정으로 가입해 주세요." : "You are signed in to a firm account; sign up with a personal Google account to use the guide."
                 : lang === "ko"
-                  ? "무료입니다. Google 또는 Microsoft 계정으로 로그인하고 성명과 전화번호를 남기시면, 로펌이 이해충돌 확인 후 연락드립니다."
-                  : "It's free. Sign in with Google or Microsoft and leave your name and phone number; the firm runs a conflict check and follows up."}
+                  ? "무료입니다. Google 계정으로 로그인하고 성명과 전화번호를 남기시면, 로펌이 이해충돌 확인 후 연락드립니다."
+                  : "It's free. Sign in with Google and leave your name and phone number; the firm runs a conflict check and follows up."}
           </p>
           {cfg.access !== "REJECTED" && cfg.access !== "NOT_CLIENT" && (
             <a className="btn btn-primary" href={cfg.signupUrl}>{lang === "ko" ? "가입하기" : "Sign up"}</a>

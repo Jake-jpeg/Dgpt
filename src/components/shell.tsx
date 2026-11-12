@@ -25,7 +25,7 @@ export interface MeResponse {
   identity: { email: string; name: string } | null;
   clientMatterId: string | null;
   devStub: boolean;
-  providers: { google: boolean; entra: boolean; msa: boolean };
+  providers: { google: boolean; entra: boolean };
 }
 
 export function useMe(): { me: MeResponse | null; loading: boolean; refresh: () => void } {

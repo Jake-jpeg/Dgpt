@@ -4,7 +4,7 @@
  * Getting-started page (2026-07-26 — invitation links are retired).
  *
  * Clients no longer need a link, a token, or a code: they sign in at the
- * home page with Google or Microsoft, a registration is created on the
+ * home page with Google, a registration is created on the
  * spot, and the ATTORNEY connects it to their case from the firm portal.
  * This page remains for two reasons: old bookmarked /invite URLs land
  * somewhere helpful, and the callback sends account-conflict sign-ins here
@@ -33,7 +33,7 @@ function InviteInner() {
         <h2>No invitation link needed</h2>
         <p className="panel-sub">
           Getting started takes one step: sign in with the email address the firm
-          has for you, using Google or Microsoft (Outlook / Hotmail). That&apos;s
+          has for you, using Google. That&apos;s
           it — your attorney will connect your case, and your questionnaire will
           be waiting the next time you log in.
         </p>

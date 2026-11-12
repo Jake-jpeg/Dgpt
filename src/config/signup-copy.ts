@@ -1,16 +1,17 @@
 /**
  * Sign-up copy (2026-11-07) — attorney-controlled. The sign-up collects a
- * verified identity (Google or Microsoft), a full name and a phone number;
+ * verified identity (Google), a full name and a phone number;
  * nothing else. The reader acknowledges the disclaimers below, versioned, so
  * the record shows exactly what they were told.
  */
 // 2026-11-08.1: added the no-password notice and the IP-address notice; sign-up now also opens June.
-export const SIGNUP_DISCLAIMER_VERSION = "2026-11-08.1";
+// 2026-11-12.1: Google is the only client sign-in (the personal-Microsoft door was removed).
+export const SIGNUP_DISCLAIMER_VERSION = "2026-11-12.1";
 
 /** The one line about passwords, everywhere a sign-in button appears (operator, 2026-11-08: "Let everyone know this"). */
 export const NO_PASSWORD_LINE = {
-  en: "No passwords here. We never see or store one — your Google or Microsoft account is your key, and sign-in problems are handled with them, not with us.",
-  ko: "비밀번호가 없습니다. 저희는 비밀번호를 보거나 저장하지 않습니다 — Google 또는 Microsoft 계정이 곧 열쇠이며, 로그인 문제는 저희가 아닌 해당 서비스에서 처리됩니다.",
+  en: "No passwords here. We never see or store one — your Google account is your key, and sign-in problems are handled with Google, not with us.",
+  ko: "비밀번호가 없습니다. 저희는 비밀번호를 보거나 저장하지 않습니다 — Google 계정이 곧 열쇠이며, 로그인 문제는 저희가 아닌 Google에서 처리됩니다.",
 } as const;
 
 export const SIGNUP_COPY = {
@@ -25,11 +26,10 @@ export const SIGNUP_COPY = {
       `${firm}, the law firm assigned to you, will run a conflict check using your name before anyone speaks with you. If a conflict exists the firm will decline, and the little you provided here will not be used for any other purpose.`,
       `Everything on this site is general information about New York law and is attorney advertising. It is not legal advice and it is New York only.`,
       `You are giving your name and phone number so the firm can contact you. They are not shared with anyone else.`,
-      `There is no password. We never see or store one: your Google or Microsoft account is your key to this site, and if you cannot sign in, that is resolved with Google or Microsoft, not with us.`,
+      `There is no password. We never see or store one: your Google account is your key to this site, and if you cannot sign in, that is resolved with Google, not with us.`,
       `For security and to prevent abuse, we record the internet (IP) address used to sign up and to sign in. An account that misuses the site can be suspended.`,
     ],
     continueGoogle: "Continue with Google",
-    continueMsa: "Continue with Microsoft",
     detailsTitle: "Two things, and you're done",
     fullName: "Your full legal name",
     phone: "Mobile number",
@@ -53,11 +53,10 @@ export const SIGNUP_COPY = {
       `담당 로펌인 ${firm}은 누구와도 대화하기 전에 귀하의 이름으로 이해충돌 확인을 진행합니다. 충돌이 있으면 로펌은 수임을 거절하며, 여기에 제공하신 정보는 다른 목적으로 사용되지 않습니다.`,
       `이 사이트의 모든 내용은 뉴욕 법에 관한 일반 정보이자 변호사 광고입니다. 법률 자문이 아니며 뉴욕에만 해당합니다.`,
       `로펌이 연락할 수 있도록 이름과 전화번호를 제공하시는 것입니다. 다른 누구와도 공유되지 않습니다.`,
-      `비밀번호는 없습니다. 저희는 비밀번호를 보거나 저장하지 않습니다. Google 또는 Microsoft 계정이 이 사이트의 열쇠이며, 로그인이 안 될 경우 저희가 아닌 Google 또는 Microsoft에서 해결하셔야 합니다.`,
+      `비밀번호는 없습니다. 저희는 비밀번호를 보거나 저장하지 않습니다. Google 계정이 이 사이트의 열쇠이며, 로그인이 안 될 경우 저희가 아닌 Google에서 해결하셔야 합니다.`,
       `보안과 악용 방지를 위해 가입 및 로그인에 사용된 인터넷(IP) 주소를 기록합니다. 사이트를 악용하는 계정은 정지될 수 있습니다.`,
     ],
     continueGoogle: "Google로 계속하기",
-    continueMsa: "Microsoft로 계속하기",
     detailsTitle: "두 가지만 알려주시면 끝입니다",
     fullName: "법적 성명(전체)",
     phone: "휴대전화 번호",

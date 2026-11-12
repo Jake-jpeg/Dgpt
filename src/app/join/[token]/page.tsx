@@ -14,6 +14,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Shell, useMe, ErrorNotice } from "@/components/shell";
 import { api } from "@/lib/ui/client-api";
 import { useLang, LangToggle } from "@/lib/ui/lang";
+import { GoogleButton } from "@/components/google-button";
 import { SPOUSE_NOTICE, SPOUSE_NOTICE_VERSION } from "@/config/door-copy";
 
 interface Preview {
@@ -45,7 +46,7 @@ export default function JoinPage() {
     })();
   }, [token]);
 
-  function signIn(provider: "google" | "msa") {
+  function signIn(provider: "google") {
     // Return address for the OAuth callback; the token stays in this URL
     // regardless, so if the cookie is lost the spouse just opens the link again.
     document.cookie = `dgpt_join_return=${encodeURIComponent(token)}; Path=/; SameSite=Lax; Max-Age=900`;
@@ -107,10 +108,7 @@ export default function JoinPage() {
             {!loading && !signedInClient && (
               <div className="june-signin">
                 {me?.providers.google && (
-                  <button className="btn btn-primary" onClick={() => signIn("google")}>Sign in with Google</button>
-                )}
-                {me?.providers.msa && (
-                  <button className="btn btn-primary" onClick={() => signIn("msa")}>Sign in with Outlook / Hotmail</button>
+                  <GoogleButton label="Sign in with Google" onClick={() => signIn("google")} />
                 )}
                 {me?.user && me.user.role !== "CLIENT" && (
                   <p className="text-sm text-slate-600">You are signed in to a firm account. Sign out and use a personal account.</p>
