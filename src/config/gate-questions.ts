@@ -14,7 +14,7 @@
  */
 import type { ProcessCopyId } from "./process-copy";
 import type { CardId } from "./cards";
-import { NY_COUNTIES, NJ_COUNTIES } from "./intake-fields";
+import { NY_COUNTIES } from "./intake-fields";
 
 export interface GateQuestion {
   /** Matches the machine state that asks it. */
@@ -116,42 +116,12 @@ export const GATE_QUESTIONS: Record<GateQuestion["state"], GateQuestion> = {
   },
 };
 
-/* ── New Jersey (the second playbook) ─────────────────────────────────
- * "Two separate bots for two separate states" (operator, 2026-08): the NJ
- * interview never speaks New York law and vice versa. NJ residency is ONE
- * flat rule — N.J.S.A. 2A:34-10, one year of continuous residence — so
- * there is no cascade: one residency question, then venue. DV, children,
- * and complexity are deliberately IDENTICAL to New York (same objects, not
- * copies): those gates are about safety and scope, not state law.
- */
-const NJ_GATE_OVERRIDES: Partial<Record<GateQuestion["state"], GateQuestion>> = {
-  GATE_RESIDENCY: {
-    state: "GATE_RESIDENCY",
-    // N.J.S.A. 2A:34-10 flat one-year rule. "Yes" satisfies residency
-    // outright; "no" flags for attorney review and continues (no second question).
-    prompt:
-      "Have you or your spouse lived in New Jersey continuously for at least the past 1 year?",
-    whyId: "WHY_RESIDENCY",
-    kind: "yesno",
-  },
-  GATE_VENUE: {
-    state: "GATE_VENUE",
-    // Collect-only, like New York: all 21 NJ counties plus "I'm not sure".
-    prompt: "Which New Jersey county do you live in?",
-    whyId: "WHY_VENUE",
-    kind: "county",
-    options: [
-      ...NJ_COUNTIES.map((c) => ({ value: c, label: c })),
-      { value: "UNSURE", label: "I'm not sure" },
-    ],
-  },
-};
+/** New York only (2026-11-12: the New Jersey overrides were removed with the rest of that playbook). */
+export type GateJurisdiction = "NY";
 
-export type GateJurisdiction = "NY" | "NJ";
-
-/** The gate wording for a jurisdiction. NY is the untouched original set. */
+/** The gate wording for a jurisdiction — one set now. */
 export function gateQuestionsFor(
-  jurisdiction: GateJurisdiction
+  _jurisdiction: GateJurisdiction = "NY"
 ): Record<GateQuestion["state"], GateQuestion> {
-  return jurisdiction === "NJ" ? { ...GATE_QUESTIONS, ...NJ_GATE_OVERRIDES } : GATE_QUESTIONS;
+  return GATE_QUESTIONS;
 }

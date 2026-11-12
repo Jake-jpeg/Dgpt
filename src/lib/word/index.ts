@@ -9,7 +9,6 @@
 import { createHash } from "node:crypto";
 import { buildDocx, type WordForm, type WordPayload } from "./engine";
 import { NY_FORMS } from "./forms/ny";
-import { NJ_FORMS } from "./forms/nj";
 
 export const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
@@ -22,7 +21,6 @@ export interface WordRenderResult {
 
 const REGISTRY: Record<string, Record<string, (p: WordPayload) => WordForm>> = {
   ny: NY_FORMS,
-  nj: NJ_FORMS,
 };
 
 export function wordFormExists(state: string, form: string): boolean {

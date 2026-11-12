@@ -7,7 +7,8 @@
  * `attorney_determination` records and are never client-visible.
  */
 
-export type Jurisdiction = "SHARED" | "NY" | "NJ";
+// New York only (2026-11-12: New Jersey removed from the build until NY is perfected).
+export type Jurisdiction = "SHARED" | "NY";
 
 export const MATTER_CATEGORIES = [
   // New York categories — DivorceGPT began as a New York product.
@@ -19,11 +20,6 @@ export const MATTER_CATEGORIES = [
   "NY_FAMILY_COURT_SUPPORT_PARENTAGE",
   "NY_UCCJEA_INTERSTATE",
   "NY_FAMILY_OFFENSE_OR_EMERGENCY_ESCALATION",
-  // New Jersey. ONE category, deliberately: the NJ scope is the uncontested
-  // Superior Court / Chancery Division, Family Part dissolution, pleaded on
-  // irreconcilable differences only. There is no NJ contested track and no
-  // NJ fault-grounds track, mirroring the NY § 170(7) decision.
-  "NJ_SUPER_UNCONTESTED",
 ] as const;
 
 export type MatterCategory = (typeof MATTER_CATEGORIES)[number];
@@ -91,7 +87,7 @@ export interface IntakeItem {
    * entry gets no help text at all, which is the honest outcome: silence
    * beats a hand-waved substitute.
    */
-  helpTextByJurisdiction?: Partial<Record<"NY" | "NJ", string>>;
+  helpTextByJurisdiction?: Partial<Record<"NY", string>>;
   type: AnswerType;
   required: boolean;
   options?: { value: string; label: string }[];
@@ -127,10 +123,10 @@ export interface DocumentCatalogItem {
 }
 
 export interface IntakeSchema {
-  /** e.g. "NY_SUPREME_UNCONTESTED@2026.07.1", "NJ_SUPER_UNCONTESTED@2026.08.1" */
+  /** e.g. "NY_SUPREME_UNCONTESTED@2026.07.1" */
   id: string;
   category: MatterCategory;
-  jurisdiction: "NY" | "NJ";
+  jurisdiction: "NY";
   version: string;
   effectiveDate: string;
   reviewStatus: ReviewStatus;

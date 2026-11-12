@@ -24,7 +24,7 @@ import { recordAudit, listSessionsByMatter } from "@/lib/db/repo";
 import { getUserById } from "@/lib/db/users";
 import { listDocumentsForMatter, listVersions } from "@/lib/db/documents";
 import { attorneySetJurisdictionAndScope } from "@/lib/db/intake2";
-import { UNCONTESTED_CATEGORY, NJ_CATEGORY } from "@/config/intake/phases";
+import { UNCONTESTED_CATEGORY } from "@/config/intake/phases";
 import type { MatterCategory } from "@/lib/intake2/types";
 
 function matterSummary(m: MatterRow) {
@@ -89,10 +89,8 @@ export async function GET(req: Request) {
 
 const createSchema = z.object({
   label: z.string().trim().min(1).max(120),
-  // The state picker (2026-08). Optional and defaulting to NY so every
-  // existing caller — and every existing matter — behaves exactly as before
-  // the second state existed.
-  jurisdiction: z.enum(["NY", "NJ"]).optional(),
+  // New York only (2026-11-12: New Jersey removed). Kept optional for callers.
+  jurisdiction: z.enum(["NY"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -102,9 +100,7 @@ export async function POST(req: Request) {
     const { account } = await requireUser(req, ["STAFF", "ATTORNEY"]);
     const parsed = createSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new HttpError(400, "VALIDATION: invalid matter payload");
-    // The state picker (2026-08): NY or NJ, chosen per matter at creation.
-    // Default NY — every pre-picker caller keeps its exact old behavior.
-    const jurisdiction = parsed.data.jurisdiction ?? "NY";
+    const jurisdiction = "NY" as const;
     // The creator's firm is the firm of record (platform-level creator → the default firm).
     const firm = await getFirm(account.firmId ?? DEFAULT_FIRM_ID);
     const matter = (await createMatter({
@@ -127,10 +123,9 @@ export async function POST(req: Request) {
     // "Get rid of the jurisdiction panel… If a lawyer reviews and fucks up
     // jurisdiction — that's for the lawyer to correct."). This confirmation
     // is what unlocks the state's render allowlist so the forms can
-    // actually be produced — and it is what makes the two playbooks
-    // exclusive: an NY matter can never render an NJ form, or vice versa.
+    // actually be produced.
     if (account.role === "ATTORNEY") {
-      const category = (jurisdiction === "NJ" ? NJ_CATEGORY : UNCONTESTED_CATEGORY) as MatterCategory;
+      const category = UNCONTESTED_CATEGORY as MatterCategory;
       await attorneySetJurisdictionAndScope({
         matterId: matter.id,
         actingUserId: account.id,

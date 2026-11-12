@@ -26,7 +26,7 @@ import { createParty } from "@/lib/db/parties";
 import { createSpouseInvitation } from "@/lib/db/spouse-invites";
 import { createSession, listSessionsByMatter, recordAudit } from "@/lib/db/repo";
 import { getSchemaForCategory } from "@/config/intake/schemas";
-import { NJ_CATEGORY, UNCONTESTED_CATEGORY } from "@/config/intake/phases";
+import { UNCONTESTED_CATEGORY } from "@/config/intake/phases";
 import { quoteFor, type Quote } from "@/config/pricing";
 import type { UserRow } from "@/lib/db/users";
 import { attachJuneChatToMatter } from "./turn";
@@ -40,7 +40,7 @@ export const startDraftSchema = z.object({
   spouseName: z.string().trim().min(1).max(120),
   spouseEmail: z.string().trim().toLowerCase().email().max(320),
   // The front door creates cases in served states only (src/config/service-area.ts).
-  state: z.enum(["NY", "NJ"]).refine((v) => servesState(v), "state not served"),
+  state: z.enum(["NY"]).refine((v) => servesState(v), "state not served"),
   children: z.boolean(),
   assets: z.boolean(),
   /** The starting spouse confirms they have read how the firm works. */
@@ -148,7 +148,7 @@ export async function finishStart(
   // The front door opens cases for the default firm, on that firm's default tier (2026-11-02).
   const firm = await ensureDefaultFirm();
   const matter = await createMatter({ label, createdBy: user.id, jurisdictionCandidate: d.state, firmId: firm.id, engagementTier: firm.defaultTier });
-  const category = d.state === "NJ" ? NJ_CATEGORY : UNCONTESTED_CATEGORY;
+  const category = UNCONTESTED_CATEGORY;
   await pinMatterCategoryAtCreation(matter.id, d.state, category, getSchemaForCategory(category).version);
   await bindClientToMatter(matter.id, user.id);
   await markConflictsExternal(matter.id);

@@ -32,7 +32,7 @@ import { getCard, type StaticCard } from "@/config/cards";
 import { GLOSSARY } from "@/config/glossary";
 import { operatingFirmName } from "@/config/branding";
 import { firmContactLine } from "@/config/firm-contact";
-import { NY_COUNTIES, NJ_COUNTIES } from "@/config/intake-fields";
+import { NY_COUNTIES } from "@/config/intake-fields";
 import { clientItemInPhase, matterIntakePhase, activeIntakePhase, type IntakePhase } from "@/config/intake/phases";
 import { callStructured } from "@/lib/ai/responses";
 import { intakeChatProvider, intakeChatModel } from "@/config/ai-providers";
@@ -357,17 +357,13 @@ export function estimateQuestionCount(
 
 export function scriptedWelcome(
   questionEstimate: number,
-  jurisdiction: "NY" | "NJ" = "NY"
+  _jurisdiction: "NY" = "NY"
 ): string {
-  // The first question is the first gate, in the interview's own state:
-  // New York opens with the § 230(5) two-year prong; New Jersey opens with
-  // the flat N.J.S.A. 2A:34-10 one-year rule. One engine, two playbooks.
+  // The first question is the first gate: New York opens with the § 230(5)
+  // two-year prong.
   const firstQuestion =
-    jurisdiction === "NJ"
-      ? `have you or your spouse lived in New Jersey ` +
-        `continuously for at least the past 1 year?`
-      : `have you or your spouse lived in New York State ` +
-        `continuously for at least the past 2 years?`;
+    `have you or your spouse lived in New York State ` +
+    `continuously for at least the past 2 years?`;
   return (
     `Hello — I'm the intake assistant for ${operatingFirmName()}. I'm not a lawyer and I ` +
     `can't give legal advice; a licensed attorney reviews everything we go ` +
@@ -717,9 +713,8 @@ async function passGate(
   // so the question phase silently skips them. County = the venue gate's
   // county; a YES on either residency-duration gate = lives in-state now;
   // the children gate IS the schema's "children together?" question
-  // (2026-09-13). The id prefix follows the schema's jurisdiction, so an NJ
-  // gate pass prefills nj.case.* and can never write a New York answer.
-  const idPrefix = ctx.schema.jurisdiction === "NJ" ? "nj" : "ny";
+  // (2026-09-13).
+  const idPrefix = "ny";
   const prefill: { questionId: string; value: unknown }[] = [];
   const yes = value === true || value === "yes";
   if (evaluation.persist?.county && !isAnsweredId(ctx, `${idPrefix}.case.county`)) {
@@ -764,7 +759,7 @@ function isAnsweredId(ctx: ConversationContext, questionId: string): boolean {
  * a guess would be a gate the client never answered.
  */
 function gateValueFromFacts(ctx: ConversationContext, gate: GateState): unknown {
-  const idPrefix = ctx.schema.jurisdiction === "NJ" ? "nj" : "ny";
+  const idPrefix = "ny";
   switch (gate) {
     case "GATE_CHILDREN": {
       if (!isAnsweredId(ctx, "shared.children.any")) return undefined;
@@ -772,7 +767,7 @@ function gateValueFromFacts(ctx: ConversationContext, gate: GateState): unknown 
     }
     case "GATE_VENUE": {
       const county = ctx.answers[`${idPrefix}.case.county`];
-      const list: readonly string[] = ctx.schema.jurisdiction === "NJ" ? NJ_COUNTIES : NY_COUNTIES;
+      const list: readonly string[] = NY_COUNTIES;
       return typeof county === "string" && list.includes(county) ? county : undefined;
     }
     default:
@@ -966,7 +961,7 @@ export async function runIntakeTurn(opts: {
   const system = buildConstitution({
     firmName: operatingFirmName(),
     firmContact: firmContact(),
-    stateName: ctx.schema.jurisdiction === "NJ" ? "New Jersey" : "New York",
+    stateName: "New York",
     party: ctx.session.partyId === "B" ? "B" : "A",
   });
 

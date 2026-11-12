@@ -127,7 +127,7 @@ describe("scope gate unit behavior", () => {
       });
     });
   });
-  it("venue: NY county captured, never disqualifies; NJ counties are unknown", () => {
+  it("venue: NY county captured, never disqualifies; a New Jersey county is unknown (NJ removed 2026-11-12)", () => {
     const r = evaluateGate("GATE_VENUE", "Kings");
     expect(r).toMatchObject({ outcome: "PASS", persist: { county: "Kings" } });
     expect(() => evaluateGate("GATE_VENUE", "Bergen")).toThrow(/VALIDATION/);
@@ -143,7 +143,6 @@ describe("scope gate unit behavior", () => {
     expect(evaluateGate("GATE_DV", true)).toMatchObject({
       outcome: "PASS", next: "GATE_CHILDREN", reviewFlags: ["DV_DISCLOSED_ATTORNEY_REVIEW"], card: "DV_RESOURCES",
     });
-    expect(evaluateGate("GATE_DV", true, "NJ")).toMatchObject({ outcome: "PASS", card: "DV_RESOURCES_NJ" });
     const no = evaluateGate("GATE_DV", false);
     expect(no).toMatchObject({ outcome: "PASS", next: "GATE_CHILDREN" });
     expect(no.card).toBeUndefined();
@@ -153,7 +152,6 @@ describe("scope gate unit behavior", () => {
     expect(evaluateGate("GATE_CHILDREN", true)).toMatchObject({
       outcome: "PASS", next: "GATE_COMPLEXITY", reviewFlags: ["CHILDREN_PRESENT_ATTORNEY_REVIEW"],
     });
-    expect(evaluateGate("GATE_CHILDREN", true, "NJ")).toMatchObject({ outcome: "PASS", next: "GATE_COMPLEXITY" });
     expect(evaluateGate("GATE_CHILDREN", false)).toMatchObject({ outcome: "PASS", next: "GATE_COMPLEXITY" });
   });
   it("complexity: anything but FULLY_AGREE → PASS + attorney flag; never a referral card", () => {
@@ -165,16 +163,12 @@ describe("scope gate unit behavior", () => {
     }
     expect(() => evaluateGate("GATE_COMPLEXITY", "MAYBE")).toThrow(/VALIDATION/);
   });
-  it("no gate, in either state, can produce anything but PASS", () => {
+  it("no gate can produce anything but PASS", () => {
     const answers: [Parameters<typeof evaluateGate>[0], unknown][] = [
       ["GATE_RESIDENCY", false], ["GATE_RESIDENCY_1YR", false], ["GATE_RESIDENCY_NEXUS", false],
       ["GATE_VENUE", "UNSURE"], ["GATE_DV", true], ["GATE_CHILDREN", true], ["GATE_COMPLEXITY", "DISAGREEMENT"],
     ];
     for (const [g, v] of answers) expect(evaluateGate(g, v, "NY").outcome).toBe("PASS");
-    for (const [g, v] of answers) {
-      if (g === "GATE_RESIDENCY_1YR" || g === "GATE_RESIDENCY_NEXUS") continue; // not in the NJ cascade
-      expect(evaluateGate(g, v, "NJ").outcome).toBe("PASS");
-    }
   });
   it("malformed answers throw instead of passing", () => {
     expect(() => evaluateGate("GATE_DV", "maybe")).toThrow(/VALIDATION/);
@@ -283,13 +277,8 @@ describe("DV card ship-blocker guard", () => {
       expect(served.body).toContain("Example Law LLC — (201) 555-0100");
       expect(served.body).not.toContain("[FIRM_CONTACT_LINE]");
       expect(dvCardHasPlaceholder()).toBe(false);
-      // NJ card carries the same contact and the state's own hotline.
-      const nj = getCard("DV_RESOURCES_NJ");
-      expect(nj.resources![0].value).toBe("Example Law LLC — (201) 555-0100");
-      expect(nj.resources!.some((r) => r.value.includes("1-800-572-SAFE"))).toBe(true);
-      // Neither card tells the client the intake will not continue.
+      // The card never tells the client the intake will not continue.
       expect(served.body).not.toMatch(/will not continue/i);
-      expect(nj.body).not.toMatch(/will not continue/i);
     } finally {
       vi.unstubAllEnvs();
     }

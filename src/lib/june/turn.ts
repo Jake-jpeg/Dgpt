@@ -63,7 +63,7 @@ export type PartialFacts = Partial<{
   yourEmail: string;
   spouseName: string;
   spouseEmail: string;
-  state: "NY" | "NJ";
+  state: "NY";
   children: boolean;
   assets: boolean;
   understood: boolean;
@@ -86,7 +86,7 @@ const factsProposalSchema = z.object({
   yourEmail: z.string().trim().toLowerCase().email().max(320).nullable().optional(),
   spouseName: z.string().trim().min(1).max(120).nullable().optional(),
   spouseEmail: z.string().trim().toLowerCase().email().max(320).nullable().optional(),
-  state: z.enum(["NY", "NJ"]).refine((v) => servesState(v), "state not served").nullable().optional(),
+  state: z.enum(["NY"]).refine((v) => servesState(v), "state not served").nullable().optional(),
   children: z.boolean().nullable().optional(),
   assets: z.boolean().nullable().optional(),
   understood: z.boolean().nullable().optional(),
@@ -500,8 +500,9 @@ export function scriptedTurn(facts: PartialFacts, message: string, lang: JuneLan
     if (m) (out as Record<string, unknown>)[next] = m[0].toLowerCase();
     else ack = lang === "ko" ? "이메일 주소 형식이 아닌 것 같아요. " : "That doesn't look like an email address. ";
   } else if (next === "state") {
-    const said = /new york|\bny\b|뉴욕/i.test(t) ? "NY" : /new jersey|\bnj\b|뉴저지/i.test(t) ? "NJ" : null;
-    if (said && servesState(said)) out.state = said;
+    // Any other state named (New Jersey, Connecticut, …) is a polite "New York only".
+    const said = /new york|\bny\b|뉴욕/i.test(t) ? "NY" : /new jersey|\bnj\b|뉴저지|connecticut|\bct\b|pennsylvania|\bpa\b|florida|california|texas/i.test(t) ? "OTHER" : null;
+    if (said === "NY") out.state = "NY";
     else if (said) ack = lang === "ko" ? `죄송합니다 — 현재는 ${servedStatesPhrase("ko")} 사건만 맡고 있습니다. ` : `Sorry — the firm takes ${servedStatesPhrase("en")} cases only right now. `;
     else ack = lang === "ko" ? `${servedStatesPhrase("ko")}인지 알려 주세요. ` : `${servedStatesPhrase("en")}, please. `;
   } else if (next === "children" || next === "assets" || next === "understood") {

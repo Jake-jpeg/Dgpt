@@ -161,8 +161,6 @@ export function nextStep(state: SequencerState): Step {
     return {
       kind: "GATE",
       id: state.machineState,
-      // The schema's jurisdiction picks the playbook: an NJ interview asks
-      // NJ residency and NJ counties, never New York's ("two separate bots").
       gate: gateQuestionsFor(state.schema.jurisdiction)[state.machineState],
       ...sectionMeta(state, null),
     };

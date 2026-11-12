@@ -167,7 +167,7 @@ export type ScopeStatus = (typeof SCOPE_STATUSES)[number];
 export async function attorneySetJurisdictionAndScope(opts: {
   matterId: string;
   actingUserId: string;
-  jurisdictionConfirmed?: "NY" | "NJ" | null;
+  jurisdictionConfirmed?: "NY" | null;
   matterCategory?: MatterCategory | null;
   scopeStatus?: ScopeStatus;
   scopeNotes?: string;
@@ -206,10 +206,7 @@ export async function attorneySetJurisdictionAndScope(opts: {
     );
   }
   if (opts.matterCategory !== undefined) {
-    // Pin the version the CATEGORY's schema actually carries — NY and NJ are
-    // versioned independently (their counsel-review histories are separate),
-    // so pinning NY's date on an NJ matter would misstate what the client
-    // was interviewed under.
+    // Pin the version the CATEGORY's schema actually carries.
     const pinnedVersion = opts.matterCategory
       ? getSchemaForCategory(opts.matterCategory as MatterCategory).version
       : null;

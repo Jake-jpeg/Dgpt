@@ -19,7 +19,7 @@ interface MatterDetail {
   id: string;
   label: string;
   lifecycle: string;
-  jurisdiction: "NY" | "NJ";
+  jurisdiction: "NY";
   jurisdictionConfirmed: string | null;
   conflictStatus: string;
   legalHold: boolean;
@@ -234,9 +234,7 @@ export default function FirmMatterDetail() {
               {matter.legalHold && <span className="badge badge-stop">LEGAL HOLD</span>}
             </div>
             <p className="board-sub">
-              {matter.jurisdiction === "NJ"
-                ? "New Jersey uncontested divorce · Superior Court, Chancery Division, Family Part"
-                : "New York uncontested divorce · Supreme Court"}{" "}
+              New York uncontested divorce · Supreme Court{" "}
               · created {fmtWhen(matter.createdAt)} · last updated {fmtWhen(matter.updatedAt)}
             </p>
 
@@ -380,7 +378,7 @@ export default function FirmMatterDetail() {
           <div style={{ flex: "0 1 340px", minWidth: 300 }}>
             <FormsRail
               matterId={matterId}
-              state={(matter.jurisdiction ?? "NY").toLowerCase() as "ny" | "nj"}
+              state="ny"
               isAttorney={isAttorney}
               docs={docs}
               onChanged={load}

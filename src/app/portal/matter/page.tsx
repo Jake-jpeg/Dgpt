@@ -35,7 +35,7 @@ interface PendingDraft {
   yourName: string;
   spouseName: string;
   spouseEmailMasked: string;
-  state: "NY" | "NJ";
+  state: "NY";
   children: boolean;
   assets: boolean;
   quote: { total: number; lines: { label: string; amount: number }[] };
@@ -249,7 +249,7 @@ export default function ClientMatterPage() {
         <div className="panel">
           <h2>Your case is ready to create, {pending.yourName.split(" ")[0]}</h2>
           <p className="panel-sub">
-            {pending.state === "NJ" ? "New Jersey" : "New York"} · {pending.children ? "children" : "no children"} ·{" "}
+            New York · {pending.children ? "children" : "no children"} ·{" "}
             {pending.assets ? "assets or debts to divide" : "no assets or debts to divide"} · flat fee $
             {pending.quote.total.toLocaleString("en-US")}. Your spouse, {pending.spouseName}, will be invited at{" "}
             {pending.spouseEmailMasked}.

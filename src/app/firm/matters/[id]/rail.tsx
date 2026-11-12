@@ -42,9 +42,9 @@ interface RailDoc {
   versions: RailVersion[];
 }
 
-/** Each state's rail — same three-phase shape, that state's own forms. */
+/** The rail — three phases, New York's forms (New Jersey removed 2026-11-12). */
 const PHASE_FORMS_BY_STATE: Record<
-  "ny" | "nj",
+  "ny",
   { phase: 1 | 2 | 3; title: string; forms: string[] }[]
 > = {
   ny: [
@@ -58,20 +58,11 @@ const PHASE_FORMS_BY_STATE: Record<
     },
     { phase: 3, title: "Phase 3 · Finalization", forms: ["ud14", "ud15"] },
   ],
-  nj: [
-    { phase: 1, title: "Phase 1 · Commencement", forms: ["complaint", "summons", "verification"] },
-    {
-      phase: 2,
-      title: "Phase 2 · Uncontested packet",
-      forms: ["acknowledgment", "cdr_plaintiff", "cdr_defendant", "insurance"],
-    },
-    { phase: 3, title: "Phase 3 · Judgment", forms: ["jod", "jod_cert_plaintiff", "jod_cert_defendant"] },
-  ],
 };
 
 /** Short row label: "UD-1 Summons with Notice" (the state prefix is noise here). */
-function shortLabel(state: "ny" | "nj", form: string): string {
-  return renderLabel(state, form).replace(/^(NY|NJ) /, "");
+function shortLabel(state: "ny", form: string): string {
+  return renderLabel(state, form).replace(/^NY /, "");
 }
 
 export default function FormsRail({
@@ -83,7 +74,7 @@ export default function FormsRail({
 }: {
   matterId: string;
   /** The matter's confirmed (or candidate) state — picks which rail renders. */
-  state: "ny" | "nj";
+  state: "ny";
   isAttorney: boolean;
   docs: RailDoc[];
   onChanged: () => void | Promise<void>;
@@ -269,12 +260,7 @@ export default function FormsRail({
       })}
 
       <p className="text-xs text-slate-500" style={{ marginTop: 14, borderTop: "1px solid var(--line, #e2e8f0)", paddingTop: 8 }}>
-        {state === "nj"
-          ? // NJ publishes no alimony guideline formula or income cap —
-            // N.J.S.A. 2A:34-23(b) is a factor analysis. Printing a number
-            // here would be inventing one.
-            "New Jersey alimony: N.J.S.A. 2A:34-23 factor analysis — no guideline figure applies. Child support guidelines are applied by the attorney."
-          : `${guide.maintenance} ${guide.childSupport}`}
+        {`${guide.maintenance} ${guide.childSupport}`}
       </p>
     </aside>
   );

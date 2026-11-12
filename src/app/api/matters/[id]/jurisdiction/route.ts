@@ -19,7 +19,6 @@ import { assertRateLimit } from "@/lib/security/rate-limit";
 import { getMatterAnswers, attorneySetJurisdictionAndScope } from "@/lib/db/intake2";
 import { jurisdictionSignals } from "@/lib/intake2/engine";
 import { evaluateResidency } from "@/lib/legal/ny-residency";
-import { evaluateNjResidency } from "@/lib/legal/nj-residency";
 import { guidelineYearSummary } from "@/config/legal/ny-guidelines-2026";
 import { MATTER_CATEGORIES } from "@/lib/intake2/types";
 import { recordAudit } from "@/lib/db/repo";
@@ -48,12 +47,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     return Response.json({
       // The card the attorney actually reads: green PASS or yellow REVIEW,
       // with the WHY spelled out. Deterministic; no attorney form to fill.
-      // The matter's confirmed jurisdiction picks the evaluator — an NJ
-      // matter is judged by the flat 2A:34-10 rule, never by § 230.
-      residency:
-        matter.jurisdictionConfirmed === "NJ"
-          ? evaluateNjResidency(answers)
-          : evaluateResidency(answers),
+      // New York only (2026-11-12: New Jersey removed from the build).
+      residency: evaluateResidency(answers),
       // Which year's spousal-maintenance and child-support numbers this build
       // applies — printed on the lawyer panel per operator directive.
       guidelines: guidelineYearSummary(),
@@ -86,7 +81,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
 
 const postSchema = z.object({
   jurisdictionCandidate: z.string().trim().max(60).optional(),
-  jurisdictionConfirmed: z.enum(["NY", "NJ"]).nullable().optional(),
+  jurisdictionConfirmed: z.enum(["NY"]).nullable().optional(),
   matterCategory: z.enum(MATTER_CATEGORIES).nullable().optional(),
   scopeStatus: z
     .enum(["UNREVIEWED", "UNDER_REVIEW", "ACCEPTED", "DECLINED", "MULTI_JURISDICTION_REVIEW_REQUIRED"])

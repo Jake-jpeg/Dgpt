@@ -23,7 +23,7 @@ import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
 import { getMatterAnswers, attorneySetJurisdictionAndScope } from "@/lib/db/intake2";
-import { UNCONTESTED_CATEGORY, NJ_CATEGORY } from "@/config/intake/phases";
+import { UNCONTESTED_CATEGORY } from "@/config/intake/phases";
 import type { MatterCategory } from "@/lib/intake2/types";
 import { recordAudit } from "@/lib/db/repo";
 import { getFileStorage } from "@/lib/storage";
@@ -34,7 +34,7 @@ import { renderWord, wordFormExists, DOCX_MIME } from "@/lib/word";
 import { auditFormDataConfirmed, auditPdfRendered } from "@/lib/pdf-service/audit";
 
 const schema = z.object({
-  state: z.enum(["ny", "nj"]),
+  state: z.enum(["ny"]),
   form: z.string().trim().min(1).max(40),
   confirmFormData: z.literal(true),
   // Word only (operator, 2026-09-12: "We will produce WORD documents only
@@ -90,7 +90,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     // flip, so that render refuses instead. A confirmed matter still
     // refuses any other state's form — the two playbooks are exclusive.
     if (!matter.jurisdictionConfirmed) {
-      const requested = state.toUpperCase() as "NY" | "NJ";
+      const requested = "NY" as const;
       const candidate = matter.jurisdictionCandidate?.toUpperCase() ?? null;
       if (candidate && candidate !== requested) {
         throw new HttpError(
@@ -98,7 +98,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
           "JURISDICTION_GUARD: this matter was opened for another state — confirm jurisdiction before rendering"
         );
       }
-      const category = (requested === "NJ" ? NJ_CATEGORY : UNCONTESTED_CATEGORY) as MatterCategory;
+      const category = UNCONTESTED_CATEGORY as MatterCategory;
       await attorneySetJurisdictionAndScope({
         matterId: matter.id,
         actingUserId: authed.account.id,

@@ -65,28 +65,18 @@ describe("shared intake items are state-neutral", () => {
     }
   });
 
-  it("per-state help is the ONLY escape hatch, and it resolves per schema", () => {
+  it("per-state help is the ONLY escape hatch, and it resolves per schema (NY is the only state since 2026-11-12)", () => {
     const ny = getSchemaForCategory("NY_SUPREME_UNCONTESTED");
-    const nj = getSchemaForCategory("NJ_SUPER_UNCONTESTED");
     const nyCeremony = ny.items.find((i) => i.id === "shared.relationship.ceremony_type")!;
-    const njCeremony = nj.items.find((i) => i.id === "shared.relationship.ceremony_type")!;
-
-    // Same question, same id, same stored answer — different explanation.
     expect(nyCeremony.helpText).toMatch(/New York/);
-    // New Jersey has no analogue to describe, so it says nothing at all.
-    expect(njCeremony.helpText).toBeUndefined();
   });
 
-  it("a built schema never carries the other state's copy", () => {
-    for (const category of ["NY_SUPREME_UNCONTESTED", "NJ_SUPER_UNCONTESTED"] as const) {
-      const schema = getSchemaForCategory(category);
-      for (const item of schema.items) {
-        // The raw map is stripped at build time; if it survived, a client
-        // payload could serialise the other state's sentence.
-        expect(item.helpTextByJurisdiction).toBeUndefined();
-      }
+  it("a built schema never carries the raw per-state map", () => {
+    const schema = getSchemaForCategory("NY_SUPREME_UNCONTESTED");
+    for (const item of schema.items) {
+      // The raw map is stripped at build time; if it survived, a client
+      // payload could serialise another state's sentence.
+      expect(item.helpTextByJurisdiction).toBeUndefined();
     }
-    const njRaw = JSON.stringify(getSchemaForCategory("NJ_SUPER_UNCONTESTED"));
-    expect(njRaw).not.toMatch(/New York/);
   });
 });

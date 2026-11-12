@@ -237,15 +237,11 @@ export function Shell({
 }
 
 /** Small navy state tag — which state's playbook a matter runs under. */
-export function StateBadge({ value }: { value: "NY" | "NJ" }) {
+export function StateBadge({ value }: { value: "NY" }) {
   return (
     <span
       className="badge"
-      title={
-        value === "NJ"
-          ? "New Jersey — Superior Court, Chancery Division, Family Part"
-          : "New York — Supreme Court, Matrimonial"
-      }
+      title="New York — Supreme Court, Matrimonial"
       style={{
         background: "#eef3fb",
         color: "#1f4ca8",

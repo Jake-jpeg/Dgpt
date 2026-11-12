@@ -41,7 +41,6 @@ import {
   getSchemaForCategory,
   listSchemas,
   INTAKE_SCHEMA_VERSION,
-  NJ_INTAKE_SCHEMA_VERSION,
 } from "@/config/intake/schemas";
 import { MATTER_CATEGORIES } from "@/lib/intake2/types";
 import {
@@ -299,9 +298,10 @@ describe("E2 deterministic branching", () => {
   // that no category exists outside the known state prefixes — so a typo'd or
   // stateless category is still caught, which is what the old loop was
   // actually protecting.
+  // 2026-11-12: New Jersey removed from the build; the per-state shape stays
+  // so a second state is a one-line addition here.
   const STATE_CONTRACTS = [
     { prefix: "NY_", itemPrefix: "ny.", foreign: "nj.", version: INTAKE_SCHEMA_VERSION },
-    { prefix: "NJ_", itemPrefix: "nj.", foreign: "ny.", version: NJ_INTAKE_SCHEMA_VERSION },
   ];
 
   it("every category belongs to a known state — no stateless or typo'd categories", () => {

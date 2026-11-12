@@ -99,11 +99,9 @@ describe("deterministic mappings", () => {
     const matter = await nyReadyMatter();
     expect(() => buildRenderPayload("ny", "ud1", matter, {})).toThrow(/VALIDATION/);
     expect(() => buildRenderPayload("ny", "nonsense", matter, {})).toThrow(/unsupported/);
-    // NJ is a REAL state now (2026-08-23): its builders exist, so an empty
-    // answer set fails as INCOMPLETE — never as unsupported, and never by
-    // inventing a caption. A truly unknown NJ form still refuses outright.
-    expect(() => buildRenderPayload("nj", "verification", matter, {})).toThrow(/incomplete/);
-    expect(() => buildRenderPayload("nj", "nonsense", matter, {})).toThrow(/unsupported/);
+    // New Jersey was removed from the build (2026-11-12): every NJ pair is unsupported.
+    expect(() => buildRenderPayload("nj", "verification", matter, {})).toThrow(/unsupported/);
+    expect(() => buildRenderPayload("nj", "complaint", matter, {})).toThrow(/unsupported/);
   });
 
   it("Phase-3 UD-14/UD-15 payloads: caption facts mapped, clerk/server fields blank on purpose", async () => {

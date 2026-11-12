@@ -23,7 +23,6 @@
  *   NY § 230(3) one year, no nexus ......... PASS + RESIDENCY_ATTORNEY_REVIEW.
  *   NY under one year ...................... PASS + RESIDENCY_ATTORNEY_REVIEW
  *     (only § 230(4) could remain — the attorney decides).
- *   NJ N.J.S.A. 2A:34-10 one year: yes ..... PASS; no → PASS + review flag.
  * Venue: collect-only — "not sure" flags; a county is captured, never judged.
  * DV: PASS + DV_DISCLOSED_ATTORNEY_REVIEW, and the jurisdiction's DV
  *   resources card is shown once (the session continues).
@@ -35,7 +34,7 @@
  * reorder steps.
  */
 import { GATE_QUESTIONS, type GateJurisdiction } from "@/config/gate-questions";
-import { NY_COUNTIES, NJ_COUNTIES } from "@/config/intake-fields";
+import { NY_COUNTIES } from "@/config/intake-fields";
 import type { MachineState } from "./machine";
 import type { CardId } from "@/config/cards";
 
@@ -71,32 +70,17 @@ export const GATE_REVIEW_FLAGS = {
  * Evaluate one gate answer. Pure function: no I/O, fully unit-testable.
  * Throws on malformed input (the API layer converts that to a 400).
  *
- * `jurisdiction` selects the playbook ("NY" default keeps every existing
- * caller byte-identical). New Jersey's residency is one flat rule —
- * N.J.S.A. 2A:34-10, one year of continuous residence — so its cascade is
- * one question. DV / children / complexity evaluate identically in both
- * states; only the DV resources card is state-specific.
+ * New York only (2026-11-12: the New Jersey playbook was removed). The
+ * `jurisdiction` parameter stays for call-site compatibility.
  */
 export function evaluateGate(
   state: GateState,
   rawAnswer: unknown,
-  jurisdiction: GateJurisdiction = "NY"
+  _jurisdiction: GateJurisdiction = "NY"
 ): GateEvaluation {
   switch (state) {
     case "GATE_RESIDENCY": {
       const yes = requireYesNo(rawAnswer);
-      if (jurisdiction === "NJ") {
-        // N.J.S.A. 2A:34-10 — the flat one-year rule, asked as one question.
-        // "No" is the attorney's problem to solve, not a door closing.
-        return yes
-          ? { outcome: "PASS", next: "GATE_VENUE" }
-          : {
-              outcome: "PASS",
-              next: "GATE_VENUE",
-              reviewFlags: [GATE_REVIEW_FLAGS.RESIDENCY],
-              auditEvent: "GATE_FLAG_RESIDENCY",
-            };
-      }
       // DRL § 230(5): two-year continuous residence — objective. Shorter is
       // not a rejection: the one-year pathways are real law — continue to
       // the one-year question.
@@ -105,12 +89,6 @@ export function evaluateGate(
         : { outcome: "PASS", next: "GATE_RESIDENCY_1YR" };
     }
     case "GATE_RESIDENCY_1YR": {
-      if (jurisdiction === "NJ") {
-        // Unreachable by construction (the NJ GATE_RESIDENCY never routes
-        // here). Refuse loudly rather than answer New York law to a New
-        // Jersey client.
-        throw new Error("VALIDATION: the NY residency cascade is not part of the NJ interview");
-      }
       // The one-year durational floor shared by § 230(1)-(3).
       // Yes → the nexus question sorts out WHICH prong.
       // No → only § 230(4) (cause + both resident now) could remain: a
@@ -126,9 +104,6 @@ export function evaluateGate(
           };
     }
     case "GATE_RESIDENCY_NEXUS": {
-      if (jurisdiction === "NJ") {
-        throw new Error("VALIDATION: the NY residency cascade is not part of the NJ interview");
-      }
       // Objective nexus prongs (§ 230(1)-(2)): married in NY, or lived in NY
       // as spouses — checkbox facts; one year + nexus passes CLEAN.
       // No objective nexus → the remaining basis is § 230(3) (the breakdown
@@ -155,7 +130,7 @@ export function evaluateGate(
           auditEvent: "GATE_FLAG_VENUE",
         };
       }
-      const counties: readonly string[] = jurisdiction === "NJ" ? NJ_COUNTIES : NY_COUNTIES;
+      const counties: readonly string[] = NY_COUNTIES;
       if (!counties.includes(county)) {
         throw new Error("VALIDATION: unknown county");
       }
@@ -171,7 +146,7 @@ export function evaluateGate(
             outcome: "PASS",
             next: "GATE_CHILDREN",
             reviewFlags: [GATE_REVIEW_FLAGS.DV],
-            card: jurisdiction === "NJ" ? "DV_RESOURCES_NJ" : "DV_RESOURCES",
+            card: "DV_RESOURCES",
             auditEvent: "GATE_FLAG_DV",
           }
         : { outcome: "PASS", next: "GATE_CHILDREN" };

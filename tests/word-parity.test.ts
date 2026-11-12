@@ -17,7 +17,7 @@ import { docxText, normalizeTokens, tokenDiff } from "./word-helpers";
 
 const DIR = path.join(__dirname, "golden", "word");
 const FX = JSON.parse(readFileSync(path.join(DIR, "fixtures.json"), "utf8")) as Record<string, Record<string, unknown>>;
-const BASE = FX.BASE, KIDS = FX.KIDS, RELIGIOUS = FX.RELIGIOUS, NJ = FX.NJ_BASE;
+const BASE = FX.BASE, KIDS = FX.KIDS, RELIGIOUS = FX.RELIGIOUS;
 
 // The ReportLab complaint hardcoded the firm's signature block as Python
 // constants; the Word engine takes it from the payload (FIRM_ATTORNEY_* env
@@ -60,16 +60,6 @@ export const CASES: [string, string, string, Record<string, unknown>][] = [
   ["ud11-religious", "ny", "ud11", RELIGIOUS],
   ["stipulation-base", "ny", "stipulation", BASE],
   ["stipulation-kids", "ny", "stipulation", KIDS],
-  ["nj-complaint", "nj", "complaint", NJ],
-  ["nj-summons", "nj", "summons", NJ],
-  ["nj-verification", "nj", "verification", NJ],
-  ["nj-acknowledgment", "nj", "acknowledgment", NJ],
-  ["nj-cdr-plaintiff", "nj", "cdr_plaintiff", NJ],
-  ["nj-cdr-defendant", "nj", "cdr_defendant", NJ],
-  ["nj-insurance", "nj", "insurance", NJ],
-  ["nj-jod", "nj", "jod", NJ],
-  ["nj-jod-cert-p", "nj", "jod_cert_plaintiff", NJ],
-  ["nj-jod-cert-d", "nj", "jod_cert_defendant", NJ],
 ];
 
 describe("Word parity with the ReportLab generators", () => {

@@ -197,6 +197,12 @@ export async function beginOAuth(provider: ProviderId): Promise<{
     nonce,
     code_challenge: challenge,
     code_challenge_method: "S256",
+    // 2026-11-12 (operator): the firm's Microsoft link "takes me straight to
+    // the portal" — the browser already had a Microsoft session, so Entra
+    // signed the user in silently. Always show the account picker instead:
+    // a lawyer with several Microsoft identities must choose on purpose.
+    // Google honours the same parameter.
+    prompt: "select_account",
   });
 
   return {

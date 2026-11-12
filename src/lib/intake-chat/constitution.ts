@@ -75,10 +75,9 @@ export function buildConstitution(opts: {
   firmName: string;
   firmContact: string;
   tone?: IntakeTone;
-  /** The matter's state ("New York" default). The NY bot never speaks NJ
-   *  law and vice versa — the constitution names ONE state and rule 6
-   *  flags anything outside it for the attorney. */
-  stateName?: "New York" | "New Jersey";
+  /** The matter's state — New York. The constitution names ONE state and
+   *  rule 6 flags anything outside it for the attorney. */
+  stateName?: "New York";
   /** Which spouse is being interviewed (2026-10-30). A = the firm's client.
    *  B = the OTHER spouse: the firm represents their spouse, not them, so the
    *  deflection in rule 5 points them to their own lawyer, never to "your

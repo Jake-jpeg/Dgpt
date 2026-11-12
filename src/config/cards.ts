@@ -77,36 +77,6 @@ export const CARDS = {
     ],
   },
 
-  /** The New Jersey playbook's DV card — same handling, the state's own resources. */
-  DV_RESOURCES_NJ: {
-    id: "DV_RESOURCES_NJ",
-    title: "Thank you for telling us — your attorney will review this personally",
-    body:
-      "Because domestic violence can affect how a divorce should be handled, " +
-      "a licensed attorney at the firm will look at your case personally " +
-      "before anything is filed. You can keep going with the questions here " +
-      "whenever you are ready, and you can also reach a person directly: " +
-      "[FIRM_CONTACT_LINE], or ask for the domestic-violence unit at the " +
-      "Family Division of your county's Superior Court — they can help " +
-      "whether the matter is past or current.",
-    resources: [
-      {
-        label: "Contact the firm",
-        value: "[FIRM_CONTACT_LINE]",
-      },
-      {
-        label: "Domestic Violence unit",
-        value:
-          "Ask at the Family Division of the Superior Court in your county (past or current matters)",
-      },
-      {
-        label: "If you are in immediate danger",
-        value:
-          "Call 911 · New Jersey Statewide Domestic Violence Hotline (24/7): 1-800-572-SAFE (7233)",
-      },
-    ],
-  },
-
   /** Served on complexity/disagreement/valuation trips and the deferred custody tier. */
   // [ATTORNEY REVIEW REQUIRED — NY] NY bar-referral card copy pending counsel sign-off.
   NY_BAR_REFERRAL: {

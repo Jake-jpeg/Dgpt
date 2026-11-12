@@ -120,7 +120,7 @@ export async function createMatter(opts: {
   /** The creator's state choice from the picker. For a STAFF creator this
    *  is recorded as the CANDIDATE only — confirming jurisdiction remains an
    *  attorney act (attorneySetJurisdictionAndScope guards that). */
-  jurisdictionCandidate?: "NY" | "NJ";
+  jurisdictionCandidate?: "NY";
   /** The firm of record and its tier (2026-11-02); default firm / REVIEW when omitted. */
   firmId?: string | null;
   engagementTier?: EngagementTier;
@@ -179,7 +179,7 @@ export async function listMattersForClient(clientUserId: string): Promise<Matter
  */
 export async function pinMatterCategoryAtCreation(
   matterId: string,
-  jurisdiction: "NY" | "NJ",
+  jurisdiction: "NY",
   category: string,
   schemaVersion: string
 ): Promise<void> {
