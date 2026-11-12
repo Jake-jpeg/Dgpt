@@ -165,12 +165,10 @@ describe("admin delete-user: guards", () => {
     expect(await getUserById(a1.id)).toBeNull();
   });
 
-  it("an attorney CAN manage users; staff cannot (2026-08-23 fold)", async () => {
-    // The admin portal was folded into the lawyer portal (operator:
-    // "get rid of the admin portal and just have one for lawyers and
-    // clients"): the management surface now accepts ATTORNEY as well as
-    // ADMIN. This moved no attorney power to admins — and STAFF/CLIENT are
-    // still refused outright.
+  it("ONLY the platform administrator manages users (2026-11-12): attorneys and staff are refused", async () => {
+    // 2026-08-23 folded user management into the lawyer portal; 2026-11-12
+    // (operator: "only admin@juneguidedsolutions.com can assign roles or
+    // allow lawyers to have lawyer interfaces") takes it back to ADMIN only.
     const victim = await createUser({ email: "clean3@example.test", role: "STAFF" });
     const staffSession: SessionUser = {
       subject: "devstub|staff:staff-mgr@example.test",
@@ -192,8 +190,14 @@ describe("admin delete-user: guards", () => {
     };
     await provisionAccount(attorneySession);
     const attorneyCookie = await cookieFor(attorneySession);
-    const res = await del(victim.id, attorneyCookie);
-    expect(res.status).toBe(200);
+    freshLimits();
+    expect((await del(victim.id, attorneyCookie)).status).toBe(403);
+    expect(await getUserById(victim.id)).not.toBeNull();
+    freshLimits();
+    expect((await listUsersRoute(jsonRequest("/api/admin/users", { method: "GET", cookie: attorneyCookie }))).status).toBe(403);
+
+    freshLimits();
+    expect((await del(victim.id)).status).toBe(200); // the admin
     expect(await getUserById(victim.id)).toBeNull();
   });
 });
@@ -211,8 +215,9 @@ describe("admin users list: caseData hint", () => {
     };
     const byId = new Map(users.map((u) => [u.id, u.caseData]));
     expect(byId.get(clean.id)).toBe(0);
-    // The attorney is created_by on the matter; the client is client_user_id.
+    // The attorney is created_by on the matter.
     expect(byId.get(ctx.attorneyUserId)).toBeGreaterThan(0);
-    expect(byId.get(ctx.clientUserId)).toBeGreaterThan(0);
+    // Clients are not on the lawyer list (2026-11-12) — they live on the Accounts page.
+    expect(byId.has(ctx.clientUserId)).toBe(false);
   });
 });

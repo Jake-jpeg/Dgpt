@@ -37,8 +37,7 @@ interface AuditRow {
   at: string;
 }
 
-const ROLES = ["CLIENT", "STAFF", "ATTORNEY", "ADMIN"] as const;
-// Client accounts are born only via invitation acceptance — never offered here.
+// Firm roles only. Client accounts are born at sign-in and live on the Accounts page.
 const CREATE_ROLES = ["STAFF", "ATTORNEY", "ADMIN"] as const;
 
 export default function PracticeSettingsPage() {
@@ -128,12 +127,18 @@ export default function PracticeSettingsPage() {
         <>
           <FirmPanel canEdit={role === "ATTORNEY" || role === "ADMIN"} onInfo={setInfo} onError={setErr} />
 
+          {/* 2026-11-12 (operator): only the platform administrator assigns
+              roles or opens the lawyer interface; clients are many and live
+              on their own page (Accounts). This panel is the lawyer list. */}
+          {role === "ADMIN" && (
           <div className="panel">
-            <h2>Users &amp; roles</h2>
+            <h2>Lawyers &amp; staff</h2>
             <p className="panel-sub">
-              Roles are stored in the database and re-checked on every request.
-              Administrators cannot clear conflicts or approve/release documents
-              — those remain attorney-only regardless of anything set here.
+              Firm-side accounts only — attorneys, staff and administrators. Creating an ATTORNEY here opens the lawyer
+              interface to that email (it must also be on the ATTORNEY_EMAILS allowlist in the deployment). Roles are stored
+              in the database and re-checked on every request. Administrators cannot clear conflicts or approve/release
+              documents — those remain attorney-only regardless of anything set here. Clients are not managed here: see
+              Accounts.
             </p>
             <div className="flex flex-wrap items-end gap-3">
               <label className="min-w-64 flex-1 text-sm">
@@ -203,7 +208,7 @@ export default function PracticeSettingsPage() {
                           }, "Role updated.")
                         }
                       >
-                        {ROLES.map((r) => (
+                        {CREATE_ROLES.map((r) => (
                           <option key={r} value={r}>
                             {r}
                           </option>
@@ -268,6 +273,7 @@ export default function PracticeSettingsPage() {
               </tbody>
             </table>
           </div>
+          )}
 
           <div className="panel">
             <h2>Disclosure</h2>

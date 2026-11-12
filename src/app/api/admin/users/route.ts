@@ -7,7 +7,11 @@
  * admin can do through this (or any) endpoint weakens them.
  */
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth/authz";
+import { requireUser } from "@/lib/auth/authz";
+
+// 2026-11-12 (operator): only the platform administrator assigns roles or
+// opens the lawyer interface to anyone. Attorneys no longer reach this API.
+const requireAdmin = (req: Request) => requireUser(req, ["ADMIN"]);
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
@@ -20,7 +24,8 @@ export async function GET(req: Request) {
     await requireAdmin(req);
     return Response.json({
       users: await Promise.all(
-        ((await listUsers()).map(async (u) => ({
+        // The lawyer list: firm accounts only. Clients live on the Accounts page.
+        ((await listUsers()).filter((u) => u.role !== "CLIENT").map(async (u) => ({
                     id: u.id,
                     email: u.email,
                     name: u.name,

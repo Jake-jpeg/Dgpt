@@ -3,7 +3,11 @@
  * Deactivation is preferred over deletion (nothing is hard-deleted here).
  */
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth/authz";
+import { requireUser } from "@/lib/auth/authz";
+
+// 2026-11-12 (operator): only the platform administrator assigns roles or
+// opens the lawyer interface to anyone. Attorneys no longer reach this API.
+const requireAdmin = (req: Request) => requireUser(req, ["ADMIN"]);
 import { errorResponse, HttpError } from "@/lib/auth/rbac";
 import { assertCsrf } from "@/lib/security/csrf";
 import { assertRateLimit } from "@/lib/security/rate-limit";
